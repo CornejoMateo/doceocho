@@ -1,14 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
-import { Search, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Loader2, Settings2 } from 'lucide-react';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
+import { ItemsPredefinedDialog } from '@/components/business/works/checklists/items-predefined-dialog';
 import {
 	createChecklist,
 	createChecklistItems,
 	getChecklistsByWorkId,
 } from '@/lib/checklists/checklists';
+import { listItemsPredefined } from '@/lib/checklists/items-predefined';
+import { type ItemsPredefined } from '@/lib/checklists/items-predefined';
+import { listMaterials } from '@/lib/checklists/materials';
+import { type Material } from '@/lib/checklists/materials';
 import { updateWorkGeneralNote } from '@/lib/works/works';
 import { type StatusFilter } from '@/constants/type-config';
 import { EmailNotificationModal } from '@/components/ui/email-notification-modal';
@@ -39,6 +45,10 @@ export function WorksOpenings() {
 
 	const { user } = useAuth();
 	const { works, loading, reload } = useWorksWithProgress();
+
+	const isAdmin = useMemo(() => {
+		return user?.role === 'Admin';
+	}, [user?.role]);
 
 	const { filteredData, paginatedData, totalPages } = paginateAndFilter(
 		works,
@@ -95,6 +105,30 @@ export function WorksOpenings() {
 		openChecklist,
 		closeChecklist,
 	} = useChecklistModal();
+
+	const [itemsPredefinedOpen, setItemsPredefinedOpen] = useState(false);
+	const [itemsPredefinedData, setItemsPredefinedData] = useState<ItemsPredefined[]>([]);
+	const [materialsData, setMaterialsData] = useState<Material[]>([]);
+	const [itemsPredefinedLoading, setItemsPredefinedLoading] = useState(false);
+
+	const refreshItemsPredefined = useCallback(async () => {
+		const { data } = await listItemsPredefined();
+		if (data) setItemsPredefinedData(data);
+	}, []);
+
+	const refreshMaterials = useCallback(async () => {
+		const { data } = await listMaterials();
+		if (data) setMaterialsData(data);
+	}, []);
+
+	useEffect(() => {
+		if (itemsPredefinedOpen) {
+			setItemsPredefinedLoading(true);
+			Promise.all([refreshItemsPredefined(), refreshMaterials()]).finally(() => {
+				setItemsPredefinedLoading(false);
+			});
+		}
+	}, [itemsPredefinedOpen, refreshItemsPredefined, refreshMaterials]);
 
 	const handleSaveChecklist = async (checklist: any) => {
 		const { data: existingChecklists } = await getChecklistsByWorkId(checklistWork?.id || -1);
@@ -157,6 +191,12 @@ export function WorksOpenings() {
 						<h2 className="text-2xl font-bold text-foreground">Checklists de obras</h2>
 						<p className="text-muted-foreground mt-1">Seguimiento de instalaciones y tareas</p>
 					</div>
+					{isAdmin && (
+						<Button variant="outline" size="sm" onClick={() => setItemsPredefinedOpen(true)}>
+							<Settings2 className="h-4 w-4 mr-2" />
+							Items predefinidos
+						</Button>
+					)}
 				</div>
 
 				{/* Search Bar */}
@@ -296,6 +336,16 @@ export function WorksOpenings() {
 					onSave={handleSaveChecklist}
 				/>
 			)}
+
+			<ItemsPredefinedDialog
+				open={itemsPredefinedOpen}
+				onOpenChange={setItemsPredefinedOpen}
+				materials={materialsData}
+				itemsPredefined={itemsPredefinedData}
+				refreshMaterials={refreshMaterials}
+				refreshItemsPredefined={refreshItemsPredefined}
+				isLoading={itemsPredefinedLoading}
+			/>
 		</div>
 	);
 }
