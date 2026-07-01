@@ -2,6 +2,23 @@ import { useState } from 'react';
 import { Work } from '@/lib/works/works';
 import { Checklist, ChecklistItem } from '@/lib/checklists/checklists';
 
+export type ChecklistItemState = {
+	id?: number;
+	description: string;
+	done?: boolean;
+	sort_order?: number | null;
+};
+
+export type ChecklistState = {
+	name: string | null;
+	description: string | null;
+	items: ChecklistItemState[];
+	width: number | null;
+	height: number | null;
+	depth: string | null;
+	type_furniture: string | null;
+};
+
 export function useChecklistModal() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedWork, setSelectedWork] = useState<Work | null>(null);
@@ -16,15 +33,7 @@ export function useChecklistModal() {
 		setSelectedWork(null);
 	};
 
-	const [checklist, setChecklist] = useState<{
-		name: string | null;
-		description: string | null;
-		items: { description: string }[];
-		width: number | null;
-		height: number | null;
-		depth: string | null;
-		type_furniture: string | null;
-	}>({
+	const [checklist, setChecklist] = useState<ChecklistState>({
 		name: null,
 		description: null,
 		items: [],
@@ -39,7 +48,10 @@ export function useChecklistModal() {
 			name: checklistToEdit.name || null,
 			description: checklistToEdit.description || null,
 			items: (existingItems || []).map((item) => ({
+				id: item.id,
 				description: item.description,
+				done: item.done,
+				sort_order: item.sort_order,
 			})),
 			width: checklistToEdit.width ?? null,
 			height: checklistToEdit.height ?? null,
@@ -84,13 +96,16 @@ export function useChecklistModal() {
 	};
 
 	const updateItem = (index: number, description: string) => {
+		const trimmedDescription = description.trim();
 		setChecklist((prev) => ({
 			...prev,
-			items: prev.items.map((item, i) => (i === index ? { ...item, description } : item)),
+			items: prev.items.map((item, i) =>
+				i === index ? { ...item, description: trimmedDescription } : item
+			),
 		}));
 	};
 
-	const setItems = (items: { description: string }[]) => {
+	const setItems = (items: ChecklistItemState[]) => {
 		setChecklist((prev) => ({
 			...prev,
 			items,

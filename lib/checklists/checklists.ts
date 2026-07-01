@@ -19,12 +19,14 @@ export type Checklist = {
 	notes?: string | null;
 	width?: number | null;
 	height?: number | null;
-	depth?: string | null;
+	depth?: number | null;
 	type_furniture?: string | null;
 };
 
 const TABLE = 'checklists';
 const ITEMS_TABLE = 'items_checklists';
+const GALLERY_TABLE = 'gallery_checklists';
+const STORAGE_BUCKET = 'checklist-gallery';
 
 export async function listChecklists(): Promise<{ data: Checklist[] | null; error: any }> {
 	const supabase = getSupabaseClient();
@@ -62,10 +64,56 @@ export async function editChecklist(
 	return { data, error };
 }
 
+async function deleteStorageFiles(paths: string[]): Promise<{ error: any }> {
+	if (paths.length === 0) return { error: null };
+	const supabase = getSupabaseClient();
+	const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+	return { error };
+}
+
 export async function deleteChecklist(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { error } = await supabase.from(TABLE).delete().eq('id', id);
-	return { data: null, error };
+
+	const { data: items } = await supabase.from(ITEMS_TABLE).select('id').eq('checklist_id', id);
+
+	const itemIds = items?.map((i) => i.id) ?? [];
+
+	const allPaths = new Set<string>();
+	if (itemIds.length > 0) {
+		const { data: galleryData } = await supabase
+			.from(GALLERY_TABLE)
+			.select('path')
+			.in('item_id', itemIds);
+		for (const r of galleryData ?? []) {
+			if (r.path) allPaths.add(r.path);
+		}
+
+		for (const itemId of itemIds) {
+			const { data: storageFiles } = await supabase.storage
+				.from(STORAGE_BUCKET)
+				.list(String(itemId), { limit: 200 });
+			if (storageFiles) {
+				for (const file of storageFiles) {
+					if (file.id) allPaths.add(`${itemId}/${file.name}`);
+				}
+			}
+		}
+	}
+
+	const { data: deleted, error } = await supabase.from(TABLE).delete().eq('id', id).select('id');
+	if (error) return { data: null, error };
+	if (!deleted || deleted.length === 0)
+		return { data: null, error: new Error('No tienes permisos para eliminar esta checklist.') };
+
+	const paths = [...allPaths];
+	if (paths.length > 0) {
+		const { error: storageError } = await deleteStorageFiles(paths);
+		if (storageError) {
+			console.error('Checklist deleted from DB but gallery storage cleanup failed:', storageError);
+		}
+	}
+
+	return { data: null, error: null };
 }
 
 export async function getChecklistsByWorkId(
@@ -173,8 +221,25 @@ export async function updateChecklistItem(
 
 export async function deleteChecklistItem(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
+
+	const { data: galleryRecords } = await supabase
+		.from(GALLERY_TABLE)
+		.select('path')
+		.eq('item_id', id);
+
+	const paths = (galleryRecords ?? []).map((r) => r.path).filter(Boolean);
+
 	const { error } = await supabase.from(ITEMS_TABLE).delete().eq('id', id);
-	return { data: null, error };
+	if (error) return { data: null, error };
+
+	if (paths.length > 0) {
+		const { error: storageError } = await deleteStorageFiles(paths);
+		if (storageError) {
+			console.error('Item deleted from DB but gallery storage cleanup failed:', storageError);
+		}
+	}
+
+	return { data: null, error: null };
 }
 
 export async function deleteChecklistItemsByChecklistId(
@@ -190,8 +255,25 @@ export async function deleteChecklistItemsByIds(
 ): Promise<{ data: null; error: any }> {
 	if (ids.length === 0) return { data: null, error: null };
 	const supabase = getSupabaseClient();
+
+	const { data: galleryRecords } = await supabase
+		.from(GALLERY_TABLE)
+		.select('path')
+		.in('item_id', ids);
+
+	const paths = (galleryRecords ?? []).map((r: { path: string }) => r.path).filter(Boolean);
+
 	const { error } = await supabase.from(ITEMS_TABLE).delete().in('id', ids);
-	return { data: null, error };
+	if (error) return { data: null, error };
+
+	if (paths.length > 0) {
+		const { error: storageError } = await deleteStorageFiles(paths);
+		if (storageError) {
+			console.error('Items deleted from DB but gallery storage cleanup failed:', storageError);
+		}
+	}
+
+	return { data: null, error: null };
 }
 
 export async function setAllChecklistItems(

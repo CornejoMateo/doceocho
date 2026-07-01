@@ -100,6 +100,7 @@ function SortableItemRow({ item, checklistId, saving, onToggle }: SortableItemPr
 			<div className="flex items-center gap-3 p-3 bg-card hover:bg-muted/30 rounded-lg border transition-colors">
 				<button
 					type="button"
+					aria-label={`Reordenar item ${item.description}`}
 					className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5"
 					{...attributes}
 					{...listeners}

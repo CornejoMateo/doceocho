@@ -55,7 +55,7 @@ type ChecklistModalProps = {
 			depth?: string | null;
 			type_furniture?: string | null;
 		}
-	) => void;
+	) => Promise<void>;
 };
 
 export function ChecklistModal({
@@ -81,7 +81,7 @@ export function ChecklistModal({
 	useEffect(() => {
 		if (modalOpen) {
 			listMaterials().then(({ data }) => {
-				if (data) setMaterials(data);
+				if (data) setMaterials([...data, { id: -1, name: 'Otros' }]);
 			});
 		} else {
 			setCreatedCount(0);
@@ -152,12 +152,7 @@ export function ChecklistModal({
 
 		try {
 			if (isEditMode && onUpdate && checklistToEdit) {
-				onUpdate(checklistToEdit.id, {
-					...checklist,
-					items: checklist.items.map((item) => ({
-						description: item.description,
-					})),
-				});
+				await onUpdate(checklistToEdit.id, checklist);
 				toast({
 					title: 'Checklist actualizada',
 					description: 'Los cambios se guardaron correctamente.',

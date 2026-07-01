@@ -36,6 +36,7 @@ import { StatsCardsWorks } from '@/components/business/works/stats-cards-works';
 import { useChecklistModal } from '@/hooks/clients/use-checklist-modal';
 import { WorkCard } from '@/components/business/works/work-card';
 import { translateError } from '@/lib/error-translator';
+import { toast } from '@/components/ui/use-toast';
 
 export function WorksOpenings() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -112,13 +113,27 @@ export function WorksOpenings() {
 	const [itemsPredefinedLoading, setItemsPredefinedLoading] = useState(false);
 
 	const refreshItemsPredefined = useCallback(async () => {
-		const { data } = await listItemsPredefined();
+		const { data, error } = await listItemsPredefined();
+		if (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'Error al cargar los items predefinidos',
+				variant: 'destructive',
+			});
+		}
 		if (data) setItemsPredefinedData(data);
 	}, []);
 
 	const refreshMaterials = useCallback(async () => {
-		const { data } = await listMaterials();
+		const { data, error } = await listMaterials();
 		if (data) setMaterialsData(data);
+		if (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'Error al cargar los materiales',
+				variant: 'destructive',
+			});
+		}
 	}, []);
 
 	useEffect(() => {

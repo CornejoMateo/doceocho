@@ -29,8 +29,9 @@ import {
 	getItemsByChecklistIds,
 	updateChecklistItem,
 	setAllChecklistItems as setAllItemsApi,
-	deleteChecklistItemsByChecklistId,
+	deleteChecklistItemsByIds,
 	createChecklistItems,
+	reorderChecklistItems,
 } from '@/lib/checklists/checklists';
 import { updateWorkGeneralNote } from '@/lib/works/works';
 import { ChecklistPDFButton } from '@/components/ui/checklist-pdf-button';
@@ -88,16 +89,24 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 			setChecklists(fetchedChecklists);
 			const ids = fetchedChecklists.map((c) => c.id);
 			if (ids.length > 0) {
-				getItemsByChecklistIds(ids).then(({ data }) => {
-					if (data) {
-						const map: Record<number, ChecklistItem[]> = {};
-						for (const item of data) {
-							if (!map[item.checklist_id]) map[item.checklist_id] = [];
-							map[item.checklist_id].push(item);
+				getItemsByChecklistIds(ids)
+					.then(({ data, error }) => {
+						if (error) {
+							console.error('Error loading checklist items:', error);
+							return;
 						}
-						setItemsMap(map);
-					}
-				});
+						if (data) {
+							const map: Record<number, ChecklistItem[]> = {};
+							for (const item of data) {
+								if (!map[item.checklist_id]) map[item.checklist_id] = [];
+								map[item.checklist_id].push(item);
+							}
+							setItemsMap(map);
+						}
+					})
+					.catch((err) => {
+						console.error('Unexpected error loading checklist items:', err);
+					});
 			}
 		}
 	}, [fetchedChecklists]);
@@ -129,7 +138,9 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 				}));
 				toast({
 					title: 'Error al actualizar item',
-					description: translateError(error),
+					description:
+						translateError(error) ||
+						'No se pudo actualizar el item. Por favor, intenta nuevamente.',
 					variant: 'destructive',
 				});
 			}
@@ -167,8 +178,23 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 		}
 	};
 
-	const handleReorderItems = (checklistId: number, items: ChecklistItem[]) => {
+	const handleReorderItems = async (checklistId: number, items: ChecklistItem[]) => {
+		const previousItems = itemsMap[checklistId];
+
 		setItemsMap((prev) => ({ ...prev, [checklistId]: items }));
+
+		const { error } = await reorderChecklistItems(
+			items.map((i) => ({ id: i.id, sort_order: i.sort_order }))
+		);
+		if (error) {
+			setItemsMap((prev) => ({ ...prev, [checklistId]: previousItems }));
+			toast({
+				title: 'Error al reordenar items',
+				description:
+					translateError(error) || 'No se pudo guardar el orden. Por favor, intenta nuevamente.',
+				variant: 'destructive',
+			});
+		}
 	};
 
 	const updateChecklistNotes = (checklistId: number, notes: string) => {
@@ -182,10 +208,22 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 				setSavingNotes((prev) => ({ ...prev, [checklistId]: true }));
 				const { error } = await editChecklist(checklistId, { notes });
 				if (error) {
-					console.error('Error saving checklist notes:', error);
+					toast({
+						title: 'Error al guardar notas',
+						description:
+							translateError(error) ||
+							'No se pudieron guardar las notas. Por favor, intenta nuevamente.',
+						variant: 'destructive',
+					});
 				}
 			} catch (error) {
-				console.error('Error saving checklist notes:', error);
+				toast({
+					title: 'Error al guardar notas',
+					description:
+						translateError(error) ||
+						'No se pudieron guardar las notas. Por favor, intenta nuevamente.',
+					variant: 'destructive',
+				});
 			} finally {
 				setSavingNotes((prev) => ({ ...prev, [checklistId]: false }));
 			}
@@ -321,35 +359,55 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 		try {
 			setSaving(true);
 
-			const { error: checklistError } = await editChecklist(checklistId, {
-				name: updates.name,
-				description: updates.description,
-				width: updates.width,
-				height: updates.height,
-				depth: updates.depth,
-				type_furniture: updates.type_furniture,
-			});
-			if (checklistError) {
-				toast({
-					title: 'Error al actualizar checklist',
-					description: translateError(checklistError),
-					variant: 'destructive',
-				});
-				return;
+			const changes: Record<string, any> = {};
+			if (updates.name !== checklistToEdit?.name) changes.name = updates.name;
+			if (updates.description !== checklistToEdit?.description)
+				changes.description = updates.description;
+			if (updates.width !== checklistToEdit?.width) changes.width = updates.width;
+			if (updates.height !== checklistToEdit?.height) changes.height = updates.height;
+			if (updates.depth !== checklistToEdit?.depth) changes.depth = updates.depth;
+			if (updates.type_furniture !== checklistToEdit?.type_furniture)
+				changes.type_furniture = updates.type_furniture;
+
+			if (Object.keys(changes).length > 0) {
+				const { error: checklistError } = await editChecklist(checklistId, changes);
+				if (checklistError) throw checklistError;
 			}
 
-			// Sync items: delete all and recreate
-			const { error: deleteError } = await deleteChecklistItemsByChecklistId(checklistId);
-			if (deleteError) throw deleteError;
+			const { data: existingItems } = await getItemsByChecklistIds([checklistId]);
+			const existingById = new Map((existingItems ?? []).map((i: ChecklistItem) => [i.id, i]));
+			const updateIds = new Set((updates.items ?? []).map((i: any) => i.id).filter(Boolean));
 
-			if (updates.items?.length > 0) {
+			const toDelete = (existingItems ?? []).filter((i: ChecklistItem) => !updateIds.has(i.id));
+
+			const toCreate = (updates.items ?? []).filter((i: any) => !i.id);
+
+			const toUpdate = (updates.items ?? []).filter((i: any) => i.id && existingById.has(i.id));
+
+			if (toDelete.length > 0) {
+				const ids = toDelete.map((i: ChecklistItem) => i.id);
+				const { error: deleteError } = await deleteChecklistItemsByIds(ids);
+				if (deleteError) throw deleteError;
+			}
+
+			if (toCreate.length > 0) {
 				const { error: createError } = await createChecklistItems(
-					updates.items.map((item: any) => ({
-						description: item.description,
+					toCreate.map((i: any) => ({
+						description: i.description,
 						checklist_id: checklistId,
 					}))
 				);
 				if (createError) throw createError;
+			}
+
+			for (const item of toUpdate) {
+				const existing = existingById.get(item.id);
+				if (existing && existing.description !== item.description) {
+					const { error } = await updateChecklistItem(item.id, {
+						description: item.description,
+					});
+					if (error) throw error;
+				}
 			}
 
 			// Reload items
@@ -358,16 +416,14 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 				setItemsMap((prev) => ({ ...prev, [checklistId]: newItems }));
 			}
 
-			// Update checklist in local state
-			setChecklists((prev) => prev.map((c) => (c.id === checklistId ? { ...c, ...updates } : c)));
+			setChecklists((prev) => {
+				const { items, ...scalarFields } = updates;
+				return prev.map((c) => (c.id === checklistId ? { ...c, ...scalarFields } : c));
+			});
 			setIsEditModalOpen(false);
 			setChecklistToEdit(null);
-			toast({
-				title: 'Checklist actualizado',
-				description: `Se actualizó el checklist ${updates.name || 'sin nombre'}.`,
-			});
 		} catch (error) {
-			console.error('Error updating checklist:', error);
+			throw error;
 		} finally {
 			setSaving(false);
 		}
@@ -389,7 +445,7 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 
 			toast({
 				title: 'Nota general actualizada',
-				description: translateError(error) || 'La nota general se ha guardado correctamente.',
+				description: 'La nota general se ha guardado correctamente.',
 			});
 		} catch (error) {
 			console.error('Error al guardar la nota general:', error);

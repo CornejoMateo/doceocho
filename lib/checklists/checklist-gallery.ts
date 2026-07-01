@@ -2,7 +2,7 @@ import { getSupabaseClient } from '../supabase-client';
 import { optimizeFile } from '@/utils/optimization-images';
 
 const TABLE = 'gallery_checklists';
-const BUCKET = 'clients';
+const BUCKET = 'checklist-gallery';
 
 export type ChecklistGalleryItem = {
 	id: number;
@@ -41,7 +41,7 @@ export async function uploadChecklistGalleryItem(
 	const supabase = getSupabaseClient();
 	const fileExt = file.name.split('.').pop();
 	const fileName = `${crypto.randomUUID()}.${fileExt}`;
-	const filePath = `checklist-gallery/${itemId}/${fileName}`;
+	const filePath = `${itemId}/${fileName}`;
 
 	const optimizedFile = await optimizeFile(file);
 
@@ -56,7 +56,10 @@ export async function uploadChecklistGalleryItem(
 		.select()
 		.single();
 
-	if (dbError) return { data: null, error: dbError };
+	if (dbError) {
+		await supabase.storage.from(BUCKET).remove([filePath]);
+		return { data: null, error: dbError };
+	}
 	return { data, error: null };
 }
 
@@ -74,11 +77,13 @@ export async function deleteChecklistGalleryItem(
 	if (fetchError) return { success: false, error: fetchError };
 	if (!record || !record.path) return { success: false, error: 'Record not found or missing path' };
 
-	const { error: deleteStorageError } = await supabase.storage.from(BUCKET).remove([record.path]);
-	if (deleteStorageError) return { success: false, error: deleteStorageError };
-
 	const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', id);
 	if (deleteDbError) return { success: false, error: deleteDbError };
+
+	const { error: deleteStorageError } = await supabase.storage.from(BUCKET).remove([record.path]);
+	if (deleteStorageError) {
+		console.error('File deleted from DB but storage cleanup failed:', deleteStorageError);
+	}
 
 	return { success: true, error: null };
 }

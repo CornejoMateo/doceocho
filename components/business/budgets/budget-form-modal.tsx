@@ -75,7 +75,14 @@ export function BudgetFormModal({
 	useEffect(() => {
 		if (isOpen) {
 			listMaterials().then(({ data }) => {
-				if (data) setMaterials(data);
+				setMaterials([]);
+				listMaterials()
+					.then(({ data }) => {
+						setMaterials(data ?? []);
+					})
+					.catch(() => {
+						setMaterials([]);
+					});
 			});
 		}
 

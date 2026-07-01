@@ -136,7 +136,6 @@ export async function uploadClientFile(
 export async function deleteClientFile(fileId: number): Promise<{ success: boolean; error: any }> {
 	const supabase = getSupabaseClient();
 
-	// Get the file record to find the path for deletion
 	const { data: fileRecord, error: fetchError } = await supabase
 		.from(TABLE)
 		.select('path')
@@ -151,20 +150,18 @@ export async function deleteClientFile(fileId: number): Promise<{ success: boole
 		return { success: false, error: 'File record not found or missing path' };
 	}
 
-	// Delete the file from storage
+	const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
+
+	if (deleteDbError) {
+		return { success: false, error: deleteDbError };
+	}
+
 	const { error: deleteStorageError } = await supabase.storage
 		.from(BUCKET)
 		.remove([fileRecord.path]);
 
 	if (deleteStorageError) {
-		return { success: false, error: deleteStorageError };
-	}
-
-	// Delete the file record from the database
-	const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
-
-	if (deleteDbError) {
-		return { success: false, error: deleteDbError };
+		console.error('File deleted from DB but storage cleanup failed:', deleteStorageError);
 	}
 
 	return { success: true, error: null };

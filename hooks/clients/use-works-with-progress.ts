@@ -24,8 +24,8 @@ export function useWorksWithProgress() {
 			const { data: allChecklists } = await getChecklistsByWorkIds(workIds);
 
 			const checklistIds = (allChecklists ?? []).map((c) => c.id);
-			const { data: allItems } = await getItemsByChecklistIds(checklistIds);
-
+			const { data: allItems, error: itemsError } = await getItemsByChecklistIds(checklistIds);
+			if (itemsError) throw itemsError;
 			const itemsByChecklist = new Map<number, any[]>();
 			if (allItems) {
 				for (const item of allItems) {

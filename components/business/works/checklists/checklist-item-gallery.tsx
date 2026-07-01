@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ImageIcon, Trash2, Loader2 } from 'lucide-react';
+import { ImageIcon, FileVideo, FileText, Trash2, Loader2 } from 'lucide-react';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -16,7 +16,7 @@ import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { useChecklistItemGallery } from '@/hooks/checklists/use-checklist-item-gallery';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import type { FileViewerItem } from '@/utils/file-upload-utils';
+import { getFileExtension, isImage, isVideo, type FileViewerItem } from '@/utils/file-upload-utils';
 
 type Props = {
 	itemId: number;
@@ -39,6 +39,13 @@ export function ChecklistItemGallery({ itemId }: Props) {
 			toast({ title: 'Error', description: translateError(error), variant: 'destructive' });
 		}
 		setImageToDelete(null);
+	};
+
+	const resolveMimeType = (name: string): string => {
+		const ext = getFileExtension(name).toLowerCase();
+		if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image/jpeg';
+		if (['mp4', 'webm', 'ogg', 'mov'].includes(ext)) return 'video/mp4';
+		return 'application/octet-stream';
 	};
 
 	if (loading) {
@@ -65,40 +72,60 @@ export function ChecklistItemGallery({ itemId }: Props) {
 	return (
 		<>
 			<div className="flex flex-wrap gap-2 mt-2">
-				{images.map((image) => (
-					<div key={image.id} className="relative group">
-						<button
-							type="button"
-							onClick={() => {
-								const idx = images.findIndex((i) => i.id === image.id);
-								setSelectedIndex(idx);
-							}}
-							className="w-30 h-30 rounded-md overflow-hidden border bg-muted/20 hover:bg-muted/40 transition-colors"
-						>
-							{image.url ? (
-								<img
-									src={image.url}
-									alt={image.title || ''}
-									className="w-full h-full object-cover"
-								/>
-							) : (
-								<div className="w-full h-full flex items-center justify-center">
-									<ImageIcon className="h-5 w-5 text-muted-foreground" />
-								</div>
-							)}
-						</button>
-						<button
-							type="button"
-							onClick={(e) => {
-								e.stopPropagation();
-								setImageToDelete(image.id);
-							}}
-							className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity"
-						>
-							<Trash2 className="h-3 w-3" />
-						</button>
-					</div>
-				))}
+				{images.map((image) => {
+					const mimeType = resolveMimeType(image.name);
+					const isImageView = isImage(mimeType);
+					const isVideoView = isVideo(mimeType);
+
+					return (
+						<div key={image.id} className="relative group">
+							<button
+								type="button"
+								onClick={() => {
+									const idx = images.findIndex((i) => i.id === image.id);
+									setSelectedIndex(idx);
+								}}
+								className="w-30 h-30 rounded-md overflow-hidden border bg-muted/20 hover:bg-muted/40 transition-colors"
+							>
+								{isImageView ? (
+									image.url ? (
+										<img
+											src={image.url}
+											alt={image.title || ''}
+											className="w-full h-full object-cover"
+										/>
+									) : (
+										<div className="w-full h-full flex items-center justify-center">
+											<ImageIcon className="h-5 w-5 text-muted-foreground" />
+										</div>
+									)
+								) : (
+									<div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2">
+										{isVideoView ? (
+											<FileVideo className="h-6 w-6 text-muted-foreground" />
+										) : (
+											<FileText className="h-6 w-6 text-muted-foreground" />
+										)}
+										<span className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2">
+											{image.name}
+										</span>
+									</div>
+								)}
+							</button>
+							<button
+								type="button"
+								aria-label={`Eliminar archivo ${image.name}`}
+								onClick={(e) => {
+									e.stopPropagation();
+									setImageToDelete(image.id);
+								}}
+								className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-50 group-hover:opacity-100 transition-opacity"
+							>
+								<Trash2 className="h-3 w-3" />
+							</button>
+						</div>
+					);
+				})}
 			</div>
 
 			{selectedIndex != null && (

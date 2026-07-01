@@ -57,16 +57,28 @@ export function ItemsPredefinedDialog({
 			setIsDeleting(true);
 
 			const { error } = await deleteMaterial(deleteId);
-			if (error) throw error;
+			if (error) {
+				toast({
+					title: 'Error',
+					description: translateError(error) || 'No se pudo eliminar el material.',
+					variant: 'destructive',
+				});
+				return;
+			}
 
-			await Promise.all([refreshMaterials(), refreshItemsPredefined()]);
+			const deletedId = deleteId;
+			setDeleteId(null);
+
+			try {
+				await Promise.all([refreshMaterials(), refreshItemsPredefined()]);
+			} catch (refreshError) {
+				console.error('Error refreshing after delete:', refreshError);
+			}
 
 			toast({
 				title: 'Material eliminado',
 				description: 'El material fue eliminado correctamente.',
 			});
-
-			setDeleteId(null);
 		} catch (error) {
 			console.error(error);
 			toast({
