@@ -185,6 +185,15 @@ export async function deleteChecklistItemsByChecklistId(
 	return { data: null, error };
 }
 
+export async function deleteChecklistItemsByIds(
+	ids: number[]
+): Promise<{ data: null; error: any }> {
+	if (ids.length === 0) return { data: null, error: null };
+	const supabase = getSupabaseClient();
+	const { error } = await supabase.from(ITEMS_TABLE).delete().in('id', ids);
+	return { data: null, error };
+}
+
 export async function setAllChecklistItems(
 	checklistId: number,
 	done: boolean

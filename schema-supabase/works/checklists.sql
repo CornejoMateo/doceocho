@@ -249,3 +249,29 @@ create table public.gallery_checklists (
   constraint images_checklists_pkey primary key (id),
   constraint images_checklists_item_id_fkey foreign KEY (item_id) references items_checklists (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
+
+ALTER TABLE public.gallery_checklists ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public select gallery_checklists"
+ON public.gallery_checklists
+FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Public insert gallery_checklists"
+ON public.gallery_checklists
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+CREATE POLICY "Public delete gallery_checklists"
+ON public.gallery_checklists
+FOR DELETE
+TO authenticated
+USING (true);
+
+CREATE POLICY "Public update gallery_checklists"
+ON public.gallery_checklists
+FOR UPDATE
+TO authenticated
+USING (true);

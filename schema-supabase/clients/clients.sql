@@ -20,20 +20,49 @@ FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Public insert clients"
+CREATE POLICY "Clients insert"
 ON public.clients
 FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
-CREATE POLICY "Public delete clients"
-ON public.clients
-FOR DELETE
-TO authenticated
-USING (true);
-
-CREATE POLICY "Public update clients"
+CREATE POLICY "Clients update"
 ON public.clients
 FOR UPDATE
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
+
+CREATE POLICY "Clients delete"
+ON public.clients
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);

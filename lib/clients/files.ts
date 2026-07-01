@@ -10,7 +10,6 @@ export type ClientFileRecord = {
 	path: string | null;
 	title: string | null;
 	description: string | null;
-	checklist_id: string | null;
 	claim_id: string | null;
 };
 
@@ -101,7 +100,6 @@ export async function uploadClientFile(
 	file: File,
 	title: string | null = null,
 	description: string | null = null,
-	checklistId: number | null = null,
 	claimId: number | null = null
 ): Promise<{ data: ClientFileRecord | null; error: any }> {
 	const supabase = getSupabaseClient();
@@ -122,7 +120,6 @@ export async function uploadClientFile(
 			title,
 			description,
 			path: filePath,
-			checklist_id: checklistId,
 			claim_id: claimId,
 		})
 		.select()
