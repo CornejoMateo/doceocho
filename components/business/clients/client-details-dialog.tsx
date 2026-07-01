@@ -280,9 +280,9 @@ export function ClientDetailsDialog({
 						>
 							<TabsList>
 								<>
-									<TabsTrigger value="info">Información</TabsTrigger>
 									{isAuthorized && (
 										<>
+											<TabsTrigger value="info">Información</TabsTrigger>
 											<TabsTrigger value="works">Obras</TabsTrigger>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
 											<TabsTrigger value="balances" disabled>
