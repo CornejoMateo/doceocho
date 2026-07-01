@@ -1,6 +1,5 @@
 import { FolderBudget } from '@/lib/budgets/folder_budgets';
 import { BudgetWithWork } from '@/lib/balances/balances';
-import { DEFAULT_TYPES } from '@/constants/budgets/constants';
 
 export function normalizeType(type: string | null | undefined): string {
 	const t = (type ?? '').trim();
@@ -34,16 +33,7 @@ export function groupBudgetsByType(budgets: BudgetWithWork[]): Map<string, Budge
 }
 
 export function getOrderedTypeKeys(budgetsByType: Map<string, BudgetWithWork[]>): string[] {
-	return Array.from(budgetsByType.keys()).sort((a, b) => {
-		const ai = DEFAULT_TYPES.includes(a as any)
-			? DEFAULT_TYPES.indexOf(a as any)
-			: Number.MAX_SAFE_INTEGER;
-		const bi = DEFAULT_TYPES.includes(b as any)
-			? DEFAULT_TYPES.indexOf(b as any)
-			: Number.MAX_SAFE_INTEGER;
-		if (ai !== bi) return ai - bi;
-		return a.localeCompare(b);
-	});
+	return Array.from(budgetsByType.keys()).sort((a, b) => a.localeCompare(b));
 }
 
 export function parseAmount(amount: string): number | null {

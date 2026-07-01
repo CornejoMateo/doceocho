@@ -90,6 +90,13 @@ export function useChecklistModal() {
 		}));
 	};
 
+	const setItems = (items: { description: string }[]) => {
+		setChecklist((prev) => ({
+			...prev,
+			items,
+		}));
+	};
+
 	return {
 		isOpen,
 		selectedWork,
@@ -100,6 +107,7 @@ export function useChecklistModal() {
 		addItem,
 		removeItem,
 		updateItem,
+		setItems,
 		resetForm,
 		initializeChecklist,
 	};
