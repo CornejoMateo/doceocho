@@ -3,7 +3,6 @@ create table public.checklists (
   created_at timestamp with time zone not null default now(),
   work_id bigint null,
   description text null,
-  progress bigint null,
   name text null,
   type_furniture text null,
   width double precision null,
@@ -16,29 +15,44 @@ create table public.checklists (
 
 ALTER TABLE public.checklists ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public select checklists"
+CREATE POLICY "Checklists select"
 ON public.checklists
 FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Public insert checklists"
+CREATE POLICY "Checklists insert"
 ON public.checklists
 FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
-CREATE POLICY "Public delete checklists"
-ON public.checklists
-FOR DELETE
-TO authenticated
-USING (true);
-
-CREATE POLICY "Public update checklists"
+CREATE POLICY "Checklists update"
 ON public.checklists
 FOR UPDATE
 TO authenticated
-USING (true);
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Checklists delete"
+ON public.checklists
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
 ------ Items checklists table -------
 
@@ -53,6 +67,45 @@ create table public.items_checklists (
   constraint items_checklists_checklist_id_fkey foreign KEY (checklist_id) references checklists (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
 
+CREATE POLICY "Items checklists select"
+ON public.items_checklists
+FOR SELECT
+TO authenticated
+USING (true);
+
+CREATE POLICY "Items checklists insert"
+ON public.items_checklists
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
+
+CREATE POLICY "Items checklists update"
+ON public.items_checklists
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
+CREATE POLICY "Items checklists delete"
+ON public.items_checklists
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
+
 ------ Materials table -------
 
 create table public.materials (
@@ -65,29 +118,58 @@ create table public.materials (
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public select materials"
+CREATE POLICY "Materials select"
 ON public.materials
 FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Public insert materials"
+CREATE POLICY "Materials insert"
 ON public.materials
 FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
-CREATE POLICY "Public delete materials"
-ON public.materials
-FOR DELETE
-TO authenticated
-USING (true);
-
-CREATE POLICY "Public update materials"
+CREATE POLICY "Materials update"
 ON public.materials
 FOR UPDATE
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
+
+CREATE POLICY "Materials delete"
+ON public.materials
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
 ------ Predefined items table -------
 
@@ -102,28 +184,58 @@ create table public.items_predefined (
 ALTER TABLE public.items_predefined ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public select items_predefined"
+CREATE POLICY "Items predefined select"
 ON public.items_predefined
 FOR SELECT
 TO authenticated
 USING (true);
 
-CREATE POLICY "Public insert items_predefined"
+CREATE POLICY "Items predefined insert"
 ON public.items_predefined
 FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
-CREATE POLICY "Public delete items_predefined"
-ON public.items_predefined
-FOR DELETE
-TO authenticated
-USING (true);
-
-CREATE POLICY "Public update items_predefined"
+CREATE POLICY "Items predefined update"
 ON public.items_predefined
 FOR UPDATE
 TO authenticated
-USING (true);
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
+
+CREATE POLICY "Items predefined delete"
+ON public.items_predefined
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
 ------ Gallery checklists table -------
 

@@ -312,7 +312,6 @@ export function WorksList({
 							name: checklist.name || `Mobiliario ${existingCount + 1}`,
 							description: checklist.description || '',
 							notes: '',
-							progress: checklist.items.length > 0 ? 0 : 100,
 							width: checklist.width ?? null,
 							height: checklist.height ?? null,
 							depth: checklist.depth ?? null,
