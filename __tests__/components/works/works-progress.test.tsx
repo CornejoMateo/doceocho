@@ -82,6 +82,19 @@ jest.mock('@/lib/error-translator', () => ({
 	translateError: (e: any) => `translated: ${e?.message || e}`,
 }));
 
+jest.mock('@/lib/checklists/materials', () => ({
+	listMaterials: jest.fn().mockResolvedValue({ data: [], error: null }),
+}));
+
+jest.mock('@/lib/checklists/items-predefined', () => ({
+	listItemsPredefined: jest.fn().mockResolvedValue({ data: [], error: null }),
+}));
+
+jest.mock('@/components/business/works/checklists/items-predefined-dialog', () => ({
+	ItemsPredefinedDialog: ({ open }: { open: boolean }) =>
+		open ? <div data-testid="items-predefined-dialog">Items Predefinidos Dialog</div> : null,
+}));
+
 describe('WorksOpenings (works-progress)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -169,5 +182,21 @@ describe('WorksOpenings (works-progress)', () => {
 
 		const page2 = screen.getByText('2');
 		expect(page2).toBeInTheDocument();
+	});
+
+	it('renders "Items predefinidos" button', () => {
+		render(<WorksOpenings />);
+
+		expect(screen.getByText('Items predefinidos')).toBeInTheDocument();
+	});
+
+	it('opens ItemsPredefinedDialog when button is clicked', () => {
+		render(<WorksOpenings />);
+
+		expect(screen.queryByTestId('items-predefined-dialog')).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByText('Items predefinidos'));
+
+		expect(screen.getByTestId('items-predefined-dialog')).toBeInTheDocument();
 	});
 });

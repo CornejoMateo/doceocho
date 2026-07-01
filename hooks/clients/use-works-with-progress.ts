@@ -51,10 +51,12 @@ export function useWorksWithProgress() {
 
 				let total = 0;
 				let done = 0;
+				const tasks: any[] = [];
 				for (const cl of workChecklists) {
 					const clItems = itemsByChecklist.get(cl.id) || [];
 					total += clItems.length;
 					done += clItems.filter((t: any) => t.done).length;
+					tasks.push(...clItems);
 				}
 				const progress = total ? Math.round((done / total) * 100) : 100;
 				const hasGeneralNotes = !!work.general_note?.trim();
@@ -75,7 +77,7 @@ export function useWorksWithProgress() {
 				return {
 					...work,
 					status: newStatus,
-					tasks: [],
+					tasks,
 					hasNotes: hasNotes,
 					progress,
 				};
