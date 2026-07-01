@@ -40,7 +40,6 @@ export function useAutoSave({
 
 			toast({
 				title: successMessage,
-				description: translateError('success'),
 			});
 
 			return { data };
