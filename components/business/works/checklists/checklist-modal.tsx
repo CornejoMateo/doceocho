@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -14,11 +14,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Plus, Trash2, Loader2, CheckCircle } from 'lucide-react';
 import { Checklist, getItemsByChecklistId } from '@/lib/checklists/checklists';
+import { getItemsPredefinedByMaterialId } from '@/lib/checklists/items-predefined';
+import { listMaterials } from '@/lib/checklists/materials';
 import { toast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { translateError } from '@/lib/error-translator';
 import { useChecklistModal } from '@/hooks/clients/use-checklist-modal';
-import { DEFAULT_TYPES } from '@/constants/budgets/constants';
+import { Material } from '@/lib/checklists/materials';
 import {
 	Select,
 	SelectContent,
@@ -66,6 +68,8 @@ export function ChecklistModal({
 	const [isOpen, setIsOpen] = useState(false);
 	const [createdCount, setCreatedCount] = useState(0);
 	const [isCreating, setIsCreating] = useState(false);
+	const [isLoadingItems, setIsLoadingItems] = useState(false);
+	const [materials, setMaterials] = useState<Material[]>([]);
 	const [error, setError] = useState<string | null>(null);
 
 	const isEditMode = !!checklistToEdit; // true if checklistToEdit is provided, false for create mode
@@ -75,9 +79,14 @@ export function ChecklistModal({
 
 	// Reset when modal opens/closes
 	useEffect(() => {
-		if (!modalOpen) {
+		if (modalOpen) {
+			listMaterials().then(({ data }) => {
+				if (data) setMaterials(data);
+			});
+		} else {
 			setCreatedCount(0);
 			setError(null);
+			setMaterials([]);
 			if (!isEditMode) {
 				resetForm();
 			}
@@ -99,8 +108,43 @@ export function ChecklistModal({
 		addItem,
 		removeItem,
 		updateItem,
+		setItems,
 		initializeChecklist,
 	} = useChecklistModal();
+
+	const prevMaterialRef = useRef<string | null | undefined>(undefined);
+
+	useEffect(() => {
+		if (isEditMode) return;
+
+		const currentMaterial = checklist.type_furniture;
+		const prevMaterial = prevMaterialRef.current;
+		prevMaterialRef.current = currentMaterial;
+
+		if (prevMaterial === undefined || !currentMaterial) return;
+
+		setIsLoadingItems(true);
+
+		(async () => {
+			const { data: materials } = await listMaterials();
+			const material = materials?.find(
+				(m) => m.name.toLowerCase() === currentMaterial.toLowerCase()
+			);
+			if (!material) {
+				setItems([]);
+				setIsLoadingItems(false);
+				return;
+			}
+
+			const { data } = await getItemsPredefinedByMaterialId(material.id);
+			setItems(
+				data && data.items.length > 0
+					? data.items.map((desc: string) => ({ description: desc }))
+					: []
+			);
+			setIsLoadingItems(false);
+		})();
+	}, [checklist.type_furniture, isEditMode]);
 
 	const handleSaveAndNext = async () => {
 		setIsCreating(true);
@@ -217,11 +261,17 @@ export function ChecklistModal({
 											<SelectValue placeholder="Seleccionar tipo" />
 										</SelectTrigger>
 										<SelectContent>
-											{DEFAULT_TYPES.map((t: string) => (
-												<SelectItem key={t} value={t}>
-													{t}
+											{materials.length === 0 ? (
+												<SelectItem value="no-materials" disabled>
+													No hay materiales
 												</SelectItem>
-											))}
+											) : (
+												materials.map((m) => (
+													<SelectItem key={m.id} value={m.name}>
+														{m.name}
+													</SelectItem>
+												))
+											)}
 										</SelectContent>
 									</Select>
 								</div>
@@ -282,58 +332,67 @@ export function ChecklistModal({
 									Items de Checklist
 								</h4>
 
-								<div className="space-y-3 max-h-48 overflow-y-auto">
-									{checklist.items.map((item, itemIndex) => (
-										<div
-											key={itemIndex}
-											className="flex items-center gap-2 p-3 bg-muted/20 rounded-lg border"
-										>
+								{isLoadingItems ? (
+									<div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+										<Loader2 className="h-4 w-4 animate-spin" />
+										<span className="text-sm">Cargando items...</span>
+									</div>
+								) : (
+									<>
+										<div className="space-y-3 max-h-48 overflow-y-auto">
+											{checklist.items.map((item, itemIndex) => (
+												<div
+													key={itemIndex}
+													className="flex items-center gap-2 p-3 bg-muted/20 rounded-lg border"
+												>
+													<Input
+														value={item.description}
+														onChange={(e) => updateItem(itemIndex, e.target.value)}
+														className="flex-1 border-0 bg-transparent focus-visible:ring-1 text-sm h-8"
+													/>
+													<Button
+														type="button"
+														variant="ghost"
+														size="sm"
+														onClick={() => removeItem(itemIndex)}
+														className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0"
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												</div>
+											))}
+										</div>
+
+										<div className="flex items-center gap-3 p-3 border-2 border-dashed border-muted rounded-lg">
 											<Input
-												value={item.description}
-												onChange={(e) => updateItem(itemIndex, e.target.value)}
-												className="flex-1 border-0 bg-transparent focus-visible:ring-1 text-sm h-8"
+												placeholder="Agregar nuevo item..."
+												onKeyDown={(e) => {
+													if (e.key === 'Enter') {
+														e.preventDefault();
+														const target = e.target as HTMLInputElement;
+														addItem(target.value);
+														target.value = '';
+													}
+												}}
+												className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-sm"
 											/>
 											<Button
 												type="button"
-												variant="ghost"
+												onClick={(e) => {
+													const input = e.currentTarget.parentElement?.querySelector('input');
+													if (input) {
+														addItem(input.value);
+														input.value = '';
+													}
+												}}
 												size="sm"
-												onClick={() => removeItem(itemIndex)}
-												className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 shrink-0"
+												className="h-8 w-8 p-0 shrink-0"
 											>
-												<Trash2 className="h-4 w-4" />
+												<Plus className="h-4 w-4" />
 											</Button>
 										</div>
-									))}
-								</div>
-
-								<div className="flex items-center gap-3 p-3 border-2 border-dashed border-muted rounded-lg">
-									<Input
-										placeholder="Agregar nuevo item..."
-										onKeyDown={(e) => {
-											if (e.key === 'Enter') {
-												e.preventDefault();
-												const target = e.target as HTMLInputElement;
-												addItem(target.value);
-												target.value = '';
-											}
-										}}
-										className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-sm"
-									/>
-									<Button
-										type="button"
-										onClick={(e) => {
-											const input = e.currentTarget.parentElement?.querySelector('input');
-											if (input) {
-												addItem(input.value);
-												input.value = '';
-											}
-										}}
-										size="sm"
-										className="h-8 w-8 p-0 shrink-0"
-									>
-										<Plus className="h-4 w-4" />
-									</Button>
-								</div>
+									</>
+								)}
 							</div>
 						</CardContent>
 					</Card>
