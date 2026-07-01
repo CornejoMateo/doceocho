@@ -21,7 +21,7 @@ import { listBudgetsForReport } from '@/lib/reports/budgets/methods';
 import { Button } from '@/components/ui/button';
 import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Filter, Download } from 'lucide-react';
 import type { BudgetReportRow } from './types';
-import { useBudgetFilters } from './hooks/use-budget-filters';
+import { useBudgetFilters } from '@/hooks/budgets/use-budget-filters';
 import { BudgetFilterDialog } from './budget-filter-dialog';
 import { applyBudgetFilters, hasActiveFilters } from '@/helpers/budgets/filter-budgets';
 import { generateBudgetsPDF, getFiltersDescription } from '@/helpers/budgets/generate-budget-pdf';
