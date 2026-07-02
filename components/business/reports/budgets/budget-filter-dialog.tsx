@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import type { BudgetFilterDialogProps } from './types';
 import { BUDGET_FILTER_LABELS, BUDGET_STATUS } from '@/constants/budgets/budgets-report';
-import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
+import { formatNumber } from '@/utils/formats-money';
 
 export function BudgetFilterDialog({
 	open,
@@ -38,17 +38,17 @@ export function BudgetFilterDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="!sm:max-w-[425px]">
+			<DialogContent className="!sm:max-w-[500px]">
 				<DialogHeader>
-					<DialogTitle>Filtros de Presupuestos</DialogTitle>
+					<DialogTitle>Filtros de presupuestos</DialogTitle>
 					<DialogDescription>
 						Filtra los presupuestos por estado y rangos de monto
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4 py-4">
 					{/* Status Filter */}
-					<div className="grid grid-cols-4 items-center justify-content gap-4">
-						<Label htmlFor="status" className="text-center">
+					<div className="grid grid-cols-4 gap-4">
+						<Label htmlFor="status" className="text-right">
 							{BUDGET_FILTER_LABELS.status}
 						</Label>
 						<div className="col-span-3">
@@ -135,7 +135,7 @@ export function BudgetFilterDialog({
 					<Button variant="outline" onClick={onReset}>
 						Limpiar filtros
 					</Button>
-					<Button onClick={() => onOpenChange(false)}>Aplicar filtros</Button>
+					<Button onClick={() => onOpenChange(false)}>Aceptar</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
