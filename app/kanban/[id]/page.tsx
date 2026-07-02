@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { useBoard } from '@/components/business/kanban/hooks/use-board';
+import { useBoard } from '@/components/business/kanban/kankan/use-board';
 import { moveCard } from '@/lib/kanban/cards';
 import { KanbanList } from '@/components/business/kanban/kanban-list';
 import { CardDetailModal } from '@/components/business/kanban/card-detail-modal';

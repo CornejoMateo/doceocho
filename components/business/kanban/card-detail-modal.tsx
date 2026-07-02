@@ -26,7 +26,7 @@ import {
 	Users,
 	Upload,
 } from 'lucide-react';
-import { useCard } from './hooks/use-card';
+import { useCard } from './kankan/use-card';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import type { CardWithRelations } from './types';

@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, MoreVertical, Trash2 } from 'lucide-react';
-import { useBoards } from '@/components/business/kanban/hooks/use-boards';
+import { useBoards } from '@/hooks/kankan/use-boards';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 import { BoardCreationModal } from '@/components/business/kanban/board-creation-modal';
 import { BoardDeleteModal } from '@/components/business/kanban/board-delete-modal';
 import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { toast } from '@/components/ui/use-toast';
 
 export default function KanbanPage() {
 	const router = useRouter();
@@ -53,7 +54,11 @@ export default function KanbanPage() {
 
 	const handleCreateBoard = async (boardData: BoardFormData) => {
 		if (!userId) {
-			alert('No hay usuario autenticado');
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: 'No hay usuario autenticado',
+			});
 			return;
 		}
 		const board = await addBoard(boardData, userId);

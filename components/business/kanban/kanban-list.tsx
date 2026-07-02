@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MoreVertical, Plus, User, Trash2 } from 'lucide-react';
 import { KanbanCard } from './kanban-card';
-import { useCards } from './hooks/use-cards';
+import { useCards } from './kankan/use-cards';
 import { ListEditModal } from './list-edit-modal';
 import { ListDeleteModal } from './list-delete-modal';
 import { CardCreationModal } from './card-creation-modal';
