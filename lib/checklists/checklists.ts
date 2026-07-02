@@ -6,7 +6,7 @@ export type ChecklistItem = {
 	created_at?: string;
 	done: boolean;
 	checklist_id: number;
-	sort_order?: number | null;
+	sort_order: number;
 };
 
 export type Checklist = {
