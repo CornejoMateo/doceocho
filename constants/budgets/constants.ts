@@ -13,6 +13,8 @@ export const FORM_DEFAULTS = {
 	amountUsd: '',
 	usdRate: '',
 	workId: 'none',
+	usdQuote: '',
+	date_of_sale: '',
 	created_at: new Date()
 		.toLocaleDateString('es-AR', {
 			year: 'numeric',
