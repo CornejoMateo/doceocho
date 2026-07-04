@@ -67,6 +67,22 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
+
+	// Fetch and delete associated files first
+	const { data: files } = await supabase
+		.from('files_client')
+		.select('id, path')
+		.eq('balance_transaction_id', id);
+
+	if (files && files.length > 0) {
+		const paths = files.map((f: { path: string | null }) => f.path).filter(Boolean) as string[];
+		if (paths.length > 0) {
+			await supabase.storage.from('clients').remove(paths);
+		}
+		const fileIds = files.map((f: { id: number }) => f.id);
+		await supabase.from('files_client').delete().in('id', fileIds);
+	}
+
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
 }
