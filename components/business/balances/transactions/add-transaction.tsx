@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Upload, X, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/formats-money';
+import { BalanceTransaction } from '@/lib/balances/balance_transactions';
+import { formatFileSize } from '@/utils/file-upload-utils';
 
 interface AddTransactionSectionProps {
 	isAddingTransaction: boolean;
@@ -34,6 +36,10 @@ interface AddTransactionSectionProps {
 	onSave: () => void;
 	onStartAdd: () => void;
 	saveDisabled: boolean;
+	editingTransaction?: BalanceTransaction;
+	selectedFiles: File[];
+	onFilesSelect: (files: File[]) => void;
+	onRemoveFile: (index: number) => void;
 }
 
 export function AddTransactionSection({
@@ -54,7 +60,13 @@ export function AddTransactionSection({
 	onSave,
 	onStartAdd,
 	saveDisabled,
+	editingTransaction,
+	selectedFiles,
+	onFilesSelect,
+	onRemoveFile,
 }: AddTransactionSectionProps) {
+	const isEditing = !!editingTransaction;
+
 	if (!isAddingTransaction) {
 		return (
 			<Button
@@ -69,9 +81,20 @@ export function AddTransactionSection({
 		);
 	}
 
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = e.target.files;
+		if (files && files.length > 0) {
+			const newFiles = Array.from(files);
+			onFilesSelect(newFiles);
+		}
+		e.target.value = '';
+	};
+
 	return (
 		<div className="space-y-4 p-4 border rounded-lg">
-			<h3 className="text-sm font-semibold">Nueva transacción</h3>
+			<h3 className="text-sm font-semibold">
+				{isEditing ? 'Editar transacción' : 'Nueva transacción'}
+			</h3>
 
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
@@ -118,9 +141,9 @@ export function AddTransactionSection({
 					<Label htmlFor="quote-usd">Cotización USD</Label>
 					<Input
 						id="quote-usd"
-						type="number"
+						type="text"
 						value={quoteUsd}
-						onChange={(e) => onQuoteUsdChange(e.target.value)}
+						onChange={(e) => onQuoteUsdChange(formatNumber(e.target.value))}
 					/>
 				</div>
 				<div className="space-y-2">
@@ -161,12 +184,59 @@ export function AddTransactionSection({
 					</Select>
 				</div>
 			</div>
+
+			<div className="space-y-2">
+				<Label>Archivos adjuntos</Label>
+				{selectedFiles.length > 0 && (
+					<div className="space-y-1 mb-2">
+						{selectedFiles.map((file, index) => (
+							<div
+								key={index}
+								className="flex items-center gap-2 p-2 border rounded-md bg-muted/30"
+							>
+								<FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+								<span className="text-sm truncate flex-1">{file.name}</span>
+								<span className="text-xs text-muted-foreground shrink-0">
+									{formatFileSize(file.size)}
+								</span>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-6 w-6 shrink-0"
+									onClick={() => onRemoveFile(index)}
+								>
+									<X className="h-3 w-3" />
+								</Button>
+							</div>
+						))}
+					</div>
+				)}
+				<div className="flex items-center gap-2">
+					<input
+						type="file"
+						id="transaction-file"
+						className="hidden"
+						multiple
+						onChange={handleFileChange}
+					/>
+					<Button
+						variant="outline"
+						size="sm"
+						type="button"
+						onClick={() => document.getElementById('transaction-file')?.click()}
+					>
+						<Upload className="h-4 w-4 mr-2" />
+						{selectedFiles.length > 0 ? 'Agregar más archivos' : 'Subir archivos'}
+					</Button>
+				</div>
+			</div>
+
 			<div className="flex gap-1 justify-end">
 				<Button variant="outline" size="sm" onClick={onCancel}>
 					Cancelar
 				</Button>
 				<Button size="sm" onClick={onSave} disabled={saveDisabled}>
-					Guardar
+					{isEditing ? 'Actualizar' : 'Guardar'}
 				</Button>
 			</div>
 		</div>

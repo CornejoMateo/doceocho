@@ -139,7 +139,7 @@ export function BalanceInformation({
 				</div>
 
 				<div>
-					<p className="text-xs text-muted-foreground mb-1">Presupuesto inicial</p>
+					<p className="text-xs text-muted-foreground mb-1">Presupuesto contratado</p>
 
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-primary">
