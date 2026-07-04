@@ -25,7 +25,7 @@ export function useTransactionCrud(
 
 	const [transactions, setTransactions] = useState<BalanceTransaction[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
-	const [isAddingTransaction, setIsAddingTransaction] = useState(false);
+	const [addingMode, setAddingMode] = useState<'transaction' | 'extra' | null>(null);
 	const [transactionToDelete, setTransactionToDelete] = useState<BalanceTransaction | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -49,7 +49,7 @@ export function useTransactionCrud(
 	}, [balance, isOpen]);
 
 	useEffect(() => {
-		if (transactionAmount && quoteUsd && isAddingTransaction) {
+		if (transactionAmount && quoteUsd && addingMode) {
 			const normalizedAmount = transactionAmount.replace(/\./g, '').replace(',', '.');
 			const normalizedQuote = quoteUsd.replace(/\./g, '').replace(',', '.');
 			const amountNumber = Number(normalizedAmount);
@@ -58,7 +58,7 @@ export function useTransactionCrud(
 				setUsdAmount((amountNumber / rateNumber).toFixed(3));
 			}
 		}
-	}, [quoteUsd, transactionAmount, isAddingTransaction]);
+	}, [quoteUsd, transactionAmount, addingMode]);
 
 	const loadTransactions = async () => {
 		if (!balance) return;
@@ -67,6 +67,14 @@ export function useTransactionCrud(
 			const { data, error } = await getTransactionsByBalanceId(balance.id);
 			if (error) {
 				console.error('Error al cargar transacciones:', error);
+				toast({
+					variant: 'destructive',
+					title: 'Error al cargar transacciones',
+					description:
+						translateError(error) ||
+						'Hubo un problema al cargar las transacciones. Intente nuevamente.',
+				});
+				setTransactions([]);
 				return;
 			}
 			setTransactions(data || []);
@@ -196,6 +204,59 @@ export function useTransactionCrud(
 		}
 	};
 
+	const handleAddExtraAmount = async () => {
+		if (!balance || !transactionAmount || isSavingTransaction) return;
+
+		setIsSavingTransaction(true);
+
+		try {
+			const { data, error } = await createTransaction({
+				balance_id: balance.id,
+				date: format(transactionDate, 'yyyy-MM-dd'),
+				amount: parseArsToNumber(transactionAmount),
+				payment_method: paymentMethod || null,
+				notes: notes || null,
+				quote_usd: quoteUsd ? parseFloat(quoteUsd) : null,
+				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				is_extra_amount: true,
+			});
+
+			if (error) {
+				setIsSavingTransaction(false);
+				const err = translateError(error);
+				toast({
+					variant: 'destructive',
+					title: 'Error al crear monto extra',
+					description: err || 'Hubo un problema al crear el monto extra. Intente nuevamente.',
+				});
+				return;
+			}
+
+			// Upload files if selected
+			if (data && transactionFilesToUpload.length > 0) {
+				await uploadFilesForTransaction?.(data.id, transactionFilesToUpload);
+			}
+
+			toast({
+				title: 'Monto extra creado',
+				description: 'El monto extra se ha creado exitosamente.',
+			});
+
+			resetTransactionForm();
+			await loadTransactions();
+			onTransactionCreated?.();
+		} catch (error) {
+			const err = translateError(error);
+			toast({
+				variant: 'destructive',
+				title: 'Error inesperado',
+				description: err || 'Ocurrió un error inesperado. Intente nuevamente.',
+			});
+		} finally {
+			setIsSavingTransaction(false);
+		}
+	};
+
 	const resetTransactionForm = () => {
 		setEditingTransaction(null);
 		setTransactionDate(new Date());
@@ -205,7 +266,7 @@ export function useTransactionCrud(
 		setQuoteUsd('');
 		setUsdAmount('');
 		setTransactionFilesToUpload([]);
-		setIsAddingTransaction(false);
+		setAddingMode(null);
 	};
 
 	const handleEditTransaction = (transaction: BalanceTransaction) => {
@@ -231,7 +292,7 @@ export function useTransactionCrud(
 		);
 		setUsdAmount(transaction.usd_amount ? String(transaction.usd_amount) : '');
 		setTransactionFilesToUpload([]);
-		setIsAddingTransaction(true);
+		setAddingMode('transaction');
 	};
 
 	const handleUpdateTransaction = async () => {
@@ -284,8 +345,14 @@ export function useTransactionCrud(
 		}
 	};
 
-	const totalPaid = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-	const totalPaidUSD = transactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
+	const regularTransactions = transactions.filter((t) => !t.is_extra_amount);
+	const extraTransactions = transactions.filter((t) => t.is_extra_amount);
+
+	const totalPaid = regularTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+	const totalPaidUSD = regularTransactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
+	const totalExtraArs = extraTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+	const totalExtraUsd = extraTransactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
+
 	const summary = calculateBalanceSummary({
 		budgetAmountArs: balance?.balance_amount_ars,
 		budgetAmountUsd: balance?.balance_amount_usd,
@@ -293,14 +360,16 @@ export function useTransactionCrud(
 		usdCurrent: balance?.usd_current,
 		totalPaidArs: totalPaid,
 		totalPaidUsd: totalPaidUSD,
+		totalExtraArs,
+		totalExtraUsd,
 	});
 	const work = balance?.budget?.folder_budget?.work;
 
 	return {
 		transactions,
 		isLoading,
-		isAddingTransaction,
-		setIsAddingTransaction,
+		addingMode,
+		setAddingMode,
 		transactionToDelete,
 		setTransactionToDelete,
 		isDeleteDialogOpen,
@@ -328,6 +397,7 @@ export function useTransactionCrud(
 		setUsdAmount,
 		loadTransactions,
 		handleAddTransaction,
+		handleAddExtraAmount,
 		handleDeleteTransaction,
 		handleUpdateBalanceNotes,
 		resetTransactionForm,
@@ -335,6 +405,8 @@ export function useTransactionCrud(
 		handleUpdateTransaction,
 		totalPaid,
 		totalPaidUSD,
+		totalExtraArs,
+		totalExtraUsd,
 		summary,
 		work,
 	};

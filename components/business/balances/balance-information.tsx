@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Pencil, Info } from 'lucide-react';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
 import { BalanceSummary } from '@/helpers/balances/balance-calculations';
 import {
@@ -25,12 +25,19 @@ interface BalanceInformationProps {
 		address?: string | null;
 	} | null;
 
+	budget?: {
+		number?: string | null;
+		type?: string | null;
+	} | null;
+
 	startDate?: string | null;
 	contractDateUsd?: number | null;
 	usdCurrent?: number | null;
 
 	totalPaid: number;
 	totalPaidUsd: number;
+	totalExtraArs: number;
+	totalExtraUsd: number;
 
 	summary: BalanceSummary;
 
@@ -42,18 +49,23 @@ interface BalanceInformationProps {
 export function BalanceInformation({
 	balanceId,
 	work,
+	budget,
 	startDate,
 	contractDateUsd,
 	usdCurrent,
 	totalPaid,
 	totalPaidUsd,
+	totalExtraArs,
+	totalExtraUsd,
 	summary,
 	formatDate,
 	onUpdated,
 }: BalanceInformationProps) {
 	const [open, setOpen] = useState(false);
 
-	const [arsValue, setArsValue] = useState(formatNumber(summary.budgetArsCurrent.toString()) || '');
+	const [arsValue, setArsValue] = useState(
+		formatNumber(summary.budgetArsCurrent.toLocaleString('es-AR')) || ''
+	);
 
 	const [usdValue, setUsdValue] = useState(summary.budgetUsd?.toString() || '');
 
@@ -142,11 +154,9 @@ export function BalanceInformation({
 					<p className="text-xs text-muted-foreground mb-1">Presupuesto contratado</p>
 
 					<div className="flex flex-col">
-						<p className="text-sm font-bold text-primary">
-							{formatCurrency(summary.budgetArsInitial)}
-						</p>
+						<p className="text-sm font-bold text-primary">{budget?.type || 'Sin tipo'}</p>
 
-						<p className="text-xs text-muted-foreground">{formatCurrencyUSD(summary.budgetUsd)}</p>
+						<p className="text-xs text-muted-foreground">{budget?.number || 'Sin número'}</p>
 					</div>
 				</div>
 
@@ -185,6 +195,16 @@ export function BalanceInformation({
 				</div>
 
 				<div>
+					<p className="text-xs text-muted-foreground mb-1">Monto extra</p>
+
+					<div className="flex flex-col">
+						<p className="text-sm font-bold text-purple-600">{formatCurrency(totalExtraArs)}</p>
+
+						<p className="text-xs text-muted-foreground">{formatCurrencyUSD(totalExtraUsd)}</p>
+					</div>
+				</div>
+
+				<div>
 					<p className="text-xs text-muted-foreground mb-1">Saldo</p>
 
 					<div className="flex flex-col">
@@ -213,7 +233,10 @@ export function BalanceInformation({
 								type="text"
 								inputMode="numeric"
 								value={arsValue}
-								onChange={(e) => setArsValue(formatNumber(e.target.value))}
+								onChange={(e) => {
+									const formatted = formatNumber(e.target.value);
+									setArsValue(formatted);
+								}}
 								placeholder="Ingrese monto en ARS"
 							/>
 						</div>
@@ -227,6 +250,14 @@ export function BalanceInformation({
 								onChange={(e) => setUsdValue(e.target.value)}
 								placeholder="Ingrese monto en USD"
 							/>
+
+							<div className="flex items-start gap-1.5 col-span-2">
+								<Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+
+								<p className="text-xs text-muted-foreground">
+									El formato USD usa punto en vez de coma para los decimales (ej: 1500.50)
+								</p>
+							</div>
 						</div>
 					</div>
 

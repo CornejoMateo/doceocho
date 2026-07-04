@@ -1,4 +1,4 @@
-import { Trash2, Edit, ImageIcon } from 'lucide-react';
+import { Trash2, Edit, ImageIcon, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
 	Table,
@@ -60,7 +60,15 @@ export function TransactionsTable({
 							<TableCell>{formatDate(transaction.date)}</TableCell>
 							<TableCell className="text-center font-sm">{transaction.payment_method}</TableCell>
 							<TableCell className="text-center font-sm w-[200px] whitespace-normal break-words">
-								{transaction.notes}
+								<div className="flex items-center gap-1 justify-center">
+									{transaction.is_extra_amount && (
+										<span className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm">
+											<Plus className="h-3 w-3" />
+											Extra
+										</span>
+									)}
+									<span>{transaction.notes}</span>
+								</div>{' '}
 							</TableCell>
 							<TableCell className="text-center font-sm">
 								<div className="flex flex-col">

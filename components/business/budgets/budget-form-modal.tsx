@@ -22,6 +22,7 @@ import { Work } from '@/lib/works/works';
 import { BudgetWithWork } from '@/lib/balances/balances';
 import { DEFAULT_TYPES, FORM_DEFAULTS } from '@/constants/budgets/constants';
 import { BudgetFormData } from '@//components/business/reports/budgets/types';
+import { Info } from 'lucide-react';
 import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 
 interface BudgetFormModalProps {
@@ -266,6 +267,13 @@ export function BudgetFormModal({
 								}
 								placeholder="0"
 							/>
+						</div>
+						<div className="flex items-start gap-1.5 col-span-2">
+							<Info className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+
+							<p className="text-xs text-muted-foreground">
+								El formato USD usa punto en vez de coma para los decimales (ej: 1500.50)
+							</p>
 						</div>
 					</div>
 

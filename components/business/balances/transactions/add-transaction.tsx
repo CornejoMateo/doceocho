@@ -19,7 +19,7 @@ import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
 
 interface AddTransactionSectionProps {
-	isAddingTransaction: boolean;
+	addingMode: 'transaction' | 'extra' | null;
 	transactionDate: Date;
 	onTransactionDateChange: (date: Date) => void;
 	transactionAmount: string;
@@ -34,7 +34,8 @@ interface AddTransactionSectionProps {
 	onPaymentMethodChange: (value: string) => void;
 	onCancel: () => void;
 	onSave: () => void;
-	onStartAdd: () => void;
+	onStartAddTransaction: () => void;
+	onStartAddExtra: () => void;
 	saveDisabled: boolean;
 	editingTransaction?: BalanceTransaction;
 	selectedFiles: File[];
@@ -43,7 +44,7 @@ interface AddTransactionSectionProps {
 }
 
 export function AddTransactionSection({
-	isAddingTransaction,
+	addingMode,
 	transactionDate,
 	onTransactionDateChange,
 	transactionAmount,
@@ -58,7 +59,8 @@ export function AddTransactionSection({
 	onPaymentMethodChange,
 	onCancel,
 	onSave,
-	onStartAdd,
+	onStartAddTransaction,
+	onStartAddExtra,
 	saveDisabled,
 	editingTransaction,
 	selectedFiles,
@@ -67,17 +69,28 @@ export function AddTransactionSection({
 }: AddTransactionSectionProps) {
 	const isEditing = !!editingTransaction;
 
-	if (!isAddingTransaction) {
+	if (!addingMode) {
 		return (
-			<Button
-				variant="outline"
-				size="sm"
-				className="w-60 items-center flex justify-center mx-auto"
-				onClick={onStartAdd}
-			>
-				<Plus className="h-4 w-4 mr-2" />
-				Agregar transacción
-			</Button>
+			<div className="flex gap-2 justify-center">
+				<Button
+					variant="outline"
+					size="sm"
+					className="w-60 items-center flex justify-center"
+					onClick={onStartAddTransaction}
+				>
+					<Plus className="h-4 w-4 mr-2" />
+					Agregar transacción
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					className="w-60 items-center flex justify-center"
+					onClick={onStartAddExtra}
+				>
+					<Plus className="h-4 w-4 mr-2" />
+					Agregar monto extra
+				</Button>
+			</div>
 		);
 	}
 
@@ -93,7 +106,11 @@ export function AddTransactionSection({
 	return (
 		<div className="space-y-4 p-4 border rounded-lg">
 			<h3 className="text-sm font-semibold">
-				{isEditing ? 'Editar transacción' : 'Nueva transacción'}
+				{isEditing
+					? 'Editar transacción'
+					: addingMode === 'extra'
+						? 'Nuevo monto extra'
+						: 'Nueva transacción'}
 			</h3>
 
 			<div className="grid grid-cols-2 gap-4">
@@ -166,23 +183,25 @@ export function AddTransactionSection({
 						onChange={(e) => onNotesChange(e.target.value)}
 					/>
 				</div>
-				<div className="space-y-2">
-					<Label htmlFor="payment-method">Método de pago</Label>
-					<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-						<SelectTrigger id="payment-method">
-							<SelectValue placeholder="Seleccionar método" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="Efectivo">Efectivo</SelectItem>
-							<SelectItem value="Transferencia">Transferencia</SelectItem>
-							<SelectItem value="Debito">Débito</SelectItem>
-							<SelectItem value="Credito">Crédito</SelectItem>
-							<SelectItem value="Cheque Fisico">Cheque (físico)</SelectItem>
-							<SelectItem value="Echeq">Echeq</SelectItem>
-							<SelectItem value="Dólar">Dólar</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
+				{addingMode === 'transaction' && (
+					<div className="space-y-2">
+						<Label htmlFor="payment-method">Método de pago</Label>
+						<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+							<SelectTrigger id="payment-method">
+								<SelectValue placeholder="Seleccionar método" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="Efectivo">Efectivo</SelectItem>
+								<SelectItem value="Transferencia">Transferencia</SelectItem>
+								<SelectItem value="Debito">Débito</SelectItem>
+								<SelectItem value="Credito">Crédito</SelectItem>
+								<SelectItem value="Cheque Fisico">Cheque (físico)</SelectItem>
+								<SelectItem value="Echeq">Echeq</SelectItem>
+								<SelectItem value="Dólar">Dólar</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				)}
 			</div>
 
 			<div className="space-y-2">

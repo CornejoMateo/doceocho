@@ -17,13 +17,14 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { BalanceWithBudget } from '@/lib/balances/balances';
+import { BalanceWithBudget, getBalanceById } from '@/lib/balances/balances';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt } from '@/utils/format-date';
 import { AddTransactionSection } from './transactions/add-transaction';
 import { TransactionsTable } from './transactions/transactions-table';
 import { BalanceInformation } from './balance-information';
 import { NotesInput } from '@/components/ui/notes-input';
+import { useState, useEffect } from 'react';
 import { useTransactionCrud } from '@/hooks/balances/use-transaction-crud';
 import { useTransactionFiles } from '@/hooks/balances/use-transaction-files';
 import { TransactionFilesGallery } from './transactions/transaction-files-gallery';
@@ -41,6 +42,23 @@ export function BalanceDetailsModal({
 	onOpenChange,
 	onTransactionCreated,
 }: BalanceDetailsModalProps) {
+	const [currentBalance, setCurrentBalance] = useState(balance);
+
+	useEffect(() => {
+		setCurrentBalance(balance);
+	}, [balance]);
+
+	const refreshBalance = async () => {
+		if (!currentBalance) return;
+		const { data } = await getBalanceById(currentBalance.id);
+		if (data) setCurrentBalance(data);
+		onTransactionCreated?.();
+	};
+
+	const handleTransactionCreated = () => {
+		refreshBalance();
+	};
+
 	const {
 		transactionForFiles,
 		transactionFiles,
@@ -51,15 +69,15 @@ export function BalanceDetailsModal({
 		handleDeleteTransactionFile,
 		handleUploadFilesFromGallery,
 		handleCloseGallery,
-	} = useTransactionFiles(balance);
+	} = useTransactionFiles(currentBalance);
 
-	const clientId = (balance as any)?.client_id;
+	const clientId = (currentBalance as any)?.client_id;
 
 	const {
 		transactions,
 		isLoading,
-		isAddingTransaction,
-		setIsAddingTransaction,
+		addingMode,
+		setAddingMode,
 		transactionToDelete,
 		setTransactionToDelete,
 		isDeleteDialogOpen,
@@ -85,6 +103,7 @@ export function BalanceDetailsModal({
 		usdAmount,
 		setUsdAmount,
 		handleAddTransaction,
+		handleAddExtraAmount,
 		handleDeleteTransaction,
 		handleUpdateBalanceNotes,
 		resetTransactionForm,
@@ -92,9 +111,16 @@ export function BalanceDetailsModal({
 		handleUpdateTransaction,
 		totalPaid,
 		totalPaidUSD,
+		totalExtraArs,
+		totalExtraUsd,
 		summary,
 		work,
-	} = useTransactionCrud(balance, isOpen, uploadFilesForTransaction, onTransactionCreated);
+	} = useTransactionCrud(
+		currentBalance,
+		isOpen,
+		uploadFilesForTransaction,
+		handleTransactionCreated
+	);
 
 	const handleGalleryUpload = (files: File[]) => {
 		if (clientId) {
@@ -112,18 +138,22 @@ export function BalanceDetailsModal({
 					</DialogDescription>
 				</DialogHeader>
 
-				{balance && (
+				{currentBalance && (
 					<div className="space-y-6">
 						<BalanceInformation
-							balanceId={balance.id}
+							balanceId={currentBalance.id}
 							work={work}
-							startDate={balance.start_date}
-							contractDateUsd={balance.contract_date_usd}
-							usdCurrent={balance.usd_current}
+							budget={currentBalance.budget}
+							startDate={currentBalance.start_date}
+							contractDateUsd={currentBalance.contract_date_usd}
+							usdCurrent={currentBalance.usd_current}
 							totalPaid={totalPaid}
 							totalPaidUsd={totalPaidUSD}
+							totalExtraArs={totalExtraArs}
+							totalExtraUsd={totalExtraUsd}
 							summary={summary}
 							formatDate={formatCreatedAt}
+							onUpdated={refreshBalance}
 						/>
 
 						<div className="border rounded-lg p-4">
@@ -134,7 +164,7 @@ export function BalanceDetailsModal({
 										onClick={() => setIsEditingNotes(true)}
 										className="text-sm text-primary hover:underline"
 									>
-										{balance.notes && String(balance.notes).trim() !== ''
+										{currentBalance.notes && String(currentBalance.notes).trim() !== ''
 											? 'Editar notas'
 											: 'Agregar notas'}
 									</button>
@@ -153,7 +183,7 @@ export function BalanceDetailsModal({
 										<button
 											onClick={() => {
 												setIsEditingNotes(false);
-												setBalanceNotes(balance.notes ?? '');
+												setBalanceNotes(currentBalance.notes ?? '');
 											}}
 											className="px-4 py-2 text-sm border rounded-md hover:bg-secondary"
 										>
@@ -169,9 +199,9 @@ export function BalanceDetailsModal({
 								</div>
 							) : (
 								<div>
-									{balance.notes && balance.notes.length > 0 ? (
+									{currentBalance.notes && currentBalance.notes.length > 0 ? (
 										<div className="text-sm text-muted-foreground whitespace-pre-wrap">
-											{balance.notes}
+											{currentBalance.notes}
 										</div>
 									) : (
 										<p className="text-sm text-muted-foreground italic">No hay notas agregadas</p>
@@ -181,7 +211,7 @@ export function BalanceDetailsModal({
 						</div>
 
 						<AddTransactionSection
-							isAddingTransaction={isAddingTransaction}
+							addingMode={addingMode}
 							transactionDate={transactionDate}
 							onTransactionDateChange={setTransactionDate}
 							transactionAmount={transactionAmount}
@@ -195,8 +225,15 @@ export function BalanceDetailsModal({
 							paymentMethod={paymentMethod}
 							onPaymentMethodChange={setPaymentMethod}
 							onCancel={resetTransactionForm}
-							onSave={editingTransaction ? handleUpdateTransaction : handleAddTransaction}
-							onStartAdd={() => setIsAddingTransaction(true)}
+							onSave={
+								editingTransaction
+									? handleUpdateTransaction
+									: addingMode === 'extra'
+										? handleAddExtraAmount
+										: handleAddTransaction
+							}
+							onStartAddTransaction={() => setAddingMode('transaction')}
+							onStartAddExtra={() => setAddingMode('extra')}
 							saveDisabled={!transactionAmount || isSavingTransaction}
 							editingTransaction={editingTransaction ?? undefined}
 							selectedFiles={transactionFilesToUpload}
