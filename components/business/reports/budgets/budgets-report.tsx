@@ -25,6 +25,7 @@ import { useBudgetFilters } from '@/hooks/budgets/use-budget-filters';
 import { BudgetFilterDialog } from './budget-filter-dialog';
 import { applyBudgetFilters, hasActiveFilters } from '@/helpers/budgets/filter-budgets';
 import { generateBudgetsPDF, getFiltersDescription } from '@/helpers/budgets/generate-budget-pdf';
+import { BudgetMobileCard } from './budget-mobile-card';
 
 export function BudgetsReport() {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -185,8 +186,8 @@ export function BudgetsReport() {
 				</div>
 			</div>
 
-			<Card className="p-0 bg-card border-border overflow-x-auto">
-				<div className="p-4 border-b flex items-center justify-between min-w-[1000px]">
+			<Card className="p-0 bg-card border-border">
+				<div className="p-4 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 					<div className="text-sm text-muted-foreground">
 						{loading ? 'Cargando...' : `${filteredRows.length} presupuesto(s)`}
 					</div>
@@ -202,117 +203,133 @@ export function BudgetsReport() {
 					</div>
 				</div>
 
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('date')}
-							>
-								<div className="flex items-center gap-1">
-									{BUDGETS_REPORT_COLUMNS.date}
-									{getSortIcon('date')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('client')}
-							>
-								<div className="flex items-center gap-1">
-									{BUDGETS_REPORT_COLUMNS.client}
-									{getSortIcon('client')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('number')}
-							>
-								<div className="flex items-center gap-1">
-									{BUDGETS_REPORT_COLUMNS.number}
-									{getSortIcon('number')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('type')}
-							>
-								<div className="flex items-center gap-1">
-									{BUDGETS_REPORT_COLUMNS.type}
-									{getSortIcon('type')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('work')}
-							>
-								<div className="flex items-center gap-1">
-									{BUDGETS_REPORT_COLUMNS.work}
-									{getSortIcon('work')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('amountArs')}
-							>
-								<div className="flex items-center justify-end gap-1">
-									{BUDGETS_REPORT_COLUMNS.amountArs}
-									{getSortIcon('amountArs')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('amountUsd')}
-							>
-								<div className="flex items-center justify-end gap-1">
-									{BUDGETS_REPORT_COLUMNS.amountUsd}
-									{getSortIcon('amountUsd')}
-								</div>
-							</TableHead>
-							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-								onClick={() => handleSort('status')}
-							>
-								<div className="flex items-center gap-1">
-									{BUDGETS_REPORT_COLUMNS.status}
-									{getSortIcon('status')}
-								</div>
-							</TableHead>
-						</TableRow>
-					</TableHeader>
+				{/* Mobile Card View */}
+				<div className="p-4 md:hidden space-y-3">
+					{loading ? (
+						<p className="text-center text-muted-foreground py-6">Cargando presupuestos...</p>
+					) : filteredRows.length === 0 ? (
+						<p className="text-center text-muted-foreground py-6">No hay resultados</p>
+					) : (
+						filteredRows.map((r) => <BudgetMobileCard key={r.id} row={r} />)
+					)}
+				</div>
 
-					<TableBody>
-						{loading ? (
-							<TableRow>
-								<TableCell colSpan={9} className="text-center text-muted-foreground">
-									Cargando presupuestos...
-								</TableCell>
-							</TableRow>
-						) : filteredRows.length === 0 ? (
-							<TableRow>
-								<TableCell colSpan={9} className="text-center text-muted-foreground">
-									No hay resultados
-								</TableCell>
-							</TableRow>
-						) : (
-							filteredRows.map((r) => (
-								<TableRow key={r.id}>
-									<TableCell className="whitespace-nowrap">{r.date}</TableCell>
-									<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
-									<TableCell className="whitespace-nowrap">{r.number}</TableCell>
-									<TableCell className="whitespace-nowrap">{r.type}</TableCell>
-									<TableCell className="whitespace-nowrap">{r.work}</TableCell>
-									<TableCell className="text-right whitespace-nowrap">
-										{formatCurrency(r.amountArs)}
-									</TableCell>
-									<TableCell className="text-right whitespace-nowrap">
-										{formatCurrencyUSD(r.amountUsd)}
-									</TableCell>
-									<TableCell className="whitespace-nowrap">{r.status}</TableCell>
+				{/* Desktop Table View */}
+				<div className="hidden md:block overflow-x-auto">
+					<div className="min-w-[1000px]">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('date')}
+									>
+										<div className="flex items-center gap-1">
+											{BUDGETS_REPORT_COLUMNS.date}
+											{getSortIcon('date')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('client')}
+									>
+										<div className="flex items-center gap-1">
+											{BUDGETS_REPORT_COLUMNS.client}
+											{getSortIcon('client')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('number')}
+									>
+										<div className="flex items-center gap-1">
+											{BUDGETS_REPORT_COLUMNS.number}
+											{getSortIcon('number')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('type')}
+									>
+										<div className="flex items-center gap-1">
+											{BUDGETS_REPORT_COLUMNS.type}
+											{getSortIcon('type')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('work')}
+									>
+										<div className="flex items-center gap-1">
+											{BUDGETS_REPORT_COLUMNS.work}
+											{getSortIcon('work')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('amountArs')}
+									>
+										<div className="flex items-center justify-end gap-1">
+											{BUDGETS_REPORT_COLUMNS.amountArs}
+											{getSortIcon('amountArs')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('amountUsd')}
+									>
+										<div className="flex items-center justify-end gap-1">
+											{BUDGETS_REPORT_COLUMNS.amountUsd}
+											{getSortIcon('amountUsd')}
+										</div>
+									</TableHead>
+									<TableHead
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										onClick={() => handleSort('status')}
+									>
+										<div className="flex items-center gap-1">
+											{BUDGETS_REPORT_COLUMNS.status}
+											{getSortIcon('status')}
+										</div>
+									</TableHead>
 								</TableRow>
-							))
-						)}
-					</TableBody>
-				</Table>
+							</TableHeader>
+
+							<TableBody>
+								{loading ? (
+									<TableRow>
+										<TableCell colSpan={9} className="text-center text-muted-foreground">
+											Cargando presupuestos...
+										</TableCell>
+									</TableRow>
+								) : filteredRows.length === 0 ? (
+									<TableRow>
+										<TableCell colSpan={9} className="text-center text-muted-foreground">
+											No hay resultados
+										</TableCell>
+									</TableRow>
+								) : (
+									filteredRows.map((r) => (
+										<TableRow key={r.id}>
+											<TableCell className="whitespace-nowrap">{r.date}</TableCell>
+											<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.number}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.type}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.work}</TableCell>
+											<TableCell className="text-right whitespace-nowrap">
+												{formatCurrency(r.amountArs)}
+											</TableCell>
+											<TableCell className="text-right whitespace-nowrap">
+												{formatCurrencyUSD(r.amountUsd)}
+											</TableCell>
+											<TableCell className="whitespace-nowrap">{r.status}</TableCell>
+										</TableRow>
+									))
+								)}
+							</TableBody>
+						</Table>
+					</div>
+				</div>
 			</Card>
 
 			<BudgetFilterDialog
