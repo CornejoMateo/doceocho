@@ -52,6 +52,8 @@ export function BudgetFormModal({
 		workId: FORM_DEFAULTS.workId,
 		pdf: null,
 		created_at: FORM_DEFAULTS.created_at,
+		usdQuote: FORM_DEFAULTS.usdQuote,
+		date_of_sale: FORM_DEFAULTS.date_of_sale,
 	});
 
 	const selectedWork = works.find((w) => String(w.id) === formData.workId);
@@ -73,9 +75,13 @@ export function BudgetFormModal({
 			setFormData({
 				type: budget.type || FORM_DEFAULTS.type,
 				number: budget.number || FORM_DEFAULTS.number,
-				amount: budget.amount_ars?.toString() || FORM_DEFAULTS.amount,
+				amount: budget.amount_ars?.toLocaleString('es-AR') || FORM_DEFAULTS.amount,
 				amountUsd: budget.amount_usd?.toString() || FORM_DEFAULTS.amountUsd,
-				usdRate: '',
+				usdRate:
+					budget.usd_quote?.toLocaleString('es-AR', {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 3,
+					}) || '',
 				workId: budget.folder_budget?.work_id
 					? String(budget.folder_budget.work_id)
 					: FORM_DEFAULTS.workId,
@@ -83,6 +89,8 @@ export function BudgetFormModal({
 				created_at: budget.created_at
 					? new Date(budget.created_at).toISOString().split('T')[0]
 					: FORM_DEFAULTS.created_at,
+				usdQuote: budget.usd_quote?.toString() || FORM_DEFAULTS.usdQuote,
+				date_of_sale: budget.date_of_sale || FORM_DEFAULTS.date_of_sale,
 			});
 		} else if (isOpen) {
 			resetForm();
@@ -95,6 +103,7 @@ export function BudgetFormModal({
 			...formData,
 			amount: parseArsToNumber(formData.amount).toString(),
 			amountUsd: formData.amountUsd ? parseFloat(formData.amountUsd).toString() : '',
+			usdRate: formData.usdRate ? parseArsToNumber(formData.usdRate).toString() : '',
 		};
 		await onSubmit(dataToSend);
 	};
@@ -110,17 +119,26 @@ export function BudgetFormModal({
 				.replace(/\./g, '') // remove thousand separators
 				.replace(',', '.'); // decimal separator to dot for parsing
 
+			const normalizedRate = formData.usdRate
+				.replace(/\./g, '') // remove thousand separators
+				.replace(',', '.'); // decimal separator to dot for parsing
+
 			const amountNumber = Number(normalizedAmount);
-			const rateNumber = Number(formData.usdRate);
+			const rateNumber = Number(normalizedRate);
 
 			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {
-				const calculatedUsd = (amountNumber / rateNumber).toFixed(2);
+				const calculatedUsd = (amountNumber / rateNumber).toFixed(3);
 
 				setFormData((prev) => ({
 					...prev,
 					amountUsd: calculatedUsd,
 				}));
 			}
+		} else {
+			setFormData((prev) => ({
+				...prev,
+				amountUsd: '',
+			}));
 		}
 	}, [formData.usdRate, formData.amount]);
 
@@ -225,11 +243,16 @@ export function BudgetFormModal({
 						<div className="grid gap-2">
 							<Label>Cotización del dólar</Label>
 							<Input
-								type="number"
+								type="text"
 								value={formData.usdRate}
-								onChange={(e) =>
-									setFormData((prev: BudgetFormData) => ({ ...prev, usdRate: e.target.value }))
-								}
+								onChange={(e) => {
+									const formatted = formatNumber(e.target.value);
+
+									setFormData((prev: BudgetFormData) => ({
+										...prev,
+										usdRate: formatted,
+									}));
+								}}
 							/>
 						</div>
 
