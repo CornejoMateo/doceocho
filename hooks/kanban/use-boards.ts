@@ -7,7 +7,7 @@ import {
 	toggleBoardFavorite,
 	archiveBoard,
 } from '@/lib/kanban/boards';
-import type { Board, BoardFormData } from '../types';
+import type { Board, BoardFormData } from '@/components/business/kanban/types';
 
 export function useBoards() {
 	const [boards, setBoards] = useState<Board[]>([]);
@@ -26,10 +26,10 @@ export function useBoards() {
 		setLoading(false);
 	}, []);
 
-	const addBoard = useCallback(async (board: BoardFormData, ownerId: string) => {
+	const addBoard = useCallback(async (board: BoardFormData) => {
 		setLoading(true);
 		setError(null);
-		const { data, error } = await createBoard(board, ownerId);
+		const { data, error } = await createBoard(board);
 		if (error) {
 			setError(error.message);
 			setLoading(false);
@@ -43,7 +43,7 @@ export function useBoards() {
 	}, []);
 
 	const editBoard = useCallback(
-		async (id: number, changes: Partial<Omit<Board, 'id' | 'created_at' | 'owner_id'>>) => {
+		async (id: number, changes: Partial<Omit<Board, 'id' | 'created_at'>>) => {
 			setLoading(true);
 			setError(null);
 			const { data, error } = await updateBoard(id, changes);

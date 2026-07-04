@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getBoardWithLists, updateBoard } from '@/lib/kanban/boards';
 import { getListsByBoardId, createList, updateList, deleteList } from '@/lib/kanban/lists';
-import type { BoardWithMembers, List, ListFormData } from '../types';
+import type { BoardWithMembers, List, ListFormData } from '@/components/business/kanban/types';
 
 export function useBoard(boardId: number | null) {
 	const [board, setBoard] = useState<BoardWithMembers | null>(null);
@@ -62,11 +62,7 @@ export function useBoard(boardId: number | null) {
 	}, []);
 
 	const updateBoardInfo = useCallback(
-		async (
-			changes: Partial<
-				Omit<BoardWithMembers, 'id' | 'created_at' | 'owner_id' | 'members' | 'lists'>
-			>
-		) => {
+		async (changes: Partial<Omit<BoardWithMembers, 'id' | 'created_at' | 'members' | 'lists'>>) => {
 			if (!boardId) return null;
 			const { data, error } = await updateBoard(boardId, changes);
 			if (!error && data) {

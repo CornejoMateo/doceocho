@@ -16,11 +16,7 @@ export async function getBoardsCount(): Promise<{ data: number; error: any }> {
 
 export async function listBoards(): Promise<{ data: Board[] | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select('*')
-		.eq('is_archived', false)
-		.order('position', { ascending: true });
+	const { data, error } = await supabase.from(TABLE).select('*').eq('is_archived', false);
 	return { data, error };
 }
 
@@ -74,26 +70,12 @@ export async function getBoardWithLists(
 }
 
 export async function createBoard(
-	board: BoardFormData,
-	ownerId: string // UUID
+	board: BoardFormData
 ): Promise<{ data: Board | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	// Get the highest position
-	const { data: maxPos } = await supabase
-		.from(TABLE)
-		.select('position')
-		.eq('owner_id', ownerId)
-		.order('position', { ascending: false })
-		.limit(1)
-		.single();
-
-	const nextPosition = maxPos ? maxPos.position + 1 : 0;
-
 	const payload = {
 		...board,
-		owner_id: ownerId,
-		position: nextPosition,
 	};
 
 	const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
@@ -102,7 +84,7 @@ export async function createBoard(
 
 export async function updateBoard(
 	id: number,
-	changes: Partial<Omit<Board, 'id' | 'created_at' | 'owner_id'>>
+	changes: Partial<Omit<Board, 'id' | 'created_at'>>
 ): Promise<{ data: Board | null; error: any }> {
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase.from(TABLE).update(changes).eq('id', id).select().single();
@@ -115,36 +97,19 @@ export async function deleteBoard(id: number): Promise<{ data: null; error: any 
 	return { data: null, error };
 }
 
-export async function duplicateBoard(
-	id: number,
-	ownerId: string
-): Promise<{ data: Board | null; error: any }> {
+export async function duplicateBoard(id: number): Promise<{ data: Board | null; error: any }> {
 	const supabase = getSupabaseClient();
 
 	// Get the original board
 	const { data: originalBoard, error: fetchError } = await getBoardById(id);
 	if (fetchError || !originalBoard) return { data: null, error: fetchError };
 
-	// Get the highest position
-	const { data: maxPos } = await supabase
-		.from(TABLE)
-		.select('position')
-		.eq('owner_id', ownerId)
-		.order('position', { ascending: false })
-		.limit(1)
-		.single();
-
-	const nextPosition = maxPos ? maxPos.position + 1 : 0;
-
 	// Create the duplicate
-	const { data: newBoard, error: createError } = await createBoard(
-		{
-			name: `${originalBoard.name} (copia)`,
-			description: originalBoard.description || undefined,
-			color: originalBoard.color,
-		},
-		ownerId
-	);
+	const { data: newBoard, error: createError } = await createBoard({
+		name: `${originalBoard.name} (copia)`,
+		description: originalBoard.description || undefined,
+		color: originalBoard.color,
+	});
 
 	if (createError || !newBoard) return { data: null, error: createError };
 
@@ -175,20 +140,6 @@ export async function archiveBoard(
 	const { data, error } = await supabase
 		.from(TABLE)
 		.update({ is_archived: isArchived })
-		.eq('id', id)
-		.select()
-		.single();
-	return { data, error };
-}
-
-export async function updateBoardPosition(
-	id: number,
-	newPosition: number
-): Promise<{ data: Board | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.update({ position: newPosition })
 		.eq('id', id)
 		.select()
 		.single();

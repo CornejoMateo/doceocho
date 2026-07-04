@@ -15,21 +15,10 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-	X,
-	Clock,
-	AlertTriangle,
-	CheckCircle,
-	MoreVertical,
-	Paperclip,
-	MessageSquare,
-	Users,
-	Upload,
-} from 'lucide-react';
-import { useCard } from './kankan/use-card';
+import { X, Clock, Paperclip, Upload } from 'lucide-react';
+import { useCard } from '@/hooks/kanban/use-card';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import type { CardWithRelations } from './types';
 
 interface CardDetailModalProps {
 	cardId: number | null;

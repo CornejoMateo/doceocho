@@ -8,7 +8,7 @@ import {
 	deleteCard,
 	archiveCard,
 } from '@/lib/kanban/cards';
-import type { Card, CardFormData } from '../types';
+import type { Card, CardFormData } from '@/components/business/kanban/types';
 
 export function useCards(listId: number | null) {
 	const [cards, setCards] = useState<Card[]>([]);

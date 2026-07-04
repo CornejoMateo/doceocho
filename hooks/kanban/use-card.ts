@@ -6,7 +6,12 @@ import {
 	uploadAttachment,
 	deleteAttachment,
 } from '@/lib/kanban/attachments';
-import type { CardWithRelations, CardFormData, Label, Attachment } from '../types';
+import type {
+	CardWithRelations,
+	CardFormData,
+	Label,
+	Attachment,
+} from '@/components/business/kanban/types';
 
 export function useCard(cardId: number | null) {
 	const [card, setCard] = useState<CardWithRelations | null>(null);

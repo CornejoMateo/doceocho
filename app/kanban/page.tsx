@@ -5,19 +5,16 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, MoreVertical, Trash2 } from 'lucide-react';
-import { useBoards } from '@/hooks/kankan/use-boards';
+import { useBoards } from '@/hooks/kanban/use-boards';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 import { BoardCreationModal } from '@/components/business/kanban/board-creation-modal';
 import { BoardDeleteModal } from '@/components/business/kanban/board-delete-modal';
 import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 
 export default function KanbanPage() {
 	const router = useRouter();
-	const supabase = getSupabaseClient();
-	const [userId, setUserId] = useState<string | null>(null);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
 	const [boardToEdit, setBoardToEdit] = useState<Board | null>(null);
@@ -34,34 +31,11 @@ export default function KanbanPage() {
 	} = useBoards();
 
 	useEffect(() => {
-		// Get current user UUID from Supabase
-		async function getUser() {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (user?.id) {
-				setUserId(user.id);
-			}
-		}
-		getUser();
-	}, [supabase]);
-
-	useEffect(() => {
-		if (userId) {
-			fetchBoards();
-		}
-	}, [fetchBoards, userId]);
+		fetchBoards();
+	}, [fetchBoards]);
 
 	const handleCreateBoard = async (boardData: BoardFormData) => {
-		if (!userId) {
-			toast({
-				variant: 'destructive',
-				title: 'Error',
-				description: 'No hay usuario autenticado',
-			});
-			return;
-		}
-		const board = await addBoard(boardData, userId);
+		const board = await addBoard(boardData);
 		if (board) {
 			router.push(`/kanban/${board.id}`);
 		}
