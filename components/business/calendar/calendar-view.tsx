@@ -109,7 +109,7 @@ export function CalendarView() {
 	const getEventsForDate = (day: number) => {
 		const dateStr = formatDateString(currentDate.getFullYear(), currentDate.getMonth(), day);
 		let dayEvents = events.filter((event) => {
-			const [eventDay, eventMonth, eventYear] = event.date?.split('-') ?? [];
+			const [eventDay, eventMonth, eventYear] = event.date?.split('/') ?? [];
 			const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
 			return formattedEventDate === dateStr;
 		});
@@ -207,7 +207,7 @@ export function CalendarView() {
 
 	const filteredEvents = selectedDate
 		? events.filter((event) => {
-				const [eventDay, eventMonth, eventYear] = event.date?.split('-') ?? [];
+				const [eventDay, eventMonth, eventYear] = event.date?.split('/') ?? [];
 				const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
 				const matchesDate = formattedEventDate === selectedDate;
 				const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
