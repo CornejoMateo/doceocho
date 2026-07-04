@@ -285,9 +285,7 @@ export function ClientDetailsDialog({
 										<>
 											<TabsTrigger value="works">Obras</TabsTrigger>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
-											<TabsTrigger value="balances" disabled>
-												Saldos
-											</TabsTrigger>
+											<TabsTrigger value="balances">Saldos</TabsTrigger>
 										</>
 									)}
 									<TabsTrigger value="images">Archivos</TabsTrigger>
