@@ -200,9 +200,9 @@ describe('balance_transactions lib', () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.eq = jest.fn().mockResolvedValue({
 				data: [
-					{ amount: 100, usd_amount: 5 },
-					{ amount: 200, usd_amount: 10 },
-					{ amount: 50, usd_amount: null },
+					{ amount: 100, usd_amount: 5, is_extra_amount: false },
+					{ amount: 200, usd_amount: 10, is_extra_amount: false },
+					{ amount: 50, usd_amount: null, is_extra_amount: false },
 				],
 				error: null,
 			});
@@ -210,7 +210,36 @@ describe('balance_transactions lib', () => {
 
 			const result = await getTotalByBalanceId(1);
 
-			expect(result.data).toEqual({ totalAmount: 350, totalAmountUSD: 15 });
+			expect(chain.select).toHaveBeenCalledWith('amount, usd_amount, is_extra_amount');
+			expect(result.data).toEqual({
+				totalAmount: 350,
+				totalAmountUSD: 15,
+				totalExtraAmount: 0,
+				totalExtraAmountUSD: 0,
+			});
+		});
+
+		it('separates extra amounts from regular totals', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			chain.eq = jest.fn().mockResolvedValue({
+				data: [
+					{ amount: 100, usd_amount: 5, is_extra_amount: false },
+					{ amount: 200, usd_amount: 10, is_extra_amount: false },
+					{ amount: 50, usd_amount: 2, is_extra_amount: true },
+					{ amount: 30, usd_amount: null, is_extra_amount: true },
+				],
+				error: null,
+			});
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getTotalByBalanceId(1);
+
+			expect(result.data).toEqual({
+				totalAmount: 300,
+				totalAmountUSD: 15,
+				totalExtraAmount: 80,
+				totalExtraAmountUSD: 2,
+			});
 		});
 
 		it('returns zeros for empty transactions', async () => {
@@ -220,7 +249,12 @@ describe('balance_transactions lib', () => {
 
 			const result = await getTotalByBalanceId(1);
 
-			expect(result.data).toEqual({ totalAmount: 0, totalAmountUSD: 0 });
+			expect(result.data).toEqual({
+				totalAmount: 0,
+				totalAmountUSD: 0,
+				totalExtraAmount: 0,
+				totalExtraAmountUSD: 0,
+			});
 		});
 	});
 
@@ -234,10 +268,10 @@ describe('balance_transactions lib', () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.in = jest.fn().mockResolvedValue({
 				data: [
-					{ balance_id: 1, amount: 100, usd_amount: 5 },
-					{ balance_id: 1, amount: 50, usd_amount: 2 },
-					{ balance_id: 2, amount: 300, usd_amount: 15 },
-					{ balance_id: 3, amount: 0, usd_amount: 0 },
+					{ balance_id: 1, amount: 100, usd_amount: 5, is_extra_amount: false },
+					{ balance_id: 1, amount: 50, usd_amount: 2, is_extra_amount: false },
+					{ balance_id: 2, amount: 300, usd_amount: 15, is_extra_amount: false },
+					{ balance_id: 3, amount: 0, usd_amount: 0, is_extra_amount: false },
 				],
 				error: null,
 			});
@@ -245,11 +279,33 @@ describe('balance_transactions lib', () => {
 
 			const result = await getTotalsByBalanceIds([1, 2, 3]);
 
+			expect(chain.select).toHaveBeenCalledWith('balance_id, amount, usd_amount, is_extra_amount');
 			expect(chain.in).toHaveBeenCalledWith('balance_id', [1, 2, 3]);
 			expect(result.data).toEqual({
-				1: { totalAmount: 150, totalAmountUSD: 7 },
-				2: { totalAmount: 300, totalAmountUSD: 15 },
-				3: { totalAmount: 0, totalAmountUSD: 0 },
+				1: { totalAmount: 150, totalAmountUSD: 7, totalExtraAmount: 0, totalExtraAmountUSD: 0 },
+				2: { totalAmount: 300, totalAmountUSD: 15, totalExtraAmount: 0, totalExtraAmountUSD: 0 },
+				3: { totalAmount: 0, totalAmountUSD: 0, totalExtraAmount: 0, totalExtraAmountUSD: 0 },
+			});
+		});
+
+		it('separates extra amounts from regular totals by balance id', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			chain.in = jest.fn().mockResolvedValue({
+				data: [
+					{ balance_id: 1, amount: 100, usd_amount: 5, is_extra_amount: false },
+					{ balance_id: 1, amount: 30, usd_amount: 2, is_extra_amount: true },
+					{ balance_id: 2, amount: 300, usd_amount: 15, is_extra_amount: false },
+					{ balance_id: 2, amount: 50, usd_amount: 3, is_extra_amount: true },
+				],
+				error: null,
+			});
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getTotalsByBalanceIds([1, 2]);
+
+			expect(result.data).toEqual({
+				1: { totalAmount: 100, totalAmountUSD: 5, totalExtraAmount: 30, totalExtraAmountUSD: 2 },
+				2: { totalAmount: 300, totalAmountUSD: 15, totalExtraAmount: 50, totalExtraAmountUSD: 3 },
 			});
 		});
 	});

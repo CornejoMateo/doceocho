@@ -34,6 +34,8 @@ jest.mock('@/helpers/balances/balance-calculations', () => ({
 		budgetArsCurrent: 0,
 		totalPaidArs: 0,
 		totalPaidUsd: 0,
+		totalExtraArs: 0,
+		totalExtraUsd: 0,
 		remainingArs: 0,
 		remainingUsd: 0,
 		progressPercentage: 0,
@@ -179,6 +181,42 @@ describe('useTransactionCrud', () => {
 		expect(mockUploadFiles).toHaveBeenCalledWith(1, [expect.any(File)]);
 	});
 
+	it('creates an extra amount successfully', async () => {
+		(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setTransactionAmount('500');
+		});
+
+		await act(async () => {
+			await result.current.handleAddExtraAmount();
+		});
+
+		expect(createTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({ is_extra_amount: true })
+		);
+		expect(result.current.isSavingTransaction).toBe(false);
+		expect(mockOnTransactionCreated).toHaveBeenCalled();
+	});
+
+	it('does not create extra amount when amount is empty', async () => {
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {
+			await result.current.handleAddExtraAmount();
+		});
+
+		expect(createTransaction).not.toHaveBeenCalled();
+	});
+
 	it('deletes a transaction successfully', async () => {
 		(deleteTransaction as jest.Mock).mockResolvedValue({ error: null });
 
@@ -256,7 +294,7 @@ describe('useTransactionCrud', () => {
 		});
 
 		expect(result.current.editingTransaction).toEqual(tx);
-		expect(result.current.isAddingTransaction).toBe(true);
+		expect(result.current.addingMode).toBe('transaction');
 		expect(result.current.transactionAmount).toBe('500');
 		expect(result.current.paymentMethod).toBe('TRANSFERENCIA');
 	});
@@ -312,7 +350,7 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
-			result.current.setIsAddingTransaction(true);
+			result.current.setAddingMode('transaction');
 			result.current.setEditingTransaction({ id: 5 } as any);
 			result.current.setTransactionFilesToUpload([new File([''], 't.pdf')]);
 		});
@@ -322,16 +360,17 @@ describe('useTransactionCrud', () => {
 		});
 
 		expect(result.current.transactionAmount).toBe('');
-		expect(result.current.isAddingTransaction).toBe(false);
+		expect(result.current.addingMode).toBeNull();
 		expect(result.current.editingTransaction).toBeNull();
 		expect(result.current.transactionFilesToUpload).toEqual([]);
 	});
 
-	it('computes totalPaid and totalPaidUSD from transactions', async () => {
+	it('computes totalPaid and totalPaidUSD from regular transactions, excluding extras', async () => {
 		(getTransactionsByBalanceId as jest.Mock).mockResolvedValue({
 			data: [
-				{ amount: 1000, usd_amount: 50 },
-				{ amount: 2000, usd_amount: 100 },
+				{ amount: 1000, usd_amount: 50, is_extra_amount: false },
+				{ amount: 2000, usd_amount: 100, is_extra_amount: false },
+				{ amount: 500, usd_amount: 25, is_extra_amount: true },
 			],
 			error: null,
 		});
@@ -344,6 +383,8 @@ describe('useTransactionCrud', () => {
 
 		expect(result.current.totalPaid).toBe(3000);
 		expect(result.current.totalPaidUSD).toBe(150);
+		expect(result.current.totalExtraArs).toBe(500);
+		expect(result.current.totalExtraUsd).toBe(25);
 	});
 
 	it('does not update transaction when amount is empty', async () => {

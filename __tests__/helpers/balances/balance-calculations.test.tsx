@@ -10,6 +10,8 @@ describe('calculateBalanceSummary', () => {
 			budgetUsd: 0,
 			totalPaidArs: 0,
 			totalPaidUsd: 0,
+			totalExtraArs: 0,
+			totalExtraUsd: 0,
 			remainingArs: 0,
 			remainingUsd: 0,
 			progressPercentage: 0,
@@ -102,7 +104,23 @@ describe('calculateBalanceSummary', () => {
 		expect(result.progressPercentage).toBe(25);
 	});
 
-	it('uses budgetInitialArs for progress when budgetArsCurrent is zero', () => {
+	it('includes extra amounts in the effective budget and remaining', () => {
+		const result = calculateBalanceSummary({
+			budgetAmountArs: 100000,
+			budgetAmountUsd: 5000,
+			totalPaidArs: 30000,
+			totalPaidUsd: 1500,
+			totalExtraArs: 20000,
+			totalExtraUsd: 1000,
+		});
+
+		expect(result.totalExtraArs).toBe(20000);
+		expect(result.totalExtraUsd).toBe(1000);
+		expect(result.remainingArs).toBe(90000);
+		expect(result.remainingUsd).toBe(4500);
+	});
+
+	it('uses budgetInitialArs for progress when effectiveBudgetArs is zero', () => {
 		const result = calculateBalanceSummary({
 			budgetAmountArs: 0,
 			budgetAmountUsd: 5000,
