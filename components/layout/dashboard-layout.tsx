@@ -281,7 +281,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					<div className="flex items-center gap-2">
 						<AlertDialog open={cacheDialogOpen} onOpenChange={setCacheDialogOpen}>
 							<AlertDialogTrigger asChild>
-								<Button variant="ghost" size="sm">
+								<Button variant="ghost" size="sm" className="opacity-30 hover:opacity-100">
 									<Trash2 className="h-4 w-4" />
 									Eliminar caché
 								</Button>
