@@ -1,17 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getCardWithRelations, updateCard, deleteCard } from '@/lib/kanban/cards';
-import { getCardLabels, addLabelToCard, removeLabelFromCard } from '@/lib/kanban/labels';
-import {
-	getAttachmentsByCardId,
-	uploadAttachment,
-	deleteAttachment,
-} from '@/lib/kanban/attachments';
-import type {
-	CardWithRelations,
-	CardFormData,
-	Label,
-	Attachment,
-} from '@/components/business/kanban/types';
+import { uploadAttachment, deleteAttachment } from '@/lib/kanban/attachments';
+import type { CardWithRelations } from '@/components/business/kanban/types';
 
 export function useCard(cardId: number | null) {
 	const [card, setCard] = useState<CardWithRelations | null>(null);
@@ -60,35 +50,11 @@ export function useCard(cardId: number | null) {
 		[cardId]
 	);
 
-	// Labels
-	const addLabel = useCallback(
-		async (labelId: number) => {
-			if (!cardId) return null;
-			const { data, error } = await addLabelToCard(cardId, labelId);
-			if (!error && data) {
-				await fetchCard();
-			}
-			return data;
-		},
-		[cardId, fetchCard]
-	);
-
-	const removeLabel = useCallback(
-		async (labelId: number) => {
-			if (!cardId) return;
-			const { error } = await removeLabelFromCard(cardId, labelId);
-			if (!error) {
-				await fetchCard();
-			}
-		},
-		[cardId, fetchCard]
-	);
-
 	// Attachments
 	const uploadFile = useCallback(
-		async (file: File, userId: string) => {
+		async (file: File) => {
 			if (!cardId) return { data: null, error: 'No card ID provided' };
-			const { data, error } = await uploadAttachment(file, cardId, userId);
+			const { data, error } = await uploadAttachment(file, cardId);
 			if (!error && data) {
 				await fetchCard();
 			}
@@ -123,8 +89,6 @@ export function useCard(cardId: number | null) {
 		error,
 		fetchCard,
 		updateCard: updateCardInfo,
-		addLabel,
-		removeLabel,
 		uploadFile,
 		removeAttachment,
 		removeCard,

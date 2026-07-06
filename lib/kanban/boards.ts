@@ -1,10 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
-import type {
-	Board,
-	BoardWithMembers,
-	BoardFormData,
-	BoardMember,
-} from '@/components/business/kanban/types';
+import type { Board, BoardWithMembers, BoardFormData } from '@/components/business/kanban/types';
+import { addBoardMember } from './board-members';
 
 const TABLE = 'kanban_boards';
 
@@ -16,7 +12,7 @@ export async function getBoardsCount(): Promise<{ data: number; error: any }> {
 
 export async function listBoards(): Promise<{ data: Board[] | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase.from(TABLE).select('*').eq('is_archived', false);
+	const { data, error } = await supabase.from(TABLE).select('*');
 	return { data, error };
 }
 
@@ -74,11 +70,12 @@ export async function createBoard(
 ): Promise<{ data: Board | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const payload = {
-		...board,
-	};
+	const { data, error } = await supabase.rpc('create_board_with_member', {
+		p_name: board.name,
+		p_description: board.description ?? null,
+		p_color: board.color ?? '#4F5C4D',
+	});
 
-	const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
 	return { data, error };
 }
 
@@ -95,53 +92,4 @@ export async function deleteBoard(id: number): Promise<{ data: null; error: any 
 	const supabase = getSupabaseClient();
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
-}
-
-export async function duplicateBoard(id: number): Promise<{ data: Board | null; error: any }> {
-	const supabase = getSupabaseClient();
-
-	// Get the original board
-	const { data: originalBoard, error: fetchError } = await getBoardById(id);
-	if (fetchError || !originalBoard) return { data: null, error: fetchError };
-
-	// Create the duplicate
-	const { data: newBoard, error: createError } = await createBoard({
-		name: `${originalBoard.name} (copia)`,
-		description: originalBoard.description || undefined,
-		color: originalBoard.color,
-	});
-
-	if (createError || !newBoard) return { data: null, error: createError };
-
-	// TODO: Duplicate lists, cards, labels, etc. (this would require additional functions)
-
-	return { data: newBoard, error: null };
-}
-
-export async function toggleBoardFavorite(
-	id: number,
-	isFavorite: boolean
-): Promise<{ data: Board | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.update({ is_favorite: isFavorite })
-		.eq('id', id)
-		.select()
-		.single();
-	return { data, error };
-}
-
-export async function archiveBoard(
-	id: number,
-	isArchived: boolean
-): Promise<{ data: Board | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.update({ is_archived: isArchived })
-		.eq('id', id)
-		.select()
-		.single();
-	return { data, error };
 }

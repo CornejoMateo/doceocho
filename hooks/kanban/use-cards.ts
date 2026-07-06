@@ -6,7 +6,6 @@ import {
 	moveCard,
 	updateCardPosition,
 	deleteCard,
-	archiveCard,
 } from '@/lib/kanban/cards';
 import type { Card, CardFormData } from '@/components/business/kanban/types';
 
@@ -99,14 +98,6 @@ export function useCards(listId: number | null) {
 		setLoading(false);
 	}, []);
 
-	const archiveCardById = useCallback(async (id: number, isArchived: boolean) => {
-		const { data, error } = await archiveCard(id, isArchived);
-		if (!error && data) {
-			setCards((prev) => prev.map((c) => (c.id === id ? data : c)));
-		}
-		return { data, error };
-	}, []);
-
 	return {
 		cards,
 		loading,
@@ -117,6 +108,5 @@ export function useCards(listId: number | null) {
 		moveCard: moveCardToList,
 		updatePosition: changeCardPosition,
 		removeCard,
-		archiveCard: archiveCardById,
 	};
 }

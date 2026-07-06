@@ -26,8 +26,7 @@ export async function getAttachmentById(
 
 export async function uploadAttachment(
 	file: File,
-	cardId: number,
-	userId: string // UUID
+	cardId: number
 ): Promise<{ data: Attachment | null; error: any }> {
 	const supabase = getSupabaseClient();
 
@@ -52,7 +51,6 @@ export async function uploadAttachment(
 	// Create attachment record
 	const payload = {
 		card_id: cardId,
-		user_id: userId,
 		file_name: file.name,
 		file_url: publicUrl,
 		file_size: file.size,

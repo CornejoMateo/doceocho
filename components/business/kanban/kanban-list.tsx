@@ -94,16 +94,6 @@ export function KanbanList({
 		setShowEditModal(false);
 	};
 
-	const handleDragEnd = (result: any) => {
-		if (!result.destination) return;
-
-		const cardId = Number(result.draggableId);
-		const newListId = list.id;
-		const newPosition = result.destination.index;
-
-		onCardMove(cardId, newListId, newPosition);
-	};
-
 	return (
 		<div className="w-72 flex-shrink-0 flex flex-col bg-background rounded-lg shadow-sm border">
 			{/* List Header */}
@@ -132,7 +122,7 @@ export function KanbanList({
 					<div
 						ref={provided.innerRef}
 						{...provided.droppableProps}
-						className={`flex-1 p-3 space-y-2 overflow-y-auto min-h-[200px] max-h-[calc(100vh-300px)] ${
+						className={`flex-1 p-3 space-y-2 min-h-[200px] ${
 							snapshot.isDraggingOver ? 'bg-muted/50' : ''
 						}`}
 					>

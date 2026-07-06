@@ -52,11 +52,11 @@ export function BoardCreationModal({ open, onOpenChange, onCreate }: BoardCreati
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle asChild>
-						<VisuallyHidden>Crear Nuevo Tablero</VisuallyHidden>
+						<VisuallyHidden>Crear nuevo tablero</VisuallyHidden>
 					</DialogTitle>
 					<div className="flex items-center gap-2 mb-4">
 						<Plus className="h-5 w-5" />
-						<h2 className="text-lg font-semibold">Crear Nuevo Tablero</h2>
+						<h2 className="text-lg font-semibold">Crear nuevo tablero</h2>
 					</div>
 				</DialogHeader>
 
@@ -127,7 +127,7 @@ export function BoardCreationModal({ open, onOpenChange, onCreate }: BoardCreati
 						Cancelar
 					</Button>
 					<Button onClick={handleCreate} disabled={!name.trim()}>
-						Crear Tablero
+						Crear tablero
 					</Button>
 				</div>
 			</DialogContent>

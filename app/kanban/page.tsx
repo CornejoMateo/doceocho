@@ -11,34 +11,21 @@ import { BoardCreationModal } from '@/components/business/kanban/board-creation-
 import { BoardDeleteModal } from '@/components/business/kanban/board-delete-modal';
 import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { toast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
 
 export default function KanbanPage() {
 	const router = useRouter();
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
 	const [boardToEdit, setBoardToEdit] = useState<Board | null>(null);
-	const {
-		boards,
-		loading,
-		error,
-		fetchBoards,
-		addBoard,
-		toggleFavorite,
-		archiveBoard,
-		editBoard,
-		removeBoard,
-	} = useBoards();
+	const { boards, loading, error, fetchBoards, addBoard, editBoard, removeBoard } = useBoards();
 
 	useEffect(() => {
 		fetchBoards();
 	}, [fetchBoards]);
 
 	const handleCreateBoard = async (boardData: BoardFormData) => {
-		const board = await addBoard(boardData);
-		if (board) {
-			router.push(`/kanban/${board.id}`);
-		}
+		await addBoard(boardData);
 	};
 
 	const handleBoardClick = (boardId: number) => {
@@ -88,7 +75,7 @@ export default function KanbanPage() {
 					</div>
 				) : error ? (
 					<div className="text-center py-12">
-						<p className="text-destructive">Error: {error}</p>
+						<p className="text-destructive">Error: {translateError(error)}</p>
 					</div>
 				) : boards.length === 0 ? (
 					<div className="text-center py-12">
@@ -135,9 +122,6 @@ export default function KanbanPage() {
 										{board.description}
 									</p>
 								)}
-								<div className="text-xs text-muted-foreground">
-									Creado el {new Date(board.created_at).toLocaleDateString('es-AR')}
-								</div>
 							</Card>
 						))}
 					</div>

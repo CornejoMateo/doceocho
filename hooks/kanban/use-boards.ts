@@ -1,12 +1,5 @@
 import { useState, useCallback } from 'react';
-import {
-	listBoards,
-	createBoard,
-	updateBoard,
-	deleteBoard,
-	toggleBoardFavorite,
-	archiveBoard,
-} from '@/lib/kanban/boards';
+import { listBoards, createBoard, updateBoard, deleteBoard } from '@/lib/kanban/boards';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 
 export function useBoards() {
@@ -70,22 +63,6 @@ export function useBoards() {
 		setLoading(false);
 	}, []);
 
-	const toggleFavorite = useCallback(async (id: number, isFavorite: boolean) => {
-		const { data, error } = await toggleBoardFavorite(id, isFavorite);
-		if (!error && data) {
-			setBoards((prev) => prev.map((b) => (b.id === id ? data : b)));
-		}
-		return { data, error };
-	}, []);
-
-	const archiveBoardById = useCallback(async (id: number, isArchived: boolean) => {
-		const { data, error } = await archiveBoard(id, isArchived);
-		if (!error && data) {
-			setBoards((prev) => prev.map((b) => (b.id === id ? data : b)));
-		}
-		return { data, error };
-	}, []);
-
 	return {
 		boards,
 		loading,
@@ -94,7 +71,5 @@ export function useBoards() {
 		addBoard,
 		editBoard,
 		removeBoard,
-		toggleFavorite,
-		archiveBoard: archiveBoardById,
 	};
 }

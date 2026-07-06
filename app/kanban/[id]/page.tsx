@@ -23,7 +23,6 @@ export default function BoardPage() {
 	const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 	const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 	const [isListCreationModalOpen, setIsListCreationModalOpen] = useState(false);
-	const userId = '00000000-0000-0000-0000-000000000000'; // TODO: Get actual user UUID from auth
 
 	const { board, lists, loading, error, fetchBoard, addList, editList, removeList, updateBoard } =
 		useBoard(boardId);
@@ -98,7 +97,7 @@ export default function BoardPage() {
 	if (error) {
 		return (
 			<div className="container mx-auto p-6">
-				<p className="text-destructive">Error: {error}</p>
+				<p className="text-destructive">Error: {translateError(error)}</p>
 			</div>
 		);
 	}
@@ -184,7 +183,6 @@ export default function BoardPage() {
 				cardId={selectedCardId}
 				open={isCardModalOpen}
 				onOpenChange={setIsCardModalOpen}
-				userId={userId}
 				onCardDeleted={handleCardDeleted}
 				onCardUpdated={handleCardUpdated}
 			/>
