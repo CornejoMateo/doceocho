@@ -306,7 +306,7 @@ export function useTransactionCrud(
 				amount: parseArsToNumber(transactionAmount),
 				payment_method: paymentMethod || null,
 				notes: notes || null,
-				quote_usd: quoteUsd ? parseFloat(quoteUsd) : null,
+				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
 				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
 			});
 
