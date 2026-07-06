@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MoreVertical, Plus, User, Trash2 } from 'lucide-react';
@@ -8,10 +7,78 @@ import { useCards } from '@/hooks/kanban/use-cards';
 import { ListEditModal } from './list-edit-modal';
 import { ListDeleteModal } from './list-delete-modal';
 import { CardCreationModal } from './card-creation-modal';
-import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { useDroppable } from '@dnd-kit/core';
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { listClients } from '@/lib/clients/clients';
 import type { Client } from '@/lib/clients/clients';
-import type { List, CardFormData } from './types';
+import type { List, Card, CardFormData } from './types';
+
+function DroppableList({
+	listId,
+	cardIds,
+	children,
+	className,
+}: {
+	listId: number;
+	cardIds: string[];
+	children: ReactNode;
+	className?: string;
+}) {
+	const { setNodeRef, isOver } = useDroppable({ id: `list-${listId}` });
+
+	return (
+		<div ref={setNodeRef} className={`${className} ${isOver ? 'bg-muted/50' : ''}`}>
+			<SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+				{children}
+			</SortableContext>
+		</div>
+	);
+}
+
+function SortableCard({
+	card,
+	index,
+	listId,
+	onClick,
+	dueDateToleranceYellow,
+	dueDateToleranceRed,
+}: {
+	card: Card;
+	index: number;
+	listId: number;
+	onClick: () => void;
+	dueDateToleranceYellow: number;
+	dueDateToleranceRed: number;
+}) {
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+		id: `card-${card.id}`,
+		data: { type: 'card', card, index, listId },
+	});
+
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		opacity: isDragging ? 0.4 : 1,
+	};
+
+	return (
+		<div
+			ref={setNodeRef}
+			style={style}
+			className={`${isDragging ? 'rotate-3 shadow-lg z-50' : ''}`}
+			{...attributes}
+			{...listeners}
+		>
+			<KanbanCard
+				card={card as any}
+				onClick={onClick}
+				dueDateToleranceYellow={dueDateToleranceYellow}
+				dueDateToleranceRed={dueDateToleranceRed}
+			/>
+		</div>
+	);
+}
 
 interface KanbanListProps {
 	list: List;
@@ -30,11 +97,11 @@ export function KanbanList({
 	onDeleteList,
 	onCreateCard,
 	onCardClick,
-	onCardMove,
 	dueDateToleranceYellow = 2,
 	dueDateToleranceRed = 0,
 }: KanbanListProps) {
 	const { cards, loading, addCard } = useCards(list.id);
+	const cardIds = cards.map((c) => `card-${c.id}`);
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -117,48 +184,33 @@ export function KanbanList({
 			</div>
 
 			{/* Cards Container */}
-			<Droppable droppableId={`list-${list.id}`} type="card">
-				{(provided, snapshot) => (
-					<div
-						ref={provided.innerRef}
-						{...provided.droppableProps}
-						className={`flex-1 p-3 space-y-2 min-h-[200px] ${
-							snapshot.isDraggingOver ? 'bg-muted/50' : ''
-						}`}
-					>
-						{loading ? (
-							<div className="text-center py-4">
-								<p className="text-xs text-muted-foreground">Cargando...</p>
-							</div>
-						) : cards.length === 0 ? (
-							<div className="text-center py-4">
-								<p className="text-xs text-muted-foreground">No hay tarjetas</p>
-							</div>
-						) : (
-							cards.map((card, index) => (
-								<Draggable key={card.id} draggableId={`card-${card.id}`} index={index}>
-									{(provided, snapshot) => (
-										<div
-											ref={provided.innerRef}
-											{...provided.draggableProps}
-											{...provided.dragHandleProps}
-											className={`${snapshot.isDragging ? 'rotate-3 shadow-lg' : ''}`}
-										>
-											<KanbanCard
-												card={card}
-												onClick={() => onCardClick(card.id)}
-												dueDateToleranceYellow={dueDateToleranceYellow}
-												dueDateToleranceRed={dueDateToleranceRed}
-											/>
-										</div>
-									)}
-								</Draggable>
-							))
-						)}
-						{provided.placeholder}
+			<DroppableList
+				listId={list.id}
+				cardIds={cardIds}
+				className="flex-1 p-3 space-y-2 min-h-[200px]"
+			>
+				{loading ? (
+					<div className="text-center py-4">
+						<p className="text-xs text-muted-foreground">Cargando...</p>
 					</div>
+				) : cards.length === 0 ? (
+					<div className="text-center py-4">
+						<p className="text-xs text-muted-foreground">No hay tarjetas</p>
+					</div>
+				) : (
+					cards.map((card, index) => (
+						<SortableCard
+							key={card.id}
+							card={card}
+							index={index}
+							listId={list.id}
+							onClick={() => onCardClick(card.id)}
+							dueDateToleranceYellow={dueDateToleranceYellow}
+							dueDateToleranceRed={dueDateToleranceRed}
+						/>
+					))
 				)}
-			</Droppable>
+			</DroppableList>
 
 			{/* Add Card Button */}
 			<div className="p-3 border-t">

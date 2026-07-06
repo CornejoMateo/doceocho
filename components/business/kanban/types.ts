@@ -25,9 +25,6 @@ export interface BoardMember {
 	user_id: string; // UUID
 }
 
-// ============================================
-// LIST TYPES
-// ============================================
 export interface List {
 	id: number;
 	created_at: string;
@@ -46,10 +43,6 @@ export interface ListFormData {
 export interface ListWithCards extends List {
 	cards: Card[];
 }
-
-// ============================================
-// CARD TYPES
-// ============================================
 export interface Card {
 	id: number;
 	created_at: string;

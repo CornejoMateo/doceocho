@@ -90,12 +90,65 @@ export async function moveCard(
 	newPosition: number
 ): Promise<{ data: Card | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
+
+	// Get current card
+	const { data: card, error: fetchError } = await supabase
 		.from(TABLE)
-		.update({ list_id: newListId, position: newPosition })
+		.select('id, list_id, position')
 		.eq('id', id)
-		.select()
 		.single();
+
+	if (fetchError || !card) return { data: null, error: fetchError };
+
+	const oldListId = card.list_id;
+	const oldPosition = card.position;
+
+	if (oldListId === newListId && oldPosition === newPosition) {
+		return { data: null as any, error: null };
+	}
+
+	// Get all cards from the affected lists
+	const listIds = oldListId === newListId ? [oldListId] : [oldListId, newListId];
+	const { data: allCards, error: cardsError } = await supabase
+		.from(TABLE)
+		.select('id, list_id, position')
+		.in('list_id', listIds)
+		.order('position', { ascending: true });
+
+	if (cardsError) return { data: null, error: cardsError };
+
+	// Build the new card list for each affected list
+	const cardsByList: Record<number, { id: number; list_id: number; position: number }[]> = {};
+	for (const c of allCards ?? []) {
+		if (!cardsByList[c.list_id]) cardsByList[c.list_id] = [];
+		if (c.id !== id) cardsByList[c.list_id].push(c);
+	}
+
+	// Insert the moved card at the new position in the destination list
+	if (!cardsByList[newListId]) cardsByList[newListId] = [];
+	cardsByList[newListId].splice(newPosition, 0, { id, list_id: newListId, position: 0 });
+
+	// Reassign positions for all affected lists
+	const updates: { id: number; position: number; list_id: number }[] = [];
+	for (const [listIdStr, cards] of Object.entries(cardsByList)) {
+		cards.forEach((c, idx) => {
+			if (c.id === id || c.position !== idx) {
+				updates.push({ id: c.id, position: idx, list_id: Number(listIdStr) });
+			}
+		});
+	}
+
+	// Apply all updates
+	for (const u of updates) {
+		const { error: updateError } = await supabase
+			.from(TABLE)
+			.update({ position: u.position, list_id: u.list_id })
+			.eq('id', u.id);
+		if (updateError) return { data: null, error: updateError };
+	}
+
+	const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).single();
+
 	return { data, error };
 }
 
