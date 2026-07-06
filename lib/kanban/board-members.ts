@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
-import type { BoardMember, BoardMemberFormData } from '@/components/business/kanban/types';
+import type { BoardMember } from '@/components/business/kanban/types';
 
 const TABLE = 'kanban_board_members';
 
@@ -20,15 +20,17 @@ export async function getBoardMemberById(
 }
 
 export async function addBoardMember(
-	member: BoardMemberFormData,
+	member: string, // uid
 	boardId: number
 ): Promise<{ data: BoardMember | null; error: any }> {
 	const supabase = getSupabaseClient();
 	const payload = {
-		...member,
+		user_id: member,
 		board_id: boardId,
 	};
+	console.log('[addBoardMember] inserting:', payload);
 	const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
+	console.log('[addBoardMember] result:', { data, error });
 	return { data, error };
 }
 
@@ -49,7 +51,7 @@ export async function removeBoardMember(id: number): Promise<{ data: null; error
 
 export async function removeBoardMemberByUser(
 	boardId: number,
-	userId: number
+	userId: string
 ): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 	const { error } = await supabase

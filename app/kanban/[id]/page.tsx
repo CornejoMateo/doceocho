@@ -4,16 +4,26 @@ import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { useBoard } from '@/components/business/kanban/kankan/use-board';
+import {
+	DndContext,
+	DragEndEvent,
+	DragStartEvent,
+	DragOverlay,
+	PointerSensor,
+	useSensor,
+	useSensors,
+	closestCorners,
+} from '@dnd-kit/core';
+import { useBoard } from '@/hooks/kanban/use-board';
 import { moveCard } from '@/lib/kanban/cards';
 import { KanbanList } from '@/components/business/kanban/kanban-list';
 import { CardDetailModal } from '@/components/business/kanban/card-detail-modal';
 import { BoardSettingsModal } from '@/components/business/kanban/board-settings-modal';
 import { ListCreationModal } from '@/components/business/kanban/list-creation-modal';
+import { KanbanCard as KanbanCardComponent } from '@/components/business/kanban/kanban-card';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import type { CardFormData } from '@/components/business/kanban/types';
+import type { CardFormData, Card } from '@/components/business/kanban/types';
 
 export default function BoardPage() {
 	const router = useRouter();
@@ -23,7 +33,7 @@ export default function BoardPage() {
 	const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 	const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 	const [isListCreationModalOpen, setIsListCreationModalOpen] = useState(false);
-	const userId = '00000000-0000-0000-0000-000000000000'; // TODO: Get actual user UUID from auth
+	const [activeCard, setActiveCard] = useState<Card | null>(null);
 
 	const { board, lists, loading, error, fetchBoard, addList, editList, removeList, updateBoard } =
 		useBoard(boardId);
@@ -63,12 +73,35 @@ export default function BoardPage() {
 		fetchBoard();
 	};
 
-	const handleDragEnd = (result: DropResult) => {
-		if (!result.destination) return;
+	const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-		const cardId = Number(result.draggableId.replace('card-', ''));
-		const destinationListId = Number(result.destination.droppableId.replace('list-', ''));
-		const newPosition = result.destination.index;
+	const handleDragStart = (event: DragStartEvent) => {
+		const { active } = event;
+		const cardData = active.data.current as { card?: Card } | undefined;
+		if (cardData?.card) {
+			setActiveCard(cardData.card);
+		}
+	};
+
+	const handleDragEnd = (event: DragEndEvent) => {
+		setActiveCard(null);
+		const { active, over } = event;
+		if (!over) return;
+
+		const cardId = Number(active.id.toString().replace('card-', ''));
+		const overId = over.id.toString();
+
+		let destinationListId: number;
+		let newPosition: number;
+
+		if (overId.startsWith('list-')) {
+			destinationListId = Number(overId.replace('list-', ''));
+			newPosition = 0;
+		} else {
+			const overData = over.data.current as { listId?: number; index?: number } | undefined;
+			destinationListId = overData?.listId ?? 0;
+			newPosition = overData?.index ?? 0;
+		}
 
 		handleCardMove(cardId, destinationListId, newPosition);
 	};
@@ -98,7 +131,7 @@ export default function BoardPage() {
 	if (error) {
 		return (
 			<div className="container mx-auto p-6">
-				<p className="text-destructive">Error: {error}</p>
+				<p className="text-destructive">Error: {translateError(error)}</p>
 			</div>
 		);
 	}
@@ -148,7 +181,12 @@ export default function BoardPage() {
 			{/* Board Content */}
 			<div className="flex-1 overflow-x-auto">
 				<div className="container mx-auto px-6 py-6">
-					<DragDropContext onDragEnd={handleDragEnd}>
+					<DndContext
+						sensors={sensors}
+						collisionDetection={closestCorners}
+						onDragStart={handleDragStart}
+						onDragEnd={handleDragEnd}
+					>
 						<div className="flex gap-4 h-full">
 							{lists.map((list) => (
 								<KanbanList
@@ -175,7 +213,14 @@ export default function BoardPage() {
 								</Button>
 							</div>
 						</div>
-					</DragDropContext>
+						<DragOverlay>
+							{activeCard ? (
+								<div className="rotate-3 shadow-xl">
+									<KanbanCardComponent card={activeCard} onClick={() => {}} />
+								</div>
+							) : null}
+						</DragOverlay>
+					</DndContext>
 				</div>
 			</div>
 
@@ -184,7 +229,6 @@ export default function BoardPage() {
 				cardId={selectedCardId}
 				open={isCardModalOpen}
 				onOpenChange={setIsCardModalOpen}
-				userId={userId}
 				onCardDeleted={handleCardDeleted}
 				onCardUpdated={handleCardUpdated}
 			/>

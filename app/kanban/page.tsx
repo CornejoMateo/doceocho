@@ -5,66 +5,27 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, MoreVertical, Trash2 } from 'lucide-react';
-import { useBoards } from '@/hooks/kankan/use-boards';
+import { useBoards } from '@/hooks/kanban/use-boards';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 import { BoardCreationModal } from '@/components/business/kanban/board-creation-modal';
 import { BoardDeleteModal } from '@/components/business/kanban/board-delete-modal';
 import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { getSupabaseClient } from '@/lib/supabase-client';
-import { toast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
 
 export default function KanbanPage() {
 	const router = useRouter();
-	const supabase = getSupabaseClient();
-	const [userId, setUserId] = useState<string | null>(null);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
 	const [boardToEdit, setBoardToEdit] = useState<Board | null>(null);
-	const {
-		boards,
-		loading,
-		error,
-		fetchBoards,
-		addBoard,
-		toggleFavorite,
-		archiveBoard,
-		editBoard,
-		removeBoard,
-	} = useBoards();
+	const { boards, loading, error, fetchBoards, addBoard, editBoard, removeBoard } = useBoards();
 
 	useEffect(() => {
-		// Get current user UUID from Supabase
-		async function getUser() {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			if (user?.id) {
-				setUserId(user.id);
-			}
-		}
-		getUser();
-	}, [supabase]);
-
-	useEffect(() => {
-		if (userId) {
-			fetchBoards();
-		}
-	}, [fetchBoards, userId]);
+		fetchBoards();
+	}, [fetchBoards]);
 
 	const handleCreateBoard = async (boardData: BoardFormData) => {
-		if (!userId) {
-			toast({
-				variant: 'destructive',
-				title: 'Error',
-				description: 'No hay usuario autenticado',
-			});
-			return;
-		}
-		const board = await addBoard(boardData, userId);
-		if (board) {
-			router.push(`/kanban/${board.id}`);
-		}
+		await addBoard(boardData);
 	};
 
 	const handleBoardClick = (boardId: number) => {
@@ -114,7 +75,7 @@ export default function KanbanPage() {
 					</div>
 				) : error ? (
 					<div className="text-center py-12">
-						<p className="text-destructive">Error: {error}</p>
+						<p className="text-destructive">Error: {translateError(error)}</p>
 					</div>
 				) : boards.length === 0 ? (
 					<div className="text-center py-12">
@@ -161,9 +122,6 @@ export default function KanbanPage() {
 										{board.description}
 									</p>
 								)}
-								<div className="text-xs text-muted-foreground">
-									Creado el {new Date(board.created_at).toLocaleDateString('es-AR')}
-								</div>
 							</Card>
 						))}
 					</div>

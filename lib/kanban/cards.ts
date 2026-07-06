@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Card, CardWithRelations, CardFormData } from '@/components/business/kanban/types';
+import { getAttachmentsByCardId, deleteAttachment } from './attachments';
 
 const TABLE = 'kanban_cards';
 
@@ -11,7 +12,6 @@ export async function getCardsByListId(
 		.from(TABLE)
 		.select('*')
 		.eq('list_id', listId)
-		.eq('is_archived', false)
 		.order('position', { ascending: true });
 	return { data, error };
 }
@@ -31,18 +31,7 @@ export async function getCardWithRelations(
 		.select(
 			`
 			*,
-			list:kanban_lists(*),
-			labels:kanban_card_labels(
-				*,
-				label:kanban_labels(*)
-			),
-			members:kanban_card_members(*),
-			attachments:kanban_attachments(*),
-			crm_links:kanban_card_crm_links(*),
-			custom_field_values:kanban_custom_field_values(
-				*,
-				field:kanban_custom_fields(*)
-			)
+			list:kanban_lists(*)
 		`
 		)
 		.eq('id', id)
@@ -53,11 +42,7 @@ export async function getCardWithRelations(
 	const card = data as any;
 	const transformedCard: CardWithRelations = {
 		...card,
-		labels: card.labels?.map((cl: any) => cl.label) || [],
-		members: card.members || [],
-		attachments: card.attachments || [],
-		crm_links: card.crm_links || [],
-		custom_field_values: card.custom_field_values || [],
+		files: card.files || [],
 	};
 
 	return { data: transformedCard, error: null };
@@ -105,12 +90,65 @@ export async function moveCard(
 	newPosition: number
 ): Promise<{ data: Card | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
+
+	// Get current card
+	const { data: card, error: fetchError } = await supabase
 		.from(TABLE)
-		.update({ list_id: newListId, position: newPosition })
+		.select('id, list_id, position')
 		.eq('id', id)
-		.select()
 		.single();
+
+	if (fetchError || !card) return { data: null, error: fetchError };
+
+	const oldListId = card.list_id;
+	const oldPosition = card.position;
+
+	if (oldListId === newListId && oldPosition === newPosition) {
+		return { data: null as any, error: null };
+	}
+
+	// Get all cards from the affected lists
+	const listIds = oldListId === newListId ? [oldListId] : [oldListId, newListId];
+	const { data: allCards, error: cardsError } = await supabase
+		.from(TABLE)
+		.select('id, list_id, position')
+		.in('list_id', listIds)
+		.order('position', { ascending: true });
+
+	if (cardsError) return { data: null, error: cardsError };
+
+	// Build the new card list for each affected list
+	const cardsByList: Record<number, { id: number; list_id: number; position: number }[]> = {};
+	for (const c of allCards ?? []) {
+		if (!cardsByList[c.list_id]) cardsByList[c.list_id] = [];
+		if (c.id !== id) cardsByList[c.list_id].push(c);
+	}
+
+	// Insert the moved card at the new position in the destination list
+	if (!cardsByList[newListId]) cardsByList[newListId] = [];
+	cardsByList[newListId].splice(newPosition, 0, { id, list_id: newListId, position: 0 });
+
+	// Reassign positions for all affected lists
+	const updates: { id: number; position: number; list_id: number }[] = [];
+	for (const [listIdStr, cards] of Object.entries(cardsByList)) {
+		cards.forEach((c, idx) => {
+			if (c.id === id || c.position !== idx) {
+				updates.push({ id: c.id, position: idx, list_id: Number(listIdStr) });
+			}
+		});
+	}
+
+	// Apply all updates
+	for (const u of updates) {
+		const { error: updateError } = await supabase
+			.from(TABLE)
+			.update({ position: u.position, list_id: u.list_id })
+			.eq('id', u.id);
+		if (updateError) return { data: null, error: updateError };
+	}
+
+	const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).single();
+
 	return { data, error };
 }
 
@@ -131,30 +169,21 @@ export async function updateCardPosition(
 export async function deleteCard(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	// First, delete all references to this card
-	await supabase.from('kanban_card_labels').delete().eq('card_id', id);
-	await supabase.from('kanban_card_members').delete().eq('card_id', id);
-	await supabase.from('kanban_attachments').delete().eq('card_id', id);
-	await supabase.from('kanban_card_crm_links').delete().eq('card_id', id);
-	await supabase.from('kanban_custom_field_values').delete().eq('card_id', id);
+	// Delete all attachments (files from storage + records)
+	const { data: attachments, error: fetchError } = await getAttachmentsByCardId(id);
+
+	if (fetchError) return { data: null, error: fetchError };
+
+	if (attachments) {
+		for (const attachment of attachments) {
+			const { error: deleteError } = await deleteAttachment(attachment.id);
+			if (deleteError) return { data: null, error: deleteError };
+		}
+	}
 
 	// Then delete the card itself
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
-}
-
-export async function archiveCard(
-	id: number,
-	isArchived: boolean
-): Promise<{ data: Card | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.update({ is_archived: isArchived })
-		.eq('id', id)
-		.select()
-		.single();
-	return { data, error };
 }
 
 export async function completeCard(id: number): Promise<{ data: Card | null; error: any }> {

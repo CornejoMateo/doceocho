@@ -15,27 +15,16 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-	X,
-	Clock,
-	AlertTriangle,
-	CheckCircle,
-	MoreVertical,
-	Paperclip,
-	MessageSquare,
-	Users,
-	Upload,
-} from 'lucide-react';
-import { useCard } from './kankan/use-card';
+import { X, Clock, Paperclip, Upload } from 'lucide-react';
+import { useCard } from '@/hooks/kanban/use-card';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import type { CardWithRelations } from './types';
+import { formatCreatedAt } from '@/utils/format-date';
 
 interface CardDetailModalProps {
 	cardId: number | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	userId: string; // UUID
 	onCardDeleted?: () => void;
 	onCardUpdated?: () => void;
 }
@@ -44,21 +33,11 @@ export function CardDetailModal({
 	cardId,
 	open,
 	onOpenChange,
-	userId,
 	onCardDeleted,
 	onCardUpdated,
 }: CardDetailModalProps) {
-	const {
-		card,
-		loading,
-		error,
-		updateCard,
-		addLabel,
-		removeLabel,
-		uploadFile,
-		removeCard,
-		removeAttachment,
-	} = useCard(cardId);
+	const { card, loading, error, updateCard, uploadFile, removeCard, removeAttachment } =
+		useCard(cardId);
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState('');
@@ -137,7 +116,7 @@ export function CardDetailModal({
 		setIsUploading(true);
 		try {
 			for (const file of Array.from(files)) {
-				const { error } = await uploadFile(file, userId);
+				const { error } = await uploadFile(file);
 				if (error) {
 					toast({
 						variant: 'destructive',
@@ -192,9 +171,7 @@ export function CardDetailModal({
 							<div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground flex-wrap">
 								<span>En lista: {card?.list?.name || 'Sin asignar'}</span>
 								<span>•</span>
-								<span>
-									Creado el {card ? new Date(card.created_at).toLocaleDateString('es-AR') : ''}
-								</span>
+								<span>Creado el {card ? formatCreatedAt(card.created_at) : ''}</span>
 							</div>
 						</div>
 					</div>
@@ -331,6 +308,7 @@ export function CardDetailModal({
 										<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">
 											Prioridad
 										</h3>
+										{/* Extraer a un archivo de constantes */}
 										<select
 											value={priority}
 											onChange={(e) => handlePriorityChange(e.target.value)}

@@ -7,12 +7,12 @@ export async function getListsByBoardId(
 	boardId: number
 ): Promise<{ data: List[] | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
+	const { data, error } = (await supabase
 		.from(TABLE)
 		.select('*')
 		.eq('board_id', boardId)
-		.eq('is_archived', false)
-		.order('position', { ascending: true });
+		.order('created_at', { ascending: true })) as { data: List[] | null; error: any };
+
 	return { data, error };
 }
 
@@ -54,21 +54,9 @@ export async function createList(
 ): Promise<{ data: List | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	// Get the highest position
-	const { data: maxPos } = await supabase
-		.from(TABLE)
-		.select('position')
-		.eq('board_id', boardId)
-		.order('position', { ascending: false })
-		.limit(1)
-		.single();
-
-	const nextPosition = maxPos ? maxPos.position + 1 : 0;
-
 	const payload = {
 		...list,
 		board_id: boardId,
-		position: nextPosition,
 	};
 
 	const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
@@ -88,32 +76,4 @@ export async function deleteList(id: number): Promise<{ data: null; error: any }
 	const supabase = getSupabaseClient();
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
-}
-
-export async function archiveList(
-	id: number,
-	isArchived: boolean
-): Promise<{ data: List | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.update({ is_archived: isArchived })
-		.eq('id', id)
-		.select()
-		.single();
-	return { data, error };
-}
-
-export async function updateListPosition(
-	id: number,
-	newPosition: number
-): Promise<{ data: List | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.update({ position: newPosition })
-		.eq('id', id)
-		.select()
-		.single();
-	return { data, error };
 }

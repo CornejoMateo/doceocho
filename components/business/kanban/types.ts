@@ -1,21 +1,8 @@
-// ============================================
-// KANBAN MODULE - TYPES AND INTERFACES
-// ============================================
-
-// ============================================
-// BOARD TYPES
-// ============================================
 export interface Board {
 	id: number;
-	created_at: string;
-	updated_at: string;
 	name: string;
 	description: string | null;
 	color: string;
-	is_favorite: boolean;
-	is_archived: boolean;
-	owner_id: string; // UUID
-	position: number;
 	due_date_tolerance_yellow: number; // Days before due date to show yellow warning
 	due_date_tolerance_red: number; // Days before due date to show red warning
 }
@@ -31,29 +18,13 @@ export interface BoardFormData {
 	color?: string;
 }
 
-// ============================================
-// BOARD MEMBER TYPES
-// ============================================
 export interface BoardMember {
 	id: number;
 	created_at: string;
 	board_id: number;
 	user_id: string; // UUID
-	role: 'owner' | 'admin' | 'editor' | 'viewer';
-	user?: {
-		id: string; // UUID
-		email?: string | null;
-	};
 }
 
-export interface BoardMemberFormData {
-	user_id: string; // UUID
-	role: 'admin' | 'editor' | 'viewer';
-}
-
-// ============================================
-// LIST TYPES
-// ============================================
 export interface List {
 	id: number;
 	created_at: string;
@@ -72,10 +43,6 @@ export interface ListFormData {
 export interface ListWithCards extends List {
 	cards: Card[];
 }
-
-// ============================================
-// CARD TYPES
-// ============================================
 export interface Card {
 	id: number;
 	created_at: string;
