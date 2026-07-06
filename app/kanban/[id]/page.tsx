@@ -35,8 +35,18 @@ export default function BoardPage() {
 	const [isListCreationModalOpen, setIsListCreationModalOpen] = useState(false);
 	const [activeCard, setActiveCard] = useState<Card | null>(null);
 
-	const { board, lists, loading, error, fetchBoard, addList, editList, removeList, updateBoard } =
-		useBoard(boardId);
+	const {
+		board,
+		lists,
+		loading,
+		error,
+		fetchBoard,
+		addList,
+		editList,
+		removeList,
+		updateBoard,
+		optimisticallyMoveCard,
+	} = useBoard(boardId);
 
 	const handleCreateList = async () => {
 		setIsListCreationModalOpen(true);
@@ -46,22 +56,25 @@ export default function BoardPage() {
 		await addList({ name });
 	};
 
+	const handleCreateCard = async () => {
+		// Refresh the board to show newly created cards
+		fetchBoard();
+	};
+
 	const handleCardClick = (cardId: number) => {
 		setSelectedCardId(cardId);
 		setIsCardModalOpen(true);
 	};
 
 	const handleCardMove = async (cardId: number, newListId: number, newPosition: number) => {
-		const { error } = await moveCard(cardId, newListId, newPosition);
+		// Use the optimistic mutation from useBoard
+		const { error } = await optimisticallyMoveCard({ cardId, newListId, newPosition });
 		if (error) {
 			toast({
 				variant: 'destructive',
 				title: 'Error al mover tarjeta',
 				description: translateError(error),
 			});
-		} else {
-			// Refresh the board to get updated card positions
-			fetchBoard();
 		}
 	};
 
@@ -192,9 +205,10 @@ export default function BoardPage() {
 								<KanbanList
 									key={list.id}
 									list={list}
+									cards={list.cards || []}
 									onEditList={(name) => editList(list.id, { name })}
 									onDeleteList={() => removeList(list.id)}
-									onCreateCard={(card: CardFormData) => {}}
+									onCreateCard={handleCreateCard}
 									onCardClick={handleCardClick}
 									onCardMove={handleCardMove}
 									dueDateToleranceYellow={board.due_date_tolerance_yellow ?? 2}

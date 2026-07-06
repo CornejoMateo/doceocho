@@ -1,7 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getBoardWithLists, updateBoard } from '@/lib/kanban/boards';
 import { getListsByBoardId, createList, updateList, deleteList } from '@/lib/kanban/lists';
-import type { BoardWithMembers, List, ListFormData } from '@/components/business/kanban/types';
+import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
+import type {
+	BoardWithMembers,
+	List,
+	ListFormData,
+	Card,
+} from '@/components/business/kanban/types';
 
 export function useBoard(boardId: number | null) {
 	const [board, setBoard] = useState<BoardWithMembers | null>(null);
@@ -73,6 +79,73 @@ export function useBoard(boardId: number | null) {
 		[boardId]
 	);
 
+	const moveCardOptimistic = useCallback(
+		(cardId: number, newListId: number, newPosition: number) => {
+			setLists((prevLists) => {
+				// Find the card and its source list
+				let cardToMove: Card | null = null;
+				let sourceListId: number | null = null;
+
+				for (const list of prevLists) {
+					const foundCard = (list.cards || []).find((c) => c.id === cardId);
+					if (foundCard) {
+						cardToMove = foundCard;
+						sourceListId = list.id;
+						break;
+					}
+				}
+
+				if (!cardToMove || sourceListId === null) {
+					return prevLists;
+				}
+
+				// Remove card from source list
+				const listsWithoutCard = prevLists.map((list) => {
+					if (list.id === sourceListId) {
+						return {
+							...list,
+							cards: (list.cards || []).filter((c) => c.id !== cardId),
+						};
+					}
+					return list;
+				});
+
+				// Add card to destination list at new position
+				return listsWithoutCard.map((list) => {
+					if (list.id === newListId) {
+						const newCards = [...(list.cards || [])];
+						newCards.splice(newPosition, 0, {
+							...cardToMove,
+							list_id: newListId,
+							position: newPosition,
+						});
+						return { ...list, cards: newCards };
+					}
+					return list;
+				});
+			});
+		},
+		[]
+	);
+
+	const { mutate: optimisticallyMoveCard } = useOptimisticMutation<
+		any,
+		{ cardId: number; newListId: number; newPosition: number },
+		any
+	>({
+		optimisticUpdate: ({ cardId, newListId, newPosition }) => {
+			moveCardOptimistic(cardId, newListId, newPosition);
+		},
+		mutationFn: async ({ cardId, newListId, newPosition }) => {
+			const { moveCard } = await import('@/lib/kanban/cards');
+			return moveCard(cardId, newListId, newPosition);
+		},
+		onError: (error) => {
+			// Revert on error by fetching the board
+			fetchBoard();
+		},
+	});
+
 	useEffect(() => {
 		fetchBoard();
 	}, [fetchBoard]);
@@ -88,5 +161,6 @@ export function useBoard(boardId: number | null) {
 		editList,
 		removeList,
 		updateBoard: updateBoardInfo,
+		optimisticallyMoveCard,
 	};
 }

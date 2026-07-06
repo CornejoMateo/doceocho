@@ -82,6 +82,7 @@ function SortableCard({
 
 interface KanbanListProps {
 	list: List;
+	cards?: Card[];
 	onEditList: (name: string) => void;
 	onDeleteList: () => void;
 	onCreateCard: (card: CardFormData) => void;
@@ -93,6 +94,7 @@ interface KanbanListProps {
 
 export function KanbanList({
 	list,
+	cards: propCards,
 	onEditList,
 	onDeleteList,
 	onCreateCard,
@@ -100,8 +102,11 @@ export function KanbanList({
 	dueDateToleranceYellow = 2,
 	dueDateToleranceRed = 0,
 }: KanbanListProps) {
-	const { cards, loading, addCard } = useCards(list.id);
-	const cardIds = cards.map((c) => `card-${c.id}`);
+	// Only use useCards hook if cards are not provided as props
+	const shouldUseHook = propCards === undefined;
+	const { cards, loading, addCard } = useCards(shouldUseHook ? list.id : null);
+	const cardsToUse = propCards !== undefined ? propCards : cards;
+	const cardIds = cardsToUse.map((c) => `card-${c.id}`);
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -129,8 +134,10 @@ export function KanbanList({
 	};
 
 	const handleCreateCardFromModal = async (title: string) => {
+		// Always use the local hook to create the card
 		const newCard = await addCard({ title });
 		if (newCard) {
+			// Notify parent to refresh the board
 			onCreateCard({ title });
 		}
 	};
@@ -167,7 +174,7 @@ export function KanbanList({
 			<div className="p-3 border-b flex items-center justify-between">
 				<h3 className="font-semibold">{list.name}</h3>
 				<div className="flex items-center gap-1">
-					<span className="text-xs text-muted-foreground">{cards.length}</span>
+					<span className="text-xs text-muted-foreground">{cardsToUse.length}</span>
 					<Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleEditList}>
 						<MoreVertical className="h-4 w-4" />
 					</Button>
@@ -189,16 +196,16 @@ export function KanbanList({
 				cardIds={cardIds}
 				className="flex-1 p-3 space-y-2 min-h-[200px]"
 			>
-				{loading ? (
+				{loading && propCards === undefined ? (
 					<div className="text-center py-4">
 						<p className="text-xs text-muted-foreground">Cargando...</p>
 					</div>
-				) : cards.length === 0 ? (
+				) : cardsToUse.length === 0 ? (
 					<div className="text-center py-4">
 						<p className="text-xs text-muted-foreground">No hay tarjetas</p>
 					</div>
 				) : (
-					cards.map((card, index) => (
+					cardsToUse.map((card, index) => (
 						<SortableCard
 							key={card.id}
 							card={card}
