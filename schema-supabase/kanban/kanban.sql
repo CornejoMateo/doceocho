@@ -331,6 +331,7 @@ create table public.kanban_files (
   uploaded_at timestamp with time zone not null default now(),
   kanban_card_id bigint null,
   path text null,
+  display_name text null,
   constraint kanban_files_pkey primary key (id),
   constraint kanban_files_kanban_card_id_fkey foreign KEY (kanban_card_id) references kanban_cards (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
