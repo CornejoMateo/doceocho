@@ -39,11 +39,11 @@ export function BoardSettingsModal({ board, open, onOpenChange, onSave }: BoardS
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle asChild>
-						<VisuallyHidden>Configuración del Tablero</VisuallyHidden>
+						<VisuallyHidden>Configuración del tablero</VisuallyHidden>
 					</DialogTitle>
 					<div className="flex items-center gap-2 mb-4">
 						<Settings className="h-5 w-5" />
-						<h2 className="text-lg font-semibold">Configuración del Tablero</h2>
+						<h2 className="text-lg font-semibold">Configuración del tablero</h2>
 					</div>
 				</DialogHeader>
 

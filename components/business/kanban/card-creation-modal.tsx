@@ -33,11 +33,11 @@ export function CardCreationModal({ open, onOpenChange, onCreate }: CardCreation
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle asChild>
-						<VisuallyHidden>Crear Nueva Tarjeta</VisuallyHidden>
+						<VisuallyHidden>Crear nueva tarjeta</VisuallyHidden>
 					</DialogTitle>
 					<div className="flex items-center gap-2 mb-4">
 						<Plus className="h-5 w-5" />
-						<h2 className="text-lg font-semibold">Crear Nueva Tarjeta</h2>
+						<h2 className="text-lg font-semibold">Crear nueva tarjeta</h2>
 					</div>
 				</DialogHeader>
 
@@ -64,7 +64,7 @@ export function CardCreationModal({ open, onOpenChange, onCreate }: CardCreation
 						Cancelar
 					</Button>
 					<Button onClick={handleCreate} disabled={!title.trim()}>
-						Crear Tarjeta
+						Crear tarjeta
 					</Button>
 				</div>
 			</DialogContent>

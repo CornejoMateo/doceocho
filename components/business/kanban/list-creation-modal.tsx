@@ -33,11 +33,11 @@ export function ListCreationModal({ open, onOpenChange, onCreate }: ListCreation
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle asChild>
-						<VisuallyHidden>Crear Nueva Lista</VisuallyHidden>
+						<VisuallyHidden>Crear nueva lista</VisuallyHidden>
 					</DialogTitle>
 					<div className="flex items-center gap-2 mb-4">
 						<Plus className="h-5 w-5" />
-						<h2 className="text-lg font-semibold">Crear Nueva Lista</h2>
+						<h2 className="text-lg font-semibold">Crear nueva lista</h2>
 					</div>
 				</DialogHeader>
 

@@ -40,11 +40,11 @@ export function ListEditModal({ list, open, onOpenChange, onSave }: ListEditModa
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle asChild>
-						<VisuallyHidden>Editar Nombre de la Lista</VisuallyHidden>
+						<VisuallyHidden>Editar nombre de la lista</VisuallyHidden>
 					</DialogTitle>
 					<div className="flex items-center gap-2 mb-4">
 						<Edit2 className="h-5 w-5" />
-						<h2 className="text-lg font-semibold">Editar Nombre de la Lista</h2>
+						<h2 className="text-lg font-semibold">Editar nombre de la lista</h2>
 					</div>
 				</DialogHeader>
 

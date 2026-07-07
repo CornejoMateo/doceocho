@@ -25,7 +25,7 @@ export function ListDeleteModal({ list, open, onOpenChange, onConfirm }: ListDel
 				<AlertDialogHeader>
 					<div className="flex items-center gap-2 mb-2">
 						<AlertTriangle className="h-5 w-5 text-destructive" />
-						<AlertDialogTitle>Eliminar Lista</AlertDialogTitle>
+						<AlertDialogTitle>Eliminar lista</AlertDialogTitle>
 					</div>
 					<AlertDialogDescription asChild>
 						<div className="space-y-2">

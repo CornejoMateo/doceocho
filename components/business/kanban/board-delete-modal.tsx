@@ -25,7 +25,7 @@ export function BoardDeleteModal({ board, open, onOpenChange, onConfirm }: Board
 				<AlertDialogHeader>
 					<div className="flex items-center gap-2 mb-2">
 						<AlertTriangle className="h-5 w-5 text-destructive" />
-						<AlertDialogTitle>Eliminar Tablero</AlertDialogTitle>
+						<AlertDialogTitle>Eliminar tablero</AlertDialogTitle>
 					</div>
 					<AlertDialogDescription asChild>
 						<div className="space-y-2">
@@ -54,7 +54,7 @@ export function BoardDeleteModal({ board, open, onOpenChange, onConfirm }: Board
 						className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 					>
 						<Trash2 className="h-4 w-4 mr-2" />
-						Eliminar Tablero
+						Eliminar tablero
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

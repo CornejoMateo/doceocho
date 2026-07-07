@@ -40,11 +40,11 @@ export function BoardEditModal({ board, open, onOpenChange, onSave }: BoardEditM
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle asChild>
-						<VisuallyHidden>Editar Nombre del Tablero</VisuallyHidden>
+						<VisuallyHidden>Editar nombre del tablero</VisuallyHidden>
 					</DialogTitle>
 					<div className="flex items-center gap-2 mb-4">
 						<Edit2 className="h-5 w-5" />
-						<h2 className="text-lg font-semibold">Editar Nombre del Tablero</h2>
+						<h2 className="text-lg font-semibold">Editar nombre del tablero</h2>
 					</div>
 				</DialogHeader>
 
