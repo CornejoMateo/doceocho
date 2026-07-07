@@ -275,16 +275,16 @@ export function BalancesReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('contractDate')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.contractDate}
 											{getSortIcon('contractDate')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 										onClick={() => handleSort('client')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.client}
 											{getSortIcon('client')}
 										</div>
@@ -293,16 +293,16 @@ export function BalancesReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('work')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.work}
 											{getSortIcon('work')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 										onClick={() => handleSort('concept')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.concept}
 											{getSortIcon('concept')}
 										</div>
