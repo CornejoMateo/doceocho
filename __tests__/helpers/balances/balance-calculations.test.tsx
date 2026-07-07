@@ -12,6 +12,8 @@ describe('calculateBalanceSummary', () => {
 			totalPaidUsd: 0,
 			totalExtraArs: 0,
 			totalExtraUsd: 0,
+			effectiveBudgetArs: 0,
+			effectiveBudgetUsd: 0,
 			remainingArs: 0,
 			remainingUsd: 0,
 			progressPercentage: 0,
