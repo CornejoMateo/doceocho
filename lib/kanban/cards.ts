@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Card, CardWithRelations, CardFormData } from '@/components/business/kanban/types';
-import { getAttachmentsByCardId, deleteAttachment } from './attachments';
+import { getKanbanFileByCardId, deleteKanbanFile } from '@/lib/kanban/files';
 
 const TABLE = 'kanban_cards';
 
@@ -31,7 +31,8 @@ export async function getCardWithRelations(
 		.select(
 			`
 			*,
-			list:kanban_lists(*)
+			list:kanban_lists(*),
+			files:kanban_files(*)
 		`
 		)
 		.eq('id', id)
@@ -39,10 +40,11 @@ export async function getCardWithRelations(
 
 	if (error) return { data: null, error };
 
-	const card = data as any;
+	const { data: files } = await getKanbanFileByCardId(id);
+
 	const transformedCard: CardWithRelations = {
-		...card,
-		files: card.files || [],
+		...(data as any),
+		files: files || [],
 	};
 
 	return { data: transformedCard, error: null };
@@ -170,13 +172,13 @@ export async function deleteCard(id: number): Promise<{ data: null; error: any }
 	const supabase = getSupabaseClient();
 
 	// Delete all attachments (files from storage + records)
-	const { data: attachments, error: fetchError } = await getAttachmentsByCardId(id);
+	const { data: attachments, error: fetchError } = await getKanbanFileByCardId(id);
 
 	if (fetchError) return { data: null, error: fetchError };
 
 	if (attachments) {
 		for (const attachment of attachments) {
-			const { error: deleteError } = await deleteAttachment(attachment.id);
+			const { error: deleteError } = await deleteKanbanFile(attachment.id);
 			if (deleteError) return { data: null, error: deleteError };
 		}
 	}

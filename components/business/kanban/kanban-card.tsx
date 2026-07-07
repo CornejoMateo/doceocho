@@ -1,15 +1,9 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-	Clock,
-	AlertTriangle,
-	CheckCircle,
-	MoreHorizontal,
-	Paperclip,
-	MessageSquare,
-} from 'lucide-react';
-import type { CardWithRelations, Label } from './types';
+import { Clock, AlertTriangle, CheckCircle, MoreHorizontal } from 'lucide-react';
+import type { CardWithRelations } from './types';
+import { formatCreatedAt } from '@/utils/format-date';
 
 interface KanbanCardProps {
 	card: CardWithRelations;
@@ -64,18 +58,6 @@ export function KanbanCard({
 		<Clock className="h-4 w-4 text-muted-foreground" />
 	);
 
-	const formatDate = (dateString: string | null) => {
-		if (!dateString) return null;
-		const date = new Date(dateString);
-		return date.toLocaleDateString('es-AR', {
-			day: '2-digit',
-			month: 'short',
-			timeZone: 'UTC',
-		});
-	};
-
-	const cardLabels = card.labels || [];
-
 	return (
 		<Card
 			className="p-3 cursor-pointer hover:shadow-md transition-shadow group"
@@ -84,28 +66,6 @@ export function KanbanCard({
 				backgroundColor: card.color || undefined,
 			}}
 		>
-			{card.cover_image_url && (
-				<div
-					className="mb-2 -mx-3 -mt-3 h-32 bg-cover bg-center rounded-t-lg"
-					style={{ backgroundImage: `url(${card.cover_image_url})` }}
-				/>
-			)}
-
-			{cardLabels.length > 0 && (
-				<div className="flex flex-wrap gap-1 mb-2">
-					{cardLabels.map((label: Label) => (
-						<Badge
-							key={label.id}
-							variant="secondary"
-							className="text-xs"
-							style={{ backgroundColor: label.color, color: 'white' }}
-						>
-							{label.name}
-						</Badge>
-					))}
-				</div>
-			)}
-
 			<h4 className="font-medium text-sm mb-2 line-clamp-2">{card.title}</h4>
 
 			{card.description && (
@@ -128,7 +88,7 @@ export function KanbanCard({
 												: 'text-muted-foreground'
 								}
 							>
-								{formatDate(card.due_date)}
+								{formatCreatedAt(card.due_date)}
 							</span>
 						</div>
 					)}
@@ -141,13 +101,6 @@ export function KanbanCard({
 				</div>
 
 				<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-					{card.attachments && card.attachments.length > 0 && (
-						<div className="flex items-center gap-1 text-xs text-muted-foreground">
-							<Paperclip className="h-3 w-3" />
-							<span>{card.attachments.length}</span>
-						</div>
-					)}
-
 					<Button variant="ghost" size="icon" className="h-6 w-6">
 						<MoreHorizontal className="h-4 w-4" />
 					</Button>
