@@ -73,9 +73,11 @@ export function BalanceCard({
 										{balance.budget.folder_budget.work.address}
 									</p>
 								</div>
-							) : (
-								<span className="text-muted-foreground">Sin presupuesto asignado</span>
-							)}
+							) : balance.budget ? (
+								<div>
+									<p className="text-sm">Sin obra asignada</p>
+								</div>
+							) : null}
 						</div>
 					</div>
 
@@ -87,11 +89,11 @@ export function BalanceCard({
 								</p>
 								<div className="flex flex-col">
 									<p className="text-xs sm:text-sm font-bold text-primary truncate">
-										{formatCurrency(summary.budgetArsCurrent)}
+										{formatCurrency(summary.effectiveBudgetArs)}
 									</p>
-									{summary.budgetUsd > 0 && (
+									{(summary.budgetUsd > 0 || summary.totalExtraUsd > 0) && (
 										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.budgetUsd)}
+											{formatCurrencyUSD(summary.effectiveBudgetUsd)}
 										</p>
 									)}
 								</div>
@@ -126,7 +128,7 @@ export function BalanceCard({
 							</div>
 						</div>
 
-						{summary.budgetUsd > 0 && (
+						{summary.budgetArsCurrent > 0 && (
 							<div className="w-full">
 								<div className="flex justify-between text-xs text-muted-foreground mb-1">
 									<span>Progreso</span>

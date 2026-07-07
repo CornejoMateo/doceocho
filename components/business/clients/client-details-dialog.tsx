@@ -278,7 +278,7 @@ export function ClientDetailsDialog({
 							className="w-full"
 							onValueChange={handleTabChange}
 						>
-							<TabsList>
+							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">
 								<>
 									<TabsTrigger value="info">Información</TabsTrigger>
 									{isAuthorized && (

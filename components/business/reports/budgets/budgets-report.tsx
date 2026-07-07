@@ -202,47 +202,47 @@ export function BudgetsReport() {
 					</div>
 				</div>
 
-				<Table>
+				<Table className="mx-auto">
 					<TableHeader>
 						<TableRow>
 							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 								onClick={() => handleSort('date')}
 							>
-								<div className="flex items-center gap-1">
+								<div className="flex items-center text-center gap-1">
 									{BUDGETS_REPORT_COLUMNS.date}
 									{getSortIcon('date')}
 								</div>
 							</TableHead>
 							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 								onClick={() => handleSort('client')}
 							>
-								<div className="flex items-center gap-1">
+								<div className="flex items-center text-center gap-1">
 									{BUDGETS_REPORT_COLUMNS.client}
 									{getSortIcon('client')}
 								</div>
 							</TableHead>
 							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 								onClick={() => handleSort('number')}
 							>
-								<div className="flex items-center gap-1">
+								<div className="flex items-center text-center gap-1">
 									{BUDGETS_REPORT_COLUMNS.number}
 									{getSortIcon('number')}
 								</div>
 							</TableHead>
 							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 								onClick={() => handleSort('type')}
 							>
-								<div className="flex items-center gap-1">
+								<div className="flex items-center text-center gap-1">
 									{BUDGETS_REPORT_COLUMNS.type}
 									{getSortIcon('type')}
 								</div>
 							</TableHead>
 							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 								onClick={() => handleSort('work')}
 							>
 								<div className="flex items-center gap-1">
@@ -251,25 +251,25 @@ export function BudgetsReport() {
 								</div>
 							</TableHead>
 							<TableHead
-								className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 								onClick={() => handleSort('amountArs')}
 							>
-								<div className="flex items-center justify-end gap-1">
+								<div className="flex items-center justify-center gap-1">
 									{BUDGETS_REPORT_COLUMNS.amountArs}
 									{getSortIcon('amountArs')}
 								</div>
 							</TableHead>
 							<TableHead
-								className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 								onClick={() => handleSort('amountUsd')}
 							>
-								<div className="flex items-center justify-end gap-1">
+								<div className="flex items-center justify-center gap-1">
 									{BUDGETS_REPORT_COLUMNS.amountUsd}
 									{getSortIcon('amountUsd')}
 								</div>
 							</TableHead>
 							<TableHead
-								className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+								className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 								onClick={() => handleSort('status')}
 							>
 								<div className="flex items-center gap-1">
@@ -296,18 +296,20 @@ export function BudgetsReport() {
 						) : (
 							filteredRows.map((r) => (
 								<TableRow key={r.id}>
-									<TableCell className="whitespace-nowrap">{r.date}</TableCell>
-									<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
-									<TableCell className="whitespace-nowrap">{r.number}</TableCell>
-									<TableCell className="whitespace-nowrap">{r.type}</TableCell>
-									<TableCell className="whitespace-nowrap">{r.work}</TableCell>
-									<TableCell className="text-right whitespace-nowrap">
+									<TableCell className="whitespace-nowrap text-center">{r.date}</TableCell>
+									<TableCell className="font-medium whitespace-nowrap text-center">
+										{r.client}
+									</TableCell>
+									<TableCell className="whitespace-nowrap text-center">{r.number}</TableCell>
+									<TableCell className="whitespace-nowrap text-center">{r.type}</TableCell>
+									<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
+									<TableCell className="text-center whitespace-nowrap">
 										{formatCurrency(r.amountArs)}
 									</TableCell>
-									<TableCell className="text-right whitespace-nowrap">
+									<TableCell className="text-center whitespace-nowrap">
 										{formatCurrencyUSD(r.amountUsd)}
 									</TableCell>
-									<TableCell className="whitespace-nowrap">{r.status}</TableCell>
+									<TableCell className="whitespace-nowrap text-center">{r.status}</TableCell>
 								</TableRow>
 							))
 						)}

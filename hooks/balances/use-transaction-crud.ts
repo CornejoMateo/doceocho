@@ -85,7 +85,7 @@ export function useTransactionCrud(
 		}
 	};
 	const handleAddTransaction = async (isExtra?: boolean) => {
-		if (!balance || !transactionAmount || isSavingTransaction) return;
+		if (!balance || isSavingTransaction) return;
 
 		setIsSavingTransaction(true);
 
@@ -248,7 +248,7 @@ export function useTransactionCrud(
 	};
 
 	const handleUpdateTransaction = async () => {
-		if (!balance || !editingTransaction || !transactionAmount || isSavingTransaction) return;
+		if (!balance || !editingTransaction || isSavingTransaction) return;
 
 		setIsSavingTransaction(true);
 

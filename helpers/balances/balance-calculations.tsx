@@ -5,8 +5,8 @@ interface BalanceCalculationInput {
 	totalPaidArs?: number | null;
 	totalPaidUsd?: number | null;
 	budgetInitialArs?: number | null;
-	totalExtraArs?: number | null;
-	totalExtraUsd?: number | null;
+	totalExtraArs: number | null;
+	totalExtraUsd: number | null;
 }
 
 export interface BalanceSummary {
@@ -15,10 +15,12 @@ export interface BalanceSummary {
 	budgetArsCurrent: number;
 	totalPaidArs: number;
 	totalPaidUsd: number;
-	totalExtraArs?: number | null;
-	totalExtraUsd?: number | null;
+	totalExtraArs: number;
+	totalExtraUsd: number;
 	remainingArs: number;
 	remainingUsd: number;
+	effectiveBudgetArs: number;
+	effectiveBudgetUsd: number;
 	progressPercentage: number;
 	type: string;
 	budgetInitialArs?: number | null;
@@ -53,9 +55,11 @@ export function calculateBalanceSummary(input: BalanceCalculationInput): Balance
 		totalPaidUsd,
 		totalExtraArs,
 		totalExtraUsd,
+		effectiveBudgetArs,
+		effectiveBudgetUsd,
 		remainingArs,
 		remainingUsd,
 		progressPercentage,
-		type: remainingUsd > 0 ? 'Deudor' : remainingUsd < 0 ? 'Acreedor' : 'Cancelado',
+		type: remainingArs > 0 ? 'Deudor' : remainingArs < 0 ? 'Acreedor' : 'Cancelado',
 	};
 }

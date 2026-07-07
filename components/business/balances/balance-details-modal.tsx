@@ -233,7 +233,7 @@ export function BalanceDetailsModal({
 							}
 							onStartAddTransaction={() => setAddingMode('transaction')}
 							onStartAddExtra={() => setAddingMode('extra')}
-							saveDisabled={!transactionAmount || isSavingTransaction}
+							saveDisabled={isSavingTransaction}
 							editingTransaction={editingTransaction ?? undefined}
 							selectedFiles={transactionFilesToUpload}
 							onFilesSelect={(newFiles) =>
