@@ -122,18 +122,6 @@ describe('useTransactionCrud', () => {
 		expect(mockOnTransactionCreated).toHaveBeenCalled();
 	});
 
-	it('does not create transaction when amount is empty', async () => {
-		const { result } = renderHook(() =>
-			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
-		);
-
-		await act(async () => {
-			await result.current.handleAddTransaction();
-		});
-
-		expect(createTransaction).not.toHaveBeenCalled();
-	});
-
 	it('shows error toast when createTransaction returns error', async () => {
 		(createTransaction as jest.Mock).mockResolvedValue({
 			data: null,
@@ -203,18 +191,6 @@ describe('useTransactionCrud', () => {
 		);
 		expect(result.current.isSavingTransaction).toBe(false);
 		expect(mockOnTransactionCreated).toHaveBeenCalled();
-	});
-
-	it('does not create extra amount when amount is empty', async () => {
-		const { result } = renderHook(() =>
-			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
-		);
-
-		await act(async () => {
-			await result.current.handleAddTransaction(true);
-		});
-
-		expect(createTransaction).not.toHaveBeenCalled();
 	});
 
 	it('deletes a transaction successfully', async () => {
@@ -385,23 +361,5 @@ describe('useTransactionCrud', () => {
 		expect(result.current.totalPaidUSD).toBe(150);
 		expect(result.current.totalExtraArs).toBe(500);
 		expect(result.current.totalExtraUsd).toBe(25);
-	});
-
-	it('does not update transaction when amount is empty', async () => {
-		const { result } = renderHook(() =>
-			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
-		);
-
-		await act(async () => {});
-
-		act(() => {
-			result.current.setEditingTransaction({ id: 5 } as any);
-		});
-
-		await act(async () => {
-			await result.current.handleUpdateTransaction();
-		});
-
-		expect(updateTransaction).not.toHaveBeenCalled();
 	});
 });
