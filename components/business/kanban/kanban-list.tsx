@@ -175,7 +175,13 @@ export function KanbanList({
 				<h3 className="font-semibold">{list.name}</h3>
 				<div className="flex items-center gap-1">
 					<span className="text-xs text-muted-foreground">{cardsToUse.length}</span>
-					<Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleEditList}>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-6 w-6"
+						aria-label="Opciones de la lista"
+						onClick={handleEditList}
+					>
 						<MoreVertical className="h-4 w-4" />
 					</Button>
 					<Button

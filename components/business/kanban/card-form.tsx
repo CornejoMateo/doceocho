@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Clock, Paperclip } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
+import { translateError } from '@/lib/error-translator';
+import { toast } from '@/components/ui/use-toast';
 import type { CardWithRelations } from '@/components/business/kanban/types';
 import type { Card } from '@/components/business/kanban/types';
 
@@ -61,7 +63,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 		setDueDate(card.due_date?.split('T')[0] || '');
 		setPriority(card.priority || 'none');
 		setHasUnsavedChanges(false);
-	}, [card]);
+	}, [card.id, card.title, card.description, card.due_date, card.priority]);
 
 	const handleTitleChange = (value: string) => {
 		setTitle(value);
@@ -84,15 +86,31 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	};
 
 	const handleSave = async () => {
-		await updateCard({
-			title,
-			description,
-			due_date: dueDate || null,
-			priority: priority as any,
-		});
-		setHasUnsavedChanges(false);
-		if (onSaveSuccess) onSaveSuccess();
-		onClose();
+		try {
+			const result = await updateCard({
+				title,
+				description: description || null,
+				due_date: dueDate || null,
+				priority: priority as any,
+			});
+			if (result === null) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al guardar',
+					description: 'No se pudieron guardar los cambios. Intenta de nuevo.',
+				});
+				return;
+			}
+			setHasUnsavedChanges(false);
+			if (onSaveSuccess) onSaveSuccess();
+			onClose();
+		} catch (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al guardar',
+				description: translateError(error) || 'Ocurrió un error inesperado.',
+			});
+		}
 	};
 
 	const handleConfirmClose = () => {
@@ -105,8 +123,24 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	};
 
 	const handleDeleteCard = async () => {
-		await removeCard();
-		if (onDeleteSuccess) onDeleteSuccess();
+		try {
+			const result = await removeCard();
+			if (result?.error) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al eliminar',
+					description: translateError(result.error) || 'No se pudo eliminar la tarjeta.',
+				});
+				return;
+			}
+			if (onDeleteSuccess) onDeleteSuccess();
+		} catch (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al eliminar',
+				description: translateError(error) || 'Ocurrió un error inesperado.',
+			});
+		}
 	};
 
 	return (

@@ -22,8 +22,8 @@ import { getFileExtension, isImage, isVideo } from '@/utils/file-upload-utils';
 import { optimizeFile } from '@/utils/optimization-images';
 import { CardForm, type CardFormHandle } from '@/components/business/kanban/card-form';
 import type { FileViewerItem } from '@/utils/file-upload-utils';
-import type { KanbanFileRecord } from '@/lib/kanban/files';
-import { DialogDescription } from '@radix-ui/react-dialog';
+import type { KanbanFileRecord } from '@/components/business/kanban/types';
+import { DialogDescription } from '@/components/ui/dialog';
 
 interface CardDetailModalProps {
 	cardId: number | null;
@@ -65,17 +65,13 @@ export function CardDetailModal({
 		setIsDragging(false);
 	};
 
-	const handleDrop = async (e: React.DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		setIsDragging(false);
-
-		const droppedFiles = e.dataTransfer.files;
-		if (!droppedFiles || droppedFiles.length === 0) return;
+	const uploadFiles = async (fileList: FileList | File[]) => {
+		const files = Array.from(fileList);
+		if (files.length === 0) return;
 
 		setIsUploading(true);
 		try {
-			for (const file of Array.from(droppedFiles)) {
+			for (const file of files) {
 				const optimized = await optimizeFile(file);
 				const displayName = file.name.replace(/\.[^/.]+$/, '');
 				const { error } = await uploadFile(optimized, displayName);
@@ -98,66 +94,57 @@ export function CardDetailModal({
 		}
 	};
 
+	const handleDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setIsDragging(false);
+		uploadFiles(e.dataTransfer.files);
+	};
+
 	function getFileName(path: string | null): string {
 		return path ? path.split('/').pop() || 'Archivo' : 'Archivo';
 	}
 
 	useEffect(() => {
 		const supabase = getSupabaseClient();
-		const urls: Record<number, string> = {};
 		let cancelled = false;
 
 		async function loadUrls() {
 			if (!card?.files) return;
-			for (const file of card.files) {
-				if (!file.path) continue;
-				const { data: blob } = await supabase.storage.from('kanban').download(file.path);
+			const filesToFetch = card.files.filter((f) => f.path && !fileUrls[f.id]);
+			for (const file of filesToFetch) {
+				const { data: blob, error } = await supabase.storage
+					.from('kanban')
+					.download(file.path as string);
 				if (cancelled) return;
 				if (blob) {
-					urls[file.id] = URL.createObjectURL(blob);
+					setFileUrls((prev) => ({ ...prev, [file.id]: URL.createObjectURL(blob) }));
+				} else if (error) {
+					toast({
+						variant: 'destructive',
+						title: 'Error al cargar archivo',
+						description: translateError(error) || 'Ocurrió un error al cargar el archivo.',
+					});
 				}
 			}
-			if (!cancelled) setFileUrls(urls);
 		}
 
 		loadUrls();
 
 		return () => {
 			cancelled = true;
-			Object.values(urls).forEach((u) => URL.revokeObjectURL(u));
 		};
 	}, [card?.files]);
 
-	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
 		if (!files || files.length === 0) return;
 
-		setIsUploading(true);
-		try {
-			for (const file of Array.from(files)) {
-				const optimized = await optimizeFile(file);
-				const displayName = file.name.replace(/\.[^/.]+$/, '');
-				const { error } = await uploadFile(optimized, displayName);
-				if (error) {
-					toast({
-						variant: 'destructive',
-						title: 'Error al subir archivo',
-						description: translateError(error) || 'Ocurrió un error al subir el archivo.',
-					});
-				}
-			}
-		} catch (error) {
-			toast({
-				variant: 'destructive',
-				title: 'Error al subir archivos',
-				description: translateError(error) || 'Ocurrió un error al subir los archivos.',
-			});
-		} finally {
-			setIsUploading(false);
+		uploadFiles(files).then(() => {
 			if (fileInputRef.current) {
 				fileInputRef.current.value = '';
 			}
-		}
+		});
 	};
 
 	const handleDeleteAttachment = async (attachmentId: number) => {
@@ -180,6 +167,13 @@ export function CardDetailModal({
 							<DialogTitle>Detalles de tarjeta</DialogTitle>
 						</VisuallyHidden>
 					</DialogHeader>
+
+					<VisuallyHidden>
+						<DialogDescription>
+							Visualiza y edita los detalles de la tarjeta. También puedes ver y administrar los
+							archivos adjuntos.
+						</DialogDescription>
+					</VisuallyHidden>
 
 					{loading ? (
 						<div className="text-center py-8 flex-1">
@@ -323,6 +317,7 @@ export function CardDetailModal({
 													size="icon"
 													variant="destructive"
 													className="h-7 w-7"
+													aria-label="Eliminar archivo"
 													onClick={(e) => {
 														e.stopPropagation();
 														setFileToDelete(attachment);
@@ -387,15 +382,15 @@ export function CardDetailModal({
 			)}
 
 			<FileViewerModal
-				files={
-					card?.files?.map((a) => ({
+				files={(card?.files ?? [])
+					.filter((a) => a.path && fileUrls[a.id])
+					.map((a) => ({
 						id: a.id,
 						url: fileUrls[a.id],
-						name: a.path,
+						name: a.path as string,
 						displayName: a.displayName || getFileName(a.path),
 						uploadedAt: a.uploaded_at,
-					})) as FileViewerItem[]
-				}
+					}))}
 				selectedIndex={selectedFileIndex}
 				onSelectedIndexChange={setSelectedFileIndex}
 			/>

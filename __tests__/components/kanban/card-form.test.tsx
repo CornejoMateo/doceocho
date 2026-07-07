@@ -189,6 +189,39 @@ describe('CardForm', () => {
 		expect(onDeleteSuccess).toHaveBeenCalled();
 	});
 
+	it('does not call onSaveSuccess or onClose when updateCard returns null', async () => {
+		const updateCard = jest.fn().mockResolvedValue(null);
+		const onClose = jest.fn();
+		const onSaveSuccess = jest.fn();
+		renderForm({ updateCard, onClose, onSaveSuccess });
+
+		const input = screen.getByDisplayValue('Test Card');
+		await userEvent.clear(input);
+		await userEvent.type(input, 'Updated');
+
+		fireEvent.click(screen.getByText('Guardar'));
+
+		await waitFor(() => {
+			expect(updateCard).toHaveBeenCalled();
+		});
+		expect(onSaveSuccess).not.toHaveBeenCalled();
+		expect(onClose).not.toHaveBeenCalled();
+	});
+
+	it('does not call onDeleteSuccess when removeCard returns error', async () => {
+		const removeCard = jest.fn().mockResolvedValue({ error: new Error('DB error') });
+		const onDeleteSuccess = jest.fn();
+		renderForm({ removeCard, onDeleteSuccess });
+
+		fireEvent.click(screen.getByText('Eliminar tarjeta'));
+		fireEvent.click(screen.getByText('Eliminar'));
+
+		await waitFor(() => {
+			expect(removeCard).toHaveBeenCalled();
+		});
+		expect(onDeleteSuccess).not.toHaveBeenCalled();
+	});
+
 	it('hides delete confirmation on cancel', () => {
 		renderForm();
 		fireEvent.click(screen.getByText('Eliminar tarjeta'));

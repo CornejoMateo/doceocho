@@ -1,5 +1,3 @@
-import { KanbanFileRecord } from '@/lib/kanban/files';
-
 export interface Board {
 	id: number;
 	name: string;
@@ -67,3 +65,11 @@ export interface CardFormData {
 	priority?: 'none' | 'low' | 'medium' | 'high' | 'very_high';
 	color?: string;
 }
+
+export type KanbanFileRecord = {
+	id: number;
+	uploaded_at: string;
+	path: string | null;
+	kanban_card_id: number | null;
+	displayName: string | null;
+};

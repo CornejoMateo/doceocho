@@ -8,6 +8,10 @@ jest.mock('@/lib/kanban/boards', () => ({
 	updateBoard: jest.fn(),
 }));
 
+jest.mock('@/lib/kanban/cards', () => ({
+	moveCard: jest.fn().mockResolvedValue({ data: null, error: null }),
+}));
+
 jest.mock('@/lib/kanban/lists', () => ({
 	getListsByBoardId: jest.fn(),
 	createList: jest.fn(),

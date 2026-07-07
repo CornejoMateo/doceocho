@@ -1,12 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase-client';
-
-export type KanbanFileRecord = {
-	id: number;
-	uploaded_at: string;
-	path: string | null;
-	kanban_card_id: number | null;
-	displayName: string | null;
-};
+import type { KanbanFileRecord } from '@/components/business/kanban/types';
 
 const TABLE = 'kanban_files';
 const BUCKET = 'kanban';
@@ -52,65 +45,76 @@ export async function uploadKanbanFile(
 	file: File,
 	displayName?: string | null
 ): Promise<{ data: KanbanFileRecord | null; error: any }> {
-	const supabase = getSupabaseClient();
+	try {
+		const supabase = getSupabaseClient();
 
-	const fileExt = file.name.split('.').pop();
-	const fileName = `${crypto.randomUUID()}.${fileExt}`;
-	const filePath = `${kanbanCardId}/${fileName}`;
+		const fileExt = file.name.split('.').pop();
+		const fileName = `${crypto.randomUUID()}.${fileExt}`;
+		const filePath = `${kanbanCardId}/${fileName}`;
 
-	const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
 
-	if (uploadError) {
-		return { data: null, error: uploadError };
+		if (uploadError) {
+			return { data: null, error: uploadError };
+		}
+
+		const { data: fileRecord, error: dbError } = await supabase
+			.from(TABLE)
+			.insert({
+				path: filePath,
+				kanban_card_id: kanbanCardId,
+				display_name: displayName || null,
+			})
+			.select()
+			.single();
+
+		if (dbError) {
+			await supabase.storage.from(BUCKET).remove([filePath]);
+			return { data: null, error: dbError };
+		}
+
+		return { data: fileRecord ? toRecord(fileRecord) : null, error: null };
+	} catch (err) {
+		console.error('Unexpected error uploading kanban file:', err);
+		return { data: null, error: err };
 	}
-
-	const { data: fileRecord, error: dbError } = await supabase
-		.from(TABLE)
-		.insert({
-			path: filePath,
-			kanban_card_id: kanbanCardId,
-			display_name: displayName || null,
-		})
-		.select()
-		.single();
-
-	if (dbError) {
-		return { data: null, error: dbError };
-	}
-
-	return { data: fileRecord ? toRecord(fileRecord) : null, error: null };
 }
 
 export async function deleteKanbanFile(fileId: number): Promise<{ success: boolean; error: any }> {
-	const supabase = getSupabaseClient();
+	try {
+		const supabase = getSupabaseClient();
 
-	const { data: fileRecord, error: fetchError } = await supabase
-		.from(TABLE)
-		.select('path')
-		.eq('id', fileId)
-		.single();
+		const { data: fileRecord, error: fetchError } = await supabase
+			.from(TABLE)
+			.select('path')
+			.eq('id', fileId)
+			.single();
 
-	if (fetchError) {
-		return { success: false, error: fetchError };
+		if (fetchError) {
+			return { success: false, error: fetchError };
+		}
+
+		if (!fileRecord || !fileRecord.path) {
+			return { success: false, error: 'File record not found or missing path' };
+		}
+
+		const { error: deleteStorageError } = await supabase.storage
+			.from(BUCKET)
+			.remove([fileRecord.path]);
+
+		if (deleteStorageError) {
+			return { success: false, error: deleteStorageError };
+		}
+
+		const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
+
+		if (deleteDbError) {
+			return { success: false, error: deleteDbError };
+		}
+
+		return { success: true, error: null };
+	} catch (err) {
+		console.error('Unexpected error deleting kanban file:', err);
+		return { success: false, error: err };
 	}
-
-	if (!fileRecord || !fileRecord.path) {
-		return { success: false, error: 'File record not found or missing path' };
-	}
-
-	const { error: deleteStorageError } = await supabase.storage
-		.from(BUCKET)
-		.remove([fileRecord.path]);
-
-	if (deleteStorageError) {
-		return { success: false, error: deleteStorageError };
-	}
-
-	const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
-
-	if (deleteDbError) {
-		return { success: false, error: deleteDbError };
-	}
-
-	return { success: true, error: null };
 }

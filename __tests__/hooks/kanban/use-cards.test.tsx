@@ -157,6 +157,7 @@ describe('useCards', () => {
 		});
 
 		expect(updateCardPosition).toHaveBeenCalledWith(1, 2);
+		expect(result.current.cards.map((c) => c.id)).toEqual([2, 1]);
 	});
 
 	it('removeCard removes card from state on success', async () => {

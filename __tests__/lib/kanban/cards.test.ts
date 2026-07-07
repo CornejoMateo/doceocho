@@ -155,7 +155,6 @@ describe('kanban cards lib', () => {
 
 			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('*'));
 			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('kanban_lists'));
-			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('kanban_files'));
 			expect(getKanbanFileByCardId).toHaveBeenCalledWith(1);
 			expect(result.data).toEqual({
 				...dbResult,

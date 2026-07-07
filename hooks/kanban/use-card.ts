@@ -23,7 +23,7 @@ export function useCard(cardId: number | null) {
 
 	const updateCardInfo = useCallback(
 		async (
-			changes: Partial<Omit<CardWithRelations, 'id' | 'created_at' | 'list_id' | 'files'>>
+			changes: Partial<Omit<CardWithRelations, 'id' | 'created_at' | 'list_id' | 'files' | 'list'>>
 		) => {
 			if (!cardId) return null;
 			const { data, error } = await updateCard(cardId, changes);
@@ -54,6 +54,7 @@ export function useCard(cardId: number | null) {
 			if (!error) {
 				await fetchCard();
 			}
+			return { error };
 		},
 		[fetchCard]
 	);

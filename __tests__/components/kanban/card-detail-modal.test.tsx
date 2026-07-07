@@ -234,20 +234,15 @@ describe('CardDetailModal', () => {
 	});
 
 	it('shows unsaved changes confirmation when closing with changes', async () => {
-		const onOpenChange = jest.fn();
-		renderModal({ onOpenChange });
+		renderModal();
 
 		const titleInput = screen.getByDisplayValue('Test Card');
 		await userEvent.clear(titleInput);
 		await userEvent.type(titleInput, 'Modified');
 
-		const closeButton =
-			document.querySelector('[data-radix-collection-item]') ||
-			screen.getByRole('button', { name: /close/i });
-		// The Dialog's close button triggers handleClose which opens AlertDialog
-		// Since Dialog is mocked, we trigger unsaved changes state and simulate closing
-		// by calling onOpenChange via Dialog's onOpenChange prop
-		fireEvent.click(screen.getByText('Guardar'));
+		fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+		expect(screen.getByText('Cambios sin guardar')).toBeInTheDocument();
 	});
 
 	it('shows file upload button in gallery', () => {
@@ -259,17 +254,14 @@ describe('CardDetailModal', () => {
 	it('shows file delete button in gallery', () => {
 		renderModal();
 		fireEvent.click(screen.getByText('Adjuntos'));
-		const deleteButtons = screen.getAllByRole('button', { name: '' });
-		expect(deleteButtons.length).toBeGreaterThan(0);
+		expect(screen.getAllByRole('button', { name: /eliminar archivo/i }).length).toBe(2);
 	});
 
 	it('shows delete confirmation for file', () => {
 		renderModal();
 		fireEvent.click(screen.getByText('Adjuntos'));
 
-		const trashButtons = screen.getAllByRole('button');
-		const trashBtn = trashButtons.find((btn) => btn.querySelector('svg') && btn.closest('.group'));
-		if (trashBtn) fireEvent.click(trashBtn);
+		fireEvent.click(screen.getAllByRole('button', { name: /eliminar archivo/i })[0]);
 
 		expect(screen.getByText('¿Eliminar archivo?')).toBeInTheDocument();
 	});
@@ -280,9 +272,7 @@ describe('CardDetailModal', () => {
 		renderModal();
 		fireEvent.click(screen.getByText('Adjuntos'));
 
-		const trashButtons = screen.getAllByRole('button');
-		const trashBtn = trashButtons.find((btn) => btn.querySelector('svg') && btn.closest('.group'));
-		if (trashBtn) fireEvent.click(trashBtn);
+		fireEvent.click(screen.getAllByRole('button', { name: /eliminar archivo/i })[0]);
 
 		const confirmBtn = screen.getByText('Eliminar');
 		fireEvent.click(confirmBtn);

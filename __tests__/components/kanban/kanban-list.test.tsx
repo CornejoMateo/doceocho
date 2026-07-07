@@ -148,13 +148,7 @@ describe('KanbanList', () => {
 	it('opens edit modal when menu button is clicked', () => {
 		render(<KanbanList list={mockList} cards={[]} {...defProps} />);
 
-		const menuButtons = screen.getAllByRole('button');
-		const moreButton = menuButtons.find(
-			(b) => b.querySelector('svg.lucide-more-vertical') || b.innerHTML.includes('MoreVertical')
-		);
-		if (moreButton) {
-			fireEvent.click(moreButton);
-			expect(screen.getByText('Editar nombre de la lista')).toBeInTheDocument();
-		}
+		fireEvent.click(screen.getByRole('button', { name: /opciones de la lista/i }));
+		expect(screen.getAllByText('Editar nombre de la lista').length).toBeGreaterThan(0);
 	});
 });

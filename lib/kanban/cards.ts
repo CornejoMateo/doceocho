@@ -31,8 +31,7 @@ export async function getCardWithRelations(
 		.select(
 			`
 			*,
-			list:kanban_lists(*),
-			files:kanban_files(*)
+			list:kanban_lists(*)
 		`
 		)
 		.eq('id', id)
@@ -41,7 +40,6 @@ export async function getCardWithRelations(
 	if (error) return { data: null, error };
 
 	const { data: files } = await getKanbanFileByCardId(id);
-
 	const transformedCard: CardWithRelations = {
 		...(data as any),
 		files: files || [],

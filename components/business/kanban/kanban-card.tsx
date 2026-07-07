@@ -37,25 +37,29 @@ export function KanbanCard({
 	const yellowToleranceMs = dueDateToleranceYellow * 24 * 60 * 60 * 1000;
 	const redToleranceMs = dueDateToleranceRed * 24 * 60 * 60 * 1000;
 	const isOverdue = card.due_date && new Date(card.due_date) < new Date() && !card.completed_at;
+	const isCompleted = !!card.completed_at;
 	const isRedAlert =
-		card.due_date && !isOverdue && new Date(card.due_date) < new Date(Date.now() + redToleranceMs);
+		card.due_date &&
+		!isCompleted &&
+		!isOverdue &&
+		new Date(card.due_date) < new Date(Date.now() + redToleranceMs);
 	const isYellowAlert =
 		card.due_date &&
+		!isCompleted &&
 		!isOverdue &&
 		!isRedAlert &&
 		new Date(card.due_date) < new Date(Date.now() + yellowToleranceMs);
-	const isCompleted = !!card.completed_at;
 
 	const dueDateIcon = isOverdue ? (
-		<AlertTriangle className="h-4 w-4 text-red-500" />
+		<AlertTriangle data-testid="icon-overdue" className="h-4 w-4 text-red-500" />
 	) : isRedAlert ? (
-		<AlertTriangle className="h-4 w-4 text-red-500" />
+		<AlertTriangle data-testid="icon-red-alert" className="h-4 w-4 text-red-500" />
 	) : isYellowAlert ? (
-		<AlertTriangle className="h-4 w-4 text-yellow-500" />
+		<AlertTriangle data-testid="icon-yellow-alert" className="h-4 w-4 text-yellow-500" />
 	) : isCompleted ? (
-		<CheckCircle className="h-4 w-4 text-green-500" />
+		<CheckCircle data-testid="icon-completed" className="h-4 w-4 text-green-500" />
 	) : (
-		<Clock className="h-4 w-4 text-muted-foreground" />
+		<Clock data-testid="icon-clock" className="h-4 w-4 text-muted-foreground" />
 	);
 
 	return (

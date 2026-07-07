@@ -53,12 +53,14 @@ describe('KanbanCard', () => {
 	it('shows due date with clock icon when not overdue', () => {
 		const futureDate = new Date(Date.now() + 86400000 * 10).toISOString();
 		render(<KanbanCard card={{ ...baseCard, due_date: futureDate }} onClick={jest.fn()} />);
+		expect(screen.getByTestId('icon-clock')).toBeInTheDocument();
 		expect(screen.getByText('31 dic 2024')).toBeInTheDocument();
 	});
 
 	it('shows overdue alert when past due and not completed', () => {
 		const pastDate = new Date(Date.now() - 86400000 * 3).toISOString();
 		render(<KanbanCard card={{ ...baseCard, due_date: pastDate }} onClick={jest.fn()} />);
+		expect(screen.getByTestId('icon-overdue')).toBeInTheDocument();
 		expect(screen.getByText('31 dic 2024')).toBeInTheDocument();
 	});
 
@@ -70,6 +72,7 @@ describe('KanbanCard', () => {
 				onClick={jest.fn()}
 			/>
 		);
+		expect(screen.getByTestId('icon-completed')).toBeInTheDocument();
 		expect(screen.getByText('31 dic 2024')).toBeInTheDocument();
 	});
 
@@ -83,21 +86,21 @@ describe('KanbanCard', () => {
 				dueDateToleranceRed={0}
 			/>
 		);
+		expect(screen.getByTestId('icon-yellow-alert')).toBeInTheDocument();
 		expect(screen.getByText('31 dic 2024')).toBeInTheDocument();
 	});
 
 	it('shows red alert within red tolerance', () => {
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		const dueToday = today.toISOString();
+		const nearFuture = new Date(Date.now() + 1000 * 60 * 60); // 1 hour from now
 		render(
 			<KanbanCard
-				card={{ ...baseCard, due_date: dueToday }}
+				card={{ ...baseCard, due_date: nearFuture.toISOString() }}
 				onClick={jest.fn()}
 				dueDateToleranceYellow={3}
 				dueDateToleranceRed={1}
 			/>
 		);
+		expect(screen.getByTestId('icon-red-alert')).toBeInTheDocument();
 		expect(screen.getByText('31 dic 2024')).toBeInTheDocument();
 	});
 });
