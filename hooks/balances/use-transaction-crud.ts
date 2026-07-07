@@ -84,11 +84,11 @@ export function useTransactionCrud(
 			setIsLoading(false);
 		}
 	};
-
-	const handleAddTransaction = async () => {
+	const handleAddTransaction = async (isExtra?: boolean) => {
 		if (!balance || !transactionAmount || isSavingTransaction) return;
 
 		setIsSavingTransaction(true);
+
 		try {
 			const { data, error } = await createTransaction({
 				balance_id: balance.id,
@@ -98,16 +98,19 @@ export function useTransactionCrud(
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
 				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				...(isExtra ? { is_extra_amount: true } : {}),
 			});
 
 			if (error) {
 				setIsSavingTransaction(false);
 				toast({
 					variant: 'destructive',
-					title: 'Error al crear transacción',
+					title: isExtra ? 'Error al crear monto extra' : 'Error al crear transacción',
 					description:
 						translateError(error) ||
-						'Hubo un problema al crear la transacción. Intente nuevamente.',
+						(isExtra
+							? 'Hubo un problema al crear el monto extra. Intente nuevamente.'
+							: 'Hubo un problema al crear la transacción. Intente nuevamente.'),
 				});
 				return;
 			}
@@ -117,8 +120,10 @@ export function useTransactionCrud(
 			}
 
 			toast({
-				title: 'Transacción creada',
-				description: 'La transacción se ha creado exitosamente.',
+				title: isExtra ? 'Monto extra creado' : 'Transacción creada',
+				description: isExtra
+					? 'El monto extra se ha creado exitosamente.'
+					: 'La transacción se ha creado exitosamente.',
 			});
 
 			resetTransactionForm();
@@ -201,59 +206,6 @@ export function useTransactionCrud(
 				title: 'Error inesperado',
 				description: translateError(error) || 'Ocurrió un error inesperado. Intente nuevamente.',
 			});
-		}
-	};
-
-	const handleAddExtraAmount = async () => {
-		if (!balance || !transactionAmount || isSavingTransaction) return;
-
-		setIsSavingTransaction(true);
-
-		try {
-			const { data, error } = await createTransaction({
-				balance_id: balance.id,
-				date: format(transactionDate, 'yyyy-MM-dd'),
-				amount: parseArsToNumber(transactionAmount),
-				payment_method: paymentMethod || null,
-				notes: notes || null,
-				quote_usd: quoteUsd ? parseFloat(quoteUsd) : null,
-				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
-				is_extra_amount: true,
-			});
-
-			if (error) {
-				setIsSavingTransaction(false);
-				const err = translateError(error);
-				toast({
-					variant: 'destructive',
-					title: 'Error al crear monto extra',
-					description: err || 'Hubo un problema al crear el monto extra. Intente nuevamente.',
-				});
-				return;
-			}
-
-			// Upload files if selected
-			if (data && transactionFilesToUpload.length > 0) {
-				await uploadFilesForTransaction?.(data.id, transactionFilesToUpload);
-			}
-
-			toast({
-				title: 'Monto extra creado',
-				description: 'El monto extra se ha creado exitosamente.',
-			});
-
-			resetTransactionForm();
-			await loadTransactions();
-			onTransactionCreated?.();
-		} catch (error) {
-			const err = translateError(error);
-			toast({
-				variant: 'destructive',
-				title: 'Error inesperado',
-				description: err || 'Ocurrió un error inesperado. Intente nuevamente.',
-			});
-		} finally {
-			setIsSavingTransaction(false);
 		}
 	};
 
@@ -397,7 +349,6 @@ export function useTransactionCrud(
 		setUsdAmount,
 		loadTransactions,
 		handleAddTransaction,
-		handleAddExtraAmount,
 		handleDeleteTransaction,
 		handleUpdateBalanceNotes,
 		resetTransactionForm,

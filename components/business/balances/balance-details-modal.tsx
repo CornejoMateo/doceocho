@@ -103,7 +103,6 @@ export function BalanceDetailsModal({
 		usdAmount,
 		setUsdAmount,
 		handleAddTransaction,
-		handleAddExtraAmount,
 		handleDeleteTransaction,
 		handleUpdateBalanceNotes,
 		resetTransactionForm,
@@ -229,8 +228,8 @@ export function BalanceDetailsModal({
 								editingTransaction
 									? handleUpdateTransaction
 									: addingMode === 'extra'
-										? handleAddExtraAmount
-										: handleAddTransaction
+										? () => handleAddTransaction(true)
+										: () => handleAddTransaction()
 							}
 							onStartAddTransaction={() => setAddingMode('transaction')}
 							onStartAddExtra={() => setAddingMode('extra')}

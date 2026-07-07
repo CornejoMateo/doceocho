@@ -195,7 +195,7 @@ describe('useTransactionCrud', () => {
 		});
 
 		await act(async () => {
-			await result.current.handleAddExtraAmount();
+			await result.current.handleAddTransaction(true);
 		});
 
 		expect(createTransaction).toHaveBeenCalledWith(
@@ -211,7 +211,7 @@ describe('useTransactionCrud', () => {
 		);
 
 		await act(async () => {
-			await result.current.handleAddExtraAmount();
+			await result.current.handleAddTransaction(true);
 		});
 
 		expect(createTransaction).not.toHaveBeenCalled();
