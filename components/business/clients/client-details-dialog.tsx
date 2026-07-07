@@ -275,7 +275,7 @@ export function ClientDetailsDialog({
 					<div className="border-t pt-2">
 						<Tabs
 							defaultValue={user?.role === 'Admin' ? 'info' : 'images'}
-							className="w-full"
+							className="w-full "
 							onValueChange={handleTabChange}
 						>
 							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">

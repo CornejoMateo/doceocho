@@ -109,7 +109,7 @@ export function CalendarView() {
 	const getEventsForDate = (day: number) => {
 		const dateStr = formatDateString(currentDate.getFullYear(), currentDate.getMonth(), day);
 		let dayEvents = events.filter((event) => {
-			const [eventDay, eventMonth, eventYear] = event.date?.split('-') ?? [];
+			const [eventDay, eventMonth, eventYear] = event.date?.split('/') ?? [];
 			const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
 			return formattedEventDate === dateStr;
 		});
@@ -207,7 +207,7 @@ export function CalendarView() {
 
 	const filteredEvents = selectedDate
 		? events.filter((event) => {
-				const [eventDay, eventMonth, eventYear] = event.date?.split('-') ?? [];
+				const [eventDay, eventMonth, eventYear] = event.date?.split('/') ?? [];
 				const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
 				const matchesDate = formattedEventDate === selectedDate;
 				const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
@@ -604,17 +604,19 @@ export function CalendarView() {
 
 			{user?.role === 'Admin' && (
 				<Card className="p-4 bg-card border-border">
-					<div className="flex items-center justify-between">
-						<div>
-							<h3 className="text-sm font-medium text-foreground">Limpiar datos antiguos</h3>
-							<p className="text-xs text-muted-foreground mt-1">
+					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+						<div className="flex-1 min-w-0">
+							<h3 className="text-sm font-medium text-foreground break-words">
+								Limpiar datos antiguos
+							</h3>
+							<p className="text-xs text-muted-foreground mt-1 break-words">
 								Elimina eventos resueltos anteriores al 1 de enero del presente año para mantener el
 								calendario limpio y relevante.
 							</p>
 						</div>
 						<Button
 							variant="destructive"
-							className="w-full max-w-xs"
+							className="w-full md:w-auto md:max-w-xs"
 							onClick={() => setIsDeleteDialogOpen(true)}
 						>
 							Eliminar eventos del año pasado

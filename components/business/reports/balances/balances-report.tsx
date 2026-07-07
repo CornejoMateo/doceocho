@@ -225,7 +225,7 @@ export function BalancesReport() {
 			<StatsCardsBalances stats={balanceStats} />
 
 			{/* Tabs */}
-			<Tabs defaultValue="balances" className="space-y-4">
+			<Tabs defaultValue="budgets" className="space-y-4">
 				<TabsList className="bg-card border border-border">
 					<TabsTrigger value="balances">Saldos</TabsTrigger>
 					<TabsTrigger value="budgets">Presupuestos</TabsTrigger>

@@ -3,7 +3,6 @@ import { Package, Edit, Plus, Minus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/provider/auth-provider';
-import type { SupplyItemStock } from '@/lib/stock/supplies-stock';
 import ImageViewer from '@/components/ui/image-viewer';
 import { formatCurrency } from '@/utils/formats-money';
 import { useSupplyDialogs } from '@/hooks/supply/use-supply-dialogs';
@@ -11,6 +10,7 @@ import { SupplyCard } from './supply-card';
 import { QuantityDialog } from './quantity-dialog';
 import { DeleteAlertDialog } from './delete-alert-dialog';
 import type { SuppliesTableProps } from './types';
+import { formatCreatedAt } from '@/utils/format-date';
 
 export function SuppliesTable({
 	filteredStock,
@@ -168,7 +168,7 @@ export function SuppliesTable({
 											</td>
 										)}
 										<td className="px-2 py-2 text-center text-sm text-foreground">
-											{item.created_at?.split('T')[0] || '-'}
+											{formatCreatedAt(item.created_at) || '-'}
 										</td>
 										<td className="px-2 py-2 text-center">
 											<div className="flex items-center justify-center gap-2">

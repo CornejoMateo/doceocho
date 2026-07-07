@@ -26,7 +26,7 @@ export function useLoadEvents() {
 
 				const [year, month, day] = (event.date || '').split('-');
 				const formattedDate = event.date
-					? `${day}-${month}-${year}`
+					? `${day}/${month}/${year}`
 					: new Date().toISOString().split('T')[0];
 
 				return {
