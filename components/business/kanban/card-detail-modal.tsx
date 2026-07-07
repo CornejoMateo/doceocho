@@ -273,7 +273,7 @@ export function CardDetailModal({
 														className="flex items-center justify-between p-3 border rounded bg-background hover:bg-muted/50 transition-colors"
 													>
 														<span className="text-sm truncate max-w-[200px]">
-															{attachment.file_name}
+															Archivo {attachment.id}
 														</span>
 														<Button
 															variant="ghost"

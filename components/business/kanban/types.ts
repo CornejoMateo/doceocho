@@ -127,18 +127,9 @@ export interface CardMember {
 // ============================================
 export interface Attachment {
 	id: number;
-	created_at: string;
-	card_id: number;
-	user_id: string; // UUID
-	file_name: string;
-	file_url: string;
-	file_size: number | null;
-	file_type: string | null;
-	storage_path: string | null;
-	user?: {
-		id: string; // UUID
-		email?: string | null;
-	};
+	uploaded_at: string;
+	kanban_card_id: number;
+	path: string | null;
 }
 
 // ============================================

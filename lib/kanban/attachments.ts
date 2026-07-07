@@ -1,7 +1,7 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Attachment } from '@/components/business/kanban/types';
 
-const TABLE = 'kanban_attachments';
+const TABLE = 'kanban_files';
 const STORAGE_BUCKET = 'kanban';
 
 export async function getAttachmentsByCardId(
@@ -11,8 +11,8 @@ export async function getAttachmentsByCardId(
 	const { data, error } = await supabase
 		.from(TABLE)
 		.select('*')
-		.eq('card_id', cardId)
-		.order('created_at', { ascending: true });
+		.eq('kanban_card_id', cardId)
+		.order('uploaded_at', { ascending: true });
 	return { data, error };
 }
 
@@ -48,14 +48,10 @@ export async function uploadAttachment(
 		data: { publicUrl },
 	} = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
 
-	// Create attachment record
+	// Create attachment record using kanban_files table structure
 	const payload = {
-		card_id: cardId,
-		file_name: file.name,
-		file_url: publicUrl,
-		file_size: file.size,
-		file_type: file.type,
-		storage_path: filePath,
+		kanban_card_id: cardId,
+		path: filePath,
 	};
 
 	const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
@@ -69,9 +65,9 @@ export async function deleteAttachment(id: number): Promise<{ data: null; error:
 	// Get attachment to delete file from storage
 	const { data: attachment } = await getAttachmentById(id);
 
-	if (attachment?.storage_path) {
+	if (attachment?.path) {
 		// Delete file from storage
-		await supabase.storage.from(STORAGE_BUCKET).remove([attachment.storage_path]);
+		await supabase.storage.from(STORAGE_BUCKET).remove([attachment.path]);
 	}
 
 	// Delete attachment record
