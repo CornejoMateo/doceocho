@@ -21,7 +21,7 @@ export interface CardFormHandle {
 	requestClose: () => void;
 }
 
-interface CardFormProps {
+export interface CardFormProps {
 	card: CardWithRelations;
 	updateCard: (
 		changes: Partial<Omit<CardWithRelations, 'id' | 'created_at' | 'list_id' | 'files'>>

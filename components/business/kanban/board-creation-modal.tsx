@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Palette } from 'lucide-react';
 import type { BoardFormData } from './types';
+import { DialogDescription } from '@radix-ui/react-dialog';
 
 interface BoardCreationModalProps {
 	open: boolean;
@@ -59,6 +60,9 @@ export function BoardCreationModal({ open, onOpenChange, onCreate }: BoardCreati
 						<h2 className="text-lg font-semibold">Crear nuevo tablero</h2>
 					</div>
 				</DialogHeader>
+				<DialogDescription className="mb-4 text-sm text-muted-foreground">
+					Completa la información para crear un nuevo tablero.
+				</DialogDescription>
 
 				<div className="space-y-6">
 					<div className="space-y-2">
