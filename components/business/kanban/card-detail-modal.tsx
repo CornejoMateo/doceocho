@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -14,15 +12,15 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { X, Clock, Paperclip, Upload, FileText, Trash2 } from 'lucide-react';
+import { Upload, FileText, Trash2 } from 'lucide-react';
 import { useCard } from '@/hooks/kanban/use-card';
 import { translateError } from '@/lib/error-translator';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
-import { formatCreatedAt } from '@/utils/format-date';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { getFileExtension, isImage, isVideo } from '@/utils/file-upload-utils';
 import { optimizeFile } from '@/utils/optimization-images';
+import { CardForm, type CardFormHandle } from '@/components/business/kanban/card-form';
 import type { FileViewerItem } from '@/utils/file-upload-utils';
 import type { KanbanFileRecord } from '@/lib/kanban/files';
 import { DialogDescription } from '@radix-ui/react-dialog';
@@ -44,13 +42,6 @@ export function CardDetailModal({
 }: CardDetailModalProps) {
 	const { card, loading, error, updateCard, uploadFile, removeCard, removeAttachment } =
 		useCard(cardId);
-	const [title, setTitle] = useState('');
-	const [description, setDescription] = useState('');
-	const [dueDate, setDueDate] = useState('');
-	const [priority, setPriority] = useState('none');
-	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-	const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 	const [isUploading, setIsUploading] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -60,6 +51,7 @@ export function CardDetailModal({
 	const [isDragging, setIsDragging] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const galleryRef = useRef<HTMLDivElement>(null);
+	const formRef = useRef<CardFormHandle>(null);
 
 	const handleDragOver = (e: React.DragEvent) => {
 		e.preventDefault();
@@ -136,67 +128,6 @@ export function CardDetailModal({
 		};
 	}, [card?.files]);
 
-	useEffect(() => {
-		if (card) {
-			setTitle(card.title);
-			setDescription(card.description || '');
-			setDueDate(card.due_date?.split('T')[0] || '');
-			setPriority(card.priority || 'none');
-			setHasUnsavedChanges(false);
-		}
-	}, [card]);
-
-	const handleTitleChange = (value: string) => {
-		setTitle(value);
-		setHasUnsavedChanges(true);
-	};
-
-	const handleDescriptionChange = (value: string) => {
-		setDescription(value);
-		setHasUnsavedChanges(true);
-	};
-
-	const handleDueDateChange = (value: string) => {
-		setDueDate(value);
-		setHasUnsavedChanges(true);
-	};
-
-	const handlePriorityChange = (value: string) => {
-		setPriority(value);
-		setHasUnsavedChanges(true);
-	};
-
-	const handleSave = async () => {
-		await updateCard({
-			title,
-			description,
-			due_date: dueDate || null,
-			priority: priority as any,
-		});
-		setHasUnsavedChanges(false);
-		onOpenChange(false);
-		if (onCardUpdated) {
-			onCardUpdated();
-		}
-	};
-
-	const handleClose = () => {
-		if (hasUnsavedChanges) {
-			setShowCloseConfirm(true);
-		} else {
-			onOpenChange(false);
-		}
-	};
-
-	const handleConfirmClose = () => {
-		setShowCloseConfirm(false);
-		onOpenChange(false);
-	};
-
-	const handleCancelClose = () => {
-		setShowCloseConfirm(false);
-	};
-
 	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
 		if (!files || files.length === 0) return;
@@ -233,39 +164,21 @@ export function CardDetailModal({
 		await removeAttachment(attachmentId);
 	};
 
-	const handleDeleteCard = async () => {
-		await removeCard();
-		onOpenChange(false);
-		if (onCardDeleted) {
-			onCardDeleted();
-		}
-	};
-
 	if (!cardId) return null;
 
 	return (
 		<>
-			<Dialog open={open} onOpenChange={handleClose}>
+			<Dialog
+				open={open}
+				onOpenChange={(o) => {
+					if (!o) formRef.current?.requestClose();
+				}}
+			>
 				<DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-					<DialogHeader className="border-b pb-4">
+					<DialogHeader>
 						<VisuallyHidden>
 							<DialogTitle>Detalles de tarjeta</DialogTitle>
 						</VisuallyHidden>
-						<div className="flex items-start gap-4">
-							<div className="flex-1 min-w-0">
-								<Input
-									value={title}
-									onChange={(e) => handleTitleChange(e.target.value)}
-									className="text-2xl font-bold border-none p-0 focus-visible:ring-0 bg-transparent"
-									placeholder="Título de la tarjeta"
-								/>
-								<div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground flex-wrap">
-									<span>En lista: {card?.list?.name || 'Sin asignar'}</span>
-									<span>•</span>
-									<span>Creado el {card ? formatCreatedAt(card.created_at) : ''}</span>
-								</div>
-							</div>
-						</div>
 					</DialogHeader>
 
 					{loading ? (
@@ -281,143 +194,21 @@ export function CardDetailModal({
 							<p className="text-muted-foreground">Tarjeta no encontrada</p>
 						</div>
 					) : (
-						<>
-							<div className="flex-1 overflow-y-auto">
-								<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-									{/* Left Column - Main Content */}
-									<div className="lg:col-span-2 space-y-6">
-										{/* Description */}
-										<div>
-											<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">
-												Descripción
-											</h3>
-											<Textarea
-												value={description}
-												onChange={(e) => handleDescriptionChange(e.target.value)}
-												placeholder="Agregar una descripción más detallada..."
-												className="min-h-[150px] resize-none"
-											/>
-										</div>
-
-										{/* Due Date */}
-										<div>
-											<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground flex items-center gap-2">
-												<Clock className="h-4 w-4" />
-												Fecha límite
-											</h3>
-											<Input
-												type="date"
-												value={dueDate}
-												onChange={(e) => handleDueDateChange(e.target.value)}
-												className="max-w-xs"
-											/>
-										</div>
-									</div>
-
-									{/* Right Column - Sidebar */}
-									<div className="space-y-6">
-										{/* Add to Card */}
-										<div className="space-y-2">
-											<h3 className="font-semibold text-sm uppercase text-muted-foreground">
-												Ver archivos
-											</h3>
-											<Button
-												variant="outline"
-												className="w-full justify-start gap-2"
-												onClick={() => setIsGalleryOpen(true)}
-											>
-												<Paperclip className="h-4 w-4" />
-												Adjuntos
-											</Button>
-										</div>
-
-										{/* Priority */}
-										<div>
-											<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">
-												Prioridad
-											</h3>
-											<select
-												value={priority}
-												onChange={(e) => handlePriorityChange(e.target.value)}
-												className="w-full p-2.5 border rounded-md bg-background"
-											>
-												<option value="none">Sin prioridad</option>
-												<option value="low">Baja</option>
-												<option value="medium">Media</option>
-												<option value="high">Alta</option>
-												<option value="very_high">Muy alta</option>
-											</select>
-										</div>
-
-										{/* Actions */}
-										<div className="border-t pt-4">
-											{showDeleteConfirm ? (
-												<div className="space-y-3">
-													<p className="text-sm text-muted-foreground">
-														¿Estás seguro de eliminar esta tarjeta?
-													</p>
-													<div className="flex gap-2">
-														<Button
-															variant="destructive"
-															className="flex-1 min-w-0"
-															size="sm"
-															onClick={handleDeleteCard}
-														>
-															Eliminar
-														</Button>
-														<Button
-															variant="outline"
-															className="flex-1 min-w-0"
-															size="sm"
-															onClick={() => setShowDeleteConfirm(false)}
-														>
-															Cancelar
-														</Button>
-													</div>
-												</div>
-											) : (
-												<Button
-													variant="destructive"
-													className="w-full"
-													size="sm"
-													onClick={() => setShowDeleteConfirm(true)}
-												>
-													Eliminar tarjeta
-												</Button>
-											)}
-										</div>
-									</div>
-								</div>
-							</div>
-
-							{/* Footer with Save Button */}
-							{hasUnsavedChanges && (
-								<div className="border-t pt-4 flex justify-end">
-									<Button onClick={handleSave} size="sm">
-										Guardar
-									</Button>
-								</div>
-							)}
-						</>
+						<CardForm
+							ref={formRef}
+							card={card}
+							updateCard={updateCard}
+							removeCard={removeCard}
+							onClose={() => onOpenChange(false)}
+							onSaveSuccess={onCardUpdated}
+							onDeleteSuccess={() => {
+								onCardDeleted?.();
+								onOpenChange(false);
+							}}
+							onOpenGallery={() => setIsGalleryOpen(true)}
+						/>
 					)}
 				</DialogContent>
-
-				{/* Unsaved Changes Confirmation Dialog */}
-				<AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
-							<AlertDialogDescription>
-								Tienes cambios sin guardar en esta tarjeta. ¿Estás seguro de que deseas cerrar sin
-								guardar?
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter>
-							<AlertDialogCancel onClick={handleCancelClose}>Cancelar</AlertDialogCancel>
-							<AlertDialogAction onClick={handleConfirmClose}>Cerrar sin guardar</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
 			</Dialog>
 
 			{/* Gallery Dialog */}
@@ -477,12 +268,10 @@ export function CardDetailModal({
 						<div className="flex-1 overflow-y-auto">
 							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
 								{card.files.map((attachment, index) => {
-									console.log('Attachment:', attachment);
 									const path = attachment.path;
 									if (!path) return null;
 									const fileName = getFileName(attachment.path);
 									const ext = getFileExtension(path).toLowerCase();
-									console.log('File Extension:', ext);
 									const mimetype =
 										ext === 'mp4'
 											? 'video/mp4'
