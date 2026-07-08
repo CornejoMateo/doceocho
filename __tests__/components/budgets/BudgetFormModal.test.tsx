@@ -8,6 +8,10 @@ jest.mock('@/utils/formats-money', () => ({
 	parseArsToNumber: (v: string) => Number(v.replace(/\./g, '').replace(',', '.')) || 0,
 }));
 
+jest.mock('@/lib/checklists/materials', () => ({
+	listMaterials: jest.fn().mockResolvedValue({ data: [], error: null }),
+}));
+
 const mockWorks: Work[] = [
 	{ id: 1, address: 'Av. Siempre Viva', locality: 'Springfield' },
 	{ id: 2, address: 'Calle 123', locality: 'CABA' },

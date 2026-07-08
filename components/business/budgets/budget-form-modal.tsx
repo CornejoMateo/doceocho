@@ -20,7 +20,9 @@ import {
 } from '@/components/ui/select';
 import { Work } from '@/lib/works/works';
 import { BudgetWithWork } from '@/lib/balances/balances';
-import { DEFAULT_TYPES, FORM_DEFAULTS } from '@/constants/budgets/constants';
+import { FORM_DEFAULTS } from '@/constants/budgets/constants';
+import { listMaterials } from '@/lib/checklists/materials';
+import { Material } from '@/lib/checklists/materials';
 import { BudgetFormData } from '@//components/business/reports/budgets/types';
 import { Info } from 'lucide-react';
 import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
@@ -57,6 +59,8 @@ export function BudgetFormModal({
 		date_of_sale: FORM_DEFAULTS.date_of_sale,
 	});
 
+	const [materials, setMaterials] = useState<Material[]>([]);
+
 	const selectedWork = works.find((w) => String(w.id) === formData.workId);
 	const selectedWorkLabel =
 		formData.workId === 'none'
@@ -72,6 +76,19 @@ export function BudgetFormModal({
 
 	// Reset form when modal opens or budget changes
 	useEffect(() => {
+		if (isOpen) {
+			listMaterials().then(({ data }) => {
+				setMaterials([]);
+				listMaterials()
+					.then(({ data }) => {
+						setMaterials(data ?? []);
+					})
+					.catch(() => {
+						setMaterials([]);
+					});
+			});
+		}
+
 		if (isOpen && mode === 'edit' && budget) {
 			setFormData({
 				type: budget.type || FORM_DEFAULTS.type,
@@ -168,11 +185,18 @@ export function BudgetFormModal({
 								<SelectValue placeholder="Seleccionar tipo" />
 							</SelectTrigger>
 							<SelectContent>
-								{DEFAULT_TYPES.map((t: string) => (
-									<SelectItem key={t} value={t}>
-										{t}
+								{materials.length === 0 ? (
+									<SelectItem value="no-materials" disabled>
+										No hay materiales
 									</SelectItem>
-								))}
+								) : (
+									materials.map((m) => (
+										<SelectItem key={m.id} value={m.name}>
+											{m.name}
+										</SelectItem>
+									))
+								)}
+								<SelectItem value="Otros">Otros</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>

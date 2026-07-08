@@ -27,13 +27,27 @@ CREATE POLICY "Public insert works"
 ON public.works
 FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (
+  EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.uid_user = auth.uid()
+        AND u.role = 'Admin'
+  )
+);
 
 CREATE POLICY "Public delete works"
 ON public.works
 FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.uid_user = auth.uid()
+        AND u.role = 'Admin'
+  )
+);
 
 CREATE POLICY "Public update works"
 ON public.works

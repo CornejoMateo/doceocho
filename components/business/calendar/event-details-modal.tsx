@@ -126,20 +126,26 @@ export function EventDetailsModal({
 						<div className="flex items-center gap-2">
 							<DialogTitle className="text-xl">{event.title}</DialogTitle>
 						</div>
-						<div className="flex items-center gap-1 text-sm text-muted-foreground group">
-							<select
-								value={currentStatus || ''}
-								onChange={(e) => handleStatusChange(e.target.value)}
-								className="bg-transparent border-none focus:ring-0 focus:ring-offset-0 p-1 pr-6 appearance-none focus:outline-none cursor-pointer hover:bg-muted rounded-md"
-							>
-								{statusOptionsEvents.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-							<ChevronDown className="h-3.5 w-3.5 -ml-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-						</div>
+						{isAuthorized ? (
+							<div className="flex items-center gap-1 text-sm text-muted-foreground group">
+								<select
+									value={currentStatus || ''}
+									onChange={(e) => handleStatusChange(e.target.value)}
+									className="bg-transparent border-none focus:ring-0 focus:ring-offset-0 p-1 pr-6 appearance-none focus:outline-none cursor-pointer hover:bg-muted rounded-md"
+								>
+									{statusOptionsEvents.map((option) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</select>
+								<ChevronDown className="h-3.5 w-3.5 -ml-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+							</div>
+						) : (
+							<span className="text-sm text-muted-foreground">
+								{statusOptionsEvents.find((o) => o.value === currentStatus)?.label || currentStatus}
+							</span>
+						)}
 					</div>
 					<DialogDescription className="sr-only">
 						Detalles del evento del calendario

@@ -42,7 +42,6 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
-import { toast } from '@/components/ui/use-toast';
 
 const navigation = [
 	{ name: 'Panel', href: '/', icon: LayoutDashboard, disabled: false },
@@ -78,7 +77,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Obras',
 				'Reportes',
 			],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario'],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Obras'],
 		} as Record<UserRole, string[]>;
 	}, []);
 

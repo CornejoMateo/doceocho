@@ -280,9 +280,9 @@ export function ClientDetailsDialog({
 						>
 							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">
 								<>
-									<TabsTrigger value="info">Información</TabsTrigger>
 									{isAuthorized && (
 										<>
+											<TabsTrigger value="info">Información</TabsTrigger>
 											<TabsTrigger value="works">Obras</TabsTrigger>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
 											<TabsTrigger value="balances">Saldos</TabsTrigger>
