@@ -22,6 +22,7 @@ import {
 	DollarSign,
 	Settings,
 	Trash2,
+	LayoutList,
 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
@@ -48,6 +49,7 @@ const navigation = [
 	{ name: 'Insumos', href: '/supplies', icon: Package, disabled: false },
 	{ name: 'Clientes', href: '/clients', icon: Users, disabled: false },
 	{ name: 'Obras', href: '/works', icon: ClipboardCheck, disabled: false },
+	{ name: 'Kanban', href: '/kanban', icon: LayoutList, disabled: false },
 	{ name: 'Calendario', href: '/calendar', icon: Calendar, disabled: false },
 	{ name: 'Ajustes y Diario', href: '/claims', icon: AlertCircle, disabled: false },
 	{ name: 'Reportes de Presupuestos', href: '/budgets', icon: FileText, disabled: false },
@@ -66,8 +68,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 	const allowedByRole = useMemo(() => {
 		return {
-			Admin: ['Panel', 'Insumos', 'Clientes', 'Calendario', 'Flujo de Fondos', 'Obras', 'Reportes'],
-			Taller: ['Insumos', 'Clientes', 'Calendario'],
+			Admin: [
+				'Panel',
+				'Insumos',
+				'Clientes',
+				'Kanban',
+				'Calendario',
+				'Flujo de Fondos',
+				'Obras',
+				'Reportes',
+			],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
