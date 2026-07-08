@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Clock, AlertTriangle, CheckCircle, MoreHorizontal } from 'lucide-react';
 import type { CardWithRelations } from './types';
 import { formatCreatedAt } from '@/utils/format-date';
+import { PRIORITY_COLORS, Priority, PRIORITY_OPTIONS } from '@/constants/kanban/priority';
 
 interface KanbanCardProps {
 	card: CardWithRelations;
@@ -11,22 +12,6 @@ interface KanbanCardProps {
 	dueDateToleranceYellow?: number; // Days before due date to show yellow warning
 	dueDateToleranceRed?: number; // Days before due date to show red warning
 }
-
-const PRIORITY_COLORS = {
-	none: 'bg-gray-100 text-gray-600',
-	low: 'bg-blue-100 text-blue-600',
-	medium: 'bg-yellow-100 text-yellow-600',
-	high: 'bg-orange-100 text-orange-600',
-	very_high: 'bg-red-100 text-red-600',
-};
-
-const PRIORITY_LABELS = {
-	none: 'Sin prioridad',
-	low: 'Baja',
-	medium: 'Media',
-	high: 'Alta',
-	very_high: 'Muy alta',
-};
 
 export function KanbanCard({
 	card,
@@ -61,6 +46,10 @@ export function KanbanCard({
 	) : (
 		<Clock data-testid="icon-clock" className="h-4 w-4 text-muted-foreground" />
 	);
+
+	const getLabel = (priority: Priority) => {
+		return PRIORITY_OPTIONS.find((option) => option.value === priority)?.label;
+	};
 
 	return (
 		<Card
@@ -99,7 +88,7 @@ export function KanbanCard({
 
 					{card.priority !== 'none' && (
 						<Badge variant="secondary" className={`text-xs ${PRIORITY_COLORS[card.priority]}`}>
-							{PRIORITY_LABELS[card.priority]}
+							{getLabel(card.priority)}
 						</Badge>
 					)}
 				</div>
