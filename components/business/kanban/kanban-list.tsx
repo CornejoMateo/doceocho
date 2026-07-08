@@ -102,9 +102,8 @@ export function KanbanList({
 	dueDateToleranceYellow = 2,
 	dueDateToleranceRed = 0,
 }: KanbanListProps) {
-	// Only use useCards hook if cards are not provided as props
-	const shouldUseHook = propCards === undefined;
-	const { cards, loading, addCard } = useCards(shouldUseHook ? list.id : null);
+	// Always use the hook for card operations, but use props for display if provided
+	const { cards, loading, addCard } = useCards(list.id);
 	const cardsToUse = propCards !== undefined ? propCards : cards;
 	const cardIds = cardsToUse.map((c) => `card-${c.id}`);
 	const [showCreateModal, setShowCreateModal] = useState(false);
