@@ -137,12 +137,14 @@ function MessageItem({
 					isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted'
 				} ${isOptimistic ? 'opacity-60' : ''}`}
 			>
-				<div className="text-xs font-medium mb-1 opacity-70">
-					{message.users
-						? `${message.users.name || message.users.username || ''} ${message.users.last_name || ''}`.trim() ||
-							'Usuario'
-						: 'Usuario'}
-				</div>
+				{!isOwnMessage && (
+					<div className="text-xs font-medium mb-1 opacity-70">
+						{message.users
+							? `${message.users.name || message.users.username || ''} ${message.users.last_name || ''}`.trim() ||
+								'Usuario'
+							: 'Usuario'}
+					</div>
+				)}
 				{quotedMessage && (
 					<div className="mb-2">
 						<QuoteMessage message={quotedMessage} showCancel={false} />

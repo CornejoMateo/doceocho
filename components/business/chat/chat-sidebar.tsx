@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
 import { ChannelWithLastMessage } from '@/lib/chat/chat-types';
 import { CHAT_CONSTANTS, MAX_UNREAD_DISPLAY } from '../../../constants/chat/chat.constants';
+import { useIsMobile } from '@/components/ui/use-mobile';
 
 interface ChatSidebarProps {
 	channels: ChannelWithLastMessage[];
@@ -29,6 +30,8 @@ export function ChatSidebar({
 	onDeleteChannel,
 	pushNotificationSettings,
 }: ChatSidebarProps) {
+	const isMobile = useIsMobile();
+
 	return (
 		<Card className="w-full max-w-80 flex flex-col h-full overflow-hidden shrink-0">
 			<div className="p-4 border-b">
@@ -41,7 +44,7 @@ export function ChatSidebar({
 						</Button>
 					)}
 				</div>
-				{pushNotificationSettings}
+				{isMobile && pushNotificationSettings}
 			</div>
 			<div className="flex-1 overflow-y-auto">
 				{loading && !initialLoadDone ? (

@@ -25,7 +25,7 @@ export function MessageInput({
 	onCancelReply,
 }: MessageInputProps) {
 	return (
-		<div className="p-3 border-t">
+		<div className="p-3 border-t max-w-full">
 			{replyingTo && (
 				<div className="mb-2">
 					<QuoteMessage message={replyingTo} onCancel={onCancelReply} />

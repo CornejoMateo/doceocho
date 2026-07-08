@@ -32,7 +32,7 @@ export function ChatHeader({
 	onBack,
 }: ChatHeaderProps) {
 	return (
-		<div className="p-4 border-b flex items-center gap-2 w-full">
+		<div className="p-4 border-b flex items-center gap-2 max-w-full">
 			{isMobile && (
 				<Button variant="ghost" size="icon" onClick={onBack}>
 					<ArrowLeft className="h-5 w-5" />
@@ -57,7 +57,7 @@ export function ChatHeader({
 						<h2 className="text-base font-semibold">
 							{channel.name || CHAT_CONSTANTS.CHANNELS.NO_NAME}
 						</h2>
-						{channel.description && (
+						{channel.description && !isMobile && (
 							<p className="text-xs text-muted-foreground">{channel.description}</p>
 						)}
 					</div>
@@ -68,12 +68,12 @@ export function ChatHeader({
 						{isAdmin && (
 							<Button size="sm" variant="outline" onClick={onCleanupMessages}>
 								<Calendar className="h-4 w-4 mr-2" />
-								{CHAT_CONSTANTS.BUTTONS.CLEAN}
+								{isMobile ? '' : CHAT_CONSTANTS.BUTTONS.CLEAN}
 							</Button>
 						)}
 						<Button size="sm" variant="outline" onClick={onShowMembers}>
 							<Users className="h-4 w-4 mr-2" />
-							{CHAT_CONSTANTS.BUTTONS.MEMBERS}
+							{isMobile ? '' : CHAT_CONSTANTS.BUTTONS.MEMBERS}
 						</Button>
 					</div>
 				</div>
