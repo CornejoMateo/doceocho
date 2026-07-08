@@ -311,7 +311,7 @@ export function BalancesReport() {
 										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('purchaseArs')}
 									>
-										<div className="flex items-center justify-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.purchase}
 											{getSortIcon('purchaseArs')}
 										</div>
@@ -320,7 +320,7 @@ export function BalancesReport() {
 										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('deliveriesArs')}
 									>
-										<div className="flex items-center justify-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.deliveries}
 											{getSortIcon('deliveriesArs')}
 										</div>
@@ -329,7 +329,7 @@ export function BalancesReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('balanceType')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.balanceType}
 											{getSortIcon('balanceType')}
 										</div>
@@ -338,7 +338,7 @@ export function BalancesReport() {
 										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('balanceAmountArs')}
 									>
-										<div className="flex items-center justify-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.balanceAmount}
 											{getSortIcon('balanceAmountArs')}
 										</div>

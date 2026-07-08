@@ -311,18 +311,20 @@ export function BudgetsReport() {
 								) : (
 									filteredRows.map((r) => (
 										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap">{r.date}</TableCell>
-											<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.number}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.type}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.work}</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="whitespace-nowrap text-center">{r.date}</TableCell>
+											<TableCell className="font-medium whitespace-nowrap text-center">
+												{r.client}
+											</TableCell>
+											<TableCell className="whitespace-nowrap text-center">{r.number}</TableCell>
+											<TableCell className="whitespace-nowrap text-center">{r.type}</TableCell>
+											<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
+											<TableCell className="text-right whitespace-nowrap text-center">
 												{formatCurrency(r.amountArs)}
 											</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="whitespace-nowrap text-center">
 												{formatCurrencyUSD(r.amountUsd)}
 											</TableCell>
-											<TableCell className="whitespace-nowrap">{r.status}</TableCell>
+											<TableCell className="whitespace-nowrap text-center">{r.status}</TableCell>
 										</TableRow>
 									))
 								)}
