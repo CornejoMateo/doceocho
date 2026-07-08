@@ -18,6 +18,7 @@ import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import type { CardWithRelations } from '@/components/business/kanban/types';
 import type { Card } from '@/components/business/kanban/types';
+import { PRIORITY_OPTIONS, Priority } from '@/constants/kanban/priority';
 
 export interface CardFormHandle {
 	requestClose: () => void;
@@ -42,7 +43,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState('');
-	const [priority, setPriority] = useState('none');
+	const [priority, setPriority] = useState<Priority>('none');
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -80,7 +81,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 		setHasUnsavedChanges(true);
 	};
 
-	const handlePriorityChange = (value: string) => {
+	const handlePriorityChange = (value: Priority) => {
 		setPriority(value);
 		setHasUnsavedChanges(true);
 	};
@@ -91,7 +92,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 				title,
 				description: description || null,
 				due_date: dueDate || null,
-				priority: priority as any,
+				priority,
 			});
 			if (result === null) {
 				toast({
@@ -212,14 +213,14 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 							</h3>
 							<select
 								value={priority}
-								onChange={(e) => handlePriorityChange(e.target.value)}
+								onChange={(e) => handlePriorityChange(e.target.value as Priority)}
 								className="w-full p-2.5 border rounded-md bg-background"
 							>
-								<option value="none">Sin prioridad</option>
-								<option value="low">Baja</option>
-								<option value="medium">Media</option>
-								<option value="high">Alta</option>
-								<option value="very_high">Muy alta</option>
+								{PRIORITY_OPTIONS.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
 							</select>
 						</div>
 
