@@ -8,28 +8,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Palette } from 'lucide-react';
 import type { BoardFormData } from './types';
 import { DialogDescription } from '@radix-ui/react-dialog';
-
+import { BOARD_COLORS, BoardColor } from '@/constants/kanban/board-creation-modal';
 interface BoardCreationModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onCreate: (board: BoardFormData) => void;
 }
 
-const BOARD_COLORS = [
-	'#4F5C4D', // Default green
-	'#3B82F6', // Blue
-	'#EF4444', // Red
-	'#F59E0B', // Orange
-	'#8B5CF6', // Purple
-	'#EC4899', // Pink
-	'#10B981', // Emerald
-	'#6366F1', // Indigo
-];
-
 export function BoardCreationModal({ open, onOpenChange, onCreate }: BoardCreationModalProps) {
 	const [name, setName] = useState('');
 	const [description, setDescription] = useState('');
-	const [selectedColor, setSelectedColor] = useState(BOARD_COLORS[0]);
+	const [selectedColor, setSelectedColor] = useState<BoardColor>(BOARD_COLORS[0]);
 
 	const handleCreate = () => {
 		if (!name.trim()) return;
