@@ -7,7 +7,7 @@ jest.mock('@/lib/balances/balances', () => ({
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
-	toast: jest.fn(),
+	toast: jest.fn(() => ({ id: '1', dismiss: jest.fn(), update: jest.fn() })),
 }));
 
 jest.mock('@/lib/error-translator', () => ({
@@ -105,6 +105,8 @@ describe('useBalanceHandlers', () => {
 
 	it('shows error toast when delete fails', async () => {
 		const { toast } = jest.requireMock('@/components/ui/use-toast');
+		const mockUpdate = jest.fn();
+		(toast as jest.Mock).mockReturnValue({ id: '1', dismiss: jest.fn(), update: mockUpdate });
 		(deleteBalance as jest.Mock).mockResolvedValue({ error: new Error('Delete failed') });
 
 		const { result } = renderHook(() => useBalanceHandlers({ onBalanceDeleted, onRefresh }));
@@ -117,7 +119,8 @@ describe('useBalanceHandlers', () => {
 			await result.current.handleDeleteBalance();
 		});
 
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
+		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Eliminando saldo...' }));
+		expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
 		expect(onRefresh).not.toHaveBeenCalled();
 	});
 
