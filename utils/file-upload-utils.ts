@@ -12,6 +12,8 @@ export const IMAGE_TYPES = [
 	'image/webp',
 ] as const;
 
+export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'] as const;
+
 // Video file types (only for clients)
 export const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'] as const;
 
@@ -117,6 +119,20 @@ export const isDocument = (mimetype: string): boolean => {
 export const getFileExtension = (filename: string): string => {
 	const parts = filename.split('.');
 	return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
+};
+
+export const getFileKind = (fileName: string) => {
+	const extension = getFileExtension(fileName).toLowerCase();
+
+	if ((IMAGE_EXTENSIONS as readonly string[]).includes(extension)) {
+		return 'image';
+	}
+
+	if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(extension)) {
+		return 'video';
+	}
+
+	return 'file';
 };
 
 /**

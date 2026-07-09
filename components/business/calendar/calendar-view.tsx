@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Work } from '@/lib/works/works';
+import { formatCreatedAt } from '@/utils/format-date';
 
 export function CalendarView() {
 	const { toast } = useToast();
@@ -103,16 +104,17 @@ export function CalendarView() {
 	const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
 	const formatDateString = (year: number, month: number, day: number) => {
-		return `${String(day).padStart(2, '0')}-${String(month + 1).padStart(2, '0')}-${year}`;
+		return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+	};
+
+	const toISODate = (date: string | undefined): string | null => {
+		if (!date) return null;
+		return date.split('T')[0];
 	};
 
 	const getEventsForDate = (day: number) => {
 		const dateStr = formatDateString(currentDate.getFullYear(), currentDate.getMonth(), day);
-		let dayEvents = events.filter((event) => {
-			const [eventDay, eventMonth, eventYear] = event.date?.split('-') ?? [];
-			const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
-			return formattedEventDate === dateStr;
-		});
+		let dayEvents = events.filter((event) => toISODate(event.date) === dateStr);
 
 		if (activeFilter !== 'todos') {
 			dayEvents = dayEvents.filter((event) => event.type === activeFilter);
@@ -145,12 +147,14 @@ export function CalendarView() {
 
 			const { error } = await deleteEvent(deleteEventId);
 
-			if (error) throw error;
-
-			toast({
-				title: 'Evento eliminado',
-				description: 'El evento ha sido eliminado correctamente.',
-			});
+			if (error) {
+				toast({
+					title: 'Error',
+					description: error.message || 'No se pudo eliminar el evento.',
+					variant: 'destructive',
+				});
+				return;
+			}
 
 			await refresh();
 
@@ -160,6 +164,11 @@ export function CalendarView() {
 			}
 
 			setDeleteEventId(null);
+
+			toast({
+				title: 'Evento eliminado',
+				description: 'El evento ha sido eliminado exitosamente.',
+			});
 		} catch (error) {
 			const errorMessage = translateError(error);
 
@@ -207,9 +216,7 @@ export function CalendarView() {
 
 	const filteredEvents = selectedDate
 		? events.filter((event) => {
-				const [eventDay, eventMonth, eventYear] = event.date?.split('-') ?? [];
-				const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
-				const matchesDate = formattedEventDate === selectedDate;
+				const matchesDate = toISODate(event.date) === selectedDate;
 				const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
 				return matchesDate && matchesFilter && matchesSearchText(event, searchTerm.toLowerCase());
 			})
@@ -218,8 +225,9 @@ export function CalendarView() {
 					const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
 					return matchesFilter && matchesSearchText(event, searchTerm.toLowerCase());
 				})
-				.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
+				.sort((a, b) => {
+					return (toISODate(a.date) ?? '').localeCompare(toISODate(b.date) ?? '');
+				});
 	const currentEvents = showAllEvents ? filteredEvents : filteredEvents.slice(0, maxVisibleEvents);
 
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -507,22 +515,24 @@ export function CalendarView() {
 														)}
 													</div>
 												</div>
-												<div className="flex items-start flex-shrink-0">
-													<Button
-														variant="ghost"
-														size="icon"
-														onClick={(e) => handleDeleteEvent(event.id, e)}
-														className="h-6 w-6 -mr-2"
-														aria-label="Eliminar evento"
-													>
-														<Trash2 className="h-3.5 w-3.5" />
-													</Button>
-												</div>
+												{isAuthorized && (
+													<div className="flex items-start flex-shrink-0">
+														<Button
+															variant="ghost"
+															size="icon"
+															onClick={(e) => handleDeleteEvent(event.id, e)}
+															className="h-6 w-6 -mr-2"
+															aria-label="Eliminar evento"
+														>
+															<Trash2 className="h-3.5 w-3.5" />
+														</Button>
+													</div>
+												)}
 											</div>
 											<div className="space-y-1 text-xs text-muted-foreground">
 												<div className="flex items-center gap-1.5">
 													<CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-													<span>{event.date}</span>
+													<span>{formatCreatedAt(event.date)}</span>
 												</div>
 												{event.work_id && workDataMap[event.work_id] ? (
 													<>
@@ -604,17 +614,19 @@ export function CalendarView() {
 
 			{user?.role === 'Admin' && (
 				<Card className="p-4 bg-card border-border">
-					<div className="flex items-center justify-between">
-						<div>
-							<h3 className="text-sm font-medium text-foreground">Limpiar datos antiguos</h3>
-							<p className="text-xs text-muted-foreground mt-1">
+					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+						<div className="flex-1 min-w-0">
+							<h3 className="text-sm font-medium text-foreground break-words">
+								Limpiar datos antiguos
+							</h3>
+							<p className="text-xs text-muted-foreground mt-1 break-words">
 								Elimina eventos resueltos anteriores al 1 de enero del presente año para mantener el
 								calendario limpio y relevante.
 							</p>
 						</div>
 						<Button
 							variant="destructive"
-							className="w-full max-w-xs"
+							className="w-full md:w-auto md:max-w-xs"
 							onClick={() => setIsDeleteDialogOpen(true)}
 						>
 							Eliminar eventos del año pasado

@@ -5,10 +5,9 @@ create table public.files_client (
   path text null,
   title text null,
   description text null,
-  checklist_id bigint null,
   claim_id bigint null,
+  balance_transaction_id bigint null,
   constraint files_client_pkey primary key (id),
-  constraint files_client_checklist_id_fkey foreign KEY (checklist_id) references checklists (id) on update CASCADE on delete CASCADE,
   constraint files_client_claim_id_fkey foreign KEY (claim_id) references claims (id) on update CASCADE on delete CASCADE,
   constraint files_client_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
@@ -31,7 +30,14 @@ CREATE POLICY "Public delete files_client"
 ON public.files_client
 FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.uid_user = auth.uid()
+        AND u.role = 'Admin'
+  )
+);
 
 CREATE POLICY "Public update files_client"
 ON public.files_client

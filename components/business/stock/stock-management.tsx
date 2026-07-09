@@ -153,7 +153,12 @@ export function StockManagement() {
 											errorMessage || 'No se pudo eliminar el insumo. Intenta nuevamente.',
 										variant: 'destructive',
 									});
+									return;
 								}
+								toast({
+									title: 'Insumo eliminado',
+									description: 'El insumo ha sido eliminado correctamente.',
+								});
 							} catch (error) {
 								const errorMessage = translateError(error);
 								toast({

@@ -35,7 +35,7 @@ jest.mock('@/components/ui/card', () => ({
 const mockEvents = [
 	{
 		id: 1,
-		date: '15-06-2026',
+		date: '2026-06-15',
 		title: 'Budget delivery',
 		description: '',
 		client_id: 10,
@@ -48,7 +48,7 @@ const mockEvents = [
 	},
 	{
 		id: 2,
-		date: '10-06-2026',
+		date: '2026-06-10',
 		title: 'Final review',
 		description: '',
 		client_id: null,
@@ -61,7 +61,7 @@ const mockEvents = [
 	},
 	{
 		id: 3,
-		date: '20-06-2026',
+		date: '2026-06-20',
 		title: 'Future event',
 		description: '',
 		client_id: null,
@@ -180,7 +180,7 @@ describe('DashboardHome', () => {
 		const eventsNoLocation = [
 			{
 				id: 4,
-				date: '15-06-2026',
+				date: '2026-06-15',
 				title: 'No location event',
 				description: '',
 				client_name: null,
@@ -203,7 +203,7 @@ describe('DashboardHome', () => {
 		setup();
 
 		await waitFor(() => {
-			expect(screen.getByText('Venció el 15-06-2026')).toBeInTheDocument();
+			expect(screen.getByText('Venció el 15/06/2026')).toBeInTheDocument();
 		});
 	});
 
@@ -228,7 +228,7 @@ describe('DashboardHome', () => {
 	it('increments visible events on scroll', async () => {
 		const manyEvents = Array.from({ length: 10 }, (_, i) => ({
 			id: i + 10,
-			date: '15-06-2026',
+			date: '2026-06-15',
 			title: `Event ${i + 1}`,
 			description: '',
 			client_name: null,

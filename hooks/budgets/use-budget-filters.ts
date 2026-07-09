@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { BudgetFilters } from '../types';
+import type { BudgetFilters } from '@/components/business/reports/budgets/types';
 import { BUDGET_FILTER_DEFAULTS } from '@/constants/budgets/budgets-report';
 
 export function useBudgetFilters() {

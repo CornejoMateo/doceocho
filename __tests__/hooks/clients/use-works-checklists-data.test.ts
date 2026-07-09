@@ -34,7 +34,7 @@ describe('useWorkChecklistData', () => {
 			error: null,
 		});
 		getChecklistsByWorkIdSpy.mockResolvedValue({
-			data: [{ id: 10, name: 'Checklist 1', items: [] }],
+			data: [{ id: 10, name: 'Checklist 1' }],
 			error: null,
 		});
 
@@ -138,7 +138,7 @@ describe('useWorkChecklistData', () => {
 			error: null,
 		});
 		getChecklistsByWorkIdSpy.mockResolvedValue({
-			data: [{ id: 10, name: 'Checklist 1', items: [] }],
+			data: [{ id: 10, name: 'Checklist 1' }],
 			error: null,
 		});
 

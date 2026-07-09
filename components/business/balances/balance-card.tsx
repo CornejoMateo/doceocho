@@ -33,18 +33,6 @@ export function BalanceCard({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="absolute top-2 right-12 h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 z-10"
-				onClick={(e) => {
-					e.stopPropagation();
-					onDollarUpdate();
-				}}
-				title="Actualizar precios con dólar actual"
-			>
-				<TrendingUp className="h-4 w-4" />
-			</Button>
-			<Button
-				variant="ghost"
-				size="icon"
 				className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
 				onClick={(e) => {
 					e.stopPropagation();
@@ -73,9 +61,11 @@ export function BalanceCard({
 										{balance.budget.folder_budget.work.address}
 									</p>
 								</div>
-							) : (
-								<span className="text-muted-foreground">Sin presupuesto asignado</span>
-							)}
+							) : balance.budget ? (
+								<div>
+									<p className="text-sm">Sin obra asignada</p>
+								</div>
+							) : null}
 						</div>
 					</div>
 
@@ -87,11 +77,11 @@ export function BalanceCard({
 								</p>
 								<div className="flex flex-col">
 									<p className="text-xs sm:text-sm font-bold text-primary truncate">
-										{formatCurrency(summary.budgetArsCurrent)}
+										{formatCurrency(summary.effectiveBudgetArs)}
 									</p>
-									{summary.budgetUsd > 0 && (
+									{(summary.budgetUsd > 0 || summary.totalExtraUsd > 0) && (
 										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.budgetUsd)}
+											{formatCurrencyUSD(summary.effectiveBudgetUsd)}
 										</p>
 									)}
 								</div>
@@ -126,7 +116,7 @@ export function BalanceCard({
 							</div>
 						</div>
 
-						{summary.budgetUsd > 0 && (
+						{summary.budgetArsCurrent > 0 && (
 							<div className="w-full">
 								<div className="flex justify-between text-xs text-muted-foreground mb-1">
 									<span>Progreso</span>

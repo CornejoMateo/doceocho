@@ -71,7 +71,7 @@ export function BudgetFilterDialog({
 
 					{/* ARS Amount Filters */}
 					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="minAmountArs" className="text-right">
+						<Label htmlFor="minAmountArs" className="text-center">
 							{BUDGET_FILTER_LABELS.minAmountArs}
 						</Label>
 						<div className="col-span-3">
@@ -86,7 +86,7 @@ export function BudgetFilterDialog({
 					</div>
 
 					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="maxAmountArs" className="text-right">
+						<Label htmlFor="maxAmountArs" className="text-center">
 							{BUDGET_FILTER_LABELS.maxAmountArs}
 						</Label>
 						<div className="col-span-3">
@@ -102,7 +102,7 @@ export function BudgetFilterDialog({
 
 					{/* USD Amount Filters */}
 					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="minAmountUsd" className="text-right">
+						<Label htmlFor="minAmountUsd" className="text-center">
 							{BUDGET_FILTER_LABELS.minAmountUsd}
 						</Label>
 						<div className="col-span-3">
@@ -117,7 +117,7 @@ export function BudgetFilterDialog({
 					</div>
 
 					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="maxAmountUsd" className="text-right">
+						<Label htmlFor="maxAmountUsd" className="text-center">
 							{BUDGET_FILTER_LABELS.maxAmountUsd}
 						</Label>
 						<div className="col-span-3">

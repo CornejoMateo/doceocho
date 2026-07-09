@@ -1,5 +1,6 @@
+import { deleteFolderBudgetWithBudgets } from '../budgets/folder_budgets';
 import { getSupabaseClient } from '../supabase-client';
-import { ChecklistItem } from '@/lib/checklists/checklists';
+import { ChecklistItem, deleteChecklist } from '@/lib/checklists/checklists';
 
 export type Work = {
 	id: number;
@@ -114,7 +115,55 @@ export async function updateWork(
 
 export async function deleteWork(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
+
+	const { data: checklists, error: checklistsError } = await supabase
+		.from('checklists')
+		.select('id')
+		.eq('work_id', id);
+
+	if (checklistsError) {
+		return { data: null, error: checklistsError };
+	}
+
+	try {
+		await Promise.all(
+			(checklists ?? []).map(async (checklist) => {
+				const { error } = await deleteChecklist(checklist.id);
+
+				if (error) {
+					throw error;
+				}
+			})
+		);
+	} catch (error) {
+		return { data: null, error };
+	}
+
+	const { data: folderBudgets, error: folderBudgetsError } = await supabase
+		.from('folder_budgets')
+		.select('id')
+		.eq('work_id', id);
+
+	if (folderBudgetsError) {
+		return { data: null, error: folderBudgetsError };
+	}
+
+	try {
+		await Promise.all(
+			(folderBudgets ?? []).map(async (folderBudget) => {
+				const { error } = await deleteFolderBudgetWithBudgets(folderBudget.id);
+
+				if (error) {
+					throw error;
+				}
+			})
+		);
+	} catch (error) {
+		return { data: null, error };
+	}
+
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+
 	return { data: null, error };
 }
 

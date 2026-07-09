@@ -15,6 +15,10 @@ jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
 }));
 
+jest.mock('@/lib/balances/balances', () => ({
+	deleteBalance: jest.fn().mockResolvedValue({ error: null }),
+}));
+
 describe('budgets lib', () => {
 	const mockSelect = jest.fn();
 	const mockEq = jest.fn();
@@ -232,12 +236,32 @@ describe('budgets lib', () => {
 
 	describe('deleteBudget', () => {
 		it('deletes a budget', async () => {
-			(getSupabaseClient as jest.Mock).mockReturnValue({
-				from: jest.fn().mockReturnValue({
-					delete: jest.fn().mockReturnValue({
-						eq: jest.fn().mockResolvedValue({ error: null }),
+			const mockEqResult = jest.fn().mockResolvedValue({ data: null, error: null });
+			const mockSingleResult = jest
+				.fn()
+				.mockResolvedValue({ data: { pdf_path: null }, error: null });
+			const mockDeleteResult = jest.fn().mockResolvedValue({ error: null });
+
+			const mockFrom = jest.fn().mockImplementation((table: string) => {
+				if (table === 'balances') {
+					return {
+						select: jest.fn().mockReturnValue({
+							eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+						}),
+					};
+				}
+				return {
+					select: jest.fn().mockReturnValue({
+						eq: jest.fn().mockReturnValue({ single: mockSingleResult }),
 					}),
-				}),
+					delete: jest.fn().mockReturnValue({ eq: mockDeleteResult }),
+				};
+			});
+
+			const mockStorageRemove = jest.fn().mockResolvedValue({ error: null });
+			(getSupabaseClient as jest.Mock).mockReturnValue({
+				from: mockFrom,
+				storage: { from: jest.fn().mockReturnValue({ remove: mockStorageRemove }) },
 			});
 
 			const { error } = await deleteBudget(1);

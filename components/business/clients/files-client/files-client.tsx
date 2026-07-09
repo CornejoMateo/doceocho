@@ -22,6 +22,7 @@ import {
 import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { formatFileSize, isVideo, isImage, getFileExtension } from '@/utils/file-upload-utils';
+import { useAuth } from '@/components/provider/auth-provider';
 
 interface ClientFilesProps {
 	client: Client;
@@ -40,6 +41,9 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
 	const [fileToDelete, setFileToDelete] = useState<FileWithUrl | null>(null);
+
+	const { user } = useAuth();
+	const isAuthorized = user?.role === 'Admin';
 
 	useEffect(() => {
 		loadFiles();
@@ -260,19 +264,21 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 									</div>
 								)}
 
-								<div className="absolute top-2 right-2">
-									<Button
-										size="icon"
-										variant="destructive"
-										className="h-7 w-7"
-										onClick={(e) => {
-											e.stopPropagation();
-											setFileToDelete(file);
-										}}
-									>
-										<Trash2 className="h-3 w-3" />
-									</Button>
-								</div>
+								{isAuthorized && (
+									<div className="absolute top-2 right-2">
+										<Button
+											size="icon"
+											variant="destructive"
+											className="h-7 w-7"
+											onClick={(e) => {
+												e.stopPropagation();
+												setFileToDelete(file);
+											}}
+										>
+											<Trash2 className="h-3 w-3" />
+										</Button>
+									</div>
+								)}
 
 								<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
 									<p className="text-white text-xs truncate font-medium">

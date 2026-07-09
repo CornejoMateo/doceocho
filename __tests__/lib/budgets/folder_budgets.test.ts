@@ -15,6 +15,10 @@ jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
 }));
 
+jest.mock('@/lib/budgets/budgets', () => ({
+	deleteBudget: jest.fn().mockResolvedValue({ error: null }),
+}));
+
 describe('folder_budgets lib', () => {
 	const mockSelect = jest.fn();
 	const mockEq = jest.fn();
@@ -155,12 +159,19 @@ describe('folder_budgets lib', () => {
 
 	describe('deleteFolderBudgetWithBudgets', () => {
 		it('deletes folder and its budgets', async () => {
-			const mockBudgetsDelete = jest.fn().mockResolvedValue({ error: null });
-			const mockFolderDelete = jest.fn().mockResolvedValue({ error: null });
 			const mockFrom = jest.fn().mockImplementation((table: string) => {
-				if (table === 'budgets')
-					return { delete: jest.fn().mockReturnValue({ eq: mockBudgetsDelete }) };
-				return { delete: jest.fn().mockReturnValue({ eq: mockFolderDelete }) };
+				if (table === 'budgets') {
+					return {
+						select: jest.fn().mockReturnValue({
+							eq: jest.fn().mockResolvedValue({ data: [{ id: 1 }, { id: 2 }], error: null }),
+						}),
+					};
+				}
+				return {
+					delete: jest.fn().mockReturnValue({
+						eq: jest.fn().mockResolvedValue({ error: null }),
+					}),
+				};
 			});
 
 			(getSupabaseClient as jest.Mock).mockReturnValue({ from: mockFrom });
@@ -170,14 +181,21 @@ describe('folder_budgets lib', () => {
 		});
 
 		it('returns error if deleting budgets fails', async () => {
-			const mockBudgetsDelete = jest
-				.fn()
-				.mockResolvedValue({ error: new Error('Budget delete error') });
+			const { deleteBudget } = require('@/lib/budgets/budgets');
+			(deleteBudget as jest.Mock).mockResolvedValue({ error: new Error('Budget delete error') });
+
 			const mockFrom = jest.fn().mockImplementation((table: string) => {
-				if (table === 'budgets')
-					return { delete: jest.fn().mockReturnValue({ eq: mockBudgetsDelete }) };
+				if (table === 'budgets') {
+					return {
+						select: jest.fn().mockReturnValue({
+							eq: jest.fn().mockResolvedValue({ data: [{ id: 1 }], error: null }),
+						}),
+					};
+				}
 				return {
-					delete: jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) }),
+					delete: jest.fn().mockReturnValue({
+						eq: jest.fn().mockResolvedValue({ error: null }),
+					}),
 				};
 			});
 
