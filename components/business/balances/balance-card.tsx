@@ -33,18 +33,6 @@ export function BalanceCard({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="absolute top-2 right-12 h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 z-10"
-				onClick={(e) => {
-					e.stopPropagation();
-					onDollarUpdate();
-				}}
-				title="Actualizar precios con dólar actual"
-			>
-				<TrendingUp className="h-4 w-4" />
-			</Button>
-			<Button
-				variant="ghost"
-				size="icon"
 				className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
 				onClick={(e) => {
 					e.stopPropagation();

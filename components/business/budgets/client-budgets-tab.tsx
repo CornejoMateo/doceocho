@@ -8,7 +8,6 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { TrendingUp, Plus } from 'lucide-react';
 import { BudgetWithWork } from '@/lib/balances/balances';
 import { updateFolderBudget } from '@/lib/budgets/folder_budgets';
-import { ClientBudgetsDollarUpdateModal } from '@/components/ui/client-budgets-dollar-update-modal';
 import { BudgetFormModal } from '@/components/business/budgets/budget-form-modal';
 import { useClientBudgetsState } from '@/hooks/budgets/useClientBudgetsState';
 import { budgetHandlers } from './handlers';
@@ -36,7 +35,6 @@ export function ClientBudgetsTab({
 		setDeleteBudgetConfirm,
 		deleteFolderConfirm,
 		setDeleteFolderConfirm,
-		isClientBudgetsUpdateModalOpen,
 		setIsClientBudgetsUpdateModalOpen,
 		budgetDetailModal,
 		setBudgetDetailModal,
@@ -133,10 +131,6 @@ export function ClientBudgetsTab({
 		);
 	};
 
-	const handleClientBudgetsUpdate = async (newUsdRate: number) => {
-		await budgetHandlers.handleClientBudgetsUpdate(newUsdRate, clientId, refresh);
-	};
-
 	const handleAssignWork = async (folderId: number, workId: number) => {
 		const { error } = await updateFolderBudget(folderId, { work_id: workId });
 		if (!error) {
@@ -197,18 +191,6 @@ export function ClientBudgetsTab({
 					</div>
 
 					<div className="flex gap-2">
-						{budgets.filter((b) => b.amount_usd && b.amount_usd > 0).length > 0 && (
-							<Button
-								size="sm"
-								variant="outline"
-								className="gap-2"
-								disabled={isLoading}
-								onClick={() => setIsClientBudgetsUpdateModalOpen(true)}
-							>
-								<TrendingUp className="h-4 w-4" />
-								Actualizar Precios
-							</Button>
-						)}
 						<Button
 							size="sm"
 							className="gap-2"
@@ -269,14 +251,6 @@ export function ClientBudgetsTab({
 				description={`¿Estás seguro de que quieres eliminar esta carpeta y sus ${deleteFolderConfirm.budgetCount} presupuesto(s)? Esta acción no se puede deshacer.`}
 				onConfirm={confirmDeleteFolder}
 				isLoading={isLoading}
-			/>
-
-			<ClientBudgetsDollarUpdateModal
-				isOpen={isClientBudgetsUpdateModalOpen}
-				onOpenChange={setIsClientBudgetsUpdateModalOpen}
-				budgets={budgets}
-				clientId={clientId}
-				onUpdateConfirmed={handleClientBudgetsUpdate}
 			/>
 
 			<BudgetDetailModal
