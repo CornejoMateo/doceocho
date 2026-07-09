@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
-import { BudgetWithWork } from '@/lib/balances/balances';
+import { BudgetWithWork, deleteBalance } from '@/lib/balances/balances';
 
 export type Budget = {
 	id: number;
@@ -247,8 +247,56 @@ export async function editBudget(
 	return { data, error };
 }
 
+async function deleteBudgetFile(path: string | null): Promise<{ error: any }> {
+	if (!path) return { error: null };
+
+	const supabase = getSupabaseClient();
+
+	const { error } = await supabase.storage.from('clients').remove([path]);
+
+	return { error };
+}
+
 export async function deleteBudget(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
+
+	const { data: balance, error: balanceError } = await supabase
+		.from('balances')
+		.select('id')
+		.eq('budget_id', id);
+
+	if (balanceError) {
+		return { data: null, error: balanceError };
+	}
+
+	if (balance) {
+		for (const b of balance) {
+			const { error: deleteBalanceError } = await deleteBalance(b.id);
+			if (deleteBalanceError) {
+				return { data: null, error: deleteBalanceError };
+			}
+		}
+	}
+
+	const { data: budget, error: budgetError } = await supabase
+		.from(TABLE)
+		.select('pdf_path')
+		.eq('id', id)
+		.single();
+
+	if (budgetError) {
+		return { data: null, error: budgetError };
+	}
+
+	if (budget && budget.pdf_path) {
+		const { error: storageError } = await deleteBudgetFile(budget.pdf_path);
+
+		if (storageError) {
+			return { data: null, error: storageError };
+		}
+	}
+
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+
 	return { data: null, error };
 }

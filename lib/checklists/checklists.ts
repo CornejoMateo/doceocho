@@ -64,53 +64,67 @@ export async function editChecklist(
 	return { data, error };
 }
 
+async function deleteItemStorageFolder(itemId: number): Promise<{ error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data: files, error } = await supabase.storage
+		.from(STORAGE_BUCKET)
+		.list(String(itemId), { limit: 1000 });
+
+	if (error) return { error };
+
+	const paths = files.map((file) => `${itemId}/${file.name}`);
+
+	return deleteStorageFiles(paths);
+}
+
 async function deleteStorageFiles(paths: string[]): Promise<{ error: any }> {
 	if (paths.length === 0) return { error: null };
+
 	const supabase = getSupabaseClient();
+
 	const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+
 	return { error };
 }
 
 export async function deleteChecklist(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const { data: items } = await supabase.from(ITEMS_TABLE).select('id').eq('checklist_id', id);
+	const { data: items, error: itemsError } = await supabase
+		.from(ITEMS_TABLE)
+		.select('id')
+		.eq('checklist_id', id);
 
-	const itemIds = items?.map((i) => i.id) ?? [];
+	if (itemsError) {
+		return { data: null, error: itemsError };
+	}
 
-	const allPaths = new Set<string>();
-	if (itemIds.length > 0) {
-		const { data: galleryData } = await supabase
-			.from(GALLERY_TABLE)
-			.select('path')
-			.in('item_id', itemIds);
-		for (const r of galleryData ?? []) {
-			if (r.path) allPaths.add(r.path);
-		}
+	try {
+		await Promise.all(
+			(items ?? []).map(async ({ id: itemId }) => {
+				const { error } = await deleteItemStorageFolder(itemId);
 
-		for (const itemId of itemIds) {
-			const { data: storageFiles } = await supabase.storage
-				.from(STORAGE_BUCKET)
-				.list(String(itemId), { limit: 200 });
-			if (storageFiles) {
-				for (const file of storageFiles) {
-					if (file.id) allPaths.add(`${itemId}/${file.name}`);
+				if (error) {
+					throw error;
 				}
-			}
-		}
+			})
+		);
+	} catch (error) {
+		return { data: null, error };
 	}
 
 	const { data: deleted, error } = await supabase.from(TABLE).delete().eq('id', id).select('id');
-	if (error) return { data: null, error };
-	if (!deleted || deleted.length === 0)
-		return { data: null, error: new Error('No tienes permisos para eliminar esta checklist.') };
 
-	const paths = [...allPaths];
-	if (paths.length > 0) {
-		const { error: storageError } = await deleteStorageFiles(paths);
-		if (storageError) {
-			console.error('Checklist deleted from DB but gallery storage cleanup failed:', storageError);
-		}
+	if (error) {
+		return { data: null, error };
+	}
+
+	if (!deleted || deleted.length === 0) {
+		return {
+			data: null,
+			error: new Error('No tienes permisos para eliminar esta checklist.'),
+		};
 	}
 
 	return { data: null, error: null };
@@ -223,24 +237,13 @@ export async function updateChecklistItem(
 export async function deleteChecklistItem(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const { data: galleryRecords } = await supabase
-		.from(GALLERY_TABLE)
-		.select('path')
-		.eq('item_id', id);
-
-	const paths = (galleryRecords ?? []).map((r) => r.path).filter(Boolean);
-
-	const { error } = await supabase.from(ITEMS_TABLE).delete().eq('id', id);
-	if (error) return { data: null, error };
-
-	if (paths.length > 0) {
-		const { error: storageError } = await deleteStorageFiles(paths);
-		if (storageError) {
-			console.error('Item deleted from DB but gallery storage cleanup failed:', storageError);
-		}
+	const { error: storageError } = await deleteItemStorageFolder(id);
+	if (storageError) {
+		return { data: null, error: storageError };
 	}
+	const { error } = await supabase.from(ITEMS_TABLE).delete().eq('id', id);
 
-	return { data: null, error: null };
+	return { data: null, error };
 }
 
 export async function deleteChecklistItemsByChecklistId(
