@@ -1,10 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, AlertTriangle, CheckCircle, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { CardWithRelations } from './types';
 import { formatCreatedAt } from '@/utils/format-date';
 import { PRIORITY_COLORS, Priority, PRIORITY_OPTIONS } from '@/constants/kanban/priority';
+import { getDueDateIcon } from '@/helpers/kanban/kanban-card';
 
 interface KanbanCardProps {
 	card: CardWithRelations;
@@ -35,17 +36,12 @@ export function KanbanCard({
 		!isRedAlert &&
 		new Date(card.due_date) < new Date(Date.now() + yellowToleranceMs);
 
-	const dueDateIcon = isOverdue ? (
-		<AlertTriangle data-testid="icon-overdue" className="h-4 w-4 text-red-500" />
-	) : isRedAlert ? (
-		<AlertTriangle data-testid="icon-red-alert" className="h-4 w-4 text-red-500" />
-	) : isYellowAlert ? (
-		<AlertTriangle data-testid="icon-yellow-alert" className="h-4 w-4 text-yellow-500" />
-	) : isCompleted ? (
-		<CheckCircle data-testid="icon-completed" className="h-4 w-4 text-green-500" />
-	) : (
-		<Clock data-testid="icon-clock" className="h-4 w-4 text-muted-foreground" />
-	);
+	const dueDateIcon = getDueDateIcon({
+		isOverdue,
+		isRedAlert,
+		isYellowAlert,
+		isCompleted,
+	});
 
 	const getLabel = (priority: Priority) => {
 		return PRIORITY_OPTIONS.find((option) => option.value === priority)?.label;
