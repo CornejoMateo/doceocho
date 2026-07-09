@@ -115,29 +115,34 @@ export function ClientManagement() {
 	const confirmDelete = async () => {
 		if (!clientToDelete) return;
 
+		const loadingToast = toast({
+			title: 'Eliminando cliente...',
+			description: 'Se están eliminando los archivos asociados. Esto puede tardar unos momentos.',
+		});
+
 		try {
 			const { error } = await deleteClient(clientToDelete.id);
 			if (error) {
-				toast({
+				loadingToast.update({
 					title: 'Error al eliminar',
 					description: translateError(error),
 					variant: 'destructive',
-				});
+				} as any);
 				return;
 			}
-			toast({
+			loadingToast.update({
 				title: 'Cliente eliminado',
 				description: `${clientToDelete.name} ${clientToDelete.last_name} ha sido eliminado correctamente.`,
-			});
+			} as any);
 			setClientToDelete(null);
 			await refresh();
 		} catch (err) {
 			console.error('Error eliminando el cliente:', err);
-			toast({
+			loadingToast.update({
 				title: 'Error al eliminar',
 				description: translateError(err),
 				variant: 'destructive',
-			});
+			} as any);
 		}
 	};
 
@@ -180,8 +185,19 @@ export function ClientManagement() {
 						</DialogTitle>
 						<DialogDescription>
 							¿Estás seguro de que deseas eliminar a {clientToDelete?.name}{' '}
-							{clientToDelete?.last_name}? Esta acción no se puede deshacer.
+							{clientToDelete?.last_name}?
 						</DialogDescription>
+						<div className="text-sm text-muted-foreground">
+							<p>Esta acción eliminará permanentemente todo lo asociado a este cliente:</p>
+							<ul className="mt-2 list-inside list-disc space-y-0.5">
+								<li>Eventos del calendario</li>
+								<li>Archivos subidos</li>
+								<li>Presupuestos</li>
+								<li>Obras</li>
+								<li>Saldos y transacciones</li>
+							</ul>
+							<p className="mt-2 font-medium text-destructive">Esta acción no se puede deshacer.</p>
+						</div>
 					</DialogHeader>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setClientToDelete(null)}>

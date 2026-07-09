@@ -215,10 +215,43 @@ export async function updateBalance(
 	const { data, error } = await supabase.from(TABLE).update(changes).eq('id', id).select().single();
 	return { data, error };
 }
-
 export async function deleteBalance(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+
+	const { data: transactions, error: txError } = await supabase
+		.from('balance_transactions')
+		.select('id')
+		.eq('balance_id', id);
+
+	if (txError) {
+		return { data: null, error: txError };
+	}
+
+	if (transactions && transactions.length > 0) {
+		const { data: files, error: filesError } = await supabase
+			.from('files_client')
+			.select('path')
+			.in(
+				'balance_transaction_id',
+				transactions.map((t) => t.id)
+			);
+
+		if (filesError) {
+			return { data: null, error: filesError };
+		}
+
+		const paths = files.map((f) => f.path).filter((p): p is string => !!p);
+
+		if (paths.length > 0) {
+			const { error: storageError } = await supabase.storage.from('clients').remove(paths);
+
+			if (storageError) {
+				return { data: null, error: storageError };
+			}
+		}
+	}
+
+	const { error } = await supabase.from('balances').delete().eq('id', id);
 
 	return { data: null, error };
 }
