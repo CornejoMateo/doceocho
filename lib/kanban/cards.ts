@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Card, CardWithRelations, CardFormData } from '@/components/business/kanban/types';
 import { getKanbanFileByCardId, deleteKanbanFile } from '@/lib/kanban/files';
+import { getBoardMembers } from './board-members';
 
 const TABLE = 'kanban_cards';
 
@@ -150,6 +151,39 @@ export async function moveCard(
 	const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).single();
 
 	return { data, error };
+}
+
+export async function moveCardForMember(
+	cardId: number,
+	newListId: number,
+	newPosition: number,
+	userId: string
+): Promise<{ data: Card | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	// Get the card to find the board_id
+	const { data: card, error: cardError } = await supabase
+		.from(TABLE)
+		.select('*, list:kanban_lists(board_id)')
+		.eq('id', cardId)
+		.single();
+
+	if (cardError || !card) return { data: null, error: cardError };
+
+	const boardId = (card as any).list?.board_id;
+	if (!boardId) return { data: null, error: new Error('Board not found') };
+
+	// Check if user is a member of the board
+	const { data: members, error: membersError } = await getBoardMembers(boardId);
+	if (membersError) return { data: null, error: membersError };
+
+	const isMember = members?.some((m) => m.user_id === userId);
+	if (!isMember) {
+		return { data: null, error: new Error('User is not a member of this board') };
+	}
+
+	// Use the regular moveCard function (it only updates position and list_id)
+	return moveCard(cardId, newListId, newPosition);
 }
 
 export async function updateCardPosition(

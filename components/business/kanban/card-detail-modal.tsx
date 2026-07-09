@@ -21,6 +21,7 @@ import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { getFileExtension, isImage, isVideo } from '@/utils/file-upload-utils';
 import { optimizeFile } from '@/utils/optimization-images';
 import { CardForm, type CardFormHandle } from '@/components/business/kanban/card-form';
+import { useAuth } from '@/components/provider/auth-provider';
 import type { FileViewerItem } from '@/utils/file-upload-utils';
 import type { KanbanFileRecord } from '@/components/business/kanban/types';
 import { DialogDescription } from '@/components/ui/dialog';
@@ -40,6 +41,9 @@ export function CardDetailModal({
 	onCardDeleted,
 	onCardUpdated,
 }: CardDetailModalProps) {
+	const { user } = useAuth();
+	const isAuthorized = user?.role === 'Admin';
+
 	const { card, loading, error, updateCard, uploadFile, removeCard, removeAttachment } =
 		useCard(cardId);
 	const [isUploading, setIsUploading] = useState(false);
@@ -222,23 +226,25 @@ export function CardDetailModal({
 							<h2 className="text-lg font-semibold">
 								Archivos adjuntos ({card?.files?.length || 0})
 							</h2>
-							<div className="flex items-center gap-2">
-								<input
-									ref={fileInputRef}
-									type="file"
-									multiple
-									onChange={handleFileSelect}
-									className="hidden"
-								/>
-								<Button
-									size="sm"
-									onClick={() => fileInputRef.current?.click()}
-									disabled={isUploading || isDeleting}
-								>
-									<Upload className="h-4 w-4 mr-2" />
-									{isUploading ? 'Subiendo...' : isDeleting ? 'Eliminando...' : 'Subir archivo'}
-								</Button>
-							</div>
+							{isAuthorized && (
+								<div className="flex items-center gap-2">
+									<input
+										ref={fileInputRef}
+										type="file"
+										multiple
+										onChange={handleFileSelect}
+										className="hidden"
+									/>
+									<Button
+										size="sm"
+										onClick={() => fileInputRef.current?.click()}
+										disabled={isUploading || isDeleting}
+									>
+										<Upload className="h-4 w-4 mr-2" />
+										{isUploading ? 'Subiendo...' : isDeleting ? 'Eliminando...' : 'Subir archivo'}
+									</Button>
+								</div>
+							)}
 						</div>
 					</DialogHeader>
 					<DialogDescription className="text-sm text-muted-foreground mb-4">
@@ -312,20 +318,22 @@ export function CardDetailModal({
 												</div>
 											)}
 
-											<div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
-												<Button
-													size="icon"
-													variant="destructive"
-													className="h-7 w-7"
-													aria-label="Eliminar archivo"
-													onClick={(e) => {
-														e.stopPropagation();
-														setFileToDelete(attachment);
-													}}
-												>
-													<Trash2 className="h-3 w-3" />
-												</Button>
-											</div>
+											{isAuthorized && (
+												<div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
+													<Button
+														size="icon"
+														variant="destructive"
+														className="h-7 w-7"
+														aria-label="Eliminar archivo"
+														onClick={(e) => {
+															e.stopPropagation();
+															setFileToDelete(attachment);
+														}}
+													>
+														<Trash2 className="h-3 w-3" />
+													</Button>
+												</div>
+											)}
 
 											<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
 												<p className="text-white text-xs truncate font-medium">

@@ -11,6 +11,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { listClients } from '@/lib/clients/clients';
+import { useAuth } from '@/components/provider/auth-provider';
 import type { Client } from '@/lib/clients/clients';
 import type { List, Card, CardFormData } from './types';
 
@@ -103,6 +104,8 @@ export function KanbanList({
 	dueDateToleranceRed = 0,
 }: KanbanListProps) {
 	// Only use useCards hook if cards are not provided as props
+	const { user } = useAuth();
+	const isAuthorized = user?.role === 'Admin';
 
 	const { cards, loading, addCard } = useCards(list.id ? list.id : null);
 	const cardsToUse = propCards !== undefined ? propCards : cards;
@@ -175,24 +178,28 @@ export function KanbanList({
 				<h3 className="font-semibold">{list.name}</h3>
 				<div className="flex items-center gap-1">
 					<span className="text-xs text-muted-foreground">{cardsToUse.length}</span>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="h-6 w-6"
-						aria-label="Opciones de la lista"
-						onClick={handleEditList}
-					>
-						<MoreVertical className="h-4 w-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-						onClick={handleDeleteList}
-						title="Eliminar lista"
-					>
-						<Trash2 className="h-4 w-4" />
-					</Button>
+					{isAuthorized && (
+						<>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6"
+								aria-label="Opciones de la lista"
+								onClick={handleEditList}
+							>
+								<MoreVertical className="h-4 w-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+								onClick={handleDeleteList}
+								title="Eliminar lista"
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</>
+					)}
 				</div>
 			</div>
 
@@ -226,12 +233,14 @@ export function KanbanList({
 			</DroppableList>
 
 			{/* Add Card Button */}
-			<div className="p-3 border-t">
-				<Button variant="ghost" className="w-full justify-start" onClick={handleOpenCreateModal}>
-					<Plus className="h-4 w-4 mr-2" />
-					Agregar tarjeta
-				</Button>
-			</div>
+			{isAuthorized && (
+				<div className="p-3 border-t">
+					<Button variant="ghost" className="w-full justify-start" onClick={handleOpenCreateModal}>
+						<Plus className="h-4 w-4 mr-2" />
+						Agregar tarjeta
+					</Button>
+				</div>
+			)}
 
 			{/* Create Card Modal */}
 			<Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>

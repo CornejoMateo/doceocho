@@ -19,19 +19,25 @@ import { moveCard } from '@/lib/kanban/cards';
 import { KanbanList } from '@/components/business/kanban/kanban-list';
 import { CardDetailModal } from '@/components/business/kanban/card-detail-modal';
 import { BoardSettingsModal } from '@/components/business/kanban/board-settings-modal';
+import { BoardMembersModal } from '@/components/business/kanban/board-members-modal';
 import { ListCreationModal } from '@/components/business/kanban/list-creation-modal';
 import { KanbanCard as KanbanCardComponent } from '@/components/business/kanban/kanban-card';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/components/provider/auth-provider';
 import type { CardFormData, Card } from '@/components/business/kanban/types';
 
 export default function BoardPage() {
 	const router = useRouter();
 	const params = useParams();
 	const boardId = params.id ? Number(params.id) : null;
+	const { user } = useAuth();
+	const isAuthorized = user?.role === 'Admin';
+
 	const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
 	const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 	const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+	const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 	const [isListCreationModalOpen, setIsListCreationModalOpen] = useState(false);
 	const [activeCard, setActiveCard] = useState<Card | null>(null);
 
@@ -175,9 +181,16 @@ export default function BoardPage() {
 							</div>
 						</div>
 						<div className="flex items-center gap-2">
-							<Button variant="ghost" size="icon">
-								<Users className="h-5 w-5" />
-							</Button>
+							{isAuthorized && (
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => setIsMembersModalOpen(true)}
+									title="Gestionar miembros"
+								>
+									<Users className="h-5 w-5" />
+								</Button>
+							)}
 							<Button
 								variant="ghost"
 								size="icon"
@@ -216,16 +229,18 @@ export default function BoardPage() {
 								/>
 							))}
 							{/* Add List Button */}
-							<div className="w-72 flex-shrink-0">
-								<Button
-									variant="outline"
-									className="w-full h-12 border-dashed"
-									onClick={handleCreateList}
-								>
-									<Plus className="h-4 w-4 mr-2" />
-									Agregar lista
-								</Button>
-							</div>
+							{isAuthorized && (
+								<div className="w-72 flex-shrink-0">
+									<Button
+										variant="outline"
+										className="w-full h-12 border-dashed"
+										onClick={handleCreateList}
+									>
+										<Plus className="h-4 w-4 mr-2" />
+										Agregar lista
+									</Button>
+								</div>
+							)}
 						</div>
 						<DragOverlay>
 							{activeCard ? (
@@ -253,6 +268,13 @@ export default function BoardPage() {
 				open={isSettingsModalOpen}
 				onOpenChange={setIsSettingsModalOpen}
 				onSave={handleSaveSettings}
+			/>
+
+			{/* Board Members Modal */}
+			<BoardMembersModal
+				boardId={boardId}
+				open={isMembersModalOpen}
+				onOpenChange={setIsMembersModalOpen}
 			/>
 
 			{/* List Creation Modal */}

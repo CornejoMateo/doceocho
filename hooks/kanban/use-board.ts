@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { getBoardWithLists, updateBoard } from '@/lib/kanban/boards';
 import { getListsByBoardId, createList, updateList, deleteList } from '@/lib/kanban/lists';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
+import { useAuth } from '@/components/provider/auth-provider';
 import type {
 	BoardWithMembers,
 	List,
@@ -14,6 +15,7 @@ export function useBoard(boardId: number | null) {
 	const [lists, setLists] = useState<List[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const { user } = useAuth();
 
 	const fetchBoard = useCallback(async () => {
 		if (!boardId) return;
@@ -137,8 +139,15 @@ export function useBoard(boardId: number | null) {
 			moveCardOptimistic(cardId, newListId, newPosition);
 		},
 		mutationFn: async ({ cardId, newListId, newPosition }) => {
-			const { moveCard } = await import('@/lib/kanban/cards');
-			return moveCard(cardId, newListId, newPosition);
+			const { moveCard, moveCardForMember } = await import('@/lib/kanban/cards');
+
+			// If user is Admin, use regular moveCard (full permissions)
+			// If user is not Admin, use moveCardForMember (validates board membership)
+			if (user?.role === 'Admin') {
+				return moveCard(cardId, newListId, newPosition);
+			} else {
+				return moveCardForMember(cardId, newListId, newPosition, user?.uid || '');
+			}
 		},
 		onError: (error) => {
 			// Revert on error by fetching the board

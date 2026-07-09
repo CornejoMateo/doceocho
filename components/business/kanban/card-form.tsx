@@ -16,6 +16,7 @@ import { Clock, Paperclip } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
+import { useAuth } from '@/components/provider/auth-provider';
 import type { CardWithRelations } from '@/components/business/kanban/types';
 import type { Card } from '@/components/business/kanban/types';
 import { PRIORITY_OPTIONS, Priority } from '@/constants/kanban/priority';
@@ -40,6 +41,9 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	{ card, updateCard, removeCard, onClose, onSaveSuccess, onDeleteSuccess, onOpenGallery },
 	ref
 ) {
+	const { user } = useAuth();
+	const isAuthorized = user?.role === 'Admin';
+
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState('');
@@ -148,12 +152,16 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 		<>
 			<div className="flex-1 overflow-y-auto">
 				<div className="space-y-6">
-					<Input
-						value={title}
-						onChange={(e) => handleTitleChange(e.target.value)}
-						className="text-2xl font-bold border-none p-0 focus-visible:ring-0 bg-transparent"
-						placeholder="Título de la tarjeta"
-					/>
+					{isAuthorized ? (
+						<Input
+							value={title}
+							onChange={(e) => handleTitleChange(e.target.value)}
+							className="text-2xl font-bold border-none p-0 focus-visible:ring-0 bg-transparent"
+							placeholder="Título de la tarjeta"
+						/>
+					) : (
+						<div className="text-2xl font-bold">{title}</div>
+					)}
 
 					<div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
 						<span>En lista: {card.list?.name || 'Sin asignar'}</span>
@@ -168,12 +176,18 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 							<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">
 								Descripción
 							</h3>
-							<Textarea
-								value={description}
-								onChange={(e) => handleDescriptionChange(e.target.value)}
-								placeholder="Agregar una descripción más detallada..."
-								className="min-h-[150px] resize-none"
-							/>
+							{isAuthorized ? (
+								<Textarea
+									value={description}
+									onChange={(e) => handleDescriptionChange(e.target.value)}
+									placeholder="Agregar una descripción más detallada..."
+									className="min-h-[150px] resize-none"
+								/>
+							) : (
+								<div className="p-3 border rounded-md min-h-[150px] whitespace-pre-wrap">
+									{description || 'Sin descripción'}
+								</div>
+							)}
 						</div>
 
 						<div>
@@ -181,12 +195,16 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 								<Clock className="h-4 w-4" />
 								Fecha límite
 							</h3>
-							<Input
-								type="date"
-								value={dueDate}
-								onChange={(e) => handleDueDateChange(e.target.value)}
-								className="max-w-xs"
-							/>
+							{isAuthorized ? (
+								<Input
+									type="date"
+									value={dueDate}
+									onChange={(e) => handleDueDateChange(e.target.value)}
+									className="max-w-xs"
+								/>
+							) : (
+								<div className="text-sm">{dueDate || 'Sin fecha límite'}</div>
+							)}
 						</div>
 					</div>
 
@@ -211,60 +229,68 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 							<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">
 								Prioridad
 							</h3>
-							<select
-								value={priority}
-								onChange={(e) => handlePriorityChange(e.target.value as Priority)}
-								className="w-full p-2.5 border rounded-md bg-background"
-							>
-								{PRIORITY_OPTIONS.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-						</div>
-
-						<div className="border-t pt-4">
-							{showDeleteConfirm ? (
-								<div className="space-y-3">
-									<p className="text-sm text-muted-foreground">
-										¿Estás seguro de eliminar esta tarjeta?
-									</p>
-									<div className="flex gap-2">
-										<Button
-											variant="destructive"
-											className="flex-1 min-w-0"
-											size="sm"
-											onClick={handleDeleteCard}
-										>
-											Eliminar
-										</Button>
-										<Button
-											variant="outline"
-											className="flex-1 min-w-0"
-											size="sm"
-											onClick={() => setShowDeleteConfirm(false)}
-										>
-											Cancelar
-										</Button>
-									</div>
-								</div>
-							) : (
-								<Button
-									variant="destructive"
-									className="w-full"
-									size="sm"
-									onClick={() => setShowDeleteConfirm(true)}
+							{isAuthorized ? (
+								<select
+									value={priority}
+									onChange={(e) => handlePriorityChange(e.target.value as Priority)}
+									className="w-full p-2.5 border rounded-md bg-background"
 								>
-									Eliminar tarjeta
-								</Button>
+									{PRIORITY_OPTIONS.map((option) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</select>
+							) : (
+								<div className="text-sm">
+									{PRIORITY_OPTIONS.find((opt) => opt.value === priority)?.label || 'Sin prioridad'}
+								</div>
 							)}
 						</div>
+
+						{isAuthorized && (
+							<div className="border-t pt-4">
+								{showDeleteConfirm ? (
+									<div className="space-y-3">
+										<p className="text-sm text-muted-foreground">
+											¿Estás seguro de eliminar esta tarjeta?
+										</p>
+										<div className="flex gap-2">
+											<Button
+												variant="destructive"
+												className="flex-1 min-w-0"
+												size="sm"
+												onClick={handleDeleteCard}
+											>
+												Eliminar
+											</Button>
+											<Button
+												variant="outline"
+												className="flex-1 min-w-0"
+												size="sm"
+												onClick={() => setShowDeleteConfirm(false)}
+											>
+												Cancelar
+											</Button>
+										</div>
+									</div>
+								) : (
+									<Button
+										variant="destructive"
+										className="w-full"
+										size="sm"
+										onClick={() => setShowDeleteConfirm(true)}
+									>
+										Eliminar tarjeta
+									</Button>
+								)}
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
 
-			{hasUnsavedChanges && (
+			{isAuthorized && hasUnsavedChanges && (
 				<div className="border-t pt-4 flex justify-end">
 					<Button onClick={handleSave} size="sm">
 						Guardar

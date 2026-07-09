@@ -1,23 +1,39 @@
 import { useState, useCallback } from 'react';
-import { listBoards, createBoard, updateBoard, deleteBoard } from '@/lib/kanban/boards';
+import {
+	listBoards,
+	createBoard,
+	updateBoard,
+	deleteBoard,
+	listBoardsForMember,
+} from '@/lib/kanban/boards';
+import { useAuth } from '@/components/provider/auth-provider';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 
 export function useBoards() {
 	const [boards, setBoards] = useState<Board[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const { user } = useAuth();
 
 	const fetchBoards = useCallback(async () => {
 		setLoading(true);
 		setError(null);
-		const { data, error } = await listBoards();
+
+		// If user is Admin, show all boards. Otherwise, show only boards where user is a member
+		const { data, error } =
+			user?.role === 'Admin'
+				? await listBoards()
+				: user?.uid
+					? await listBoardsForMember(user.uid)
+					: { data: [], error: null };
+
 		if (error) {
 			setError(error.message);
 		} else {
 			setBoards(data || []);
 		}
 		setLoading(false);
-	}, []);
+	}, [user]);
 
 	const addBoard = useCallback(async (board: BoardFormData) => {
 		setLoading(true);

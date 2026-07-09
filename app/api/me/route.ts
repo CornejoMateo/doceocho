@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
 	const { data: profile } = await supabase
 		.from('users')
-		.select('username, role, name, last_name')
+		.select('username, role, name, last_name, uid_user')
 		.eq('uid_user', user.id)
 		.single();
 
@@ -30,5 +30,5 @@ export async function GET(req: Request) {
 		return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
 	}
 
-	return NextResponse.json({ data: profile });
+	return NextResponse.json({ data: { ...profile, uid: profile.uid_user } });
 }

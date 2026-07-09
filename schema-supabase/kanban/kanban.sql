@@ -107,7 +107,7 @@ USING (
         WHERE u.uid_user = auth.uid()
           AND u.role = 'Admin'
     )
-)
+);
 
 CREATE POLICY "kanban_boards delete"
 ON public.kanban_boards
@@ -120,7 +120,7 @@ USING (
         WHERE u.uid_user = auth.uid()
           AND u.role = 'Admin'
     )
-)
+);
 
 ------ Kanban Board Members Table -------
 
@@ -174,7 +174,9 @@ CREATE POLICY "kanban_board_members select"
 ON public.kanban_board_members
 FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());
+USING ((user_id = auth.uid()) OR (EXISTS ( SELECT 1
+   FROM users u
+   WHERE ((u.uid_user = auth.uid()) AND ((u.role)::text = 'Admin'::text)))))
 
 CREATE POLICY "kanban_board_members delete"
 ON public.kanban_board_members
@@ -243,7 +245,7 @@ USING (
         WHERE u.uid_user = auth.uid()
           AND u.role = 'Admin'
     )
-)
+);
 
 ------ Kanban cards Table -------
 
@@ -322,7 +324,7 @@ USING (
         WHERE u.uid_user = auth.uid()
           AND u.role = 'Admin'
     )
-)
+);
 
 ------ Kanban files table -------
 
