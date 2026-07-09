@@ -101,7 +101,33 @@ describe('BudgetFormModal', () => {
 		expect(screen.getByText('Obra')).toBeInTheDocument();
 	});
 
-	it('calls onSubmit with form data when submitted', async () => {
+	it('calls onSubmit with form data when submitted with usdRate', async () => {
+		render(
+			<BudgetFormModal
+				isOpen={true}
+				onOpenChange={onOpenChange}
+				mode="create"
+				works={mockWorks}
+				onSubmit={onSubmit}
+				isLoading={false}
+			/>
+		);
+
+		const usdRateInput = screen.getByLabelText('Cotización del dólar');
+		fireEvent.change(usdRateInput, { target: { value: '1000' } });
+
+		fireEvent.click(screen.getByText('Crear'));
+
+		await waitFor(() => {
+			expect(onSubmit).toHaveBeenCalledTimes(1);
+		});
+
+		const data = onSubmit.mock.calls[0][0];
+		expect(data.type).toBe('MDF');
+		expect(data.workId).toBe('none');
+	});
+
+	it('does not call onSubmit when usdRate is missing', async () => {
 		render(
 			<BudgetFormModal
 				isOpen={true}
@@ -115,13 +141,7 @@ describe('BudgetFormModal', () => {
 
 		fireEvent.click(screen.getByText('Crear'));
 
-		await waitFor(() => {
-			expect(onSubmit).toHaveBeenCalledTimes(1);
-		});
-
-		const data = onSubmit.mock.calls[0][0];
-		expect(data.type).toBe('MDF');
-		expect(data.workId).toBe('none');
+		expect(onSubmit).not.toHaveBeenCalled();
 	});
 
 	it('shows "Procesando..." when isLoading is true', () => {
