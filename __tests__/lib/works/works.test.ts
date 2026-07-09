@@ -14,6 +14,14 @@ jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
 }));
 
+jest.mock('@/lib/checklists/checklists', () => ({
+	deleteChecklist: jest.fn().mockResolvedValue({ error: null }),
+}));
+
+jest.mock('@/lib/budgets/folder_budgets', () => ({
+	deleteFolderBudgetWithBudgets: jest.fn().mockResolvedValue({ error: null }),
+}));
+
 describe('works lib', () => {
 	const mockSelect = jest.fn();
 	const mockEq = jest.fn();
@@ -119,6 +127,30 @@ describe('works lib', () => {
 
 	describe('deleteWork', () => {
 		it('deletes a work', async () => {
+			const mockFrom = jest.fn().mockImplementation((table: string) => {
+				if (table === 'checklists') {
+					return {
+						select: jest.fn().mockReturnValue({
+							eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+						}),
+					};
+				}
+				if (table === 'folder_budgets') {
+					return {
+						select: jest.fn().mockReturnValue({
+							eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+						}),
+					};
+				}
+				return {
+					delete: jest.fn().mockReturnValue({
+						eq: jest.fn().mockResolvedValue({ error: null }),
+					}),
+				};
+			});
+
+			(getSupabaseClient as jest.Mock).mockReturnValue({ from: mockFrom });
+
 			const { error } = await deleteWork(1);
 			expect(error).toBeNull();
 		});
