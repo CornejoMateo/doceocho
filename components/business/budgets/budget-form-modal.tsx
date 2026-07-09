@@ -254,6 +254,7 @@ export function BudgetFormModal({
 										usdRate: formatted,
 									}));
 								}}
+								required
 							/>
 						</div>
 
