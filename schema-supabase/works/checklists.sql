@@ -187,7 +187,14 @@ CREATE POLICY "Items predefined select"
 ON public.items_predefined
 FOR SELECT
 TO authenticated
-USING (true);
+USING (    
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);
 
 CREATE POLICY "Items predefined insert"
 ON public.items_predefined

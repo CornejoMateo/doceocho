@@ -30,7 +30,14 @@ CREATE POLICY "Public delete files_client"
 ON public.files_client
 FOR DELETE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.uid_user = auth.uid()
+        AND u.role = 'Admin'
+  )
+);
 
 CREATE POLICY "Public update files_client"
 ON public.files_client
