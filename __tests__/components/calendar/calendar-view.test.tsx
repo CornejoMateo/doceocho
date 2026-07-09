@@ -11,7 +11,7 @@ const mockEvents = [
 	{
 		id: 1,
 		title: 'Evento A',
-		date: '21-06-2026',
+		date: '21/06/2026',
 		type: 'reuniones',
 		is_overdue: false,
 		work_id: 1,
@@ -22,7 +22,7 @@ const mockEvents = [
 	{
 		id: 2,
 		title: 'Evento B',
-		date: '22-06-2026',
+		date: '22/06/2026',
 		type: 'colocacion',
 		is_overdue: true,
 		work_id: 2,
@@ -33,7 +33,7 @@ const mockEvents = [
 	{
 		id: 3,
 		title: 'Evento C',
-		date: '23-06-2026',
+		date: '23/06/2026',
 		type: 'reuniones',
 		is_overdue: false,
 		work_id: null,
@@ -44,7 +44,7 @@ const mockEvents = [
 	{
 		id: 4,
 		title: 'Evento D',
-		date: '24-06-2026',
+		date: '24/06/2026',
 		type: 'colocacion',
 		is_overdue: false,
 		work_id: null,

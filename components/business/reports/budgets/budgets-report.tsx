@@ -224,7 +224,7 @@ export function BudgetsReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('date')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.date}
 											{getSortIcon('date')}
 										</div>
@@ -233,7 +233,7 @@ export function BudgetsReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('client')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.client}
 											{getSortIcon('client')}
 										</div>
@@ -242,7 +242,7 @@ export function BudgetsReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('number')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.number}
 											{getSortIcon('number')}
 										</div>
@@ -251,7 +251,7 @@ export function BudgetsReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('type')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.type}
 											{getSortIcon('type')}
 										</div>
@@ -260,7 +260,7 @@ export function BudgetsReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('work')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.work}
 											{getSortIcon('work')}
 										</div>
@@ -269,7 +269,7 @@ export function BudgetsReport() {
 										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('amountArs')}
 									>
-										<div className="flex items-center justify-end gap-1">
+										<div className="flex w-full items-center justify-end gap-1">
 											{BUDGETS_REPORT_COLUMNS.amountArs}
 											{getSortIcon('amountArs')}
 										</div>
@@ -278,7 +278,7 @@ export function BudgetsReport() {
 										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('amountUsd')}
 									>
-										<div className="flex items-center justify-end gap-1">
+										<div className="flex w-full items-center justify-end gap-1">
 											{BUDGETS_REPORT_COLUMNS.amountUsd}
 											{getSortIcon('amountUsd')}
 										</div>
@@ -287,7 +287,7 @@ export function BudgetsReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('status')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.status}
 											{getSortIcon('status')}
 										</div>

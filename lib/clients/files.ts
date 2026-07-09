@@ -11,6 +11,7 @@ export type ClientFileRecord = {
 	title: string | null;
 	description: string | null;
 	claim_id: string | null;
+	balance_transaction_id?: number | null;
 };
 
 // get all client files
@@ -27,7 +28,8 @@ export async function listClientFiles(
 		const { data: files, error: listError } = await supabase
 			.from(TABLE)
 			.select('*')
-			.eq('client_id', clientId);
+			.eq('client_id', clientId)
+			.is('balance_transaction_id', null);
 
 		if (listError) {
 			return { data: null, error: listError };
@@ -100,7 +102,8 @@ export async function uploadClientFile(
 	file: File,
 	title: string | null = null,
 	description: string | null = null,
-	claimId: number | null = null
+	claimId: number | null = null,
+	transactionId: number | null = null
 ): Promise<{ data: ClientFileRecord | null; error: any }> {
 	const supabase = getSupabaseClient();
 	const fileExt = file.name.split('.').pop();
@@ -121,6 +124,7 @@ export async function uploadClientFile(
 			description,
 			path: filePath,
 			claim_id: claimId,
+			balance_transaction_id: transactionId,
 		})
 		.select()
 		.single();
@@ -165,4 +169,30 @@ export async function deleteClientFile(fileId: number): Promise<{ success: boole
 	}
 
 	return { success: true, error: null };
+}
+
+export async function getClientFilesByTransaction(
+	transactionId: number
+): Promise<{ data: ClientFileRecord[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	try {
+		if (!transactionId) {
+			return { data: [], error: 'Error getting transaction id:' };
+		}
+
+		const { data: files, error: listError } = await supabase
+			.from(TABLE)
+			.select('*')
+			.eq('balance_transaction_id', transactionId);
+
+		if (listError) {
+			return { data: null, error: listError };
+		}
+
+		return { data: files, error: null };
+	} catch (err) {
+		console.error('Unexpected error listing client files by transaction:', err);
+		return { data: null, error: err };
+	}
 }

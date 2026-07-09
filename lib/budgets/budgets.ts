@@ -8,12 +8,14 @@ export type Budget = {
 	accepted?: boolean | null;
 	sold?: boolean | null;
 	lost?: boolean | null;
+	date_of_sale?: string | null;
 	pdf_url?: string | null;
 	pdf_path?: string | null;
 	number?: string | null;
 	amount_ars?: number | null;
 	amount_usd?: number | null;
 	type?: string | null;
+	usd_quote?: number | null;
 };
 
 export type BudgetWithWorkAndClient = BudgetWithWork & {
@@ -81,6 +83,8 @@ export async function getBudgetsByFolderBudgetIds(
 				pdf_path,
 				number,
 				type,
+				usd_quote,
+				date_of_sale,
 				folder_budget:folder_budgets!inner (
 					id,
 					work_id,
@@ -116,6 +120,8 @@ export async function getBudgetsByFolderBudgetIds(
 				pdf_path: b.pdf_path,
 				number: b.number,
 				type: b.type,
+				usd_quote: b.usd_quote,
+				date_of_sale: b.date_of_sale,
 				folder_budget: {
 					id: folderBudget.id,
 					work_id: folderBudget.work_id,

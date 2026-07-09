@@ -44,6 +44,8 @@ export interface BudgetFormData {
 	workId: string;
 	pdf: File | null;
 	created_at: string;
+	usdQuote: string;
+	date_of_sale: string;
 }
 
 export interface ClientBudgetsTabState {

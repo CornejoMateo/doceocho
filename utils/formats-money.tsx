@@ -5,7 +5,7 @@ export const formatCurrency = (amount: number | null | undefined) => {
 	return new Intl.NumberFormat('es-AR', {
 		style: 'currency',
 		currency: 'ARS',
-		minimumFractionDigits: 3,
+		minimumFractionDigits: 0,
 		maximumFractionDigits: 3,
 	}).format(amount);
 };
@@ -16,7 +16,7 @@ export const formatCurrencyWithoutSymbol = (amount: number | null | undefined) =
 	if (!amount) return '0.00';
 	return new Intl.NumberFormat('es-AR', {
 		style: 'decimal',
-		minimumFractionDigits: 3,
+		minimumFractionDigits: 0,
 		maximumFractionDigits: 3,
 	}).format(amount);
 };
@@ -27,7 +27,7 @@ export const formatCurrencyUSD = (amount: number | null | undefined) => {
 	return new Intl.NumberFormat('es-AR', {
 		style: 'currency',
 		currency: 'USD',
-		minimumFractionDigits: 3,
+		minimumFractionDigits: 0,
 		maximumFractionDigits: 3,
 	}).format(amount);
 };

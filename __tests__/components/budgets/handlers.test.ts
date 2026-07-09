@@ -99,25 +99,32 @@ describe('budgetHandlers', () => {
 	});
 
 	describe('handleStatusChange', () => {
-		it('sets sold flag for SOLD status', async () => {
+		it('sets sold flag and date_of_sale for SOLD status', async () => {
 			mockUpdateBudget.mockResolvedValue({ error: null });
 
 			await budgetHandlers.handleStatusChange(1, 'sold', [baseBudget], refresh, setIsLoading);
 
-			expect(mockUpdateBudget).toHaveBeenCalledWith(1, { sold: true, lost: false });
+			expect(mockUpdateBudget).toHaveBeenCalledWith(
+				1,
+				expect.objectContaining({ sold: true, lost: false, date_of_sale: expect.any(String) })
+			);
 			expect(refresh).toHaveBeenCalled();
 		});
 
-		it('sets lost flag for LOST status', async () => {
+		it('sets lost flag and clears date_of_sale for LOST status', async () => {
 			mockUpdateBudget.mockResolvedValue({ error: null });
 
 			await budgetHandlers.handleStatusChange(1, 'lost', [baseBudget], refresh, setIsLoading);
 
-			expect(mockUpdateBudget).toHaveBeenCalledWith(1, { sold: false, lost: true });
+			expect(mockUpdateBudget).toHaveBeenCalledWith(1, {
+				sold: false,
+				lost: true,
+				date_of_sale: null,
+			});
 			expect(refresh).toHaveBeenCalled();
 		});
 
-		it('clears both flags for IN_PROGRESS status', async () => {
+		it('clears both flags and date_of_sale for IN_PROGRESS status', async () => {
 			mockUpdateBudget.mockResolvedValue({ error: null });
 
 			await budgetHandlers.handleStatusChange(
@@ -128,7 +135,11 @@ describe('budgetHandlers', () => {
 				setIsLoading
 			);
 
-			expect(mockUpdateBudget).toHaveBeenCalledWith(1, { sold: false, lost: false });
+			expect(mockUpdateBudget).toHaveBeenCalledWith(1, {
+				sold: false,
+				lost: false,
+				date_of_sale: null,
+			});
 			expect(refresh).toHaveBeenCalled();
 		});
 
