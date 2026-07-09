@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Work } from '@/lib/works/works';
+import { formatCreatedAt } from '@/utils/format-date';
 
 export function CalendarView() {
 	const { toast } = useToast();
@@ -103,16 +104,17 @@ export function CalendarView() {
 	const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
 	const formatDateString = (year: number, month: number, day: number) => {
-		return `${String(day).padStart(2, '0')}-${String(month + 1).padStart(2, '0')}-${year}`;
+		return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+	};
+
+	const toISODate = (date: string | undefined): string | null => {
+		if (!date) return null;
+		return date.split('T')[0];
 	};
 
 	const getEventsForDate = (day: number) => {
 		const dateStr = formatDateString(currentDate.getFullYear(), currentDate.getMonth(), day);
-		let dayEvents = events.filter((event) => {
-			const [eventDay, eventMonth, eventYear] = event.date?.split('/') ?? [];
-			const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
-			return formattedEventDate === dateStr;
-		});
+		let dayEvents = events.filter((event) => toISODate(event.date) === dateStr);
 
 		if (activeFilter !== 'todos') {
 			dayEvents = dayEvents.filter((event) => event.type === activeFilter);
@@ -214,9 +216,7 @@ export function CalendarView() {
 
 	const filteredEvents = selectedDate
 		? events.filter((event) => {
-				const [eventDay, eventMonth, eventYear] = event.date?.split('/') ?? [];
-				const formattedEventDate = `${eventDay.padStart(2, '0')}-${eventMonth.padStart(2, '0')}-${eventYear}`;
-				const matchesDate = formattedEventDate === selectedDate;
+				const matchesDate = toISODate(event.date) === selectedDate;
 				const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
 				return matchesDate && matchesFilter && matchesSearchText(event, searchTerm.toLowerCase());
 			})
@@ -225,8 +225,9 @@ export function CalendarView() {
 					const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
 					return matchesFilter && matchesSearchText(event, searchTerm.toLowerCase());
 				})
-				.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
+				.sort((a, b) => {
+					return (toISODate(a.date) ?? '').localeCompare(toISODate(b.date) ?? '');
+				});
 	const currentEvents = showAllEvents ? filteredEvents : filteredEvents.slice(0, maxVisibleEvents);
 
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -531,7 +532,7 @@ export function CalendarView() {
 											<div className="space-y-1 text-xs text-muted-foreground">
 												<div className="flex items-center gap-1.5">
 													<CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-													<span>{event.date}</span>
+													<span>{formatCreatedAt(event.date)}</span>
 												</div>
 												{event.work_id && workDataMap[event.work_id] ? (
 													<>

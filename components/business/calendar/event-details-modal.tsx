@@ -19,6 +19,7 @@ import { translateError } from '@/lib/error-translator';
 import { EventType, resolveEventType } from '@/lib/calendar/event-types';
 import { useAuth } from '@/components/provider/auth-provider';
 import { getWorkById, Work } from '@/lib/works/works';
+import { formatCreatedAt } from '@/utils/format-date';
 
 interface EventDetailsModalProps {
 	isOpen: boolean;
@@ -168,7 +169,7 @@ export function EventDetailsModal({
 							<CalendarIcon className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
 							<div>
 								<p className="text-sm text-muted-foreground">Fecha</p>
-								<p className="text-sm">{event.date}</p>
+								<p className="text-sm">{formatCreatedAt(event.date)}</p>
 							</div>
 						</div>
 
