@@ -145,12 +145,14 @@ export function CalendarView() {
 
 			const { error } = await deleteEvent(deleteEventId);
 
-			if (error) throw error;
-
-			toast({
-				title: 'Evento eliminado',
-				description: 'El evento ha sido eliminado correctamente.',
-			});
+			if (error) {
+				toast({
+					title: 'Error',
+					description: error.message || 'No se pudo eliminar el evento.',
+					variant: 'destructive',
+				});
+				return;
+			}
 
 			await refresh();
 
@@ -160,6 +162,11 @@ export function CalendarView() {
 			}
 
 			setDeleteEventId(null);
+
+			toast({
+				title: 'Evento eliminado',
+				description: 'El evento ha sido eliminado exitosamente.',
+			});
 		} catch (error) {
 			const errorMessage = translateError(error);
 
@@ -507,17 +514,19 @@ export function CalendarView() {
 														)}
 													</div>
 												</div>
-												<div className="flex items-start flex-shrink-0">
-													<Button
-														variant="ghost"
-														size="icon"
-														onClick={(e) => handleDeleteEvent(event.id, e)}
-														className="h-6 w-6 -mr-2"
-														aria-label="Eliminar evento"
-													>
-														<Trash2 className="h-3.5 w-3.5" />
-													</Button>
-												</div>
+												{isAuthorized && (
+													<div className="flex items-start flex-shrink-0">
+														<Button
+															variant="ghost"
+															size="icon"
+															onClick={(e) => handleDeleteEvent(event.id, e)}
+															className="h-6 w-6 -mr-2"
+															aria-label="Eliminar evento"
+														>
+															<Trash2 className="h-3.5 w-3.5" />
+														</Button>
+													</div>
+												)}
 											</div>
 											<div className="space-y-1 text-xs text-muted-foreground">
 												<div className="flex items-center gap-1.5">
