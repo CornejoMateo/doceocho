@@ -87,6 +87,15 @@ export function useTransactionCrud(
 	const handleAddTransaction = async (isExtra?: boolean) => {
 		if (!balance || isSavingTransaction) return;
 
+		if (!quoteUsd) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al crear transacción',
+				description: 'El campo "Cotización USD" es obligatorio.',
+			});
+			return;
+		}
+
 		setIsSavingTransaction(true);
 
 		try {
