@@ -57,6 +57,8 @@ export function useTransactionCrud(
 			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {
 				setUsdAmount((amountNumber / rateNumber).toFixed(3));
 			}
+		} else {
+			setUsdAmount('');
 		}
 	}, [quoteUsd, transactionAmount, addingMode]);
 
