@@ -6,6 +6,7 @@ import {
 	getChecklistsByWorkId,
 	createChecklist,
 	createChecklistItems,
+	deleteChecklist,
 } from '@/lib/checklists/checklists';
 import {
 	MapPin,
@@ -17,8 +18,6 @@ import {
 	Search,
 	CheckSquare,
 	BrickWall,
-	Map,
-	Home,
 } from 'lucide-react';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
 import { format } from 'date-fns';
@@ -327,7 +326,10 @@ export function WorksList({
 									checklist_id: newChecklist.id,
 								}))
 							);
-							if (itemsError) throw itemsError;
+							if (itemsError) {
+								await deleteChecklist(newChecklist.id);
+								throw itemsError;
+							}
 						}
 
 						// Update local state if needed

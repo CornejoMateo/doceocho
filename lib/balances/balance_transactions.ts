@@ -69,21 +69,38 @@ export async function updateTransaction(
 export async function deleteTransaction(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	// Fetch and delete associated files first
-	const { data: files } = await supabase
+	// Fetch associated files
+	const { data: files, error: fetchError } = await supabase
 		.from('files_client')
 		.select('id, path')
 		.eq('balance_transaction_id', id);
 
-	if (files && files.length > 0) {
-		const paths = files.map((f: { path: string | null }) => f.path).filter(Boolean) as string[];
-		if (paths.length > 0) {
-			await supabase.storage.from('clients').remove(paths);
-		}
-		const fileIds = files.map((f: { id: number }) => f.id);
-		await supabase.from('files_client').delete().in('id', fileIds);
+	if (fetchError) {
+		return { data: null, error: fetchError };
 	}
 
+	if (files && files.length > 0) {
+		// Delete from storage
+		const paths = files.map((f: { path: string | null }) => f.path).filter(Boolean) as string[];
+		if (paths.length > 0) {
+			const { error: storageError } = await supabase.storage.from('clients').remove(paths);
+			if (storageError) {
+				return { data: null, error: storageError };
+			}
+		}
+
+		// Delete files_client rows
+		const fileIds = files.map((f: { id: number }) => f.id);
+		const { error: filesDeleteError } = await supabase
+			.from('files_client')
+			.delete()
+			.in('id', fileIds);
+		if (filesDeleteError) {
+			return { data: null, error: filesDeleteError };
+		}
+	}
+
+	// Delete the transaction
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
 }

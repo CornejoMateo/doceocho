@@ -25,7 +25,7 @@ describe('items-predefined lib', () => {
 		jest.spyOn(console, 'error').mockImplementation(() => {});
 
 		mockOrder.mockResolvedValue({ data: [], error: null });
-		mockEq.mockReturnValue({ single: mockSingle, order: mockOrder });
+		mockEq.mockReturnValue({ single: mockSingle, maybeSingle: mockSingle, order: mockOrder });
 		mockSelect.mockReturnValue({ eq: mockEq, order: mockOrder });
 		mockInsert.mockReturnValue({ select: jest.fn().mockReturnValue({ single: mockSingle }) });
 		mockUpdate.mockReturnValue({

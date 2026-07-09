@@ -88,6 +88,7 @@ export function TransactionsTable({
 										size="icon"
 										className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
 										onClick={() => onEditTransaction(transaction)}
+										aria-label={`Editar transacción del ${formatDate(transaction.date)}`}
 									>
 										<Edit className="h-4 w-4" />
 									</Button>
@@ -96,6 +97,7 @@ export function TransactionsTable({
 										size="icon"
 										className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 										onClick={() => onDeleteTransaction(transaction)}
+										aria-label={`Eliminar transacción del ${formatDate(transaction.date)}`}
 									>
 										<Trash2 className="h-4 w-4" />
 									</Button>
@@ -107,6 +109,7 @@ export function TransactionsTable({
 									size="icon"
 									className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
 									onClick={() => onViewFiles(transaction)}
+									aria-label="Ver archivos"
 								>
 									<ImageIcon className="h-4 w-4" />
 								</Button>

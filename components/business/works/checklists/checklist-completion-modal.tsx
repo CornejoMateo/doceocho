@@ -391,11 +391,16 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 			}
 
 			if (toCreate.length > 0) {
+				const maxSortOrder =
+					existingItems && existingItems.length > 0
+						? Math.max(...existingItems.map((i) => i.sort_order ?? 0))
+						: -1;
 				const { error: createError } = await createChecklistItems(
 					toCreate.map((i: any) => ({
 						description: i.description,
 						checklist_id: checklistId,
-					}))
+					})),
+					maxSortOrder + 1
 				);
 				if (createError) throw createError;
 			}

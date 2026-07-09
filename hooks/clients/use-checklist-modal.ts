@@ -15,7 +15,7 @@ export type ChecklistState = {
 	items: ChecklistItemState[];
 	width: number | null;
 	height: number | null;
-	depth: string | null;
+	depth: number | null;
 	type_furniture: string | null;
 };
 
@@ -96,12 +96,9 @@ export function useChecklistModal() {
 	};
 
 	const updateItem = (index: number, description: string) => {
-		const trimmedDescription = description.trim();
 		setChecklist((prev) => ({
 			...prev,
-			items: prev.items.map((item, i) =>
-				i === index ? { ...item, description: trimmedDescription } : item
-			),
+			items: prev.items.map((item, i) => (i === index ? { ...item, description } : item)),
 		}));
 	};
 

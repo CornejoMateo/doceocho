@@ -129,12 +129,8 @@ describe('useTransactionFiles', () => {
 			result.current.setTransactionForFiles({ id: 10 } as any);
 		});
 
-		act(() => {
-			result.current.setTransactionFileToDelete(5);
-		});
-
 		await act(async () => {
-			await result.current.handleDeleteTransactionFile();
+			await result.current.handleDeleteTransactionFile(5);
 		});
 
 		expect(deleteClientFile).toHaveBeenCalledWith(5);
@@ -148,12 +144,8 @@ describe('useTransactionFiles', () => {
 
 		const { result } = renderHook(() => useTransactionFiles(mockBalance));
 
-		act(() => {
-			result.current.setTransactionFileToDelete(5);
-		});
-
 		await act(async () => {
-			await result.current.handleDeleteTransactionFile();
+			await result.current.handleDeleteTransactionFile(5);
 		});
 
 		expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
@@ -179,6 +171,7 @@ describe('useTransactionFiles', () => {
 	it('uploads files from gallery', async () => {
 		(uploadClientFile as jest.Mock).mockResolvedValue({ error: null });
 		(optimizeFile as jest.Mock).mockResolvedValue(new File([''], 'test.pdf'));
+		(getClientFilesByTransaction as jest.Mock).mockResolvedValue({ data: [], error: null });
 
 		jest.spyOn(require('@/lib/supabase-client'), 'getSupabaseClient').mockReturnValue({
 			storage: {

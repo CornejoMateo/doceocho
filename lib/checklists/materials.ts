@@ -33,7 +33,7 @@ export async function createMaterial(
 
 export async function updateMaterial(
 	id: number,
-	changes: Partial<Material>
+	changes: Partial<Omit<Material, 'id' | 'created_at'>>
 ): Promise<{ data: Material | null; error: any }> {
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase.from(TABLE).update(changes).eq('id', id).select().single();

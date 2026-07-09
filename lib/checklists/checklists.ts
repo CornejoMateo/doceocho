@@ -185,7 +185,8 @@ export async function reorderChecklistItems(
 }
 
 export async function createChecklistItems(
-	items: Pick<ChecklistItem, 'description' | 'checklist_id'>[]
+	items: Pick<ChecklistItem, 'description' | 'checklist_id'>[],
+	startSortOrder: number = 0
 ): Promise<{ data: ChecklistItem[] | null; error: any }> {
 	if (items.length === 0) return { data: [], error: null };
 	const supabase = getSupabaseClient();
@@ -196,7 +197,7 @@ export async function createChecklistItems(
 				description: item.description,
 				checklist_id: item.checklist_id,
 				done: false,
-				sort_order: idx,
+				sort_order: startSortOrder + idx,
 			}))
 		)
 		.select()

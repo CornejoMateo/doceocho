@@ -7,23 +7,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-	Edit,
-	Trash2,
-	CheckCircle2,
-	AlertCircle,
-	Loader2,
-	Upload,
-	GripVertical,
-	FileText,
-} from 'lucide-react';
-import { Checklist, ChecklistItem, reorderChecklistItems } from '@/lib/checklists/checklists';
+import { Edit, Trash2, CheckCircle2, Loader2, Upload, GripVertical, FileText } from 'lucide-react';
+import { Checklist, ChecklistItem } from '@/lib/checklists/checklists';
 import { uploadChecklistGalleryItem } from '@/lib/checklists/checklist-gallery';
 import { calculateProgress } from '@/helpers/checklists/progress';
 import { useFileUpload } from '@/hooks/use-file-upload';
 import { ChecklistImages } from '@/components/business/works/checklists/checklist-images';
 import { ChecklistItemGallery } from '@/components/business/works/checklists/checklist-item-gallery';
-import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import {
@@ -207,8 +197,6 @@ export function ChecklistCard({
 		const newIndex = items.findIndex((i) => i.id === over.id);
 		if (oldIndex === -1 || newIndex === -1) return;
 
-		const prevItems = [...items];
-
 		const newItems = [...items];
 		const [moved] = newItems.splice(oldIndex, 1);
 		newItems.splice(newIndex, 0, moved);
@@ -216,15 +204,6 @@ export function ChecklistCard({
 		const reordered = newItems.map((item, idx) => ({ ...item, sort_order: idx }));
 
 		onReorderItems(checklist.id, reordered);
-
-		const { error } = await reorderChecklistItems(
-			reordered.map((item, idx) => ({ id: item.id, sort_order: idx }))
-		);
-
-		if (error) {
-			onReorderItems(checklist.id, prevItems);
-			toast({ title: 'Error', description: 'No se pudo reordenar.', variant: 'destructive' });
-		}
 	};
 
 	return (

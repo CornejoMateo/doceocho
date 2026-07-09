@@ -5,8 +5,8 @@ interface BalanceCalculationInput {
 	totalPaidArs?: number | null;
 	totalPaidUsd?: number | null;
 	budgetInitialArs?: number | null;
-	totalExtraArs: number | null;
-	totalExtraUsd: number | null;
+	totalExtraArs?: number | null;
+	totalExtraUsd?: number | null;
 }
 
 export interface BalanceSummary {

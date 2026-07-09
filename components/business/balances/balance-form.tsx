@@ -113,11 +113,7 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 	useEffect(() => {
 		if (!isAutoCalculating) return;
 		if (formData.balance_amount_ars && formData.usd_current) {
-			const normalizedAmount = formData.balance_amount_ars
-				.replace(/\./g, '') // remove thousand separators
-				.replace(',', '.'); // decimal separator to dot for parsing
-
-			const amountNumber = Number(normalizedAmount);
+			const amountNumber = parseArsToNumber(formData.balance_amount_ars);
 			const rateNumber = parseArsToNumber(formData.usd_current);
 
 			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {

@@ -162,9 +162,8 @@ describe('TransactionsTable', () => {
 			.getAllByRole('button')
 			.filter((b) => b.querySelector('svg')?.getAttribute('class')?.includes('lucide-image'));
 
-		if (imageButtons.length > 0) {
-			fireEvent.click(imageButtons[0]);
-			expect(onViewFiles).toHaveBeenCalledWith(mockTransactions[0]);
-		}
+		expect(imageButtons.length).toBeGreaterThan(0);
+		fireEvent.click(imageButtons[0]);
+		expect(onViewFiles).toHaveBeenCalledWith(mockTransactions[0]);
 	});
 });

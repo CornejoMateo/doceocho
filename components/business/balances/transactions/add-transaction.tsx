@@ -223,6 +223,7 @@ export function AddTransactionSection({
 									size="icon"
 									className="h-6 w-6 shrink-0"
 									onClick={() => onRemoveFile(index)}
+									aria-label={`Eliminar ${file.name}`}
 								>
 									<X className="h-3 w-3" />
 								</Button>

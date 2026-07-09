@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { BalanceWithBudget } from '@/lib/balances/balances';
 import { useToast } from '@/components/ui/use-toast';
@@ -21,8 +21,19 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 	const [transactionFiles, setTransactionFiles] = useState<FileViewerItem[]>([]);
 	const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 	const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
-	const [transactionFileToDelete, setTransactionFileToDelete] = useState<number | null>(null);
 	const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+	const blobUrlsRef = useRef<string[]>([]);
+
+	const revokeBlobUrls = useCallback((urls: string[]) => {
+		urls.forEach((url) => URL.revokeObjectURL(url));
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			revokeBlobUrls(blobUrlsRef.current);
+			blobUrlsRef.current = [];
+		};
+	}, [revokeBlobUrls]);
 
 	const uploadFilesForTransaction = async (transactionId: number, files: File[]) => {
 		if (!balance || files.length === 0) return;
@@ -87,11 +98,15 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 					title: 'Error al cargar archivos',
 					description: err || 'Hubo un problema al cargar los archivos.',
 				});
+				revokeBlobUrls(blobUrlsRef.current);
+				blobUrlsRef.current = [];
 				setTransactionFiles([]);
 				return;
 			}
 
 			if (!data || data.length === 0) {
+				revokeBlobUrls(blobUrlsRef.current);
+				blobUrlsRef.current = [];
 				setTransactionFiles([]);
 				return;
 			}
@@ -136,6 +151,8 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 			);
 
 			const validFiles = filesWithUrls.filter((f): f is FileViewerItem => f !== null);
+			revokeBlobUrls(blobUrlsRef.current);
+			blobUrlsRef.current = validFiles.map((f) => f.url);
 			setTransactionFiles(validFiles);
 		} catch (error) {
 			const err = translateError(error);
@@ -144,6 +161,8 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 				title: 'Error al cargar archivos',
 				description: err || 'Hubo un problema al cargar los archivos.',
 			});
+			revokeBlobUrls(blobUrlsRef.current);
+			blobUrlsRef.current = [];
 			setTransactionFiles([]);
 		} finally {
 			setIsLoadingFiles(false);
@@ -155,11 +174,9 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 		loadTransactionFiles(transaction.id);
 	};
 
-	const handleDeleteTransactionFile = async () => {
-		if (!transactionFileToDelete) return;
-
+	const handleDeleteTransactionFile = async (fileId: number) => {
 		try {
-			const { success, error } = await deleteClientFile(transactionFileToDelete);
+			const { success, error } = await deleteClientFile(fileId);
 
 			if (error || !success) {
 				toast({
@@ -183,8 +200,6 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 				title: 'Error',
 				description: 'Ocurrió un error inesperado al eliminar el archivo.',
 			});
-		} finally {
-			setTransactionFileToDelete(null);
 		}
 	};
 
@@ -225,9 +240,8 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 	};
 
 	const handleCloseGallery = () => {
-		transactionFiles.forEach((f) => {
-			if (f.url) URL.revokeObjectURL(f.url);
-		});
+		revokeBlobUrls(blobUrlsRef.current);
+		blobUrlsRef.current = [];
 		setTransactionForFiles(null);
 		setTransactionFiles([]);
 	};
@@ -239,8 +253,6 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 		isLoadingFiles,
 		selectedFileIndex,
 		setSelectedFileIndex,
-		transactionFileToDelete,
-		setTransactionFileToDelete,
 		isUploadingFiles,
 		uploadFilesForTransaction,
 		loadTransactionFiles,

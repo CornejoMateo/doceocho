@@ -9,6 +9,7 @@ import { ItemsPredefinedDialog } from '@/components/business/works/checklists/it
 import {
 	createChecklist,
 	createChecklistItems,
+	deleteChecklist,
 	getChecklistsByWorkId,
 } from '@/lib/checklists/checklists';
 import { listItemsPredefined } from '@/lib/checklists/items-predefined';
@@ -176,6 +177,12 @@ export function WorksOpenings() {
 			if (itemsError) {
 				const errorMessage = translateError(itemsError);
 				console.error('Error creating checklist items:', errorMessage);
+				// Attempt to clean up the newly created checklist if items creation fails
+				try {
+					await deleteChecklist(newChecklist.id);
+				} catch (cleanupError) {
+					console.error('Failed to clean up orphaned checklist:', cleanupError);
+				}
 				throw itemsError;
 			}
 		}

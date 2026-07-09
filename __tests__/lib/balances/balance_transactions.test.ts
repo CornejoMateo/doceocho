@@ -193,6 +193,111 @@ describe('balance_transactions lib', () => {
 			expect(supabase.storage.from).not.toHaveBeenCalled();
 			expect(result.error).toBeNull();
 		});
+
+		it('returns error when fetching files fails', async () => {
+			const fetchError = new Error('fetch failed');
+			const supabase = {
+				from: jest.fn(),
+				storage: { from: jest.fn() },
+			};
+
+			supabase.from.mockImplementation((table: string) => {
+				if (table === 'files_client') {
+					return {
+						select: jest.fn(() => ({
+							eq: jest.fn().mockResolvedValue({ data: null, error: fetchError }),
+						})),
+					};
+				}
+				return {
+					delete: jest.fn(() => ({
+						eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+					})),
+				};
+			});
+
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await deleteTransaction(5);
+
+			expect(result.error).toBe(fetchError);
+			expect(supabase.storage.from).not.toHaveBeenCalled();
+		});
+
+		it('returns error when storage remove fails', async () => {
+			const storageError = new Error('storage failed');
+			const supabase = {
+				from: jest.fn(),
+				storage: { from: jest.fn() },
+			};
+
+			supabase.storage.from.mockReturnValue({
+				remove: jest.fn().mockResolvedValue({ error: storageError }),
+			});
+
+			supabase.from.mockImplementation((table: string) => {
+				if (table === 'files_client') {
+					return {
+						select: jest.fn(() => ({
+							eq: jest.fn().mockResolvedValue({
+								data: [{ id: 1, path: 'client/1/file1.pdf' }],
+								error: null,
+							}),
+						})),
+					};
+				}
+				return {
+					delete: jest.fn(() => ({
+						eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+					})),
+				};
+			});
+
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await deleteTransaction(5);
+
+			expect(result.error).toBe(storageError);
+		});
+
+		it('returns error when files_client delete fails', async () => {
+			const filesDeleteError = new Error('delete files_client failed');
+			const supabase = {
+				from: jest.fn(),
+				storage: { from: jest.fn() },
+			};
+
+			supabase.storage.from.mockReturnValue({
+				remove: jest.fn().mockResolvedValue({ error: null }),
+			});
+
+			supabase.from.mockImplementation((table: string) => {
+				if (table === 'files_client') {
+					return {
+						select: jest.fn(() => ({
+							eq: jest.fn().mockResolvedValue({
+								data: [{ id: 1, path: 'client/1/file1.pdf' }],
+								error: null,
+							}),
+						})),
+						delete: jest.fn(() => ({
+							in: jest.fn().mockResolvedValue({ data: null, error: filesDeleteError }),
+						})),
+					};
+				}
+				return {
+					delete: jest.fn(() => ({
+						eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+					})),
+				};
+			});
+
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await deleteTransaction(5);
+
+			expect(result.error).toBe(filesDeleteError);
+		});
 	});
 
 	describe('getTotalByBalanceId', () => {

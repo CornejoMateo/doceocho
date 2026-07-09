@@ -219,5 +219,6 @@ export async function updateBalance(
 export async function deleteBalance(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+
 	return { data: null, error };
 }

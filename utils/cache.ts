@@ -15,6 +15,7 @@ export const clearCache = async () => {
 					translateError(error) || 'Ocurrió un error al intentar eliminar la caché del navegador.',
 				variant: 'destructive',
 			});
+			return;
 		}
 	}
 	toast({

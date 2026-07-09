@@ -42,6 +42,11 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 			// Refresh the list
 			handleBalanceUpdate();
 
+			toast({
+				title: 'Saldo eliminado',
+				description: 'El saldo se eliminó correctamente.',
+			});
+
 			// Notify parent to reload budgets
 			if (onBalanceDeleted) {
 				onBalanceDeleted();

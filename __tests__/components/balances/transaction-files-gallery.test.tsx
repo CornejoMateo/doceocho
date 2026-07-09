@@ -133,6 +133,6 @@ describe('TransactionFilesGallery', () => {
 		const confirmButton = screen.getByText('Eliminar');
 		fireEvent.click(confirmButton);
 
-		expect(onDeleteFile).toHaveBeenCalled();
+		expect(onDeleteFile).toHaveBeenCalledWith(1);
 	});
 });

@@ -12,7 +12,7 @@ export const IMAGE_TYPES = [
 	'image/webp',
 ] as const;
 
-export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'] as const;
+export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'] as const;
 
 // Video file types (only for clients)
 export const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'] as const;
@@ -124,7 +124,7 @@ export const getFileExtension = (filename: string): string => {
 export const getFileKind = (fileName: string) => {
 	const extension = getFileExtension(fileName).toLowerCase();
 
-	if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) {
+	if ((IMAGE_EXTENSIONS as readonly string[]).includes(extension)) {
 		return 'image';
 	}
 

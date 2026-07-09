@@ -31,7 +31,7 @@ interface TransactionFilesGalleryProps {
 	isLoadingFiles: boolean;
 	isUploadingFiles: boolean;
 	onUploadFiles: (files: File[]) => void;
-	onDeleteFile: () => void;
+	onDeleteFile: (fileId: number) => void;
 	onClose: () => void;
 	formatCreatedAt: (date: string | null | undefined) => string;
 }
@@ -175,7 +175,9 @@ export function TransactionFilesGallery({
 						<AlertDialogCancel>Cancelar</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
-								onDeleteFile();
+								if (fileToDelete != null) {
+									onDeleteFile(fileToDelete);
+								}
 								setFileToDelete(null);
 							}}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

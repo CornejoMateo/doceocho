@@ -41,7 +41,7 @@ type ChecklistModalProps = {
 		items: Array<{ description: string }>;
 		width?: number | null;
 		height?: number | null;
-		depth?: string | null;
+		depth?: number | null;
 		type_furniture?: string | null;
 	}) => Promise<void>;
 	onUpdate?: (
@@ -52,7 +52,7 @@ type ChecklistModalProps = {
 			items: Array<{ description: string }>;
 			width?: number | null;
 			height?: number | null;
-			depth?: string | null;
+			depth?: number | null;
 			type_furniture?: string | null;
 		}
 	) => Promise<void>;
@@ -126,8 +126,7 @@ export function ChecklistModal({
 		setIsLoadingItems(true);
 
 		(async () => {
-			const { data: materials } = await listMaterials();
-			const material = materials?.find(
+			const material = materials.find(
 				(m) => m.name.toLowerCase() === currentMaterial.toLowerCase()
 			);
 			if (!material) {

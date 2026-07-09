@@ -95,6 +95,10 @@ jest.mock('@/components/business/works/checklists/items-predefined-dialog', () =
 		open ? <div data-testid="items-predefined-dialog">Items Predefinidos Dialog</div> : null,
 }));
 
+jest.mock('@/components/ui/use-toast', () => ({
+	toast: jest.fn(),
+}));
+
 describe('WorksOpenings (works-progress)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -184,19 +188,40 @@ describe('WorksOpenings (works-progress)', () => {
 		expect(page2).toBeInTheDocument();
 	});
 
-	it('renders "Items predefinidos" button', () => {
-		render(<WorksOpenings />);
+	describe('admin role', () => {
+		beforeEach(() => {
+			mockUser.role = 'Admin';
+		});
 
-		expect(screen.getByText('Items predefinidos')).toBeInTheDocument();
+		it('shows "Items predefinidos" button', () => {
+			render(<WorksOpenings />);
+			expect(screen.getByText('Items predefinidos')).toBeInTheDocument();
+		});
+
+		it('opens ItemsPredefinedDialog when button is clicked', () => {
+			render(<WorksOpenings />);
+
+			expect(screen.queryByTestId('items-predefined-dialog')).not.toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Items predefinidos'));
+
+			expect(screen.getByTestId('items-predefined-dialog')).toBeInTheDocument();
+		});
 	});
 
-	it('opens ItemsPredefinedDialog when button is clicked', () => {
-		render(<WorksOpenings />);
+	describe('non-admin role', () => {
+		beforeEach(() => {
+			mockUser.role = 'Operator';
+		});
 
-		expect(screen.queryByTestId('items-predefined-dialog')).not.toBeInTheDocument();
+		it('hides "Items predefinidos" button', () => {
+			render(<WorksOpenings />);
+			expect(screen.queryByText('Items predefinidos')).not.toBeInTheDocument();
+		});
 
-		fireEvent.click(screen.getByText('Items predefinidos'));
-
-		expect(screen.getByTestId('items-predefined-dialog')).toBeInTheDocument();
+		it('does not render ItemsPredefinedDialog', () => {
+			render(<WorksOpenings />);
+			expect(screen.queryByTestId('items-predefined-dialog')).not.toBeInTheDocument();
+		});
 	});
 });

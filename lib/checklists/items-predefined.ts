@@ -30,7 +30,7 @@ export async function getItemsPredefinedByMaterialId(
 		.from(TABLE)
 		.select('*')
 		.eq('material_id', materialId)
-		.single();
+		.maybeSingle();
 
 	return { data, error };
 }

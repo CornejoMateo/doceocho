@@ -143,7 +143,7 @@ describe('AddTransactionSection', () => {
 			/>
 		);
 
-		const removeButton = screen.getByRole('button', { name: '' });
+		const removeButton = screen.getByRole('button', { name: 'Eliminar test.pdf' });
 		fireEvent.click(removeButton);
 		expect(onRemoveFile).toHaveBeenCalledWith(0);
 	});

@@ -77,16 +77,13 @@ export function BudgetFormModal({
 	// Reset form when modal opens or budget changes
 	useEffect(() => {
 		if (isOpen) {
-			listMaterials().then(({ data }) => {
-				setMaterials([]);
-				listMaterials()
-					.then(({ data }) => {
-						setMaterials(data ?? []);
-					})
-					.catch(() => {
-						setMaterials([]);
-					});
-			});
+			listMaterials()
+				.then(({ data }) => {
+					setMaterials(data ?? []);
+				})
+				.catch(() => {
+					setMaterials([]);
+				});
 		}
 
 		if (isOpen && mode === 'edit' && budget) {
@@ -144,7 +141,7 @@ export function BudgetFormModal({
 			const amountNumber = Number(normalizedAmount);
 			const rateNumber = Number(normalizedRate);
 
-			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {
+			if (!isNaN(amountNumber) && !isNaN(rateNumber) && rateNumber !== 0) {
 				const calculatedUsd = (amountNumber / rateNumber).toFixed(3);
 
 				setFormData((prev) => ({

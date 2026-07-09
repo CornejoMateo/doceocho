@@ -23,7 +23,7 @@ type Props = {
 };
 
 export function ChecklistItemGallery({ itemId }: Props) {
-	const { images, loading, deleteImage } = useChecklistItemGallery(itemId);
+	const { images, loading, error, deleteImage } = useChecklistItemGallery(itemId);
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 	const [imageToDelete, setImageToDelete] = useState<number | null>(null);
 	const [deleting, setDeleting] = useState(false);
@@ -55,6 +55,10 @@ export function ChecklistItemGallery({ itemId }: Props) {
 				Cargando archivos
 			</div>
 		);
+	}
+
+	if (error) {
+		return <p className="text-xs text-destructive">{translateError(error)}</p>;
 	}
 
 	if (images.length === 0) {
