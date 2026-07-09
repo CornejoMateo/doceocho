@@ -67,7 +67,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const allowedByRole = useMemo(() => {
 		return {
 			Admin: ['Panel', 'Insumos', 'Clientes', 'Calendario', 'Flujo de Fondos', 'Obras', 'Reportes'],
-			Taller: ['Insumos', 'Clientes', 'Calendario'],
+			Taller: ['Insumos', 'Clientes', 'Calendario', 'Obras'],
 		} as Record<UserRole, string[]>;
 	}, []);
 

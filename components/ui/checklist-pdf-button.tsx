@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
-import { generateChecklistPDF, prepareChecklistData } from '@/lib/checklists/checklist-pdf';
-import type { Checklist } from '@/lib/checklists/checklists';
+import { generateChecklistPDF } from '@/lib/checklists/checklist-pdf';
+import type { Checklist, ChecklistItem } from '@/lib/checklists/checklists';
 import { getWorkById } from '@/lib/works/works';
 
 type ChecklistPDFButtonProps = {
 	checklists: Checklist[];
+	checklistItems?: Record<number, ChecklistItem[]>;
 	workId?: number;
 	workLocality?: string;
 	workAddress?: string;
@@ -18,6 +19,7 @@ type ChecklistPDFButtonProps = {
 
 export function ChecklistPDFButton({
 	checklists,
+	checklistItems,
 	workId,
 	clientName,
 	disabled,
@@ -36,14 +38,9 @@ export function ChecklistPDFButton({
 			const workLocality = work?.locality || '';
 			const workAddress = work?.address || '';
 
-			// Prepare checklist data with calculated progress
-			const preparedChecklists = prepareChecklistData(checklists);
-
-			// Generate and download PDF
-			await generateChecklistPDF(preparedChecklists, clientName, workLocality, workAddress);
+			await generateChecklistPDF(checklists, clientName, workLocality, workAddress, checklistItems);
 		} catch (error) {
 			console.error('Error generating PDF:', error);
-			// You could add a toast notification here
 		} finally {
 			setIsGenerating(false);
 		}

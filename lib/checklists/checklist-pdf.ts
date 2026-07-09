@@ -1,16 +1,16 @@
 import jsPDF from 'jspdf';
 import { Checklist, ChecklistItem } from './checklists';
 
-export function prepareChecklistData(checklists: Checklist[]): Checklist[] {
-	return checklists.map((checklist) => ({ ...checklist }));
-}
-
 export async function generateChecklistPDF(
 	checklists: Checklist[],
 	clientName?: string,
 	workLocality?: string,
-	workAddress?: string
+	workAddress?: string,
+	itemsByChecklist?: Record<number, ChecklistItem[]>
 ): Promise<void> {
+	const getItems = (cl: Checklist): ChecklistItem[] =>
+		(itemsByChecklist && itemsByChecklist[cl.id]) || [];
+
 	const pdf = new jsPDF('p', 'mm', 'a4');
 	const pageWidth = pdf.internal.pageSize.getWidth();
 	const pageHeight = pdf.internal.pageSize.getHeight();
@@ -28,6 +28,7 @@ export async function generateChecklistPDF(
 		const col1Width = tableWidth * 0.52;
 		const col2Width = tableWidth * 0.24;
 		const col3Width = tableWidth - col1Width - col2Width;
+		const items = getItems(checklist);
 
 		pdf.setFontSize(9);
 		const headerLines1 = pdf.splitTextToSize(
@@ -38,7 +39,16 @@ export async function generateChecklistPDF(
 			checklist.description || 'Sin descripción',
 			col2Width - 2 * cellPadding
 		);
-		const headerLines3 = pdf.splitTextToSize(`${'Algo'} X ${'algo'}`, col3Width - 2 * cellPadding);
+		const estimateDims =
+			[
+				checklist.width != null ? `${checklist.width}` : '',
+				checklist.height != null ? `${checklist.height}` : '',
+				checklist.depth || '',
+			]
+				.filter(Boolean)
+				.join(' x ') || '-';
+
+		const headerLines3 = pdf.splitTextToSize(estimateDims, col3Width - 2 * cellPadding);
 
 		const headerHeight = Math.max(
 			minRowHeight,
@@ -50,9 +60,8 @@ export async function generateChecklistPDF(
 		let tableRowsHeight = 0;
 		pdf.setFontSize(8.5);
 
-		const items = checklist.items || [];
 		items.forEach((item: ChecklistItem) => {
-			const lines = pdf.splitTextToSize(item.name, col1Width - 2 * cellPadding);
+			const lines = pdf.splitTextToSize(item.description, col1Width - 2 * cellPadding);
 			const textHeight = lines.length * lineHeight;
 			const itemHeight = Math.max(minRowHeight, textHeight + 4);
 			tableRowsHeight += itemHeight;
@@ -81,6 +90,7 @@ export async function generateChecklistPDF(
 		yTop: number,
 		width: number
 	) => {
+		const items = getItems(checklist);
 		const tableLeft = xLeft;
 		const tableWidth = width;
 		const cellPadding = 2;
@@ -104,7 +114,16 @@ export async function generateChecklistPDF(
 			col2Width - 2 * cellPadding
 		);
 
-		const headerText3 = pdf.splitTextToSize(`${'Algo'} X ${'algo'}`, col3Width - 2 * cellPadding);
+		const dims =
+			[
+				checklist.width != null ? `${checklist.width}` : '',
+				checklist.height != null ? `${checklist.height}` : '',
+				checklist.depth || '',
+			]
+				.filter(Boolean)
+				.join(' x ') || '-';
+
+		const headerText3 = pdf.splitTextToSize(dims, col3Width - 2 * cellPadding);
 
 		const headerHeight = Math.max(
 			minRowHeight,
@@ -146,10 +165,8 @@ export async function generateChecklistPDF(
 
 		let currentY = yTop + headerHeight;
 
-		const items = checklist.items || [];
-
 		items.forEach((item: ChecklistItem) => {
-			const itemText = pdf.splitTextToSize(item.name, col1Width - 2 * cellPadding);
+			const itemText = pdf.splitTextToSize(item.description, col1Width - 2 * cellPadding);
 
 			const itemHeight = Math.max(minRowHeight, itemText.length * lineHeight + 4);
 
@@ -160,6 +177,12 @@ export async function generateChecklistPDF(
 			itemText.forEach((line: string, idx: number) => {
 				pdf.text(line, tableLeft + cellPadding, currentY + cellPadding + 3 + idx * lineHeight);
 			});
+
+			// Done checkmark
+			if (item.done) {
+				pdf.setFontSize(9);
+				pdf.text('OK', tableLeft + col1Width + 2, currentY + itemHeight / 2 + 1);
+			}
 
 			currentY += itemHeight;
 		});
