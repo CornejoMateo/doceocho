@@ -111,6 +111,7 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
+			result.current.setQuoteUsd('1000');
 		});
 
 		await act(async () => {
@@ -136,6 +137,7 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
+			result.current.setQuoteUsd('1000');
 		});
 
 		await act(async () => {
@@ -156,6 +158,7 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
+			result.current.setQuoteUsd('1000');
 		});
 
 		act(() => {
@@ -180,6 +183,7 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
+			result.current.setQuoteUsd('1000');
 		});
 
 		await act(async () => {
