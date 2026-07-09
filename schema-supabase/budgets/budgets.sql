@@ -6,13 +6,13 @@ create table public.budgets (
   pdf_path text null,
   number text null,
   amount_ars numeric null,
-  version text null,
   type text null,
   folder_budget_id bigint null,
   amount_usd numeric null,
   sold boolean null,
   lost boolean null,
   date_of_sale timestamp with time zone null,
+  usd_quote numeric null,
   constraint budgets_pkey primary key (id),
   constraint budgets_folder_budget_id_fkey foreign KEY (folder_budget_id) references folder_budgets (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;

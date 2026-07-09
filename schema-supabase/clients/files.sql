@@ -6,7 +6,7 @@ create table public.files_client (
   title text null,
   description text null,
   claim_id bigint null,
-  balance_transaction_id text null,
+  balance_transaction_id bigint null,
   constraint files_client_pkey primary key (id),
   constraint files_client_claim_id_fkey foreign KEY (claim_id) references claims (id) on update CASCADE on delete CASCADE,
   constraint files_client_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete CASCADE

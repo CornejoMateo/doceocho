@@ -183,7 +183,6 @@ create table public.items_predefined (
 ) TABLESPACE pg_default;
 ALTER TABLE public.items_predefined ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public select items_predefined"
 CREATE POLICY "Items predefined select"
 ON public.items_predefined
 FOR SELECT

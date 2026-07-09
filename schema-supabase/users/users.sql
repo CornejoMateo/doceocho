@@ -34,3 +34,9 @@ ON public.users
 FOR SELECT
 TO authenticated
 USING (true);
+
+CREATE POLICY "Users read own records"
+ON public.users
+FOR SELECT
+TO authenticated
+USING (uid_user = auth.uid());
