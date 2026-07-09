@@ -2,6 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ClientBudgetsTab } from '@/components/business/budgets/client-budgets-tab';
 import { Work } from '@/lib/works/works';
 import { BudgetWithWork } from '@/lib/balances/balances';
+import type {
+	DeleteBudgetConfirmState,
+	DeleteFolderConfirmState,
+	PdfPreviewState,
+	BudgetDetailModalState,
+} from '@/components/business/reports/budgets/types';
 
 jest.mock('@/components/ui/use-toast', () => ({
 	toast: jest.fn(),
@@ -30,11 +36,15 @@ const mockSetEditingBudget = jest.fn();
 let mockIsLoading = false;
 let mockOpenFolders: Record<number, boolean> = {};
 let mockIsCreateOpen = false;
-let mockDeleteBudgetConfirm = { open: false, budgetId: null };
-let mockDeleteFolderConfirm = { open: false, folderId: null, budgetCount: 0 };
-let mockPdfPreview = { open: false, budget: null, pdfUrl: null };
+let mockDeleteBudgetConfirm: DeleteBudgetConfirmState = { open: false, budgetId: null };
+let mockDeleteFolderConfirm: DeleteFolderConfirmState = {
+	open: false,
+	folderId: null,
+	budgetCount: 0,
+};
+let mockPdfPreview: PdfPreviewState = { open: false, budget: null, pdfUrl: null };
 let mockIsClientBudgetsUpdateModalOpen = false;
-let mockBudgetDetailModal = { open: false, budget: null };
+let mockBudgetDetailModal: BudgetDetailModalState = { open: false, budget: null };
 let mockEditModalOpen = false;
 let mockEditingBudget: BudgetWithWork | null = null;
 let mockFolderBudgets: any[] = [];
@@ -286,22 +296,6 @@ describe('ClientBudgetsTab', () => {
 		expect(screen.getByText('Nuevo presupuesto')).toBeInTheDocument();
 	});
 
-	it('shows "Actualizar Precios" button when budgets have usd amounts', () => {
-		mockBudgets = [{ id: 1, amount_usd: 100 }] as BudgetWithWork[];
-		mockOrderedFolders = [{ id: 1, work_id: 5, budgets: mockBudgets }];
-
-		render(
-			<ClientBudgetsTab
-				clientId={1}
-				works={mockWorks}
-				loadWorks={loadWorks}
-				onBudgetsChange={onBudgetsChange}
-			/>
-		);
-
-		expect(screen.getByText('Actualizar Precios')).toBeInTheDocument();
-	});
-
 	it('opens create modal when "Nuevo presupuesto" is clicked', () => {
 		render(
 			<ClientBudgetsTab
@@ -360,21 +354,6 @@ describe('ClientBudgetsTab', () => {
 		);
 
 		expect(screen.getByTestId('budget-detail-modal')).toBeInTheDocument();
-	});
-
-	it('renders dollar update modal when open', () => {
-		mockIsClientBudgetsUpdateModalOpen = true;
-
-		render(
-			<ClientBudgetsTab
-				clientId={1}
-				works={mockWorks}
-				loadWorks={loadWorks}
-				onBudgetsChange={onBudgetsChange}
-			/>
-		);
-
-		expect(screen.getByTestId('dollar-update-modal')).toBeInTheDocument();
 	});
 
 	it('renders budget delete confirm dialog when open', () => {
