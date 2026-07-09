@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
+import { toast } from '@/components/ui/use-toast';
 
 interface BalanceFormProps {
 	clientId: number;
@@ -78,6 +79,15 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+
+		if (!selectedBudgetId) {
+			toast({
+				title: 'Error',
+				description: 'Debes seleccionar un presupuesto para asociar el saldo.',
+				variant: 'destructive',
+			});
+			return;
+		}
 
 		const balanceData: Omit<Balance, 'id' | 'created_at'> = {
 			client_id: clientId,
@@ -153,6 +163,10 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 							})}
 						</SelectContent>
 					</Select>
+					<p className="text-xs text-muted-foreground flex items-center gap-1">
+						Recordá que para poder asociar un saldo a un presupuesto, el mismo debe estar marcado
+						como vendido y/o elegido
+					</p>
 				</div>
 
 				<div className="space-y-2 md:col-span-2">
