@@ -72,7 +72,7 @@ describe('useLoadEvents', () => {
 
 		expect(result.current.events).toHaveLength(1);
 		expect(result.current.events[0].id).toBe(1);
-		expect(result.current.events[0].date).toBe('15/06/2025');
+		expect(result.current.events[0].date).toBe('2025-06-15');
 		expect(result.current.events[0].title).toBe('Test Event');
 	});
 
