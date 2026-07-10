@@ -118,28 +118,29 @@ describe('AuthProvider', () => {
 		});
 	});
 
-	it('sets user to null when fetchProfile returns null', async () => {
-		(global.fetch as jest.Mock).mockResolvedValueOnce({
-			ok: false,
-			json: async () => ({ data: null }),
-		});
+	it('sets user to null when fetchProfile returns null after retries', async () => {
+		jest.useFakeTimers();
+		const errorResponse = { ok: false, json: async () => ({ data: null }) };
+		(global.fetch as jest.Mock).mockResolvedValue(errorResponse);
 
 		const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
 		const authCallback = mockOnAuthStateChange.mock.calls[0][0];
 
-		await act(async () => {
+		const authPromise = act(async () => {
 			authCallback('SIGNED_IN', {
 				access_token: 'bad-token',
 				user: { email: 'test@test.com' },
 			});
 		});
 
-		await waitFor(() => {
-			expect(result.current.loading).toBe(false);
-		});
+		await jest.advanceTimersByTimeAsync(10000);
+		await authPromise;
 
+		expect(result.current.loading).toBe(false);
 		expect(result.current.user).toBeNull();
+		expect(global.fetch).toHaveBeenCalledTimes(3);
+		jest.useRealTimers();
 	});
 
 	it('unsubscribes on unmount', () => {

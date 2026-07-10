@@ -23,23 +23,38 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchProfile(token: string): Promise<SessionUser | null> {
-	const res = await fetch('/api/me', {
-		headers: { Authorization: `Bearer ${token}` },
-	});
+async function fetchProfile(token: string, retries = 3): Promise<SessionUser | null> {
+	for (let i = 0; i < retries; i++) {
+		try {
+			const res = await fetch('/api/me', {
+				headers: { Authorization: `Bearer ${token}` },
+			});
 
-	if (!res.ok) return null;
+			if (!res.ok) {
+				if (i < retries - 1) {
+					await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+					continue;
+				}
+				return null;
+			}
 
-	const json = await res.json();
-	if (!json.data) return null;
+			const json = await res.json();
+			if (!json.data) return null;
 
-	return {
-		username: json.data.username,
-		role: json.data.role as UserRole,
-		name: json.data.name || '-',
-		last_name: json.data.last_name || '-',
-		uid: json.data.uid || '',
-	};
+			return {
+				username: json.data.username,
+				role: json.data.role as UserRole,
+				name: json.data.name || '-',
+				last_name: json.data.last_name || '-',
+				uid: json.data.uid || '',
+			};
+		} catch {
+			if (i < retries - 1) {
+				await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+			}
+		}
+	}
+	return null;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
