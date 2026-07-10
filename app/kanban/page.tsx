@@ -31,7 +31,16 @@ export default function KanbanPage() {
 	}, [fetchBoards]);
 
 	const handleCreateBoard = async (boardData: BoardFormData) => {
-		await addBoard(boardData);
+		const { data, error } = await addBoard(boardData);
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al crear tablero',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else if (data) {
+			toast({ title: 'Tablero creado correctamente' });
+		}
 	};
 
 	const handleBoardClick = (boardId: number) => {
@@ -43,9 +52,18 @@ export default function KanbanPage() {
 		setBoardToEdit(board);
 	};
 
-	const handleSaveBoardName = (name: string) => {
+	const handleSaveBoardName = async (name: string) => {
 		if (boardToEdit) {
-			editBoard(boardToEdit.id, { name });
+			const { data, error } = await editBoard(boardToEdit.id, { name });
+			if (error) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al guardar',
+					description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+				});
+			} else if (data) {
+				toast({ title: 'Tablero actualizado correctamente' });
+			}
 		}
 	};
 
@@ -63,12 +81,13 @@ export default function KanbanPage() {
 				toast({
 					variant: 'destructive',
 					title: 'Error al eliminar',
-					description: translateError(error) || 'No se pudo eliminar el tablero.',
+					description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
 				});
+			} else {
+				toast({ title: 'Tablero eliminado correctamente' });
 			}
 			setDeletingBoardId(null);
 			setBoardToDelete(null);
-			toast({ title: 'Tablero eliminado correctamente' });
 		}
 	};
 

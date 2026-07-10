@@ -40,12 +40,12 @@ export function useBoard(boardId: number | null) {
 
 	const addList = useCallback(
 		async (list: ListFormData) => {
-			if (!boardId) return null;
+			if (!boardId) return { data: null, error: null };
 			const { data, error } = await createList(list, boardId);
 			if (!error && data) {
 				setLists((prev) => [...prev, data]);
 			}
-			return data;
+			return { data, error };
 		},
 		[boardId]
 	);
@@ -56,7 +56,7 @@ export function useBoard(boardId: number | null) {
 			if (!error && data) {
 				setLists((prev) => prev.map((l) => (l.id === id ? data : l)));
 			}
-			return data;
+			return { data, error };
 		},
 		[]
 	);
@@ -71,12 +71,12 @@ export function useBoard(boardId: number | null) {
 
 	const updateBoardInfo = useCallback(
 		async (changes: Partial<Omit<BoardWithMembers, 'id' | 'created_at' | 'members' | 'lists'>>) => {
-			if (!boardId) return null;
+			if (!boardId) return { data: null, error: null };
 			const { data, error } = await updateBoard(boardId, changes);
 			if (!error && data) {
 				setBoard((prev) => (prev ? { ...prev, ...data } : null));
 			}
-			return data;
+			return { data, error };
 		},
 		[boardId]
 	);

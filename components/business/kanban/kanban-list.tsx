@@ -12,6 +12,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { listClients } from '@/lib/clients/clients';
 import { useAuth } from '@/components/provider/auth-provider';
+import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import type { Client } from '@/lib/clients/clients';
 import type { List, Card, CardFormData } from './types';
@@ -85,7 +86,7 @@ function SortableCard({
 interface KanbanListProps {
 	list: List;
 	cards?: Card[];
-	onEditList: (name: string) => void;
+	onEditList: (name: string) => Promise<{ data: any; error: any }>;
 	onDeleteList: () => Promise<void>;
 	onCreateCard: (card: CardFormData) => void;
 	onCardClick: (cardId: number) => void;
@@ -139,10 +140,15 @@ export function KanbanList({
 	};
 
 	const handleCreateCardFromModal = async (title: string) => {
-		// Always use the local hook to create the card
-		const newCard = await addCard({ title });
-		if (newCard) {
-			// Notify parent to refresh the board
+		const { data, error } = await addCard({ title });
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al crear tarjeta',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else if (data) {
+			toast({ title: 'Tarjeta creada correctamente' });
 			onCreateCard({ title });
 		}
 	};
@@ -152,8 +158,15 @@ export function KanbanList({
 		const client = clients.find((c) => c.id === selectedClient);
 		if (client) {
 			const title = `${client.name || ''} ${client.last_name || ''}`.trim();
-			const newCard = await addCard({ title });
-			if (newCard) {
+			const { data, error } = await addCard({ title });
+			if (error) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al crear tarjeta',
+					description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+				});
+			} else if (data) {
+				toast({ title: 'Tarjeta creada correctamente' });
 				onCreateCard({ title });
 			}
 		}
@@ -173,20 +186,29 @@ export function KanbanList({
 		toast({ title: 'Eliminando lista...' });
 		try {
 			await onDeleteList();
-		} catch {
+			toast({ title: 'Lista eliminada correctamente' });
+		} catch (error) {
 			toast({
 				variant: 'destructive',
 				title: 'Error al eliminar',
-				description: 'No se pudo eliminar la lista.',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
 			});
 		}
 		setDeletingList(false);
 		setShowDeleteModal(false);
-		toast({ title: 'Lista eliminada correctamente' });
 	};
 
-	const handleSaveListName = (name: string) => {
-		onEditList(name);
+	const handleSaveListName = async (name: string) => {
+		const { data, error } = await onEditList(name);
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al guardar',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else if (data) {
+			toast({ title: 'Lista actualizada correctamente' });
+		}
 		setShowEditModal(false);
 	};
 

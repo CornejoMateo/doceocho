@@ -152,7 +152,16 @@ export function CardDetailModal({
 	};
 
 	const handleDeleteAttachment = async (attachmentId: number) => {
-		await removeAttachment(attachmentId);
+		const { error } = await removeAttachment(attachmentId);
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al eliminar archivo',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else {
+			toast({ title: 'Archivo eliminado correctamente' });
+		}
 	};
 
 	if (!cardId) return null;
