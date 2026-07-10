@@ -33,20 +33,20 @@ export function useCards(listId: number | null) {
 
 	const addCard = useCallback(
 		async (card: CardFormData) => {
-			if (!listId) return null;
+			if (!listId) return { data: null, error: null };
 			setLoading(true);
 			setError(null);
 			const { data, error } = await createCard(card, listId);
 			if (error) {
 				setError(error.message);
 				setLoading(false);
-				return null;
+				return { data: null, error };
 			}
 			if (data) {
 				setCards((prev) => [...prev, data]);
 			}
 			setLoading(false);
-			return data;
+			return { data, error: null };
 		},
 		[listId, cards]
 	);

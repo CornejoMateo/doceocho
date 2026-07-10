@@ -30,13 +30,13 @@ export function useBoards() {
 		if (error) {
 			setError(error.message);
 			setLoading(false);
-			return null;
+			return { data: null, error };
 		}
 		if (data) {
 			setBoards((prev) => [...prev, data]);
 		}
 		setLoading(false);
-		return data;
+		return { data, error: null };
 	}, []);
 
 	const editBoard = useCallback(
@@ -50,7 +50,7 @@ export function useBoards() {
 				setBoards((prev) => prev.map((b) => (b.id === id ? data : b)));
 			}
 			setLoading(false);
-			return data;
+			return { data, error };
 		},
 		[]
 	);

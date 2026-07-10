@@ -107,6 +107,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 				});
 				return;
 			}
+			toast({ title: 'Tarjeta guardada correctamente' });
 			setHasUnsavedChanges(false);
 			if (onSaveSuccess) onSaveSuccess();
 			onClose();
@@ -114,7 +115,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 			toast({
 				variant: 'destructive',
 				title: 'Error al guardar',
-				description: translateError(error) || 'Ocurrió un error inesperado.',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
 			});
 		}
 	};

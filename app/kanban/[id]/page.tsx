@@ -59,7 +59,16 @@ export default function BoardPage() {
 	};
 
 	const handleCreateListFromModal = async (name: string) => {
-		await addList({ name });
+		const { data, error } = await addList({ name });
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al crear lista',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else if (data) {
+			toast({ title: 'Lista creada correctamente' });
+		}
 	};
 
 	const handleDeleteList = async (listId: number) => {
@@ -68,7 +77,7 @@ export default function BoardPage() {
 			toast({
 				variant: 'destructive',
 				title: 'Error al eliminar',
-				description: translateError(error) || 'No se pudo eliminar la lista.',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
 			});
 			throw error;
 		}
@@ -137,10 +146,19 @@ export default function BoardPage() {
 		handleCardMove(cardId, destinationListId, newPosition);
 	};
 
-	const handleSaveSettings = (
+	const handleSaveSettings = async (
 		changes: Partial<{ due_date_tolerance_yellow: number; due_date_tolerance_red: number }>
 	) => {
-		updateBoard(changes);
+		const { data, error } = await updateBoard(changes);
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al guardar',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else if (data) {
+			toast({ title: 'Configuración guardada correctamente' });
+		}
 	};
 
 	if (!boardId) {
