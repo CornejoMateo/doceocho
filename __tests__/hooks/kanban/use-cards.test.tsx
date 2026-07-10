@@ -83,19 +83,19 @@ describe('useCards', () => {
 		});
 
 		await act(async () => {
-			const data = await result.current.addCard({ title: 'New Card' });
-			expect(data).toEqual(newCard);
+			const res = await result.current.addCard({ title: 'New Card' });
+			expect(res).toEqual({ data: newCard, error: null });
 		});
 
 		expect(result.current.cards).toEqual([newCard]);
 	});
 
-	it('addCard returns null when listId is null', async () => {
+	it('addCard returns null data when listId is null', async () => {
 		const { result } = renderHook(() => useCards(null));
 
 		await act(async () => {
-			const data = await result.current.addCard({ title: 'Card' });
-			expect(data).toBeNull();
+			const res = await result.current.addCard({ title: 'Card' });
+			expect(res).toEqual({ data: null, error: null });
 		});
 
 		expect(createCard).not.toHaveBeenCalled();

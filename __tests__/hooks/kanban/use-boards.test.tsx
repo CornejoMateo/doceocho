@@ -75,21 +75,21 @@ describe('useBoards', () => {
 		const { result } = renderHook(() => useBoards());
 
 		await act(async () => {
-			const data = await result.current.addBoard({ name: 'New Board' });
-			expect(data).toEqual(newBoard);
+			const res = await result.current.addBoard({ name: 'New Board' });
+			expect(res).toEqual({ data: newBoard, error: null });
 		});
 
 		expect(result.current.boards).toEqual([newBoard]);
 	});
 
-	it('addBoard returns null and sets error on failure', async () => {
+	it('addBoard returns error on failure', async () => {
 		(createBoard as jest.Mock).mockResolvedValue({ data: null, error: { message: 'Failed' } });
 
 		const { result } = renderHook(() => useBoards());
 
 		await act(async () => {
-			const data = await result.current.addBoard({ name: 'Board' });
-			expect(data).toBeNull();
+			const res = await result.current.addBoard({ name: 'Board' });
+			expect(res).toEqual({ data: null, error: { message: 'Failed' } });
 		});
 
 		expect(result.current.error).toBe('Failed');
@@ -107,8 +107,8 @@ describe('useBoards', () => {
 		});
 
 		await act(async () => {
-			const data = await result.current.editBoard(1, { name: 'Updated' });
-			expect(data).toEqual(updated);
+			const res = await result.current.editBoard(1, { name: 'Updated' });
+			expect(res).toEqual({ data: updated, error: null });
 		});
 
 		expect(result.current.boards[0].name).toBe('Updated');
@@ -125,8 +125,8 @@ describe('useBoards', () => {
 		});
 
 		await act(async () => {
-			const data = await result.current.editBoard(1, { name: 'Updated' });
-			expect(data).toBeNull();
+			const res = await result.current.editBoard(1, { name: 'Updated' });
+			expect(res).toEqual({ data: null, error: { message: 'Failed' } });
 		});
 
 		expect(result.current.error).toBe('Failed');

@@ -138,8 +138,8 @@ describe('useBoard', () => {
 		});
 
 		await act(async () => {
-			const data = await result.current.addList({ name: 'In Progress' });
-			expect(data).toEqual(newList);
+			const res = await result.current.addList({ name: 'In Progress' });
+			expect(res).toEqual({ data: newList, error: null });
 		});
 
 		expect(result.current.lists).toHaveLength(3);
@@ -158,8 +158,8 @@ describe('useBoard', () => {
 		});
 
 		await act(async () => {
-			const data = await result.current.editList(1, { name: 'Updated List' });
-			expect(data).toEqual(updated);
+			const res = await result.current.editList(1, { name: 'Updated List' });
+			expect(res).toEqual({ data: updated, error: null });
 		});
 
 		expect(result.current.lists[0].name).toBe('Updated List');
@@ -195,8 +195,8 @@ describe('useBoard', () => {
 		});
 
 		await act(async () => {
-			const data = await result.current.updateBoard({ name: 'Updated Board' });
-			expect(data).toEqual(updatedBoard);
+			const res = await result.current.updateBoard({ name: 'Updated Board' });
+			expect(res).toEqual({ data: updatedBoard, error: null });
 		});
 
 		expect(result.current.board?.name).toBe('Updated Board');

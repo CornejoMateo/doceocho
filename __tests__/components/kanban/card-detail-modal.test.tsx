@@ -278,7 +278,7 @@ describe('CardDetailModal', () => {
 	});
 
 	it('calls removeAttachment when file delete is confirmed', async () => {
-		mockRemoveAttachment.mockResolvedValue(undefined);
+		mockRemoveAttachment.mockResolvedValue({ error: null });
 
 		renderModal();
 		fireEvent.click(screen.getByText('Adjuntos'));
