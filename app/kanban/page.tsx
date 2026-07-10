@@ -118,10 +118,16 @@ export default function KanbanPage() {
 				) : boards.length === 0 ? (
 					<div className="text-center py-12">
 						<p className="text-muted-foreground mb-4">No tienes tableros aún</p>
-						<Button onClick={() => setIsCreateModalOpen(true)} variant="outline" className="gap-2">
-							<Plus className="h-4 w-4" />
-							Crear tu primer tablero
-						</Button>
+						{isAuthorized && (
+							<Button
+								onClick={() => setIsCreateModalOpen(true)}
+								variant="outline"
+								className="gap-2"
+							>
+								<Plus className="h-4 w-4" />
+								Crear tu primer tablero
+							</Button>
+						)}
 					</div>
 				) : (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
