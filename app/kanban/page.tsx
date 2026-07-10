@@ -12,6 +12,7 @@ import { BoardDeleteModal } from '@/components/business/kanban/board-delete-moda
 import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { translateError } from '@/lib/error-translator';
+import { useAuth } from '@/components/provider/auth-provider';
 
 export default function KanbanPage() {
 	const router = useRouter();
@@ -19,6 +20,9 @@ export default function KanbanPage() {
 	const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
 	const [boardToEdit, setBoardToEdit] = useState<Board | null>(null);
 	const { boards, loading, error, fetchBoards, addBoard, editBoard, removeBoard } = useBoards();
+
+	const { user } = useAuth();
+	const isAuthorized = user?.role === 'Admin';
 
 	useEffect(() => {
 		fetchBoards();
@@ -63,10 +67,12 @@ export default function KanbanPage() {
 						<h1 className="text-3xl font-bold">Tableros Kanban</h1>
 						<p className="text-muted-foreground">Gestiona tus proyectos con tableros</p>
 					</div>
-					<Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
-						<Plus className="h-4 w-4" />
-						Crear Tablero
-					</Button>
+					{isAuthorized && (
+						<Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+							<Plus className="h-4 w-4" />
+							Crear Tablero
+						</Button>
+					)}
 				</div>
 
 				{loading ? (
