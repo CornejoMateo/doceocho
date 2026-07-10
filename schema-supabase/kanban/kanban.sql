@@ -283,20 +283,16 @@ ON public.kanban_cards
 FOR UPDATE
 TO authenticated
 USING (    
-  EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.uid_user = auth.uid()
-      AND u.role = 'Admin'
-  )
+  (EXISTS ( SELECT 1
+   FROM (kanban_board_members kbm
+     JOIN kanban_lists kl ON ((kl.board_id = kbm.board_id)))
+  WHERE ((kl.id = kanban_cards.list_id) AND (kbm.user_id = auth.uid()))))
 ) 
 WITH CHECK (
-  EXISTS (
-    SELECT 1
-    FROM public.users u
-    WHERE u.uid_user = auth.uid()
-      AND u.role = 'Admin'
-  )
+  (EXISTS ( SELECT 1
+   FROM (kanban_board_members kbm
+     JOIN kanban_lists kl ON ((kl.board_id = kbm.board_id)))
+  WHERE ((kl.id = kanban_cards.list_id) AND (kbm.user_id = auth.uid()))))
 );
 
 CREATE POLICY "kanban_cards select"
