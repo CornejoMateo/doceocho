@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CardDetailModal } from '@/components/business/kanban/card-detail-modal';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { useAuth } from '@/components/provider/auth-provider';
+
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: jest.fn(),
+}));
 
 const mockUpdateCard = jest.fn();
 const mockUploadFile = jest.fn();
@@ -104,6 +109,12 @@ describe('CardDetailModal', () => {
 		jest.clearAllMocks();
 		setupDefaultMocks();
 		setupSupabaseMock();
+		(useAuth as jest.Mock).mockReturnValue({
+			user: { username: 'test', name: 'Test', last_name: 'User', role: 'Admin', uid: '1' },
+			loading: false,
+			signIn: jest.fn(),
+			signOutUser: jest.fn(),
+		});
 	});
 
 	it('returns null when cardId is null', () => {

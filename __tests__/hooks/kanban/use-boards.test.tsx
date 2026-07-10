@@ -1,6 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useBoards } from '@/hooks/kanban/use-boards';
 import { listBoards, createBoard, updateBoard, deleteBoard } from '@/lib/kanban/boards';
+import { useAuth } from '@/components/provider/auth-provider';
+
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: jest.fn(),
+}));
 
 jest.mock('@/lib/kanban/boards', () => ({
 	listBoards: jest.fn(),
@@ -22,6 +27,12 @@ const mockBoard = {
 describe('useBoards', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(useAuth as jest.Mock).mockReturnValue({
+			user: { username: 'test', name: 'Test', last_name: 'User', role: 'Admin', uid: '1' },
+			loading: false,
+			signIn: jest.fn(),
+			signOutUser: jest.fn(),
+		});
 	});
 
 	it('starts with empty boards and not loading', () => {

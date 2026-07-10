@@ -1,5 +1,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { KanbanList } from '@/components/business/kanban/kanban-list';
+import { useAuth } from '@/components/provider/auth-provider';
+
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: jest.fn(),
+}));
 
 const mockAddCard = jest.fn();
 
@@ -46,6 +51,12 @@ const mockList = { id: 1, created_at: '2024-01-01', board_id: 1, name: 'To Do' }
 describe('KanbanList', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(useAuth as jest.Mock).mockReturnValue({
+			user: { username: 'test', name: 'Test', last_name: 'User', role: 'Admin', uid: '1' },
+			loading: false,
+			signIn: jest.fn(),
+			signOutUser: jest.fn(),
+		});
 	});
 
 	const defProps = {

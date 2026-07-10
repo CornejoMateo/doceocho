@@ -3,6 +3,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CardForm, type CardFormProps } from '@/components/business/kanban/card-form';
 import type { CardWithRelations } from '@/components/business/kanban/types';
+import { useAuth } from '@/components/provider/auth-provider';
+
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: jest.fn(),
+}));
 
 jest.mock('@/utils/format-date', () => ({
 	formatCreatedAt: jest.fn(() => '1 ene 2024'),
@@ -50,6 +55,12 @@ function renderForm(props: Partial<CardFormProps> = {}) {
 describe('CardForm', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(useAuth as jest.Mock).mockReturnValue({
+			user: { username: 'test', name: 'Test', last_name: 'User', role: 'Admin', uid: '1' },
+			loading: false,
+			signIn: jest.fn(),
+			signOutUser: jest.fn(),
+		});
 	});
 
 	it('renders title, description, due date and priority from card', () => {
