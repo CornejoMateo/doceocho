@@ -153,17 +153,23 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const handleDeleteFile = async () => {
 		if (!fileToDelete) return;
 
+		const loadingToast = toast({
+			title: 'Eliminando....',
+		});
+
 		try {
 			const { error } = await deleteClientFile(fileToDelete.id);
 
 			if (error) {
-				toast({
+				loadingToast.update({
+					id: loadingToast.id,
 					variant: 'destructive',
 					title: 'Error al eliminar archivo',
 					description: translateError(error),
 				});
 			} else {
-				toast({
+				loadingToast.update({
+					id: loadingToast.id,
 					title: 'Archivo eliminado',
 					description: 'El archivo se eliminó exitosamente.',
 				});
@@ -177,7 +183,8 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 			}
 		} catch (error) {
 			console.error('Error deleting file:', error);
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				variant: 'destructive',
 				title: 'Error al eliminar archivo',
 				description: translateError(error),
