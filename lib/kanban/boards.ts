@@ -17,30 +17,6 @@ export async function listBoards(): Promise<{ data: Board[] | null; error: any }
 	return { data, error };
 }
 
-export async function listBoardsForMember(
-	userId: string
-): Promise<{ data: Board[] | null; error: any }> {
-	const supabase = getSupabaseClient();
-
-	// First, get all boards
-	const { data: allBoards, error: boardsError } = await supabase.from(TABLE).select('*');
-	if (boardsError) return { data: null, error: boardsError };
-
-	// Then, get the boards where the user is a member
-	const { data: members, error: membersError } = await supabase
-		.from('kanban_board_members')
-		.select('board_id')
-		.eq('user_id', userId);
-
-	if (membersError) return { data: null, error: membersError };
-
-	// Filter boards to only include those where the user is a member
-	const memberBoardIds = members?.map((m) => m.board_id) || [];
-	const filteredBoards = allBoards?.filter((board) => memberBoardIds.includes(board.id)) || [];
-
-	return { data: filteredBoards, error: null };
-}
-
 export async function getBoardById(
 	id: number
 ): Promise<{ data: BoardWithMembers | null; error: any }> {

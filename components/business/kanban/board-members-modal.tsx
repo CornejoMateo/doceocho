@@ -160,7 +160,10 @@ export function BoardMembersModal({ boardId, open, onOpenChange }: BoardMembersM
 												>
 													<div className="flex-1">
 														<p className="text-sm font-medium">
-															{user ? `${user.name} ${user.last_name}` : member.user_id}
+															{user
+																? `${user.name || ''} ${user.last_name || ''}`.trim() ||
+																	user.username
+																: member.user_id}
 														</p>
 														{user && (
 															<p className="text-xs text-muted-foreground">@{user.username}</p>

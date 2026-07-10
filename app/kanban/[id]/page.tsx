@@ -203,14 +203,16 @@ export default function BoardPage() {
 									<Users className="h-5 w-5" />
 								</Button>
 							)}
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={() => setIsSettingsModalOpen(true)}
-								title="Configurar tolerancia de fecha"
-							>
-								<Settings className="h-5 w-5" />
-							</Button>
+							{isAuthorized && (
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => setIsSettingsModalOpen(true)}
+									title="Configurar tolerancia de fecha"
+								>
+									<Settings className="h-5 w-5" />
+								</Button>
+							)}
 						</div>
 					</div>
 				</div>

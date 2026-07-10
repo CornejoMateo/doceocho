@@ -115,26 +115,28 @@ export default function KanbanPage() {
 							>
 								<div className="flex items-start justify-between mb-2">
 									<h3 className="font-semibold text-lg">{board.name}</h3>
-									<div className="flex items-center gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-											onClick={(e) => handleDeleteBoard(board, e)}
-											title="Eliminar tablero"
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-6 w-6"
-											onClick={(e) => handleEditBoard(board, e)}
-											title="Editar nombre"
-										>
-											<MoreVertical className="h-4 w-4" />
-										</Button>
-									</div>
+									{isAuthorized && (
+										<div className="flex items-center gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+												onClick={(e) => handleDeleteBoard(board, e)}
+												title="Eliminar tablero"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-6 w-6"
+												onClick={(e) => handleEditBoard(board, e)}
+												title="Editar nombre"
+											>
+												<MoreVertical className="h-4 w-4" />
+											</Button>
+										</div>
+									)}
 								</div>
 								{board.description && (
 									<p className="text-sm text-muted-foreground mb-3 line-clamp-2">
