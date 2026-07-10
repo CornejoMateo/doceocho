@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Board, BoardWithMembers, BoardFormData } from '@/components/business/kanban/types';
 import { addBoardMember } from './board-members';
+import { getListsByBoardId, deleteList } from './lists';
 
 const TABLE = 'kanban_boards';
 
@@ -114,6 +115,17 @@ export async function updateBoard(
 
 export async function deleteBoard(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
+
+	const { data: lists, error: fetchError } = await getListsByBoardId(id);
+	if (fetchError) return { data: null, error: fetchError };
+
+	if (lists) {
+		for (const list of lists) {
+			const { error: deleteError } = await deleteList(list.id);
+			if (deleteError) return { data: null, error: deleteError };
+		}
+	}
+
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
 }

@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { List, ListWithCards, ListFormData } from '@/components/business/kanban/types';
+import { getCardsByListId, deleteCard } from './cards';
 
 const TABLE = 'kanban_lists';
 
@@ -74,6 +75,17 @@ export async function updateList(
 
 export async function deleteList(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
+
+	const { data: cards, error: fetchError } = await getCardsByListId(id);
+	if (fetchError) return { data: null, error: fetchError };
+
+	if (cards) {
+		for (const card of cards) {
+			const { error: deleteError } = await deleteCard(card.id);
+			if (deleteError) return { data: null, error: deleteError };
+		}
+	}
+
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
 }
