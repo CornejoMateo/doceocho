@@ -65,6 +65,7 @@ export function useBoards() {
 			setBoards((prev) => prev.filter((b) => b.id !== id));
 		}
 		setLoading(false);
+		return { error };
 	}, []);
 
 	return {

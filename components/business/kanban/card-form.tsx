@@ -12,7 +12,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Clock, Paperclip } from 'lucide-react';
+import { Clock, Paperclip, Loader2 } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
@@ -51,6 +51,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+	const [deleting, setDeleting] = useState(false);
 
 	useImperativeHandle(ref, () => ({
 		requestClose() {
@@ -128,6 +129,8 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	};
 
 	const handleDeleteCard = async () => {
+		setDeleting(true);
+		toast({ title: 'Eliminando tarjeta...' });
 		try {
 			const result = await removeCard();
 			if (result?.error) {
@@ -136,15 +139,18 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 					title: 'Error al eliminar',
 					description: translateError(result.error) || 'No se pudo eliminar la tarjeta.',
 				});
+				setDeleting(false);
 				return;
 			}
 			if (onDeleteSuccess) onDeleteSuccess();
+			toast({ title: 'Tarjeta eliminada correctamente' });
 		} catch (error) {
 			toast({
 				variant: 'destructive',
 				title: 'Error al eliminar',
 				description: translateError(error) || 'Ocurrió un error inesperado.',
 			});
+			setDeleting(false);
 		}
 	};
 
@@ -261,14 +267,17 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 												className="flex-1 min-w-0"
 												size="sm"
 												onClick={handleDeleteCard}
+												disabled={deleting}
 											>
-												Eliminar
+												{deleting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+												{deleting ? 'Eliminando...' : 'Eliminar'}
 											</Button>
 											<Button
 												variant="outline"
 												className="flex-1 min-w-0"
 												size="sm"
 												onClick={() => setShowDeleteConfirm(false)}
+												disabled={deleting}
 											>
 												Cancelar
 											</Button>

@@ -62,6 +62,18 @@ export default function BoardPage() {
 		await addList({ name });
 	};
 
+	const handleDeleteList = async (listId: number) => {
+		const { error } = await removeList(listId);
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al eliminar',
+				description: translateError(error) || 'No se pudo eliminar la lista.',
+			});
+			throw error;
+		}
+	};
+
 	const handleCreateCard = async () => {
 		// Refresh the board to show newly created cards
 		fetchBoard();
@@ -220,7 +232,7 @@ export default function BoardPage() {
 									list={list}
 									cards={list.cards || []}
 									onEditList={(name) => editList(list.id, { name })}
-									onDeleteList={() => removeList(list.id)}
+									onDeleteList={() => handleDeleteList(list.id)}
 									onCreateCard={handleCreateCard}
 									onCardClick={handleCardClick}
 									onCardMove={handleCardMove}

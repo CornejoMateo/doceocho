@@ -8,7 +8,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import type { List } from './types';
 
 interface ListDeleteModalProps {
@@ -16,9 +16,16 @@ interface ListDeleteModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => void;
+	loading?: boolean;
 }
 
-export function ListDeleteModal({ list, open, onOpenChange, onConfirm }: ListDeleteModalProps) {
+export function ListDeleteModal({
+	list,
+	open,
+	onOpenChange,
+	onConfirm,
+	loading,
+}: ListDeleteModalProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
@@ -46,13 +53,18 @@ export function ListDeleteModal({ list, open, onOpenChange, onConfirm }: ListDel
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancelar</AlertDialogCancel>
+					<AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={onConfirm}
+						disabled={loading}
 						className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 					>
-						<Trash2 className="h-4 w-4 mr-2" />
-						Eliminar Lista
+						{loading ? (
+							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+						) : (
+							<Trash2 className="h-4 w-4 mr-2" />
+						)}
+						{loading ? 'Eliminando...' : 'Eliminar Lista'}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

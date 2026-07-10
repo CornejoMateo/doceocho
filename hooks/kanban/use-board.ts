@@ -66,6 +66,7 @@ export function useBoard(boardId: number | null) {
 		if (!error) {
 			setLists((prev) => prev.filter((l) => l.id !== id));
 		}
+		return { error };
 	}, []);
 
 	const updateBoardInfo = useCallback(

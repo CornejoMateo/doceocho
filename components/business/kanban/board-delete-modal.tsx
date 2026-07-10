@@ -8,7 +8,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import type { Board } from './types';
 
 interface BoardDeleteModalProps {
@@ -16,9 +16,16 @@ interface BoardDeleteModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => void;
+	loading?: boolean;
 }
 
-export function BoardDeleteModal({ board, open, onOpenChange, onConfirm }: BoardDeleteModalProps) {
+export function BoardDeleteModal({
+	board,
+	open,
+	onOpenChange,
+	onConfirm,
+	loading,
+}: BoardDeleteModalProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
@@ -48,13 +55,18 @@ export function BoardDeleteModal({ board, open, onOpenChange, onConfirm }: Board
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancelar</AlertDialogCancel>
+					<AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={onConfirm}
+						disabled={loading}
 						className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 					>
-						<Trash2 className="h-4 w-4 mr-2" />
-						Eliminar tablero
+						{loading ? (
+							<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+						) : (
+							<Trash2 className="h-4 w-4 mr-2" />
+						)}
+						{loading ? 'Eliminando...' : 'Eliminar tablero'}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

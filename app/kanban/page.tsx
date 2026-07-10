@@ -13,12 +13,14 @@ import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { translateError } from '@/lib/error-translator';
 import { useAuth } from '@/components/provider/auth-provider';
+import { toast } from '@/components/ui/use-toast';
 
 export default function KanbanPage() {
 	const router = useRouter();
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [boardToDelete, setBoardToDelete] = useState<Board | null>(null);
 	const [boardToEdit, setBoardToEdit] = useState<Board | null>(null);
+	const [deletingBoardId, setDeletingBoardId] = useState<number | null>(null);
 	const { boards, loading, error, fetchBoards, addBoard, editBoard, removeBoard } = useBoards();
 
 	const { user } = useAuth();
@@ -52,10 +54,21 @@ export default function KanbanPage() {
 		setBoardToDelete(board);
 	};
 
-	const handleConfirmDelete = () => {
+	const handleConfirmDelete = async () => {
 		if (boardToDelete) {
-			removeBoard(boardToDelete.id);
+			setDeletingBoardId(boardToDelete.id);
+			toast({ title: 'Eliminando tablero...' });
+			const { error } = await removeBoard(boardToDelete.id);
+			if (error) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al eliminar',
+					description: translateError(error) || 'No se pudo eliminar el tablero.',
+				});
+			}
+			setDeletingBoardId(null);
 			setBoardToDelete(null);
+			toast({ title: 'Tablero eliminado correctamente' });
 		}
 	};
 
@@ -147,6 +160,7 @@ export default function KanbanPage() {
 				open={boardToDelete !== null}
 				onOpenChange={(open) => !open && setBoardToDelete(null)}
 				onConfirm={handleConfirmDelete}
+				loading={deletingBoardId !== null}
 			/>
 
 			{/* Board Edit Modal */}

@@ -12,6 +12,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { listClients } from '@/lib/clients/clients';
 import { useAuth } from '@/components/provider/auth-provider';
+import { toast } from '@/components/ui/use-toast';
 import type { Client } from '@/lib/clients/clients';
 import type { List, Card, CardFormData } from './types';
 
@@ -85,7 +86,7 @@ interface KanbanListProps {
 	list: List;
 	cards?: Card[];
 	onEditList: (name: string) => void;
-	onDeleteList: () => void;
+	onDeleteList: () => Promise<void>;
 	onCreateCard: (card: CardFormData) => void;
 	onCardClick: (cardId: number) => void;
 	onCardMove: (cardId: number, newListId: number, newPosition: number) => void;
@@ -113,6 +114,7 @@ export function KanbanList({
 	const [showCreateModal, setShowCreateModal] = useState(false);
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [deletingList, setDeletingList] = useState(false);
 	const [showCardCreationModal, setShowCardCreationModal] = useState(false);
 	const [createMode, setCreateMode] = useState<'normal' | 'client' | null>(null);
 	const [clients, setClients] = useState<Client[]>([]);
@@ -164,6 +166,23 @@ export function KanbanList({
 
 	const handleDeleteList = () => {
 		setShowDeleteModal(true);
+	};
+
+	const handleDeleteListConfirm = async () => {
+		setDeletingList(true);
+		toast({ title: 'Eliminando lista...' });
+		try {
+			await onDeleteList();
+		} catch {
+			toast({
+				variant: 'destructive',
+				title: 'Error al eliminar',
+				description: 'No se pudo eliminar la lista.',
+			});
+		}
+		setDeletingList(false);
+		setShowDeleteModal(false);
+		toast({ title: 'Lista eliminada correctamente' });
 	};
 
 	const handleSaveListName = (name: string) => {
@@ -314,7 +333,8 @@ export function KanbanList({
 				list={list}
 				open={showDeleteModal}
 				onOpenChange={setShowDeleteModal}
-				onConfirm={onDeleteList}
+				onConfirm={handleDeleteListConfirm}
+				loading={deletingList}
 			/>
 
 			{/* Card Creation Modal */}

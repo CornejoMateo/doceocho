@@ -1,7 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Card, CardWithRelations, CardFormData } from '@/components/business/kanban/types';
 import { getKanbanFileByCardId, deleteKanbanFile } from '@/lib/kanban/files';
-import { getBoardMembers } from './board-members';
 
 const TABLE = 'kanban_cards';
 
