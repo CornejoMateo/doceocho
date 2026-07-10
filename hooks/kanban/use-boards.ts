@@ -1,11 +1,5 @@
 import { useState, useCallback } from 'react';
-import {
-	listBoards,
-	createBoard,
-	updateBoard,
-	deleteBoard,
-	listBoardsForMember,
-} from '@/lib/kanban/boards';
+import { listBoards, createBoard, updateBoard, deleteBoard } from '@/lib/kanban/boards';
 import { useAuth } from '@/components/provider/auth-provider';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 
@@ -19,13 +13,7 @@ export function useBoards() {
 		setLoading(true);
 		setError(null);
 
-		// If user is Admin, show all boards. Otherwise, show only boards where user is a member
-		const { data, error } =
-			user?.role === 'Admin'
-				? await listBoards()
-				: user?.uid
-					? await listBoardsForMember(user.uid)
-					: { data: [], error: null };
+		const { data, error } = await listBoards();
 
 		if (error) {
 			setError(error.message);
