@@ -261,9 +261,7 @@ CREATE TABLE IF NOT EXISTS kanban_cards (
     completed_at TIMESTAMPTZ,
 );
 
-CREATE INDEX IF NOT EXISTS idx_kanban_cards_list ON kanban_cards(list_id);
-CREATE INDEX IF NOT EXISTS idx_kanban_cards_due_date ON kanban_cards(due_date);
-CREATE INDEX IF NOT EXISTS idx_kanban_cards_priority ON kanban_cards(priority);
+CREATE INDEX idx_cards_list_position ON kanban_cards(list_id, position);
 
 CREATE POLICY "kanban_cards insert"
 ON public.kanban_cards
@@ -334,7 +332,8 @@ create table public.kanban_files (
   constraint kanban_files_kanban_card_id_fkey foreign KEY (kanban_card_id) references kanban_cards (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
 
--- ADD INDEXES
+CREATE INDEX idx_files_card ON kanban_files(kanban_card_id);
+
 
 CREATE POLICY "kanban_files insert"
 ON public.kanban_files
@@ -414,3 +413,14 @@ USING (
           AND u.role = 'Admin'
     )
 );
+
+
+------ INDEXES -------
+
+CREATE UNIQUE INDEX idx_kanban_board_members_unique ON kanban_board_members(board_id, user_id);
+
+CREATE INDEX idx_kanban_lists_board ON kanban_lists(board_id);
+
+CREATE INDEX idx_cards_list_position ON kanban_cards(list_id, position);
+
+CREATE INDEX idx_files_card ON kanban_files(kanban_card_id);
