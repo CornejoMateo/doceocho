@@ -146,6 +146,9 @@ describe('BalanceForm', () => {
 			/>
 		);
 
+		const select = screen.getByTestId('select-native');
+		fireEvent.change(select, { target: { value: '1' } });
+
 		const arsInput = screen.getByLabelText('Monto del saldo en ARS');
 		fireEvent.change(arsInput, { target: { value: '150000' } });
 
@@ -233,6 +236,9 @@ describe('BalanceForm', () => {
 				onCancel={onCancel}
 			/>
 		);
+
+		const select = screen.getByTestId('select-native');
+		fireEvent.change(select, { target: { value: '1' } });
 
 		const notesInput = screen.getByTestId('notes-input');
 		fireEvent.change(notesInput, { target: { value: 'Test notes' } });

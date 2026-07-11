@@ -11,6 +11,7 @@ type SessionUser = {
 	name: string;
 	last_name: string;
 	role: UserRole;
+	uid: string;
 };
 
 type AuthContextType = {
@@ -37,6 +38,7 @@ async function fetchProfile(token: string): Promise<SessionUser | null> {
 		role: json.data.role as UserRole,
 		name: json.data.name || '-',
 		last_name: json.data.last_name || '-',
+		uid: json.data.uid || '',
 	};
 }
 
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				role: res.data.role as UserRole,
 				name: res.data.name || '-',
 				last_name: res.data.last_name || '-',
+				uid: res.data.uid || '',
 			};
 
 			setUser(sessionUser);
