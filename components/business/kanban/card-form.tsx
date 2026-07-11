@@ -210,7 +210,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 									className="max-w-xs"
 								/>
 							) : (
-								<div className="text-sm">{dueDate || 'Sin fecha límite'}</div>
+								<div className="text-sm">{formatCreatedAt(dueDate) || 'Sin fecha límite'}</div>
 							)}
 						</div>
 					</div>

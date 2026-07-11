@@ -97,7 +97,9 @@ export default function KanbanPage() {
 				<div className="flex items-center justify-between mb-6">
 					<div>
 						<h1 className="text-3xl font-bold">Tableros Kanban</h1>
-						<p className="text-muted-foreground">Gestiona tus proyectos con tableros</p>
+						{isAuthorized && (
+							<p className="text-muted-foreground">Gestiona tus proyectos con tableros</p>
+						)}
 					</div>
 					{isAuthorized && (
 						<Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">

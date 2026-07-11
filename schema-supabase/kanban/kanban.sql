@@ -366,13 +366,11 @@ ON public.kanban_files
 FOR SELECT
 TO authenticated
 USING (
-    EXISTS (
-        SELECT 1
-        FROM public.kanban_board_members kbm
-        JOIN public.kanban_cards kc ON kc.id = kanban_files.kanban_card_id
-        WHERE kbm.board_id = kc.list_id
-          AND kbm.user_id = auth.uid()
-    )
+  (EXISTS ( SELECT 1
+   FROM ((kanban_cards kc
+     JOIN kanban_lists kl ON ((kl.id = kc.list_id)))
+     JOIN kanban_board_members kbm ON ((kbm.board_id = kl.board_id)))
+  WHERE ((kc.id = kanban_files.kanban_card_id) AND (kbm.user_id = auth.uid()))))
 );
 
 -- RECORDAR CREAR EL BUCKET DE STORAGE PARA LOS ARCHIVOS DE KANBAN

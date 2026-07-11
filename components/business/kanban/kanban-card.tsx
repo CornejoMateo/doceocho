@@ -24,11 +24,13 @@ export function KanbanCard({
 	const redToleranceMs = dueDateToleranceRed * 24 * 60 * 60 * 1000;
 	const isOverdue = card.due_date && new Date(card.due_date) < new Date() && !card.completed_at;
 	const isCompleted = !!card.completed_at;
+
 	const isRedAlert =
 		card.due_date &&
 		!isCompleted &&
 		!isOverdue &&
 		new Date(card.due_date) < new Date(Date.now() + redToleranceMs);
+
 	const isYellowAlert =
 		card.due_date &&
 		!isCompleted &&

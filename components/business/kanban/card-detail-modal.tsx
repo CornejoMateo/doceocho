@@ -262,17 +262,19 @@ export function CardDetailModal({
 					</DialogDescription>
 
 					{!card?.files || card.files.length === 0 ? (
-						<div
-							className="flex items-center justify-center h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/20 transition-colors"
-							onClick={() => fileInputRef.current?.click()}
-						>
-							<div className="text-center">
-								<Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-								<p className="text-sm text-muted-foreground">
-									No hay archivos. Haz clic para subir.
-								</p>
+						isAuthorized && (
+							<div
+								className="flex items-center justify-center h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/20 transition-colors"
+								onClick={() => fileInputRef.current?.click()}
+							>
+								<div className="text-center">
+									<Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+									<p className="text-sm text-muted-foreground">
+										No hay archivos. Haz clic para subir.
+									</p>
+								</div>
 							</div>
-						</div>
+						)
 					) : (
 						<div className="flex-1 overflow-y-auto">
 							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
