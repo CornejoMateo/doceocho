@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 		const token = req.headers.get('authorization')?.replace('Bearer ', '');
 		await requireAdmin(token);
 
-		const { username, password, role } = await req.json();
+		const { username, password, role, name, last_name } = await req.json();
 
 		if (!username || !password || !role) {
 			return NextResponse.json(
@@ -39,6 +39,8 @@ export async function POST(req: Request) {
 			username,
 			role,
 			mail: email,
+			name,
+			last_name,
 		});
 
 		if (dbError) {

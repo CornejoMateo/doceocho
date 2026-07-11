@@ -24,14 +24,9 @@ export function useLoadEvents() {
 			return (events ?? []).map((event) => {
 				const eventType = event.type_id ? eventTypeById.get(event.type_id) : null;
 
-				const [year, month, day] = (event.date || '').split('-');
-				const formattedDate = event.date
-					? `${day}-${month}-${year}`
-					: new Date().toISOString().split('T')[0];
-
 				return {
 					id: event.id,
-					date: formattedDate,
+					date: event.date || new Date().toISOString().split('T')[0],
 					title: event.title || 'Sin título',
 					description: event.description || '',
 					client_id: event.client_id,

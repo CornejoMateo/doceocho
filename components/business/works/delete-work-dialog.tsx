@@ -45,9 +45,17 @@ export function DeleteWorkDialog({
 						Eliminar obra
 					</DialogTitle>
 					<DialogDescription>
-						¿Estás seguro de que deseas eliminar la obra en {workAddress}? Esta acción no se puede
-						deshacer, además se eliminara su saldo correspondiente.
+						¿Estás seguro de que deseas eliminar la obra en {workAddress}?
 					</DialogDescription>
+					<div className="text-sm text-muted-foreground">
+						<p>Esta acción eliminará permanentemente todo lo asociado a esta obra:</p>
+						<ul className="mt-2 list-inside list-disc space-y-0.5">
+							<li>Checklists y sus archivos</li>
+							<li>Presupuestos</li>
+							<li>Saldos y transacciones</li>
+						</ul>
+						<p className="mt-2 font-medium text-destructive">Esta acción no se puede deshacer.</p>
+					</div>
 				</DialogHeader>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>

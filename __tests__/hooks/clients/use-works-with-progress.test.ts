@@ -14,6 +14,7 @@ jest.mock('@/lib/works/works', () => ({
 jest.mock('@/lib/checklists/checklists', () => ({
 	getChecklistsByWorkId: jest.fn(),
 	getChecklistsByWorkIds: jest.fn(),
+	getItemsByChecklistIds: jest.fn().mockResolvedValue({ data: [], error: null }),
 }));
 
 import { useWorksWithProgress } from '@/hooks/clients/use-works-with-progress';
@@ -30,7 +31,7 @@ const mockWork = (overrides: Record<string, unknown> = {}) => ({
 });
 
 let worksMock: { listWorks: jest.Mock; updateWork: jest.Mock };
-let checklistsMock: { getChecklistsByWorkIds: jest.Mock };
+let checklistsMock: { getChecklistsByWorkIds: jest.Mock; getItemsByChecklistIds: jest.Mock };
 
 beforeAll(() => {
 	worksMock = jest.requireMock('@/lib/works/works') as never;
@@ -42,6 +43,7 @@ describe('useWorksWithProgress', () => {
 		jest.clearAllMocks();
 		worksMock.listWorks.mockResolvedValue({ data: [], error: null });
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({ data: [], error: null });
+		checklistsMock.getItemsByChecklistIds.mockResolvedValue({ data: [], error: null });
 		worksMock.updateWork.mockResolvedValue({ error: null });
 	});
 
@@ -57,13 +59,17 @@ describe('useWorksWithProgress', () => {
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
 			data: [
 				{
+					id: 1,
 					work_id: 1,
-					items: [
-						{ key: 1, name: 'Task 1', done: true },
-						{ key: 2, name: 'Task 2', done: false },
-					],
 					notes: null,
 				},
+			],
+			error: null,
+		});
+		checklistsMock.getItemsByChecklistIds.mockResolvedValue({
+			data: [
+				{ checklist_id: 1, description: 'Task 1', done: true },
+				{ checklist_id: 1, description: 'Task 2', done: false },
 			],
 			error: null,
 		});
@@ -95,11 +101,15 @@ describe('useWorksWithProgress', () => {
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
 			data: [
 				{
+					id: 1,
 					work_id: 1,
-					items: [{ key: 1, name: 'Task 1', done: true }],
 					notes: null,
 				},
 			],
+			error: null,
+		});
+		checklistsMock.getItemsByChecklistIds.mockResolvedValue({
+			data: [{ checklist_id: 1, description: 'Task 1', done: true }],
 			error: null,
 		});
 		worksMock.updateWork.mockResolvedValue({ error: null });
@@ -129,11 +139,15 @@ describe('useWorksWithProgress', () => {
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
 			data: [
 				{
+					id: 1,
 					work_id: 1,
-					items: [{ key: 1, name: 'Task 1', done: true }],
 					notes: null,
 				},
 			],
+			error: null,
+		});
+		checklistsMock.getItemsByChecklistIds.mockResolvedValue({
+			data: [{ checklist_id: 1, description: 'Task 1', done: true }],
 			error: null,
 		});
 		worksMock.updateWork.mockResolvedValue({ error: null });
@@ -152,13 +166,17 @@ describe('useWorksWithProgress', () => {
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
 			data: [
 				{
+					id: 1,
 					work_id: 1,
-					items: [
-						{ key: 1, name: 'Task 1', done: true },
-						{ key: 2, name: 'Task 2', done: false },
-					],
 					notes: null,
 				},
+			],
+			error: null,
+		});
+		checklistsMock.getItemsByChecklistIds.mockResolvedValue({
+			data: [
+				{ checklist_id: 1, description: 'Task 1', done: true },
+				{ checklist_id: 1, description: 'Task 2', done: false },
 			],
 			error: null,
 		});
@@ -178,11 +196,15 @@ describe('useWorksWithProgress', () => {
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
 			data: [
 				{
+					id: 1,
 					work_id: 1,
-					items: [{ key: 1, name: 'Task 1', done: true }],
 					notes: 'Some notes',
 				},
 			],
+			error: null,
+		});
+		checklistsMock.getItemsByChecklistIds.mockResolvedValue({
+			data: [{ checklist_id: 1, description: 'Task 1', done: true }],
 			error: null,
 		});
 		worksMock.updateWork.mockResolvedValue({ error: null });
@@ -202,8 +224,8 @@ describe('useWorksWithProgress', () => {
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
 			data: [
 				{
+					id: 1,
 					work_id: 1,
-					items: [],
 					notes: '  notes  ',
 				},
 			],

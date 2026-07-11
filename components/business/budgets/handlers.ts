@@ -136,12 +136,14 @@ export const budgetHandlers: BudgetHandlers = {
 			const updateData: any = {
 				sold: false,
 				lost: false,
+				date_of_sale: null,
 			};
 
 			// Set the new status
 			switch (newStatus) {
 				case BUDGET_STATUS.SOLD:
 					updateData.sold = true;
+					updateData.date_of_sale = new Date().toISOString();
 					break;
 				case BUDGET_STATUS.LOST:
 					updateData.lost = true;
@@ -328,6 +330,7 @@ export const budgetHandlers: BudgetHandlers = {
 					created_at: formData.created_at
 						? new Date(formData.created_at + 'T00:00:00').toISOString()
 						: editingBudget.created_at,
+					usd_quote: formData.usdRate ? parseAmount(formData.usdRate) : null,
 				},
 				formData.pdf,
 				clientId
@@ -438,6 +441,7 @@ export const budgetHandlers: BudgetHandlers = {
 					created_at: formData.created_at
 						? new Date(formData.created_at + 'T00:00:00').toISOString()
 						: new Date().toISOString(),
+					usd_quote: formData.usdRate ? parseAmount(formData.usdRate) : null,
 				},
 				formData.pdf,
 				clientId

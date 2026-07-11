@@ -5,6 +5,8 @@ interface BalanceCalculationInput {
 	totalPaidArs?: number | null;
 	totalPaidUsd?: number | null;
 	budgetInitialArs?: number | null;
+	totalExtraArs?: number | null;
+	totalExtraUsd?: number | null;
 }
 
 export interface BalanceSummary {
@@ -13,8 +15,12 @@ export interface BalanceSummary {
 	budgetArsCurrent: number;
 	totalPaidArs: number;
 	totalPaidUsd: number;
+	totalExtraArs: number;
+	totalExtraUsd: number;
 	remainingArs: number;
 	remainingUsd: number;
+	effectiveBudgetArs: number;
+	effectiveBudgetUsd: number;
 	progressPercentage: number;
 	type: string;
 	budgetInitialArs?: number | null;
@@ -26,12 +32,18 @@ export function calculateBalanceSummary(input: BalanceCalculationInput): Balance
 	const budgetArsInitial = toSafeNumber(input.budgetInitialArs);
 	const budgetUsd = toSafeNumber(input.budgetAmountUsd);
 	const budgetArsCurrent = toSafeNumber(input.budgetAmountArs);
+	const totalExtraArs = toSafeNumber(input.totalExtraArs);
+	const totalExtraUsd = toSafeNumber(input.totalExtraUsd);
 	const totalPaidArs = toSafeNumber(input.totalPaidArs);
 	const totalPaidUsd = toSafeNumber(input.totalPaidUsd);
 
-	const remainingUsd = budgetUsd - totalPaidUsd;
-	const remainingArs = budgetArsCurrent - totalPaidArs;
-	const progressBase = budgetArsCurrent > 0 ? budgetArsCurrent : budgetArsInitial;
+	const effectiveBudgetArs = budgetArsCurrent + totalExtraArs;
+	const effectiveBudgetUsd = budgetUsd + totalExtraUsd;
+
+	const remainingUsd = effectiveBudgetUsd - totalPaidUsd;
+	const remainingArs = effectiveBudgetArs - totalPaidArs;
+	const progressBase = effectiveBudgetArs > 0 ? effectiveBudgetArs : budgetArsInitial;
+
 	const progressPercentage =
 		progressBase > 0 ? Math.min(Math.round((totalPaidArs / progressBase) * 100), 100) : 0;
 
@@ -41,9 +53,13 @@ export function calculateBalanceSummary(input: BalanceCalculationInput): Balance
 		budgetArsCurrent,
 		totalPaidArs,
 		totalPaidUsd,
+		totalExtraArs,
+		totalExtraUsd,
+		effectiveBudgetArs,
+		effectiveBudgetUsd,
 		remainingArs,
 		remainingUsd,
 		progressPercentage,
-		type: remainingUsd > 0 ? 'Deudor' : remainingUsd < 0 ? 'Acreedor' : 'Cancelado',
+		type: remainingArs > 0 ? 'Deudor' : remainingArs < 0 ? 'Acreedor' : 'Cancelado',
 	};
 }

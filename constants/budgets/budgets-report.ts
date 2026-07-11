@@ -16,3 +16,19 @@ export const BUDGET_STATUS = {
 	ACCEPTED: 'Aceptado',
 	SOLD: 'Vendido',
 } as const;
+
+export const BUDGET_FILTER_DEFAULTS = {
+	status: 'all',
+	minAmountArs: '',
+	maxAmountArs: '',
+	minAmountUsd: '',
+	maxAmountUsd: '',
+} as const;
+
+export const BUDGET_FILTER_LABELS = {
+	status: 'Estado',
+	minAmountArs: 'Monto mínimo ARS',
+	maxAmountArs: 'Monto máximo ARS',
+	minAmountUsd: 'Monto mínimo USD',
+	maxAmountUsd: 'Monto máximo USD',
+} as const;

@@ -2,7 +2,12 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Work } from '@/lib/works/works';
-import { getChecklistsByWorkId, createChecklist } from '@/lib/checklists/checklists';
+import {
+	getChecklistsByWorkId,
+	createChecklist,
+	createChecklistItems,
+	deleteChecklist,
+} from '@/lib/checklists/checklists';
 import {
 	MapPin,
 	Calendar,
@@ -13,8 +18,6 @@ import {
 	Search,
 	CheckSquare,
 	BrickWall,
-	Map,
-	Home,
 } from 'lucide-react';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
 import { format } from 'date-fns';
@@ -303,20 +306,31 @@ export function WorksList({
 						if (fetchError) throw fetchError;
 						const existingCount = existingChecklists?.length || 0;
 
-						const { error } = await createChecklist({
+						const { data: newChecklist, error } = await createChecklist({
 							work_id: selectedWorkId,
 							name: checklist.name || `Mobiliario ${existingCount + 1}`,
 							description: checklist.description || '',
 							notes: '',
-							items: checklist.items.map((item) => ({
-								name: item.name,
-								done: item.completed,
-								key: 0,
-							})),
-							progress: checklist.items.length > 0 ? 0 : 100,
+							width: checklist.width ?? null,
+							height: checklist.height ?? null,
+							depth: checklist.depth ?? null,
+							type_furniture: checklist.type_furniture ?? null,
 						});
 
 						if (error) throw error;
+
+						if (newChecklist && checklist.items.length > 0) {
+							const { error: itemsError } = await createChecklistItems(
+								checklist.items.map((item) => ({
+									description: item.description,
+									checklist_id: newChecklist.id,
+								}))
+							);
+							if (itemsError) {
+								await deleteChecklist(newChecklist.id);
+								throw itemsError;
+							}
+						}
 
 						// Update local state if needed
 						const work = initialWorks.find((w) => w.id === selectedWorkId);

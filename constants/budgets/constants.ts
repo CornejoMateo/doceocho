@@ -1,7 +1,3 @@
-import { material_type } from '@/constants/checklists/checklists.constants';
-
-export const DEFAULT_TYPES = [...Object.values(material_type), 'Otros'];
-
 export const BUDGET_VARIANTS = ['Mínimo', 'Estándar', 'Óptimo'] as const;
 
 export type BudgetVariant = (typeof BUDGET_VARIANTS)[number];
@@ -13,6 +9,8 @@ export const FORM_DEFAULTS = {
 	amountUsd: '',
 	usdRate: '',
 	workId: 'none',
+	usdQuote: '',
+	date_of_sale: '',
 	created_at: new Date()
 		.toLocaleDateString('es-AR', {
 			year: 'numeric',

@@ -242,7 +242,7 @@ describe('WorkCard', () => {
 		);
 
 		fireEvent.click(screen.getByText('Email'));
-		expect(onOpenEmail).toHaveBeenCalledWith(baseWork);
+		expect(onOpenEmail).not.toHaveBeenCalled();
 	});
 
 	it('calls onOpenWhatsApp when WhatsApp button is clicked', () => {

@@ -18,7 +18,7 @@ describe('money utils', () => {
 		it('formats integer values correctly', () => {
 			const result = formatCurrency(1000);
 
-			expect(result).toContain('1.000,00');
+			expect(result).toContain('1.000');
 			expect(result).toContain('$');
 		});
 

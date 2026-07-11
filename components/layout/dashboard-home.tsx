@@ -5,6 +5,7 @@ import { getClientsCount } from '@/lib/clients/clients';
 import { getWorksInProgressCount, Work } from '@/lib/works/works';
 import { getSoldBudgetsCount } from '@/lib/reports/budgets/methods';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { formatCreatedAt } from '@/utils/format-date';
 
 export function DashboardHome() {
 	const { events, isLoading } = useLoadEvents();
@@ -147,7 +148,9 @@ export function DashboardHome() {
 												<p className="text-xs text-muted-foreground truncate">{locationDisplay}</p>
 											)}
 
-											<p className="text-xs text-red-600 pt-1">Venció el {event.date}</p>
+											<p className="text-xs text-red-600 pt-1">
+												Venció el {formatCreatedAt(event.date)}
+											</p>
 										</div>
 									</div>
 								);

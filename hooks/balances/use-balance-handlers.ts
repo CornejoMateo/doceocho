@@ -26,34 +26,44 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 	const handleDeleteBalance = async () => {
 		if (!balanceToDelete) return;
 
+		const loadingToast = toast({
+			title: 'Eliminando saldo...',
+			description: 'Se están eliminando los archivos asociados. Esto puede tardar unos momentos.',
+		});
+
 		try {
 			const { error } = await deleteBalance(balanceToDelete.id);
 
 			if (error) {
-				toast({
+				loadingToast.update({
 					variant: 'destructive',
 					title: 'Error al eliminar saldo',
 					description:
 						translateError(error) || 'Hubo un problema al eliminar el saldo. Intente nuevamente.',
-				});
+				} as any);
 				return;
 			}
 
 			// Refresh the list
 			handleBalanceUpdate();
 
+			loadingToast.update({
+				title: 'Saldo eliminado',
+				description: 'El saldo se eliminó correctamente.',
+			} as any);
+
 			// Notify parent to reload budgets
 			if (onBalanceDeleted) {
 				onBalanceDeleted();
 			}
 		} catch (error) {
-			toast({
+			loadingToast.update({
 				variant: 'destructive',
 				title: 'Error inesperado al eliminar saldo',
 				description:
 					translateError(error) ||
 					'Ocurrió un error inesperado al eliminar el saldo. Intente nuevamente.',
-			});
+			} as any);
 		} finally {
 			setIsDeleteDialogOpen(false);
 			setBalanceToDelete(null);

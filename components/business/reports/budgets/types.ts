@@ -44,6 +44,8 @@ export interface BudgetFormData {
 	workId: string;
 	pdf: File | null;
 	created_at: string;
+	usdQuote: string;
+	date_of_sale: string;
 }
 
 export interface ClientBudgetsTabState {
@@ -58,4 +60,33 @@ export interface ClientBudgetsTabState {
 	budgetDetailModal: BudgetDetailModalState;
 	editModalOpen: boolean;
 	editingBudget: BudgetWithWork | null;
+}
+
+export interface BudgetReportRow {
+	id: number;
+	date: string;
+	dateRaw: Date;
+	client: string;
+	number: string;
+	type: string;
+	work: string;
+	amountArs: number;
+	amountUsd: number;
+	status: string;
+}
+
+export interface BudgetFilters {
+	status: string;
+	minAmountArs: string;
+	maxAmountArs: string;
+	minAmountUsd: string;
+	maxAmountUsd: string;
+}
+
+export interface BudgetFilterDialogProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	filters: BudgetFilters;
+	onFiltersChange: (filters: BudgetFilters) => void;
+	onReset: () => void;
 }
