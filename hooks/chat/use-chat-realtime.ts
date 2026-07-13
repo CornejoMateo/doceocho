@@ -4,89 +4,61 @@ import { MessageWithUser } from '@/lib/chat/chat-types';
 import { getMessagesAction } from '@/lib/chat/messages';
 import { useAuth } from '@/components/provider/auth-provider';
 
-type CacheEntry = {
-	messages: MessageWithUser[];
-	timestamp: number;
-};
-
-const cache = new Map<number, CacheEntry>();
-
-export function clearMessagesCache() {
-	cache.clear();
-}
-const CACHE_TTL = 30_000;
-
 export function useChatRealtime(channelId: number | null) {
 	const { user } = useAuth();
-	const cached = channelId ? cache.get(channelId) : undefined;
-	const [messages, setMessages] = useState<MessageWithUser[]>(cached?.messages ?? []);
-	const [loading, setLoading] = useState(!cached);
+	const [messages, setMessages] = useState<MessageWithUser[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [loadingMore, setLoadingMore] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const supabase = getSupabaseClient();
 
-	const setMessagesAndCache = useCallback(
-		(msgs: MessageWithUser[] | ((prev: MessageWithUser[]) => MessageWithUser[])) => {
-			setMessages(msgs);
-			if (channelId) {
-				if (typeof msgs === 'function') {
-					const prev = cache.get(channelId);
-					const next = msgs(prev?.messages ?? []);
-					cache.set(channelId, { messages: next, timestamp: Date.now() });
-				} else {
-					cache.set(channelId, { messages: msgs, timestamp: Date.now() });
-				}
+	const messagesRef = useRef<MessageWithUser[]>([]);
+
+	useEffect(() => {
+		messagesRef.current = messages;
+	}, [messages]);
+
+	const updateMessages = useCallback(
+		(
+			updater: MessageWithUser[] | ((prev: MessageWithUser[]) => MessageWithUser[]),
+			options?: { hasMore?: boolean }
+		) => {
+			setMessages((prev) => (typeof updater === 'function' ? updater(prev) : updater));
+
+			if (options?.hasMore !== undefined) {
+				setHasMore(options.hasMore);
 			}
 		},
-		[channelId]
+		[]
 	);
 
-	const addMessage = useCallback(
-		(message: MessageWithUser) => {
-			setMessagesAndCache((prev) => {
-				if (prev.some((m) => m.id === message.id)) return prev;
-				return [...prev, message];
-			});
-		},
-		[setMessagesAndCache]
-	);
+	const addMessage = useCallback((message: MessageWithUser) => {
+		updateMessages((prev) => {
+			if (prev.some((m) => m.id === message.id)) return prev;
+			return [...prev, message];
+		});
+	}, []);
 
-	const fetchMessages = useCallback(
-		async (force = false) => {
-			if (!channelId || !user) {
-				setMessagesAndCache([]);
-				setLoading(false);
-				return;
+	const fetchMessages = useCallback(async () => {
+		if (!channelId || !user) {
+			setMessages([]);
+			return;
+		}
+
+		setLoading(true);
+
+		try {
+			const result = await getMessagesAction(channelId);
+
+			if (result.data) {
+				setMessages(result.data);
+				setHasMore(result.hasMore ?? false);
 			}
-
-			const cached = cache.get(channelId);
-			const isFresh = cached && Date.now() - cached.timestamp < CACHE_TTL;
-
-			if (cached && !force) {
-				setMessagesAndCache(cached.messages);
-				setLoading(false);
-			} else {
-				setLoading(true);
-			}
-
-			if (isFresh && !force) return;
-
-			setError(null);
-
-			try {
-				const result = await getMessagesAction(channelId);
-				if (result.error) {
-					setError(result.error || 'Error al cargar mensajes');
-				} else if (result.data) {
-					setMessagesAndCache(result.data);
-				}
-			} catch (err: any) {
-				setError(err.message || 'Error al cargar mensajes');
-			} finally {
-				setLoading(false);
-			}
-		},
-		[channelId, setMessagesAndCache]
-	);
+		} finally {
+			setLoading(false);
+		}
+	}, [channelId, user]);
 
 	useEffect(() => {
 		fetchMessages();
@@ -117,37 +89,50 @@ export function useChatRealtime(channelId: number | null) {
 					const { eventType, new: newRecord, old: oldRecord } = payload;
 
 					if (eventType === 'INSERT') {
-						setMessagesAndCache((prev) => {
+						const existingUser = messagesRef.current.find(
+							(m) => m.user_id === newRecord.user_id
+						)?.users;
+
+						const messageWithUser: MessageWithUser = {
+							id: newRecord.id,
+							created_at: newRecord.created_at,
+							content: newRecord.content,
+							edited_at: newRecord.edited_at,
+							deleted_at: newRecord.deleted_at,
+							user_id: newRecord.user_id,
+							channel_id: newRecord.channel_id,
+							reply_to: newRecord.reply_to,
+							users: existingUser ?? null,
+						};
+
+						updateMessages((prev) => {
 							if (prev.some((m) => m.id === newRecord.id)) return prev;
-
-							const existing = prev.find((m) => m.user_id === newRecord.user_id)?.users ?? null;
-							const currentUser =
-								newRecord.user_id === user?.id && user
-									? {
-											uid_user: user.id,
-											username: user.username ?? null,
-											name: user.name ?? null,
-											last_name: user.last_name ?? null,
-											role: user.role ?? null,
-										}
-									: null;
-
-							const messageWithUser: MessageWithUser = {
-								id: newRecord.id,
-								created_at: newRecord.created_at,
-								content: newRecord.content,
-								edited_at: newRecord.edited_at,
-								deleted_at: newRecord.deleted_at,
-								user_id: newRecord.user_id,
-								channel_id: newRecord.channel_id,
-								reply_to: newRecord.reply_to,
-								users: existing ?? currentUser,
-							};
-
 							return [...prev, messageWithUser];
 						});
+
+						if (!existingUser) {
+							const { data: userData } = await supabase
+								.from('users')
+								.select(
+									`
+									uid_user,
+									username,
+									name,
+									last_name,
+									role
+									`
+								)
+								.eq('uid_user', newRecord.user_id)
+								.single();
+
+							if (userData) {
+								updateMessages((prev) =>
+									prev.map((msg) => (msg.id === newRecord.id ? { ...msg, users: userData } : msg))
+								);
+							}
+						}
 					} else if (eventType === 'UPDATE') {
-						setMessagesAndCache((prev) =>
+						updateMessages((prev) =>
 							prev.map((msg) => (msg.id === newRecord.id ? { ...msg, ...newRecord } : msg))
 						);
 					} else if (eventType === 'DELETE') {
@@ -155,28 +140,57 @@ export function useChatRealtime(channelId: number | null) {
 						if (!deletedId) {
 							return;
 						}
-						setMessagesAndCache((prev) => prev.filter((msg) => msg.id !== deletedId));
+						updateMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
 					} else {
 						console.warn('[Realtime] Unhandled event type:', eventType, payload);
 					}
 				}
 			)
-			.subscribe();
-
+			.subscribe((status) => {
+				console.log('Messages realtime:', status);
+			});
 		return () => {
 			supabase.removeChannel(channel);
 		};
-	}, [channelId, supabase, setMessagesAndCache]);
+	}, [channelId, supabase, user]);
+
+	const loadMore = useCallback(async (): Promise<number> => {
+		if (!channelId || !user || loadingMore || !hasMore) return 0;
+
+		setLoadingMore(true);
+		try {
+			const offset = messages.length;
+
+			const result = await getMessagesAction(channelId, offset);
+			if (result.error) {
+				setError(result.error || 'Error al cargar mensajes');
+				return 0;
+			} else if (result.data && result.data.length > 0) {
+				updateMessages((prev) => [...result.data!, ...prev], {
+					hasMore: result.hasMore ?? false,
+				});
+				return result.data.length;
+			}
+			return 0;
+		} catch (err: any) {
+			setError(err.message || 'Error al cargar mensajes');
+			return 0;
+		} finally {
+			setLoadingMore(false);
+		}
+	}, [channelId, user, loadingMore, hasMore, messages.length]);
 
 	const refresh = useCallback(() => {
-		cache.delete(channelId!);
-		fetchMessages(true);
-	}, [channelId, fetchMessages]);
+		fetchMessages();
+	}, [fetchMessages]);
 
 	return {
 		messages,
 		loading,
+		loadingMore,
+		hasMore,
 		error,
 		refresh,
+		loadMore,
 	};
 }

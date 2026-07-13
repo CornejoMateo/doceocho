@@ -50,7 +50,6 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 	const [showCleanupDialog, setShowCleanupDialog] = useState(false);
 	const [cleanupDate, setCleanupDate] = useState('');
 	const [sending, setSending] = useState(false);
-	const messagesScrollRef = useRef<HTMLDivElement>(null);
 	const selectedChannelRef = useRef(selectedChannel);
 	selectedChannelRef.current = selectedChannel;
 	const [scrolledToUnread, setScrolledToUnread] = useState(false);
@@ -207,12 +206,6 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 		setOptimisticMessages((prev) => [...prev, optimisticMessage]);
 		setReplyingTo(null);
 
-		setTimeout(() => {
-			if (messagesScrollRef.current) {
-				messagesScrollRef.current.scrollTop = messagesScrollRef.current.scrollHeight;
-			}
-		}, 50);
-
 		try {
 			const result = await sendMessageAction(channelId, messageContent, replyToId || undefined);
 
@@ -231,12 +224,6 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 			if (result.data) {
 				window.dispatchEvent(new CustomEvent('new-message', { detail: result.data }));
 			}
-
-			setTimeout(() => {
-				if (messagesScrollRef.current) {
-					messagesScrollRef.current.scrollTop = messagesScrollRef.current.scrollHeight;
-				}
-			}, 50);
 		} finally {
 			setSending(false);
 		}
@@ -251,14 +238,29 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 			prev.map((ch) => (ch.id === channel.id ? { ...ch, unread_count: 0 } : ch))
 		);
 
-		if (channel.last_message_id) {
-			await updateLastReadMessage(channel.last_message_id, channel.id, currentUserUid);
-		}
-
 		setSearchTerm('');
 		setShowSidebar(false);
 		setScrolledToUnread(false);
 		setReplyingTo(null);
+	};
+
+	const handleScrolledToUnread = async () => {
+		if (!selectedChannel?.last_message_id) return;
+
+		await updateLastReadMessage(
+			selectedChannel.last_message_id,
+			selectedChannel.id,
+			currentUserUid
+		);
+
+		setSelectedChannel((prev) =>
+			prev
+				? {
+						...prev,
+						last_read_message_id: prev.last_message_id,
+					}
+				: prev
+		);
 	};
 
 	const handleReplyTo = (message: MessageWithUser) => {
@@ -400,7 +402,6 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 		showCleanupDialog,
 		cleanupDate,
 		sending,
-		messagesScrollRef,
 		scrolledToUnread,
 		replyingTo,
 		pendingDeleteMessage,
@@ -426,6 +427,7 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 		loadMembers,
 		handleSendMessage,
 		handleChannelSelect,
+		handleScrolledToUnread,
 		handleCreateChannel,
 		handleShowMembers,
 		handleChannelCreated,
