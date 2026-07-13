@@ -23,6 +23,7 @@ import {
 	Settings,
 	LayoutList,
 	Trash2,
+	Clock,
 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
@@ -55,6 +56,7 @@ const navigation = [
 	{ name: 'Reportes de Presupuestos', href: '/budgets', icon: FileText, disabled: false },
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
+	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
 ] as const;
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -68,8 +70,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 	const allowedByRole = useMemo(() => {
 		return {
-			Admin: ['Panel', 'Insumos', 'Clientes', 'Kanban', 'Calendario', 'Flujo de Fondos', 'Obras', 'Reportes'],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Obras'],
+			Admin: [
+				'Panel',
+				'Insumos',
+				'Clientes',
+				'Kanban',
+				'Calendario',
+				'Flujo de Fondos',
+				'Obras',
+				'Reportes',
+				'Fichar',
+			],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Obras', 'Fichar'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
