@@ -33,12 +33,20 @@ export function useChatRealtime(channelId: number | null) {
 		[]
 	);
 
-	const addMessage = useCallback((message: MessageWithUser) => {
-		updateMessages((prev) => {
-			if (prev.some((m) => m.id === message.id)) return prev;
-			return [...prev, message];
-		});
-	}, []);
+	const fetchVersionRef = useRef(0);
+	const realtimeVersionRef = useRef(0);
+
+	const addMessage = useCallback(
+		(message: MessageWithUser) => {
+			realtimeVersionRef.current++;
+
+			updateMessages((prev) => {
+				if (prev.some((m) => m.id === message.id)) return prev;
+				return [...prev, message];
+			});
+		},
+		[updateMessages]
+	);
 
 	const fetchMessages = useCallback(async () => {
 		if (!channelId || !user) {
@@ -48,17 +56,43 @@ export function useChatRealtime(channelId: number | null) {
 
 		setLoading(true);
 
+		const fetchVersion = ++fetchVersionRef.current;
+		const realtimeVersionAtStart = realtimeVersionRef.current;
+
 		try {
 			const result = await getMessagesAction(channelId);
 
+			if (fetchVersion !== fetchVersionRef.current) {
+				return;
+			}
+
 			if (result.data) {
-				setMessages(result.data);
+				const fetchedMessages = result.data;
+
+				setMessages((prev) => {
+					if (realtimeVersionRef.current > realtimeVersionAtStart) {
+						const fetchedIds = new Set(fetchedMessages.map((m) => m.id));
+
+						const realtimeMessages = prev.filter((m) => !fetchedIds.has(m.id));
+
+						return [...fetchedMessages, ...realtimeMessages];
+					}
+
+					return fetchedMessages;
+				});
+
 				setHasMore(result.hasMore ?? false);
 			}
+
+			if (result.error) {
+				setError(result.error);
+			}
 		} finally {
-			setLoading(false);
+			if (fetchVersion === fetchVersionRef.current) {
+				setLoading(false);
+			}
 		}
-	}, [channelId, user]);
+	}, [channelId, !!user]);
 
 	useEffect(() => {
 		fetchMessages();
