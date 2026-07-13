@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+
 import { AuthProvider, useAuth } from '@/components/provider/auth-provider';
 import { getSupabaseClient } from '@/lib/supabase-client';
 
