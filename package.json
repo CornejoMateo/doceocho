@@ -83,6 +83,7 @@
 		"zod": "3.25.67"
 	},
 	"devDependencies": {
+		"@tailwindcss/line-clamp": "^0.4.4",
 		"@tailwindcss/postcss": "^4.1.9",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.0",
