@@ -59,6 +59,12 @@ export const CHAT_CONSTANTS = {
 		MEMBERS: 'Miembros',
 		CLEAN: 'Limpiar',
 	},
+	MENU: {
+		SEARCH_BY_WORD: 'Buscar por palabra',
+		SEARCH_BY_DATE: 'Buscar por día',
+		MANAGE_MEMBERS: 'Gestionar miembros',
+		CLEAN_MESSAGES: 'Limpiar mensajes',
+	},
 } as const;
 
 export const SCROLL_DELAY = 100;
