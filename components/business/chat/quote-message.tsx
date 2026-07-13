@@ -8,13 +8,9 @@ interface QuoteMessageProps {
 	showCancel?: boolean;
 }
 
-const MAX_QUOTE_LENGTH = 50;
-
 export function QuoteMessage({ message, onCancel, showCancel = true }: QuoteMessageProps) {
 	const isDeleted = message.deleted_at !== null;
 	const content = message.content || '';
-	const truncatedContent =
-		content.length > MAX_QUOTE_LENGTH ? content.substring(0, MAX_QUOTE_LENGTH) + '...' : content;
 
 	return (
 		<div className="flex items-start gap-2 p-2 bg-muted/50 rounded-lg border-l-2 border-primary">
@@ -27,8 +23,8 @@ export function QuoteMessage({ message, onCancel, showCancel = true }: QuoteMess
 							: 'Usuario'}
 					</span>
 				</div>
-				<p className="text-sm text-muted-foreground truncate">
-					{isDeleted ? 'Este mensaje fue eliminado' : truncatedContent}
+				<p className="text-sm text-muted-foreground break-all line-clamp-2 [overflow-wrap:anywhere]">
+					{isDeleted ? 'Este mensaje fue eliminado' : content}
 				</p>
 			</div>
 			{showCancel && onCancel && (

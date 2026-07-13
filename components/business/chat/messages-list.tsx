@@ -234,7 +234,9 @@ function MessageItem({
 						</Button>
 					</div>
 				) : (
-					<div className="text-sm">{message.content}</div>
+					<div className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+						{message.content}
+					</div>
 				)}
 				<div className="text-xs mt-1 opacity-70 flex items-center justify-between gap-2">
 					<span>
