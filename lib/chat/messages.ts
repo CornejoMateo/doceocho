@@ -9,8 +9,10 @@ import { after } from 'next/server';
 const TABLE = 'messages';
 
 export async function getMessagesAction(
-	channelId: number
-): Promise<{ success: boolean; error?: string; data?: MessageWithUser[] }> {
+	channelId: number,
+	offset = 0,
+	limit = 50
+): Promise<{ success: boolean; error?: string; data?: MessageWithUser[]; hasMore?: boolean }> {
 	try {
 		const supabase = await getServerSupabaseClient();
 		await getCurrentUser();
@@ -30,11 +32,13 @@ export async function getMessagesAction(
 			)
 			.eq('channel_id', channelId)
 			.order('created_at', { ascending: false })
-			.limit(50);
+			.range(offset, offset + limit - 1);
 
 		if (error) return { success: false, error: error.message };
 
-		return { success: true, data: (data || []).reverse() as unknown as MessageWithUser[] };
+		const messages = (data || []).reverse() as unknown as MessageWithUser[];
+
+		return { success: true, data: messages, hasMore: messages.length === limit };
 	} catch (error: any) {
 		return { success: false, error: error.message || 'Error al obtener mensajes' };
 	}
