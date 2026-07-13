@@ -32,10 +32,17 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Filter, Download } from 'lucide-react';
 import { normalizeMoney } from '@/utils/formats-money';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BudgetsReport } from '@/components/business/reports/budgets/budgets-report';
+import { useBalanceFilters } from '@/hooks/balances/use-balance-filters';
+import { BalanceFilterDialog } from './balance-filter-dialog';
+import { applyBalanceFilters, hasActiveFilters } from '@/helpers/balances/filter-balances';
+import {
+	generateBalancesPDF,
+	getFiltersDescription,
+} from '@/helpers/balances/generate-balance-pdf';
 
 type BalanceReportRow = {
 	id: number;
@@ -58,7 +65,9 @@ export function BalancesReport() {
 	const [rows, setRows] = useState<BalanceReportRow[]>([]);
 	const [sortField, setSortField] = useState<keyof BalanceReportRow>('contractDate');
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-	const [balanceTypeFilter, setBalanceTypeFilter] = useState<string>('all');
+
+	const { filters, updateFilters, resetFilters, filterDialogOpen, setFilterDialogOpen } =
+		useBalanceFilters();
 
 	// Calculate stats
 	const balanceStats = useMemo(() => {
@@ -158,10 +167,8 @@ export function BalancesReport() {
 	const filteredRows = useMemo(() => {
 		let filtered = rows;
 
-		// Filter to type
-		if (balanceTypeFilter !== 'all') {
-			filtered = filtered.filter((r) => r.balanceType === balanceTypeFilter);
-		}
+		// Apply advanced filters (balance type, amount ranges)
+		filtered = applyBalanceFilters(filtered, filters);
 
 		// Filter to text
 		const s = searchTerm.trim().toLowerCase();
@@ -199,7 +206,7 @@ export function BalancesReport() {
 			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
 			return 0;
 		});
-	}, [rows, searchTerm, sortField, sortDirection, balanceTypeFilter]);
+	}, [rows, searchTerm, sortField, sortDirection, filters]);
 
 	const handleSort = (field: keyof BalanceReportRow) => {
 		if (sortField === field) {
@@ -217,6 +224,11 @@ export function BalancesReport() {
 		) : (
 			<ArrowDown className="h-4 w-4" />
 		);
+	};
+
+	const handleDownloadPDF = () => {
+		const filtersDesc = getFiltersDescription(filters);
+		generateBalancesPDF(filteredRows, filtersDesc);
 	};
 
 	return (
@@ -237,24 +249,23 @@ export function BalancesReport() {
 				<TabsContent value="balances" className="space-y-4">
 					{/* Controls */}
 					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<Select value={balanceTypeFilter} onValueChange={setBalanceTypeFilter}>
-							<SelectTrigger className="w-full sm:w-[180px]">
-								<SelectValue placeholder="Tipo de saldo" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">Todos los tipos</SelectItem>
-								<SelectItem value={BALANCE_TYPES.DEBTOR}>Deudor</SelectItem>
-								<SelectItem value={BALANCE_TYPES.CREDITOR}>Acreedor</SelectItem>
-								<SelectItem value={BALANCE_TYPES.CANCELLED}>Cancelado</SelectItem>
-							</SelectContent>
-						</Select>
+						<div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+							<Button
+								variant={hasActiveFilters(filters) ? 'default' : 'outline'}
+								onClick={() => setFilterDialogOpen(true)}
+								className="gap-2"
+							>
+								<Filter className="h-4 w-4" />
+								Filtros
+							</Button>
 
-						<Input
-							placeholder="Buscar por cliente, obra, concepto..."
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full sm:w-[300px]"
-						/>
+							<Input
+								placeholder="Buscar por cliente, obra, concepto..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								className="w-full sm:w-[300px]"
+							/>
+						</div>
 					</div>
 
 					<Card className="p-0 bg-card border-border overflow-x-auto">
@@ -262,10 +273,16 @@ export function BalancesReport() {
 							<div className="text-sm text-muted-foreground">
 								{loading ? 'Cargando...' : `${filteredRows.length} fila(s)`}
 							</div>
-							<Button variant="outline" onClick={() => refresh()} className="gap-2">
-								<RefreshCw className="h-4 w-4" />
-								Actualizar
-							</Button>
+							<div className="flex items-center gap-2">
+								<Button variant="outline" onClick={handleDownloadPDF} className="gap-2">
+									<Download className="h-4 w-4" />
+									Descargar PDF
+								</Button>
+								<Button variant="outline" onClick={() => refresh()} className="gap-2">
+									<RefreshCw className="h-4 w-4" />
+									Actualizar
+								</Button>
+							</div>
 						</div>
 
 						<Table className="mx-auto">
@@ -388,6 +405,14 @@ export function BalancesReport() {
 							</TableBody>
 						</Table>
 					</Card>
+
+					<BalanceFilterDialog
+						open={filterDialogOpen}
+						onOpenChange={setFilterDialogOpen}
+						filters={filters}
+						onFiltersChange={updateFilters}
+						onReset={resetFilters}
+					/>
 				</TabsContent>
 
 				<TabsContent value="budgets" className="space-y-4">
