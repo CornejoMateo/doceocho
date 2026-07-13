@@ -78,7 +78,7 @@ export function ChatSidebar({
 											<div className="text-xs opacity-70 truncate">{channel.description}</div>
 										)}
 									</div>
-									{channel.unread_count && channel.unread_count > 0 && (
+									{channel.unread_count !== undefined && channel.unread_count > 0 && (
 										<div className="bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shrink-0">
 											{channel.unread_count > MAX_UNREAD_DISPLAY
 												? `${MAX_UNREAD_DISPLAY}+`

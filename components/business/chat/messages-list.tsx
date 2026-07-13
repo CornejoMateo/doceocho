@@ -1,9 +1,10 @@
 'use client';
 
-import { useLayoutEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare, Edit2, Trash2, MessageCircle, Loader2 } from 'lucide-react';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { useRef, useState, useEffect } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
 import { QuoteMessage } from './quote-message';
@@ -15,13 +16,17 @@ interface MessagesListProps {
 	searchTerm: string;
 	currentUserId: string;
 	editingMessage: { id: number; content: string } | null;
-	messagesScrollRef: React.RefObject<HTMLDivElement | null>;
 	messagesLoading: boolean;
-	scrollToMessageId?: number | null;
+	hasMore: boolean;
+	loadingMore: boolean;
+	onLoadMore: () => Promise<number>;
 	onEditMessage: (messageId: number, newContent: string) => void;
 	onDeleteMessage: (messageId: number) => void;
 	onSetEditingMessage: (message: { id: number; content: string } | null) => void;
 	onReplyTo: (message: MessageWithUser) => void;
+	channelId: number | null;
+	lastReadMessageId: number | null;
+	onScrolledToUnread: () => void;
 }
 
 export function MessagesList({
@@ -30,56 +35,86 @@ export function MessagesList({
 	searchTerm,
 	currentUserId,
 	editingMessage,
-	messagesScrollRef,
 	messagesLoading,
-	scrollToMessageId,
+	hasMore,
+	loadingMore,
+	onLoadMore,
 	onEditMessage,
 	onDeleteMessage,
 	onSetEditingMessage,
 	onReplyTo,
+	lastReadMessageId,
+	onScrolledToUnread,
 }: MessagesListProps) {
-	const hasScrolledRef = useRef(false);
+	const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-	useLayoutEffect(() => {
-		if (!scrollToMessageId || !messages.length || messagesLoading || hasScrolledRef.current) return;
+	const [firstItemIndex, setFirstItemIndex] = useState(100000);
 
-		hasScrolledRef.current = true;
+	const handleLoadMore = async () => {
+		const added = await onLoadMore();
 
-		const nextMessage = messages.find((m) => m.id > scrollToMessageId);
-
-		if (nextMessage) {
-			const el = messagesScrollRef.current?.querySelector(`[data-message-id="${nextMessage.id}"]`);
-			if (el) {
-				el.scrollIntoView({ block: 'center' });
-			}
-		} else if (messagesScrollRef.current) {
-			messagesScrollRef.current.scrollTop = messagesScrollRef.current.scrollHeight;
+		if (added > 0) {
+			setFirstItemIndex((prev) => prev - added);
 		}
-	}, [scrollToMessageId, messages, messagesLoading, messagesScrollRef]);
+	};
 
-	return (
-		<div ref={messagesScrollRef} className="flex-1 overflow-y-auto p-3 min-h-0 max-h-100">
-			<div className="space-y-3">
-				{messagesLoading ? (
-					<div className="text-center text-muted-foreground py-8">
-						<p>Cargando mensajes...</p>
-					</div>
-				) : filteredMessages.length === 0 ? (
-					searchTerm ? (
-						<div className="text-center text-muted-foreground py-8">
+	const firstUnreadIndex = filteredMessages.findIndex((msg) => msg.id > (lastReadMessageId ?? 0));
+
+	useEffect(() => {
+		if (!virtuosoRef.current) return;
+		if (firstUnreadIndex === -1) return;
+
+		virtuosoRef.current.scrollToIndex({
+			index: firstUnreadIndex,
+			align: 'center',
+			behavior: 'smooth',
+		});
+		onScrolledToUnread();
+	}, [firstUnreadIndex]);
+
+	if (messagesLoading) {
+		return (
+			<div className="flex-1 flex items-center justify-center min-h-0">
+				<div className="text-center text-muted-foreground">
+					<p>Cargando mensajes...</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (filteredMessages.length === 0) {
+		return (
+			<div className="flex-1 flex items-center justify-center min-h-0">
+				<div className="text-center text-muted-foreground">
+					{searchTerm ? (
+						<>
 							<Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
 							<p>{CHAT_CONSTANTS.MESSAGES.NO_SEARCH_RESULTS(searchTerm)}</p>
-						</div>
+						</>
 					) : (
-						<div className="text-center text-muted-foreground py-8">
+						<>
 							<MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
 							<p>{CHAT_CONSTANTS.MESSAGES.NO_MESSAGES}</p>
-						</div>
-					)
-				) : (
-					filteredMessages.map((message) => (
+						</>
+					)}
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="flex-1 min-h-0">
+			<Virtuoso
+				ref={virtuosoRef}
+				data={filteredMessages}
+				firstItemIndex={firstItemIndex}
+				initialTopMostItemIndex={
+					firstUnreadIndex !== -1 ? firstUnreadIndex : filteredMessages.length - 1
+				}
+				computeItemKey={(_, msg) => msg.id}
+				itemContent={(_, message) => (
+					<div className="px-3 py-1.5">
 						<MessageItem
-							key={message.id}
 							message={message}
 							messages={messages}
 							currentUserId={currentUserId}
@@ -89,15 +124,33 @@ export function MessagesList({
 							onSetEditingMessage={onSetEditingMessage}
 							onReplyTo={onReplyTo}
 						/>
-					))
-				)}
-				{searchTerm && filteredMessages.length > 0 && (
-					<div className="text-center text-sm text-muted-foreground py-2">
-						{filteredMessages.length}{' '}
-						{CHAT_CONSTANTS.MESSAGES.SEARCH_RESULTS(filteredMessages.length)}
 					</div>
 				)}
-			</div>
+				components={{
+					Header: () =>
+						hasMore && !searchTerm ? (
+							<div className="text-center py-2">
+								<Button
+									size="sm"
+									variant="ghost"
+									onClick={handleLoadMore}
+									disabled={loadingMore}
+									className="text-muted-foreground"
+								>
+									{loadingMore ? 'Cargando...' : 'Cargar más mensajes'}
+								</Button>
+							</div>
+						) : null,
+					Footer: () =>
+						searchTerm && filteredMessages.length > 0 ? (
+							<div className="text-center text-sm text-muted-foreground py-2">
+								{filteredMessages.length}{' '}
+								{CHAT_CONSTANTS.MESSAGES.SEARCH_RESULTS(filteredMessages.length)}
+							</div>
+						) : null,
+				}}
+				style={{ height: '100%' }}
+			/>
 		</div>
 	);
 }

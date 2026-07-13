@@ -47,9 +47,13 @@ export function ChatManagement() {
 		messagesLoading: false,
 	});
 
-	const { messages, loading: messagesLoading } = useChatRealtime(
-		chatManagement.selectedChannel?.id || null
-	);
+	const {
+		messages,
+		loading: messagesLoading,
+		loadingMore,
+		hasMore,
+		loadMore,
+	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
 
 	const optimisticMessages = chatManagement.optimisticMessages.filter(
 		(m) => m.channel_id === chatManagement.selectedChannel?.id
@@ -84,7 +88,7 @@ export function ChatManagement() {
 	}
 
 	return (
-		<div className="flex h-full gap-4 relative overflow-hidden">
+		<div className="flex min-h-[calc(100vh-8rem)] gap-4 relative overflow-hidden">
 			{(!isMobile || !chatManagement.selectedChannel) && (
 				<ChatSidebar
 					channels={chatManagement.channels}
@@ -109,7 +113,7 @@ export function ChatManagement() {
 			)}
 
 			{(!isMobile || chatManagement.selectedChannel) && (
-				<Card className="flex-1 flex flex-col">
+				<Card className="flex-1 flex flex-col min-h-0">
 					{chatManagement.selectedChannel ? (
 						<>
 							<ChatHeader
@@ -136,13 +140,17 @@ export function ChatManagement() {
 								searchTerm={chatManagement.searchTerm}
 								currentUserId={user.id}
 								editingMessage={chatManagement.editingMessage}
-								messagesScrollRef={chatManagement.messagesScrollRef}
 								messagesLoading={messagesLoading}
-								scrollToMessageId={chatManagement.selectedChannel?.last_read_message_id}
+								hasMore={hasMore}
+								loadingMore={loadingMore}
+								onLoadMore={loadMore}
 								onEditMessage={chatManagement.handleEditMessage}
 								onDeleteMessage={chatManagement.handleDeleteMessage}
 								onSetEditingMessage={chatManagement.setEditingMessage}
 								onReplyTo={chatManagement.handleReplyTo}
+								channelId={chatManagement.selectedChannel?.id ?? null}
+								lastReadMessageId={chatManagement.selectedChannel?.last_read_message_id ?? null}
+								onScrolledToUnread={chatManagement.handleScrolledToUnread}
 							/>
 
 							<MessageInput
