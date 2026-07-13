@@ -16,6 +16,11 @@ jest.mock('next/navigation', () => ({
 	useRouter: () => mockRouter,
 }));
 
+jest.mock('next/server', () => ({
+	after: jest.fn(),
+	NextResponse: { json: jest.fn() },
+}));
+
 const mockOnAuthStateChange = jest.fn();
 const mockSignInWithPassword = jest.fn();
 const mockSignOut = jest.fn();
