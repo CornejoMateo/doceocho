@@ -1,12 +1,6 @@
 import type { BudgetReportRow, BudgetFilters } from '@/components/business/reports/budgets/types';
 import { parseArsToNumber } from '@/utils/formats-money';
 
-/**
- * Applies advanced filters to budget report rows
- * @param rows - The budget rows to filter
- * @param filters - The filter criteria
- * @returns Filtered budget rows
- */
 export function applyBudgetFilters(
 	rows: BudgetReportRow[],
 	filters: BudgetFilters
