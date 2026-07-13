@@ -72,7 +72,7 @@ self.addEventListener('notificationclick', (event) => {
 	if (event.action === 'open' || event.action === '') {
 		event.waitUntil(
 			self.clients.matchAll({ type: 'window' }).then((clientList) => {
-				const targetUrl = new URL('/', self.location.origin).href;
+				const targetUrl = new URL('/chat', self.location.origin).href;
 				for (const client of clientList) {
 					if (client.url.startsWith(self.location.origin) && 'focus' in client) {
 						return client.focus();
