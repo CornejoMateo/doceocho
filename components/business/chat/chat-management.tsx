@@ -122,6 +122,7 @@ export function ChatManagement() {
 								onSearchChange={chatManagement.setSearchTerm}
 								onShowMembers={chatManagement.handleShowMembers}
 								onCleanupMessages={() => chatManagement.setShowCleanupDialog(true)}
+								onSearchByDate={() => chatManagement.setShowSearch(!chatManagement.showSearch)}
 								onBack={() => {
 									chatManagement.setSelectedChannel(null);
 									chatManagement.setShowSidebar(true);

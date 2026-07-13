@@ -35,7 +35,7 @@ export function ChatSidebar({
 	return (
 		<Card className="w-full max-w-80 flex flex-col h-full overflow-hidden shrink-0">
 			<div className="p-4 border-b">
-				<div className="flex items-center justify-between mb-4">
+				<div className="flex items-center justify-between">
 					<h2 className="text-lg font-semibold">{CHAT_CONSTANTS.CHANNELS.TITLE}</h2>
 					{isAdmin && (
 						<Button size="sm" onClick={onCreateChannel}>
@@ -44,8 +44,8 @@ export function ChatSidebar({
 						</Button>
 					)}
 				</div>
-				{isMobile && pushNotificationSettings}
 			</div>
+			{isMobile && <div className="px-4 pt-3 pb-1 border-b">{pushNotificationSettings}</div>}
 			<div className="flex-1 overflow-y-auto">
 				{loading && !initialLoadDone ? (
 					<div className="p-4 text-center text-sm text-muted-foreground">

@@ -50,7 +50,7 @@ export function PushNotificationSettings({
 	if (!isSupported) return null;
 
 	return (
-		<div className="mb-4 p-2 bg-muted rounded">
+		<div className="p-2 bg-muted rounded">
 			{error && <p className="text-xs text-destructive mb-2">{error}</p>}
 			{permission === 'default' && (
 				<Button
