@@ -10,6 +10,7 @@ import '../styles/globals.css';
 import { Suspense } from 'react';
 import { AuthProvider } from '@/components/provider/auth-provider';
 import { ThemeProvider } from '@/components/provider/theme-provider';
+import { ChatUnreadProvider } from '@/components/provider/chat-unread-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { ServiceWorkerRegister } from '@/components/service-worker-register';
 
@@ -50,7 +51,9 @@ export default function RootLayout({
 					enableColorScheme
 				>
 					<AuthProvider>
-						<Suspense fallback={null}>{children}</Suspense>
+						<ChatUnreadProvider>
+							<Suspense fallback={null}>{children}</Suspense>
+						</ChatUnreadProvider>
 					</AuthProvider>
 					<Toaster />
 					<Analytics />
