@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -9,7 +9,7 @@ import { usePushNotifications } from '@/hooks/push/use-push-notifications';
 import { useChatManagement } from '@/hooks/chat/use-chat-management';
 import { ChatSidebar } from './chat-sidebar';
 import { ChatHeader } from './chat-header';
-import { MessagesList } from './messages-list';
+import { MessagesList, MessagesListHandle } from './messages-list';
 import { MessageInput } from './message-input';
 import { PushNotificationSettings } from '@/components/business/chat/push-notification-settings';
 import { CleanupMessagesDialog } from '@/components/business/chat/cleanup-messages-dialog';
@@ -77,6 +77,18 @@ export function ChatManagement() {
 			)
 		: allMessages;
 
+	const messagesListRef = useRef<MessagesListHandle>(null);
+	const prevOptimisticCountRef = useRef(optimisticMessages.length);
+
+	useEffect(() => {
+		if (optimisticMessages.length > prevOptimisticCountRef.current) {
+			requestAnimationFrame(() => {
+				messagesListRef.current?.scrollToBottom();
+			});
+		}
+		prevOptimisticCountRef.current = optimisticMessages.length;
+	}, [optimisticMessages.length]);
+
 	useEffect(() => {
 		if (user) {
 			chatManagement.loadChannels();
@@ -134,6 +146,7 @@ export function ChatManagement() {
 							/>
 
 							<MessagesList
+								ref={messagesListRef}
 								key={chatManagement.selectedChannel?.id ?? 'no-channel'}
 								messages={allMessages}
 								filteredMessages={filteredMessages}

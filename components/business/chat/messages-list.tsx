@@ -4,11 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare, Edit2, Trash2, MessageCircle, Loader2 } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import { useRef, useState, useEffect } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
 import { QuoteMessage } from './quote-message';
 import { formatCreatedAtChat } from '@/utils/format-date';
+
+export interface MessagesListHandle {
+	scrollToBottom: () => void;
+}
 
 interface MessagesListProps {
 	messages: MessageWithUser[];
@@ -29,24 +33,38 @@ interface MessagesListProps {
 	onScrolledToUnread: () => void;
 }
 
-export function MessagesList({
-	messages,
-	filteredMessages,
-	searchTerm,
-	currentUserId,
-	editingMessage,
-	messagesLoading,
-	hasMore,
-	loadingMore,
-	onLoadMore,
-	onEditMessage,
-	onDeleteMessage,
-	onSetEditingMessage,
-	onReplyTo,
-	lastReadMessageId,
-	onScrolledToUnread,
-}: MessagesListProps) {
+export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(function MessagesList(
+	{
+		messages,
+		filteredMessages,
+		searchTerm,
+		currentUserId,
+		editingMessage,
+		messagesLoading,
+		hasMore,
+		loadingMore,
+		onLoadMore,
+		onEditMessage,
+		onDeleteMessage,
+		onSetEditingMessage,
+		onReplyTo,
+		lastReadMessageId,
+		onScrolledToUnread,
+	},
+	ref
+) {
 	const virtuosoRef = useRef<VirtuosoHandle>(null);
+
+	useImperativeHandle(ref, () => ({
+		scrollToBottom: () => {
+			if (!virtuosoRef.current || filteredMessages.length === 0) return;
+			virtuosoRef.current.scrollToIndex({
+				index: filteredMessages.length - 1,
+				align: 'end',
+				behavior: 'smooth',
+			});
+		},
+	}));
 
 	const [firstItemIndex, setFirstItemIndex] = useState(100000);
 
@@ -153,7 +171,7 @@ export function MessagesList({
 			/>
 		</div>
 	);
-}
+});
 
 interface MessageItemProps {
 	message: MessageWithUser;
