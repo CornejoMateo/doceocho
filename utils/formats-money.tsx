@@ -23,7 +23,7 @@ export const formatCurrencyWithoutSymbol = (amount: number | null | undefined) =
 
 // Similar to formatCurrency but for USD
 export const formatCurrencyUSD = (amount: number | null | undefined) => {
-	if (!amount) return '';
+	if (!amount) return 'US$ 0.00';
 	return new Intl.NumberFormat('es-AR', {
 		style: 'currency',
 		currency: 'USD',

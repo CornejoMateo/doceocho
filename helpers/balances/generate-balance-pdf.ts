@@ -1,8 +1,9 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { BalanceReportRow } from '@/components/business/reports/balances/types';
-import { formatCurrency } from '@/utils/formats-money';
+import { formatCurrency, parseArsToNumber } from '@/utils/formats-money';
 import { BALANCES_REPORT_COLUMNS } from '@/constants/balances/balances-report';
+import { formatCreatedAt } from '@/utils/format-date';
 
 /**
  * Generates a PDF report of filtered balances
@@ -32,7 +33,12 @@ export function generateBalancesPDF(rows: BalanceReportRow[], filtersDescription
 		month: '2-digit',
 		year: 'numeric',
 	});
-	doc.text(`Fecha: ${dateStr}`, 14, 35);
+	doc.text(`Fecha: ${dateStr}`, 196, 20, { align: 'right' });
+
+	// Calculate table start position based on filters height
+	const filterText = filtersDescription || 'Sin filtros aplicados';
+	const filterLines = doc.splitTextToSize(`Filtros aplicados: ${filterText}`, 180);
+	const tableStartY = 28 + filterLines.length * 4.5 + 6;
 
 	// Table headers
 	const headers = [
@@ -62,10 +68,12 @@ export function generateBalancesPDF(rows: BalanceReportRow[], filtersDescription
 	autoTable(doc, {
 		head: [headers],
 		body: data,
-		startY: 45,
+		startY: tableStartY,
 		styles: {
 			fontSize: 8,
 			cellPadding: 3,
+			halign: 'center',
+			valign: 'middle',
 		},
 		headStyles: {
 			fillColor: [79, 92, 77], // DOCE OCHO brand color
@@ -75,7 +83,7 @@ export function generateBalancesPDF(rows: BalanceReportRow[], filtersDescription
 		alternateRowStyles: {
 			fillColor: [245, 245, 245],
 		},
-		margin: { top: 10, right: 10, bottom: 10, left: 10 },
+		margin: { top: 10, right: 10, bottom: 10, left: 14 },
 	});
 
 	// Footer with total count
@@ -93,10 +101,7 @@ export function generateBalancesPDF(rows: BalanceReportRow[], filtersDescription
 
 	// Save the PDF
 	const date = new Date();
-	const day = String(date.getDate()).padStart(2, '0');
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const year = date.getFullYear();
-	const timestamp = `${day}-${month}-${year}`;
+	const timestamp = `${formatCreatedAt(date)}`;
 	doc.save(`saldos_${timestamp}.pdf`);
 }
 
@@ -114,27 +119,35 @@ export function getFiltersDescription(filters: {
 }): string {
 	const parts: string[] = [];
 
-	if (filters.balanceType !== 'all') {
+	const hasValue = (v: string | number | null | undefined) =>
+		v !== null && v !== undefined && String(v).trim() !== '';
+
+	if (hasValue(filters.balanceType) && filters.balanceType !== 'all') {
 		parts.push(`Tipo: ${filters.balanceType}`);
 	}
-	if (filters.minPurchaseArs) {
-		parts.push(`Compra ARS mín: ${filters.minPurchaseArs}`);
+	if (hasValue(filters.minPurchaseArs)) {
+		parts.push(`Compra ARS mín: ${formatCurrency(parseArsToNumber(filters.minPurchaseArs))}`);
 	}
-	if (filters.maxPurchaseArs) {
-		parts.push(`Compra ARS máx: ${filters.maxPurchaseArs}`);
+	if (hasValue(filters.maxPurchaseArs)) {
+		parts.push(`Compra ARS máx: ${formatCurrency(parseArsToNumber(filters.maxPurchaseArs))}`);
 	}
-	if (filters.minDeliveriesArs) {
-		parts.push(`Entregas ARS mín: ${filters.minDeliveriesArs}`);
+	if (hasValue(filters.minDeliveriesArs)) {
+		parts.push(`Entregas ARS mín: ${formatCurrency(parseArsToNumber(filters.minDeliveriesArs))}`);
 	}
-	if (filters.maxDeliveriesArs) {
-		parts.push(`Entregas ARS máx: ${filters.maxDeliveriesArs}`);
+	if (hasValue(filters.maxDeliveriesArs)) {
+		parts.push(`Entregas ARS máx: ${formatCurrency(parseArsToNumber(filters.maxDeliveriesArs))}`);
 	}
-	if (filters.minBalanceArs) {
-		parts.push(`Saldo ARS mín: ${filters.minBalanceArs}`);
+	if (hasValue(filters.minBalanceArs)) {
+		parts.push(`Saldo ARS mín: ${formatCurrency(parseArsToNumber(filters.minBalanceArs))}`);
 	}
-	if (filters.maxBalanceArs) {
-		parts.push(`Saldo ARS máx: ${filters.maxBalanceArs}`);
+	if (hasValue(filters.maxBalanceArs)) {
+		parts.push(`Saldo ARS máx: ${formatCurrency(parseArsToNumber(filters.maxBalanceArs))}`);
 	}
 
-	return parts.length > 0 ? parts.join(', ') : 'Todos';
+	if (parts.length === 0) return 'Todos';
+	const lines: string[] = [];
+	for (let i = 0; i < parts.length; i += 2) {
+		lines.push(parts.slice(i, i + 2).join(' - '));
+	}
+	return lines.join('\n');
 }
