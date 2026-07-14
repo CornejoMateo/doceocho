@@ -93,6 +93,7 @@ describe('MessagesList', () => {
 		messages: [],
 		filteredMessages: [],
 		searchTerm: '',
+		isFiltering: false,
 		currentUserId: 'user-1',
 		editingMessage: null,
 		messagesLoading: false,
@@ -123,7 +124,7 @@ describe('MessagesList', () => {
 	});
 
 	it('shows search empty state when no results', () => {
-		render(<MessagesList {...defaultProps} searchTerm="xyz" />);
+		render(<MessagesList {...defaultProps} searchTerm="xyz" isFiltering />);
 		expect(screen.getByText(CHAT_CONSTANTS.MESSAGES.NO_SEARCH_RESULTS('xyz'))).toBeInTheDocument();
 	});
 
@@ -236,6 +237,7 @@ describe('MessagesList', () => {
 				messages={[baseMessage]}
 				filteredMessages={[baseMessage]}
 				searchTerm="test"
+				isFiltering
 				hasMore
 			/>
 		);
@@ -249,6 +251,7 @@ describe('MessagesList', () => {
 				messages={[baseMessage]}
 				filteredMessages={[baseMessage]}
 				searchTerm="test"
+				isFiltering
 			/>
 		);
 		expect(screen.getByText(/1 mensaje encontrado/)).toBeInTheDocument();
