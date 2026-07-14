@@ -3,12 +3,8 @@ import autoTable from 'jspdf-autotable';
 import type { BudgetReportRow } from '@/components/business/reports/budgets/types';
 import { formatCurrency, formatCurrencyUSD, parseArsToNumber } from '@/utils/formats-money';
 import { BUDGETS_REPORT_COLUMNS } from '@/constants/budgets/budgets-report';
+import { formatCreatedAt } from '@/utils/format-date';
 
-/**
- * Generates a PDF report of filtered budgets
- * @param rows - The filtered budget rows to include in the PDF
- * @param filtersDescription - Optional description of active filters
- */
 export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?: string): void {
 	const doc = new jsPDF();
 
@@ -95,10 +91,8 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 
 	// Save the PDF
 	const date = new Date();
-	const day = String(date.getDate()).padStart(2, '0');
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const year = date.getFullYear();
-	const timestamp = `${day}-${month}-${year}`;
+
+	const timestamp = `${formatCreatedAt(date)}`;
 	doc.save(`presupuestos_${timestamp}.pdf`);
 }
 
