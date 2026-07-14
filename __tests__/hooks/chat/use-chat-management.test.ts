@@ -13,6 +13,16 @@ jest.mock('@/components/provider/auth-provider', () => ({
 	}),
 }));
 
+jest.mock('@/components/provider/chat-unread-provider', () => ({
+	useChatUnread: jest.fn().mockReturnValue({
+		totalUnreadCount: 0,
+		incrementUnreadCount: jest.fn(),
+		decrementUnreadCount: jest.fn(),
+		setUnreadCount: jest.fn(),
+		fetchUnreadCount: jest.fn().mockResolvedValue(undefined),
+	}),
+}));
+
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn().mockReturnValue({
 		channel: jest.fn().mockReturnValue({
@@ -142,14 +152,14 @@ describe('useChatManagement', () => {
 		expect(result.current.loading).toBe(false);
 	});
 
-	it('calculates totalUnreadCount', async () => {
+	it('exposes totalUnreadCount from useChatUnread', async () => {
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
 		await act(async () => {
 			await result.current.loadChannels();
 		});
 
-		expect(result.current.totalUnreadCount).toBe(3);
+		expect(result.current.totalUnreadCount).toBe(0);
 	});
 
 	it('handleChannelSelect selects channel and clears unread', async () => {

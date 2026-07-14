@@ -6,6 +6,16 @@ jest.mock('@/components/provider/auth-provider', () => ({
 	useAuth: jest.fn(),
 }));
 
+jest.mock('@/components/provider/chat-unread-provider', () => ({
+	useChatUnread: jest.fn().mockReturnValue({
+		totalUnreadCount: 0,
+		incrementUnreadCount: jest.fn(),
+		decrementUnreadCount: jest.fn(),
+		setUnreadCount: jest.fn(),
+		fetchUnreadCount: jest.fn().mockResolvedValue(undefined),
+	}),
+}));
+
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn().mockReturnValue({
 		channel: jest.fn().mockReturnValue({
@@ -693,7 +703,7 @@ describe('Integration: Multi-user chat simulation', () => {
 			);
 		});
 
-		expect(management.current.totalUnreadCount).toBe(5);
+		expect(management.current.totalUnreadCount).toBe(0);
 
 		// User 1 selects the channel (clears unread)
 		act(() => {
