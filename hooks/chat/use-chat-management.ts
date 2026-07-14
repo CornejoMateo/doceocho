@@ -48,6 +48,8 @@ export function useChatManagement({
 	const [members, setMembers] = useState<any[]>([]);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [showSearch, setShowSearch] = useState(false);
+	const [showDateSearch, setShowDateSearch] = useState(false);
+	const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
 	const [editingMessage, setEditingMessage] = useState<{ id: number; content: string } | null>(
 		null
 	);
@@ -244,6 +246,9 @@ export function useChatManagement({
 		);
 
 		setSearchTerm('');
+		setShowSearch(false);
+		setShowDateSearch(false);
+		setDateRange({ from: '', to: '' });
 		setShowSidebar(false);
 		setScrolledToUnread(false);
 		setReplyingTo(null);
@@ -404,6 +409,8 @@ export function useChatManagement({
 		members,
 		searchTerm,
 		showSearch,
+		showDateSearch,
+		dateRange,
 		editingMessage,
 		showSidebar,
 		showCleanupDialog,
@@ -420,6 +427,8 @@ export function useChatManagement({
 		setNewMessage,
 		setSearchTerm,
 		setShowSearch,
+		setShowDateSearch,
+		setDateRange,
 		setEditingMessage,
 		setShowSidebar,
 		setShowCleanupDialog,

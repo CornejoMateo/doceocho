@@ -18,6 +18,7 @@ interface MessagesListProps {
 	messages: MessageWithUser[];
 	filteredMessages: MessageWithUser[];
 	searchTerm: string;
+	isFiltering: boolean;
 	currentUserId: string;
 	editingMessage: { id: number; content: string } | null;
 	messagesLoading: boolean;
@@ -38,6 +39,7 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 		messages,
 		filteredMessages,
 		searchTerm,
+		isFiltering,
 		currentUserId,
 		editingMessage,
 		messagesLoading,
@@ -78,8 +80,11 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 
 	const firstUnreadIndex = filteredMessages.findIndex((msg) => msg.id > (lastReadMessageId ?? 0));
 
+	const didScrollToUnreadRef = useRef(false);
+
 	useEffect(() => {
 		if (!virtuosoRef.current) return;
+		if (didScrollToUnreadRef.current) return;
 		if (firstUnreadIndex === -1) return;
 
 		virtuosoRef.current.scrollToIndex({
@@ -87,6 +92,7 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 			align: 'center',
 			behavior: 'smooth',
 		});
+		didScrollToUnreadRef.current = true;
 		onScrolledToUnread();
 	}, [firstUnreadIndex]);
 
@@ -104,10 +110,10 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 		return (
 			<div className="flex-1 flex items-center justify-center min-h-0">
 				<div className="text-center text-muted-foreground">
-					{searchTerm ? (
+					{isFiltering ? (
 						<>
 							<Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
-							<p>{CHAT_CONSTANTS.MESSAGES.NO_SEARCH_RESULTS(searchTerm)}</p>
+							<p>{CHAT_CONSTANTS.MESSAGES.NO_SEARCH_RESULTS(searchTerm || 'fecha')}</p>
 						</>
 					) : (
 						<>
@@ -146,7 +152,7 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 				)}
 				components={{
 					Header: () =>
-						hasMore && !searchTerm ? (
+						hasMore && !isFiltering ? (
 							<div className="text-center py-2">
 								<Button
 									size="sm"
@@ -160,7 +166,7 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 							</div>
 						) : null,
 					Footer: () =>
-						searchTerm && filteredMessages.length > 0 ? (
+						isFiltering && filteredMessages.length > 0 ? (
 							<div className="text-center text-sm text-muted-foreground py-2">
 								{filteredMessages.length}{' '}
 								{CHAT_CONSTANTS.MESSAGES.SEARCH_RESULTS(filteredMessages.length)}

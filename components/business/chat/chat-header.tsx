@@ -25,10 +25,14 @@ interface ChatHeaderProps {
 	channel: ChannelWithLastMessage;
 	showSearch: boolean;
 	searchTerm: string;
+	showDateSearch: boolean;
+	dateRange: { from: string; to: string };
 	isAdmin: boolean;
 	isMobile: boolean;
 	onSearchToggle: () => void;
 	onSearchChange: (value: string) => void;
+	onDateSearchToggle: () => void;
+	onDateRangeChange: (range: { from: string; to: string }) => void;
 	onShowMembers: () => void;
 	onCleanupMessages: () => void;
 	onSearchByDate: () => void;
@@ -39,10 +43,14 @@ export function ChatHeader({
 	channel,
 	showSearch,
 	searchTerm,
+	showDateSearch,
+	dateRange,
 	isAdmin,
 	isMobile,
 	onSearchToggle,
 	onSearchChange,
+	onDateSearchToggle,
+	onDateRangeChange,
 	onShowMembers,
 	onCleanupMessages,
 	onSearchByDate,
@@ -65,6 +73,25 @@ export function ChatHeader({
 						className="flex-1"
 					/>
 					<Button size="sm" variant="ghost" onClick={onSearchToggle}>
+						<X className="h-4 w-4" />
+					</Button>
+				</div>
+			) : showDateSearch ? (
+				<div className="flex items-center gap-2 flex-1">
+					<Input
+						type="date"
+						value={dateRange.from}
+						onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
+						className="flex-1"
+					/>
+					<span className="text-muted-foreground text-sm">a</span>
+					<Input
+						type="date"
+						value={dateRange.to}
+						onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
+						className="flex-1"
+					/>
+					<Button size="sm" variant="ghost" onClick={onDateSearchToggle}>
 						<X className="h-4 w-4" />
 					</Button>
 				</div>
@@ -111,6 +138,9 @@ export function ChatHeader({
 							<>
 								<Button size="sm" variant="outline" onClick={onSearchToggle}>
 									<Search className="h-4 w-4" />
+								</Button>
+								<Button size="sm" variant="outline" onClick={onDateSearchToggle}>
+									<CalendarDays className="h-4 w-4" />
 								</Button>
 								{isAdmin && (
 									<Button size="sm" variant="outline" onClick={onCleanupMessages}>

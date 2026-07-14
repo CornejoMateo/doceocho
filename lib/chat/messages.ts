@@ -18,7 +18,6 @@ export async function getMessagesAction(
 ): Promise<{ success: boolean; error?: string; data?: MessageWithUser[]; hasMore?: boolean }> {
 	try {
 		const supabase = await getServerSupabaseClient();
-		await getCurrentUser();
 
 		const { data, error } = await supabase
 			.from(TABLE)

@@ -70,18 +70,35 @@ export function ChatManagement() {
 		[messages, optimisticMessages]
 	);
 
-	const filteredMessages = chatManagement.searchTerm
-		? allMessages.filter(
+	const filteredMessages = useMemo(() => {
+		let result = allMessages;
+
+		if (chatManagement.searchTerm) {
+			const term = chatManagement.searchTerm.toLowerCase();
+			result = result.filter(
 				(msg) =>
-					(msg.content?.toLowerCase().includes(chatManagement.searchTerm.toLowerCase()) ||
-						msg.users?.username?.toLowerCase().includes(chatManagement.searchTerm.toLowerCase()) ||
-						msg.users?.name?.toLowerCase().includes(chatManagement.searchTerm.toLowerCase()) ||
-						msg.users?.last_name
-							?.toLowerCase()
-							.includes(chatManagement.searchTerm.toLowerCase())) &&
-					msg.deleted_at === null
-			)
-		: allMessages;
+					msg.content?.toLowerCase().includes(term) ||
+					msg.users?.username?.toLowerCase().includes(term) ||
+					msg.users?.name?.toLowerCase().includes(term) ||
+					msg.users?.last_name?.toLowerCase().includes(term)
+			);
+		}
+
+		const { from, to } = chatManagement.dateRange;
+		if (from || to) {
+			const fromDate = from ? new Date(`${from}T00:00:00`) : null;
+			const toDate = to ? new Date(`${to}T23:59:59.999`) : null;
+
+			result = result.filter((msg) => {
+				const msgDate = new Date(msg.created_at);
+				if (fromDate && msgDate < fromDate) return false;
+				if (toDate && msgDate > toDate) return false;
+				return true;
+			});
+		}
+
+		return result;
+	}, [allMessages, chatManagement.searchTerm, chatManagement.dateRange]);
 
 	const messagesListRef = useRef<MessagesListHandle>(null);
 	const prevOptimisticCountRef = useRef(optimisticMessages.length);
@@ -138,13 +155,32 @@ export function ChatManagement() {
 								channel={chatManagement.selectedChannel}
 								showSearch={chatManagement.showSearch}
 								searchTerm={chatManagement.searchTerm}
+								showDateSearch={chatManagement.showDateSearch}
+								dateRange={chatManagement.dateRange}
 								isAdmin={chatManagement.isAdmin}
 								isMobile={isMobile}
-								onSearchToggle={() => chatManagement.setShowSearch(!chatManagement.showSearch)}
+								onSearchToggle={() => {
+									chatManagement.setShowDateSearch(false);
+									chatManagement.setDateRange({ from: '', to: '' });
+									chatManagement.setShowSearch(!chatManagement.showSearch);
+									if (chatManagement.showSearch) chatManagement.setSearchTerm('');
+								}}
 								onSearchChange={chatManagement.setSearchTerm}
+								onDateSearchToggle={() => {
+									chatManagement.setShowSearch(false);
+									chatManagement.setSearchTerm('');
+									chatManagement.setShowDateSearch(!chatManagement.showDateSearch);
+									if (chatManagement.showDateSearch)
+										chatManagement.setDateRange({ from: '', to: '' });
+								}}
+								onDateRangeChange={chatManagement.setDateRange}
 								onShowMembers={chatManagement.handleShowMembers}
 								onCleanupMessages={() => chatManagement.setShowCleanupDialog(true)}
-								onSearchByDate={() => chatManagement.setShowSearch(!chatManagement.showSearch)}
+								onSearchByDate={() => {
+									chatManagement.setShowSearch(false);
+									chatManagement.setSearchTerm('');
+									chatManagement.setShowDateSearch(true);
+								}}
 								onBack={() => {
 									chatManagement.setSelectedChannel(null);
 									chatManagement.setShowSidebar(true);
@@ -157,6 +193,11 @@ export function ChatManagement() {
 								messages={allMessages}
 								filteredMessages={filteredMessages}
 								searchTerm={chatManagement.searchTerm}
+								isFiltering={
+									!!chatManagement.searchTerm ||
+									!!chatManagement.dateRange.from ||
+									!!chatManagement.dateRange.to
+								}
 								currentUserId={user.id}
 								editingMessage={chatManagement.editingMessage}
 								messagesLoading={messagesLoading}
