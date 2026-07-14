@@ -269,7 +269,7 @@ export function BudgetsReport() {
 										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('amountArs')}
 									>
-										<div className="flex w-full items-center justify-center gap-1">
+										<div className="flex w-full items-center justify-end gap-1">
 											{BUDGETS_REPORT_COLUMNS.amountArs}
 											{getSortIcon('amountArs')}
 										</div>
@@ -311,20 +311,18 @@ export function BudgetsReport() {
 								) : (
 									filteredRows.map((r) => (
 										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap text-center">{r.date}</TableCell>
-											<TableCell className="font-medium whitespace-nowrap text-center">
-												{r.client}
-											</TableCell>
-											<TableCell className="whitespace-nowrap text-center">{r.number}</TableCell>
-											<TableCell className="whitespace-nowrap text-center">{r.type}</TableCell>
-											<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
-											<TableCell className="text-center whitespace-nowrap">
+											<TableCell className="whitespace-nowrap">{r.date}</TableCell>
+											<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.number}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.type}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.work}</TableCell>
+											<TableCell className="text-right whitespace-nowrap">
 												{formatCurrency(r.amountArs)}
 											</TableCell>
-											<TableCell className="text-center whitespace-nowrap">
-												{formatCurrencyUSD(r.amountUsd)}
+											<TableCell className="text-right whitespace-nowrap">
+												{r.amountUsd ? formatCurrencyUSD(r.amountUsd) : ' - '}
 											</TableCell>
-											<TableCell className="whitespace-nowrap text-center">{r.status}</TableCell>
+											<TableCell className="whitespace-nowrap">{r.status}</TableCell>
 										</TableRow>
 									))
 								)}

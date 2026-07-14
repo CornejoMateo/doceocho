@@ -91,7 +91,6 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 
 	// Save the PDF
 	const date = new Date();
-
 	const timestamp = `${formatCreatedAt(date)}`;
 	doc.save(`presupuestos_${timestamp}.pdf`);
 }
