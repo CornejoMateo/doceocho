@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { getMessagesAction } from '@/lib/chat/messages';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -11,9 +11,13 @@ export function useChatRealtime(channelId: number | null) {
 	const [loadingMore, setLoadingMore] = useState(false);
 	const [hasMore, setHasMore] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const supabase = getSupabaseClient();
-
+	const supabase = useMemo(() => getSupabaseClient(), []);
 	const messagesRef = useRef<MessageWithUser[]>([]);
+
+	useEffect(() => {
+		messagesRef.current = [];
+		setMessages([]);
+	}, [channelId]);
 
 	useEffect(() => {
 		messagesRef.current = messages;
@@ -95,12 +99,22 @@ export function useChatRealtime(channelId: number | null) {
 	}, [channelId, !!user]);
 
 	useEffect(() => {
+		setMessages([]);
+		setHasMore(true);
+		setError(null);
+
 		fetchMessages();
-	}, [fetchMessages]);
+	}, [channelId]);
 
 	useEffect(() => {
 		const handler = (e: CustomEvent<MessageWithUser>) => {
-			addMessage(e.detail);
+			const message = e.detail;
+
+			if (message.channel_id !== channelId) {
+				return;
+			}
+
+			addMessage(message);
 		};
 		window.addEventListener('new-message', handler as EventListener);
 		return () => window.removeEventListener('new-message', handler as EventListener);
