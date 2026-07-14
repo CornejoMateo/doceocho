@@ -79,7 +79,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Flujo de Fondos',
 				'Obras',
 				'Reportes',
-				'Fichar',
 			],
 			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Obras', 'Fichar'],
 		} as Record<UserRole, string[]>;
