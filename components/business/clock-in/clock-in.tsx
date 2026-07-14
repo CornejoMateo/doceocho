@@ -26,6 +26,7 @@ export function ClockIn() {
 	const [adminLoading, setAdminLoading] = useState(false);
 	const { user } = useAuth();
 
+	// Load state from localStorage on mount
 	useEffect(() => {
 		async function loadSettings() {
 			const { data: settings } = await getAttendanceSettings();
@@ -34,6 +35,20 @@ export function ClockIn() {
 				setAdminSquareMeters(settings.square_meters.toString());
 			}
 		}
+
+		// Load attendance state from localStorage
+		const today = new Date().toISOString().split('T')[0];
+		const savedState = localStorage.getItem(`attendance_state_${today}`);
+		if (savedState) {
+			try {
+				const state = JSON.parse(savedState);
+				setIsClockedIn(state.isClockedIn || false);
+				setIsClockedInOvertime(state.isClockedInOvertime || false);
+			} catch (e) {
+				// If parsing fails, use default state
+			}
+		}
+
 		loadSettings();
 	}, []);
 
@@ -116,6 +131,14 @@ export function ClockIn() {
 			} else {
 				setIsClockedIn(!isClockedIn);
 			}
+
+			// Save state to localStorage
+			const attendanceDate = new Date().toISOString().split('T')[0];
+			const newState = {
+				isClockedIn: isOvertime ? isClockedIn : !isClockedIn,
+				isClockedInOvertime: isOvertime ? !isClockedInOvertime : isClockedInOvertime,
+			};
+			localStorage.setItem(`attendance_state_${attendanceDate}`, JSON.stringify(newState));
 
 			toast({
 				title: 'Fichaje registrado',
