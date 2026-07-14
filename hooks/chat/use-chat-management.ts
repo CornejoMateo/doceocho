@@ -30,9 +30,14 @@ interface UseChatManagementProps {
 	currentUserRole: string;
 	messages: MessageWithUser[];
 	messagesLoading: boolean;
+	onMessagesCleaned?: () => void;
 }
 
-export function useChatManagement({ currentUserUid, currentUserRole }: UseChatManagementProps) {
+export function useChatManagement({
+	currentUserUid,
+	currentUserRole,
+	onMessagesCleaned,
+}: UseChatManagementProps) {
 	const [channels, setChannels] = useState<ChannelWithLastMessage[]>([]);
 	const [selectedChannel, setSelectedChannel] = useState<ChannelWithLastMessage | null>(null);
 	const [newMessage, setNewMessage] = useState('');
@@ -368,6 +373,7 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 		setPendingCleanupMessages(false);
 
 		const result = await cleanChannelMessagesAction(selectedChannel.id, cleanupDate);
+
 		if (result.success) {
 			toast({
 				title: 'Mensajes eliminados',
@@ -375,6 +381,7 @@ export function useChatManagement({ currentUserUid, currentUserRole }: UseChatMa
 			});
 			setShowCleanupDialog(false);
 			setCleanupDate('');
+			onMessagesCleaned?.();
 		} else {
 			toast({
 				title: 'Error al limpiar mensajes',

@@ -6,6 +6,9 @@ import type { Message, MessageWithUser } from '@/lib/chat/chat-types';
 import { sendPushNotificationToChannel } from '@/actions/push/send-notification';
 import { after } from 'next/server';
 
+import { fromZonedTime } from 'date-fns-tz';
+const timeZone = 'America/Argentina/Buenos_Aires';
+
 const TABLE = 'messages';
 
 export async function getMessagesAction(
@@ -139,7 +142,6 @@ export async function editMessageAction(
 ): Promise<{ success: boolean; error?: string; data?: Message }> {
 	try {
 		const supabase = await getServerSupabaseClient();
-		const user = await getCurrentUser();
 
 		if (!content.trim()) {
 			return { success: false, error: 'El mensaje no puede estar vacío' };
@@ -186,22 +188,44 @@ export async function cleanChannelMessagesAction(
 ): Promise<{ success: boolean; error?: string; deletedCount?: number }> {
 	try {
 		const supabase = await getServerSupabaseClient();
-		await getCurrentUser();
+
+		const [year, month, day] = cleanupDate.split('-').map(Number);
+
+		const startDateUtc = fromZonedTime(
+			new Date(year, month - 1, day, 0, 0, 0),
+			timeZone
+		).toISOString();
+
+		const endDateUtc = fromZonedTime(
+			new Date(year, month - 1, day + 1, 0, 0, 0),
+			timeZone
+		).toISOString();
 
 		const { data: messagesToDelete, error } = await supabase
 			.from(TABLE)
 			.select('id')
 			.eq('channel_id', channelId)
-			.lt('created_at', cleanupDate);
+			.gte('created_at', startDateUtc)
+			.lt('created_at', endDateUtc);
 
 		if (error) return { success: false, error: error.message };
 		if (!messagesToDelete?.length) return { success: true, deletedCount: 0 };
 
-		for (const message of messagesToDelete) {
-			await supabase.from(TABLE).delete().eq('id', message.id);
+		const { error: deleteError } = await supabase
+			.from(TABLE)
+			.delete()
+			.eq('channel_id', channelId)
+			.gte('created_at', startDateUtc)
+			.lt('created_at', endDateUtc);
+
+		if (deleteError) {
+			return { success: false, error: deleteError.message };
 		}
 
-		return { success: true, deletedCount: messagesToDelete.length };
+		return {
+			success: true,
+			deletedCount: messagesToDelete.length,
+		};
 	} catch (err: any) {
 		return { success: false, error: err.message };
 	}

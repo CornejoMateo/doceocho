@@ -231,7 +231,8 @@ CREATE POLICY "Messages delete"
 ON public.messages FOR DELETE
 TO authenticated
 USING (
-    user_id = auth.uid()
+    user_id = auth.uid() OR 
+    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
 );
 
 ------ Push Notifications ------

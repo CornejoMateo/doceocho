@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -40,11 +40,14 @@ export function ChatManagement() {
 		unsubscribe,
 	} = usePushNotifications();
 
+	const refreshRef = useRef<() => void>(() => {});
+
 	const chatManagement = useChatManagement({
 		currentUserUid: user?.id || '',
 		currentUserRole: user?.role || '',
 		messages: [],
 		messagesLoading: false,
+		onMessagesCleaned: () => refreshRef.current(),
 	});
 
 	const {
@@ -53,7 +56,10 @@ export function ChatManagement() {
 		loadingMore,
 		hasMore,
 		loadMore,
+		refresh,
 	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
+
+	refreshRef.current = refresh;
 
 	const optimisticMessages = chatManagement.optimisticMessages.filter(
 		(m) => m.channel_id === chatManagement.selectedChannel?.id
