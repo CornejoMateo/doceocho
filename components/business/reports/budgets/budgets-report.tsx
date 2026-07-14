@@ -320,7 +320,7 @@ export function BudgetsReport() {
 												{formatCurrency(r.amountArs)}
 											</TableCell>
 											<TableCell className="text-right whitespace-nowrap">
-												{formatCurrencyUSD(r.amountUsd)}
+												{r.amountUsd ? formatCurrencyUSD(r.amountUsd) : ' - '}
 											</TableCell>
 											<TableCell className="whitespace-nowrap">{r.status}</TableCell>
 										</TableRow>

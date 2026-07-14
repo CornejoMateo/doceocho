@@ -1,14 +1,10 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { BudgetReportRow } from '@/components/business/reports/budgets/types';
-import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
+import { formatCurrency, formatCurrencyUSD, parseArsToNumber } from '@/utils/formats-money';
 import { BUDGETS_REPORT_COLUMNS } from '@/constants/budgets/budgets-report';
+import { formatCreatedAt } from '@/utils/format-date';
 
-/**
- * Generates a PDF report of filtered budgets
- * @param rows - The filtered budget rows to include in the PDF
- * @param filtersDescription - Optional description of active filters
- */
 export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?: string): void {
 	const doc = new jsPDF();
 
@@ -32,7 +28,7 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 		month: '2-digit',
 		year: 'numeric',
 	});
-	doc.text(`Fecha: ${dateStr}`, 14, 35);
+	doc.text(`Fecha: ${dateStr}`, 196, 20, { align: 'right' });
 
 	// Table headers
 	const headers = [
@@ -54,7 +50,7 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 		row.type,
 		row.work,
 		formatCurrency(row.amountArs),
-		formatCurrencyUSD(row.amountUsd),
+		row.amountUsd ? formatCurrencyUSD(row.amountUsd) : ' - ',
 		row.status,
 	]);
 
@@ -66,6 +62,8 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 		styles: {
 			fontSize: 8,
 			cellPadding: 3,
+			halign: 'center',
+			valign: 'middle',
 		},
 		headStyles: {
 			fillColor: [79, 92, 77], // DOCE OCHO brand color
@@ -75,7 +73,7 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 		alternateRowStyles: {
 			fillColor: [245, 245, 245],
 		},
-		margin: { top: 10, right: 10, bottom: 10, left: 10 },
+		margin: { top: 10, right: 10, bottom: 10, left: 14 },
 	});
 
 	// Footer with total count
@@ -93,10 +91,7 @@ export function generateBudgetsPDF(rows: BudgetReportRow[], filtersDescription?:
 
 	// Save the PDF
 	const date = new Date();
-	const day = String(date.getDate()).padStart(2, '0');
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const year = date.getFullYear();
-	const timestamp = `${day}-${month}-${year}`;
+	const timestamp = `${formatCreatedAt(date)}`;
 	doc.save(`presupuestos_${timestamp}.pdf`);
 }
 
@@ -116,17 +111,22 @@ export function getFiltersDescription(filters: {
 		parts.push(`Estado: ${filters.status}`);
 	}
 	if (filters.minAmountArs) {
-		parts.push(`ARS mínimo: ${filters.minAmountArs}`);
+		parts.push(`ARS mínimo: ${formatCurrency(parseArsToNumber(filters.minAmountArs))}`);
 	}
 	if (filters.maxAmountArs) {
-		parts.push(`ARS máximo: ${filters.maxAmountArs}`);
+		parts.push(`ARS máximo: ${formatCurrency(parseArsToNumber(filters.maxAmountArs))}`);
 	}
 	if (filters.minAmountUsd) {
-		parts.push(`USD mínimo: ${filters.minAmountUsd}`);
+		parts.push(`USD mínimo: ${formatCurrencyUSD(parseArsToNumber(filters.minAmountUsd))}`);
 	}
 	if (filters.maxAmountUsd) {
-		parts.push(`USD máximo: ${filters.maxAmountUsd}`);
+		parts.push(`USD máximo: ${formatCurrencyUSD(parseArsToNumber(filters.maxAmountUsd))}`);
 	}
 
-	return parts.length > 0 ? parts.join(', ') : 'Todos';
+	if (parts.length === 0) return 'Todos';
+	const lines: string[] = [];
+	for (let i = 0; i < parts.length; i += 2) {
+		lines.push(parts.slice(i, i + 2).join(' - '));
+	}
+	return lines.join('\n');
 }
