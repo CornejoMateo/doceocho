@@ -16,13 +16,7 @@ ON public.attendance_entries
 FOR SELECT
 TO authenticated
 USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-          AND u.role = 'Admin'
-    )
-    OR user_uid = auth.uid()
+    true
 );
 
 CREATE POLICY "Attendance entries insert"
