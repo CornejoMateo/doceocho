@@ -12,6 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { useAuth } from '@/components/provider/auth-provider';
+import { useChatUnread } from '@/components/provider/chat-unread-provider';
 
 type ChannelsCacheEntry = {
 	data: ChannelWithLastMessage[];
@@ -70,7 +71,7 @@ export function useChatManagement({
 	const [optimisticMessages, setOptimisticMessages] = useState<MessageWithUser[]>([]);
 	const { user: authUser } = useAuth();
 
-	const totalUnreadCount = channels.reduce((sum, ch) => sum + (ch.unread_count || 0), 0);
+	const { totalUnreadCount, decrementUnreadCount, incrementUnreadCount } = useChatUnread();
 
 	const loadChannels = useCallback(
 		async (isBackgroundUpdate = false) => {
@@ -98,6 +99,14 @@ export function useChatManagement({
 				}
 
 				const result = await getUserChannelsAction();
+				console.table(
+					result.data?.map((c) => ({
+						name: c.name,
+						unread: c.unread_count,
+						lastRead: c.last_read_message_id,
+						lastMessage: c.last_message_id,
+					}))
+				);
 				if (result.success && result.data) {
 					channelsCache = { data: result.data, timestamp: Date.now() };
 					setChannels(result.data);
@@ -129,7 +138,10 @@ export function useChatManagement({
 					const msgChannelId = payload.new.channel_id;
 					const msgUserId = payload.new.user_id;
 					if (msgUserId !== currentUserUid) {
+						incrementUnreadCount();
+
 						channelsCache = null;
+
 						setChannels((prev) =>
 							prev.map((ch) =>
 								ch.id === msgChannelId ? { ...ch, unread_count: (ch.unread_count || 0) + 1 } : ch
@@ -239,11 +251,34 @@ export function useChatManagement({
 	const handleChannelSelect = async (channel: ChannelWithLastMessage) => {
 		setSelectedChannel(channel);
 
-		channelsCache = null;
+		const unreadToRemove = channel.unread_count ?? 0;
 
-		setChannels((prev) =>
-			prev.map((ch) => (ch.id === channel.id ? { ...ch, unread_count: 0 } : ch))
-		);
+		if (unreadToRemove > 0) {
+			decrementUnreadCount(unreadToRemove);
+		}
+
+		setChannels((prev) => {
+			const updated = prev.map((ch) =>
+				ch.id === channel.id
+					? {
+							...ch,
+							unread_count: 0,
+							last_read_message_id: channel.last_message_id,
+						}
+					: ch
+			);
+
+			channelsCache = {
+				data: updated,
+				timestamp: Date.now(),
+			};
+
+			return updated;
+		});
+
+		if (channel.last_message_id) {
+			updateLastReadMessage(channel.last_message_id, channel.id, currentUserUid);
+		}
 
 		setSearchTerm('');
 		setShowSearch(false);
@@ -257,11 +292,7 @@ export function useChatManagement({
 	const handleScrolledToUnread = async () => {
 		if (!selectedChannel?.last_message_id) return;
 
-		await updateLastReadMessage(
-			selectedChannel.last_message_id,
-			selectedChannel.id,
-			currentUserUid
-		);
+		void updateLastReadMessage(selectedChannel.last_message_id, selectedChannel.id, currentUserUid);
 
 		setSelectedChannel((prev) =>
 			prev

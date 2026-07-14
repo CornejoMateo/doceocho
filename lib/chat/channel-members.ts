@@ -129,11 +129,7 @@ export async function getAvailableUsersAction() {
 	}
 }
 
-export async function updateLastReadMessage(
-	messageId: number,
-	channelId: number,
-	userId: string
-): Promise<{ success: boolean; error?: any }> {
+export async function updateLastReadMessage(messageId: number, channelId: number, userId: string) {
 	try {
 		const supabase = await getServerSupabaseClient();
 

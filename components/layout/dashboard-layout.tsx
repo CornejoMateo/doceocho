@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils';
 import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import { useChatUnreadCount } from '@/hooks/chat/use-chat-unread-count';
+import { useChatUnread } from '../provider/chat-unread-provider';
 
 const navigation = [
 	{ name: 'Panel', href: '/', icon: LayoutDashboard, disabled: false },
@@ -62,7 +63,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname() || '/';
 	const router = useRouter();
 	const { user, loading, signOutUser } = useAuth();
-	const totalUnreadCount = useChatUnreadCount();
+	const { totalUnreadCount } = useChatUnread();
 
 	const allowedByRole = useMemo(() => {
 		return {

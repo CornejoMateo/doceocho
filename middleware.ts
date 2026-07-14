@@ -2,7 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-	let supabaseResponse = NextResponse.next({ request });
+	// Solo validar al navegar entre páginas (GET)
+	if (request.method !== 'GET') {
+		return NextResponse.next();
+	}
+
+	let response = NextResponse.next({ request });
 
 	const supabase = createServerClient(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,9 +19,9 @@ export async function middleware(request: NextRequest) {
 				},
 				setAll(cookiesToSet) {
 					cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-					supabaseResponse = NextResponse.next({ request });
+
 					cookiesToSet.forEach(({ name, value, options }) =>
-						supabaseResponse.cookies.set(name, value, options)
+						response.cookies.set(name, value, options)
 					);
 				},
 			},
@@ -25,19 +30,9 @@ export async function middleware(request: NextRequest) {
 
 	await supabase.auth.getUser();
 
-	return supabaseResponse;
+	return response;
 }
 
 export const config = {
-	matcher: [
-		/*
-		 * Match all request paths except:
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * - public assets (public/*)
-		 * - api routes except /api/me (we handle auth manually for other APIs)
-		 */
-		'/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-	],
+	matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };
