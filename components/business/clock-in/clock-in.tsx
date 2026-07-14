@@ -1,31 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import {
 	createAttendance,
 	getAttendanceByDate,
 	createAttendanceEntry,
+	getAttendanceSettings,
+	updateAttendanceSettings,
 } from '@/lib/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
-import { TARGET_LOCATION, RADIUS_METERS } from '@/constants/attendance/attendance';
+import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
+	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+	const [adminSquareMeters, setAdminSquareMeters] = useState<string>('');
+	const [adminLoading, setAdminLoading] = useState(false);
 	const { user } = useAuth();
 
-	// Show "en desarrollo" for Admin role
-	if (user?.role === 'Admin') {
-		return (
-			<div className="flex items-center justify-center p-8">
-				<p className="text-muted-foreground">En desarrollo</p>
-			</div>
-		);
-	}
+	useEffect(() => {
+		async function loadSettings() {
+			const { data: settings } = await getAttendanceSettings();
+			if (settings?.square_meters && settings.square_meters >= DEFAULT_RADIUS_METERS) {
+				setRadiusMeters(settings.square_meters);
+				setAdminSquareMeters(settings.square_meters.toString());
+			}
+		}
+		loadSettings();
+	}, []);
 
 	const handleClockAction = async (isOvertime: boolean) => {
 		try {
@@ -38,7 +48,7 @@ export function ClockIn() {
 				location.longitude,
 				TARGET_LOCATION.latitude,
 				TARGET_LOCATION.longitude,
-				RADIUS_METERS
+				radiusMeters
 			);
 
 			if (!withinRadius) {
@@ -126,16 +136,85 @@ export function ClockIn() {
 		}
 	};
 
+	const handleAdminSave = async () => {
+		const value = parseInt(adminSquareMeters, 10);
+
+		if (isNaN(value) || value < DEFAULT_RADIUS_METERS) {
+			toast({
+				title: 'Error',
+				description: `El radio debe ser al menos ${DEFAULT_RADIUS_METERS} metros`,
+				variant: 'destructive',
+			});
+			return;
+		}
+
+		setAdminLoading(true);
+		const { error } = await updateAttendanceSettings({ square_meters: value });
+		setAdminLoading(false);
+
+		if (error) {
+			toast({
+				title: 'Error',
+				description: 'No se pudo guardar la configuración',
+				variant: 'destructive',
+			});
+		} else {
+			setRadiusMeters(value);
+			toast({
+				title: 'Configuración guardada',
+				description: 'El radio de ubicación se actualizó correctamente',
+			});
+		}
+	};
+
 	return (
-		<div className="flex items-center justify-center gap-4 p-8">
-			<Button onClick={() => handleClockAction(false)} size="lg" className="text-lg px-8 py-6">
-				{isClockedIn ? 'Registrar salida' : 'Registrar entrada'}
-			</Button>
-			<Button onClick={() => handleClockAction(true)} size="lg" className="text-lg px-8 py-6">
-				{isClockedInOvertime
-					? 'Registrar salida (horas extras)'
-					: 'Registrar entrada (horas extras)'}
-			</Button>
+		<div className="container mx-auto p-8">
+			<div className="grid gap-6">
+				{user?.role === 'Admin' && (
+					<Card className="max-w-md">
+						<CardHeader>
+							<CardTitle>Configuración de Asistencia</CardTitle>
+							<CardDescription>
+								Configura el radio máximo en metros para permitir el fichaje
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="admin-square-meters">
+									Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
+								</Label>
+								<Input
+									id="admin-square-meters"
+									type="number"
+									value={adminSquareMeters}
+									onChange={(e) => setAdminSquareMeters(e.target.value)}
+									min={DEFAULT_RADIUS_METERS}
+									placeholder="40"
+								/>
+							</div>
+							<Button onClick={handleAdminSave} disabled={adminLoading} className="w-full">
+								{adminLoading ? 'Guardando...' : 'Guardar'}
+							</Button>
+						</CardContent>
+					</Card>
+				)}
+				{user?.role !== 'Admin' && (
+					<div className="flex items-center justify-center gap-4">
+						<Button
+							onClick={() => handleClockAction(false)}
+							size="lg"
+							className="text-lg px-8 py-6"
+						>
+							{isClockedIn ? 'Registrar salida' : 'Registrar entrada'}
+						</Button>
+						<Button onClick={() => handleClockAction(true)} size="lg" className="text-lg px-8 py-6">
+							{isClockedInOvertime
+								? 'Registrar salida (horas extras)'
+								: 'Registrar entrada (horas extras)'}
+						</Button>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

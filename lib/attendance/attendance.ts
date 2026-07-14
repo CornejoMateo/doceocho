@@ -16,6 +16,14 @@ export interface Attendance {
 	description: string | null;
 }
 
+export interface AttendanceSettings {
+	id: number;
+	square_meters: number | null;
+	tolerance_quantity_minutes: number | null;
+	default_check_in_time: string | null;
+	default_check_out_time: string | null;
+}
+
 /**
  * Create a new attendance record for the current user
  */
@@ -79,6 +87,37 @@ export async function createAttendanceEntry(
 	const supabase = getSupabaseClient();
 
 	const { data, error } = await supabase.from('attendance_entries').insert(entry).select().single();
+
+	return { data, error };
+}
+
+/**
+ * Get attendance settings (for square_meters radius)
+ */
+export async function getAttendanceSettings(): Promise<{
+	data: AttendanceSettings | null;
+	error: any;
+}> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase.from('attendance_settings').select('*').single();
+
+	return { data, error };
+}
+
+/**
+ * Update attendance settings (for square_meters radius)
+ */
+export async function updateAttendanceSettings(
+	settings: Partial<AttendanceSettings>
+): Promise<{ data: AttendanceSettings | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_settings')
+		.upsert(settings)
+		.select()
+		.single();
 
 	return { data, error };
 }
