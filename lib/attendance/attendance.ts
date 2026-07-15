@@ -24,6 +24,11 @@ export interface AttendanceSettings {
 	default_check_out_time: string | null;
 }
 
+export interface AttendanceEntryWithDate extends AttendanceEntry {
+	id: number;
+	attendance_date: string;
+}
+
 /**
  * Create a new attendance record for the current user
  */
@@ -106,4 +111,36 @@ export async function updateAttendanceSettings(
 		.single();
 
 	return { data, error };
+}
+
+/**
+ * Get attendance history for a user with entries
+ */
+export async function getUserAttendanceHistory(
+	userId: string
+): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id
+			)
+		`
+		)
+		.eq('attendance.user_id', userId)
+		.order('entry_time', { ascending: false });
+
+	if (error) return { data: null, error };
+
+	const entriesWithDate = data?.map((entry: any) => ({
+		...entry,
+		attendance_date: entry.attendance.date,
+	})) as AttendanceEntryWithDate[];
+
+	return { data: entriesWithDate || null, error: null };
 }

@@ -18,6 +18,7 @@ import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
+import { AttendanceHistory } from './attendance-history';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
@@ -222,19 +223,19 @@ export function ClockIn() {
 	};
 
 	return (
-		<div className="container mx-auto p-8">
-			<div className="grid gap-6">
+		<div className="container mx-auto p-4 md:p-8">
+			<div className="grid gap-4 md:gap-6">
 				{user?.role === 'Admin' && (
-					<Card className="max-w-md">
+					<Card className="max-w-md mx-auto">
 						<CardHeader>
-							<CardTitle>Configuración de Asistencia</CardTitle>
-							<CardDescription>
+							<CardTitle className="text-lg md:text-xl">Configuración de Asistencia</CardTitle>
+							<CardDescription className="text-sm md:text-base">
 								Configura el radio máximo en metros para permitir el fichaje
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<div className="space-y-2">
-								<Label htmlFor="admin-square-meters">
+								<Label htmlFor="admin-square-meters" className="text-sm md:text-base">
 									Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
 								</Label>
 								<Input
@@ -244,6 +245,7 @@ export function ClockIn() {
 									onChange={(e) => setAdminSquareMeters(e.target.value)}
 									min={DEFAULT_RADIUS_METERS}
 									placeholder="40"
+									className="text-base"
 								/>
 							</div>
 							<Button onClick={handleAdminSave} disabled={adminLoading} className="w-full">
@@ -253,20 +255,27 @@ export function ClockIn() {
 					</Card>
 				)}
 				{user?.role !== 'Admin' && (
-					<div className="flex items-center justify-center gap-4">
-						<Button
-							onClick={() => handleClockAction(false)}
-							size="lg"
-							className="text-lg px-8 py-6"
-						>
-							{isClockedIn ? 'Registrar salida' : 'Registrar entrada'}
-						</Button>
-						<Button onClick={() => handleClockAction(true)} size="lg" className="text-lg px-8 py-6">
-							{isClockedInOvertime
-								? 'Registrar salida (horas extras)'
-								: 'Registrar entrada (horas extras)'}
-						</Button>
-					</div>
+					<>
+						<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+							<Button
+								onClick={() => handleClockAction(false)}
+								size="lg"
+								className="text-base md:text-lg px-6 py-4 md:px-8 md:py-6 w-full sm:w-auto min-h-[60px] md:min-h-[72px]"
+							>
+								{isClockedIn ? 'Registrar salida' : 'Registrar entrada'}
+							</Button>
+							<Button
+								onClick={() => handleClockAction(true)}
+								size="lg"
+								className="text-base md:text-lg px-6 py-4 md:px-8 md:py-6 w-full sm:w-auto min-h-[60px] md:min-h-[72px]"
+							>
+								{isClockedInOvertime
+									? 'Registrar salida (horas extras)'
+									: 'Registrar entrada (horas extras)'}
+							</Button>
+						</div>
+						<AttendanceHistory />
+					</>
 				)}
 			</div>
 		</div>
