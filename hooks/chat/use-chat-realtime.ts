@@ -4,7 +4,10 @@ import { MessageWithUser } from '@/lib/chat/chat-types';
 import { getMessagesAction } from '@/lib/chat/messages';
 import { useAuth } from '@/components/provider/auth-provider';
 
-export function useChatRealtime(channelId: number | null) {
+export function useChatRealtime(
+	channelId: number | null,
+	onMessageAdded?: (message: MessageWithUser) => void
+) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<MessageWithUser[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -107,20 +110,6 @@ export function useChatRealtime(channelId: number | null) {
 	}, [channelId]);
 
 	useEffect(() => {
-		const handler = (e: CustomEvent<MessageWithUser>) => {
-			const message = e.detail;
-
-			if (message.channel_id !== channelId) {
-				return;
-			}
-
-			addMessage(message);
-		};
-		window.addEventListener('new-message', handler as EventListener);
-		return () => window.removeEventListener('new-message', handler as EventListener);
-	}, [addMessage]);
-
-	useEffect(() => {
 		if (!channelId) return;
 
 		const channel = supabase
@@ -157,6 +146,8 @@ export function useChatRealtime(channelId: number | null) {
 							if (prev.some((m) => m.id === newRecord.id)) return prev;
 							return [...prev, messageWithUser];
 						});
+
+						onMessageAdded?.(messageWithUser);
 
 						if (!existingUser) {
 							const { data: userData } = await supabase

@@ -57,7 +57,10 @@ export function ChatManagement() {
 		hasMore,
 		loadMore,
 		refresh,
-	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
+	} = useChatRealtime(
+		chatManagement.selectedChannel?.id || null,
+		chatManagement.removeOptimisticByContent
+	);
 
 	refreshRef.current = refresh;
 
@@ -65,10 +68,30 @@ export function ChatManagement() {
 		(m) => m.channel_id === chatManagement.selectedChannel?.id
 	);
 
-	const allMessages = useMemo(
-		() => [...messages, ...optimisticMessages],
-		[messages, optimisticMessages]
-	);
+	useEffect(() => {
+		const handler = (e: CustomEvent) => {
+			const { tempId, ...realMessage } = e.detail;
+			if (tempId) {
+				chatManagement.promoteOptimisticMessage(tempId, realMessage);
+			}
+		};
+		window.addEventListener('new-message', handler as EventListener);
+		return () => window.removeEventListener('new-message', handler as EventListener);
+	}, [chatManagement.promoteOptimisticMessage]);
+
+	const allMessages = useMemo(() => {
+		const realIds = new Set(messages.map((m) => m.id));
+		return [
+			...messages,
+			...optimisticMessages.filter((m) => {
+				if (realIds.has(m.id)) return false;
+				const isDuplicate = messages.some(
+					(r) => r.content === m.content && r.user_id === m.user_id && r.channel_id === m.channel_id
+				);
+				return !isDuplicate;
+			}),
+		];
+	}, [messages, optimisticMessages]);
 
 	const filteredMessages = useMemo(() => {
 		let result = allMessages;

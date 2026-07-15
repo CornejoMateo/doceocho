@@ -228,8 +228,6 @@ export function useChatManagement({
 		try {
 			const result = await sendMessageAction(channelId, messageContent, replyToId || undefined);
 
-			setOptimisticMessages((prev) => prev.filter((m) => m.id !== tempId));
-
 			if (!result.success) {
 				setNewMessage(messageContent);
 				toast({
@@ -239,14 +237,26 @@ export function useChatManagement({
 				});
 				return;
 			}
-
-			if (result.data) {
-				window.dispatchEvent(new CustomEvent('new-message', { detail: result.data }));
-			}
 		} finally {
 			setSending(false);
 		}
 	};
+
+	const promoteOptimisticMessage = useCallback((tempId: number, realMessage: MessageWithUser) => {
+		setOptimisticMessages((prev) =>
+			prev.map((m) => (m.id === tempId ? { ...realMessage, id: tempId } : m))
+		);
+	}, []);
+
+	const removeOptimisticMessage = useCallback((tempId: number) => {
+		setOptimisticMessages((prev) => prev.filter((m) => m.id !== tempId));
+	}, []);
+
+	const removeOptimisticByContent = useCallback((realMessage: MessageWithUser) => {
+		setOptimisticMessages((prev) =>
+			prev.filter((m) => !(m.content === realMessage.content && m.user_id === realMessage.user_id))
+		);
+	}, []);
 
 	const handleChannelSelect = async (channel: ChannelWithLastMessage) => {
 		setSelectedChannel(channel);
@@ -487,6 +497,9 @@ export function useChatManagement({
 		confirmDeleteMessage,
 		confirmDeleteChannel,
 		confirmCleanupMessages,
+		promoteOptimisticMessage,
+		removeOptimisticMessage,
+		removeOptimisticByContent,
 
 		// Cancel confirmations
 		cancelDeleteMessage: () => setPendingDeleteMessage(null),
