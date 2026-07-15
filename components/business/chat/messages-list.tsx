@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, MessageSquare, Edit2, Trash2, MessageCircle, Loader2 } from 'lucide-react';
+import { Search, MessageSquare, Edit2, Trash2, MessageCircle } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
@@ -201,7 +201,6 @@ function MessageItem({
 	onReplyTo,
 }: MessageItemProps) {
 	const isOwnMessage = message.user_id === currentUserId;
-	const isOptimistic = message.id < 0;
 	const quotedMessage = message.reply_to ? messages.find((m) => m.id === message.reply_to) : null;
 
 	return (
@@ -212,7 +211,7 @@ function MessageItem({
 			<div
 				className={`max-w-[70%] rounded-lg p-2 ${
 					isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-muted'
-				} ${isOptimistic ? 'opacity-60' : ''}`}
+				}`}
 			>
 				{!isOwnMessage && (
 					<div className="text-xs font-medium mb-1 opacity-70">
@@ -266,7 +265,6 @@ function MessageItem({
 					<span>
 						{formatCreatedAtChat(message.created_at)}
 						{message.edited_at && ` ${CHAT_CONSTANTS.MESSAGES.EDITED}`}
-						{isOptimistic && <Loader2 className="inline h-3 w-3 ml-1 animate-spin" />}
 					</span>
 					{!message.deleted_at && (
 						<div className="flex gap-1">

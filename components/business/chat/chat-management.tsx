@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -57,41 +57,11 @@ export function ChatManagement() {
 		hasMore,
 		loadMore,
 		refresh,
-	} = useChatRealtime(
-		chatManagement.selectedChannel?.id || null,
-		chatManagement.removeOptimisticByContent
-	);
+	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
 
 	refreshRef.current = refresh;
 
-	const optimisticMessages = chatManagement.optimisticMessages.filter(
-		(m) => m.channel_id === chatManagement.selectedChannel?.id
-	);
-
-	useEffect(() => {
-		const handler = (e: CustomEvent) => {
-			const { tempId, ...realMessage } = e.detail;
-			if (tempId) {
-				chatManagement.promoteOptimisticMessage(tempId, realMessage);
-			}
-		};
-		window.addEventListener('new-message', handler as EventListener);
-		return () => window.removeEventListener('new-message', handler as EventListener);
-	}, [chatManagement.promoteOptimisticMessage]);
-
-	const allMessages = useMemo(() => {
-		const realIds = new Set(messages.map((m) => m.id));
-		return [
-			...messages,
-			...optimisticMessages.filter((m) => {
-				if (realIds.has(m.id)) return false;
-				const isDuplicate = messages.some(
-					(r) => r.content === m.content && r.user_id === m.user_id && r.channel_id === m.channel_id
-				);
-				return !isDuplicate;
-			}),
-		];
-	}, [messages, optimisticMessages]);
+	const allMessages = useMemo(() => messages, [messages]);
 
 	const filteredMessages = useMemo(() => {
 		let result = allMessages;
@@ -124,16 +94,24 @@ export function ChatManagement() {
 	}, [allMessages, chatManagement.searchTerm, chatManagement.dateRange]);
 
 	const messagesListRef = useRef<MessagesListHandle>(null);
-	const prevOptimisticCountRef = useRef(optimisticMessages.length);
+	const pendingScrollRef = useRef(false);
+	const prevMessagesLenRef = useRef(messages.length);
 
 	useEffect(() => {
-		if (optimisticMessages.length > prevOptimisticCountRef.current) {
+		if (pendingScrollRef.current && messages.length > prevMessagesLenRef.current) {
+			pendingScrollRef.current = false;
 			requestAnimationFrame(() => {
 				messagesListRef.current?.scrollToBottom();
 			});
 		}
-		prevOptimisticCountRef.current = optimisticMessages.length;
-	}, [optimisticMessages.length]);
+		prevMessagesLenRef.current = messages.length;
+	}, [messages.length]);
+
+	useEffect(() => {
+		if (chatManagement.scrollTrigger > 0) {
+			pendingScrollRef.current = true;
+		}
+	}, [chatManagement.scrollTrigger]);
 
 	useEffect(() => {
 		if (user) {

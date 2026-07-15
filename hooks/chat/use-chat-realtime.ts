@@ -4,10 +4,7 @@ import { MessageWithUser } from '@/lib/chat/chat-types';
 import { getMessagesAction } from '@/lib/chat/messages';
 import { useAuth } from '@/components/provider/auth-provider';
 
-export function useChatRealtime(
-	channelId: number | null,
-	onMessageAdded?: (message: MessageWithUser) => void
-) {
+export function useChatRealtime(channelId: number | null) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<MessageWithUser[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -146,8 +143,6 @@ export function useChatRealtime(
 							if (prev.some((m) => m.id === newRecord.id)) return prev;
 							return [...prev, messageWithUser];
 						});
-
-						onMessageAdded?.(messageWithUser);
 
 						if (!existingUser) {
 							const { data: userData } = await supabase

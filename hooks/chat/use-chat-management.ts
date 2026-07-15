@@ -62,16 +62,16 @@ export function useChatManagement({
 	selectedChannelRef.current = selectedChannel;
 	const [scrolledToUnread, setScrolledToUnread] = useState(false);
 	const [replyingTo, setReplyingTo] = useState<MessageWithUser | null>(null);
+	const [scrollTrigger, setScrollTrigger] = useState(0);
 	const [pendingDeleteMessage, setPendingDeleteMessage] = useState<number | null>(null);
 	const [pendingDeleteChannel, setPendingDeleteChannel] = useState<{
 		id: number;
 		name: string;
 	} | null>(null);
 	const [pendingCleanupMessages, setPendingCleanupMessages] = useState(false);
-	const [optimisticMessages, setOptimisticMessages] = useState<MessageWithUser[]>([]);
 	const { user: authUser } = useAuth();
 
-	const { totalUnreadCount, decrementUnreadCount, incrementUnreadCount } = useChatUnread();
+	const { totalUnreadCount, decrementUnreadCount } = useChatUnread();
 
 	const loadChannels = useCallback(
 		async (isBackgroundUpdate = false) => {
@@ -138,13 +138,19 @@ export function useChatManagement({
 					const msgChannelId = payload.new.channel_id;
 					const msgUserId = payload.new.user_id;
 					if (msgUserId !== currentUserUid) {
-						incrementUnreadCount();
+						const isViewingChannel = selectedChannelRef.current?.id === msgChannelId;
 
 						channelsCache = null;
 
 						setChannels((prev) =>
 							prev.map((ch) =>
-								ch.id === msgChannelId ? { ...ch, unread_count: (ch.unread_count || 0) + 1 } : ch
+								ch.id === msgChannelId
+									? {
+											...ch,
+											unread_count: isViewingChannel ? 0 : (ch.unread_count || 0) + 1,
+											last_message_id: payload.new.id,
+										}
+									: ch
 							)
 						);
 					}
@@ -173,7 +179,11 @@ export function useChatManagement({
 							channelsCache = null;
 							const channelId = payload.new.channel_id;
 							setChannels((prev) =>
-								prev.map((ch) => (ch.id === channelId ? { ...ch, unread_count: 0 } : ch))
+								prev.map((ch) =>
+									ch.id === channelId
+										? { ...ch, unread_count: 0, last_read_message_id: newLastReadId }
+										: ch
+								)
 							);
 						}
 					}
@@ -185,6 +195,16 @@ export function useChatManagement({
 			supabase.removeChannel(channel);
 		};
 	}, [currentUserUid]);
+
+	useEffect(() => {
+		if (!selectedChannel) return;
+		const latest = channels.find((ch) => ch.id === selectedChannel.id);
+		if (latest && latest.last_message_id !== selectedChannel.last_message_id) {
+			setSelectedChannel((prev) =>
+				prev ? { ...prev, last_message_id: latest.last_message_id } : prev
+			);
+		}
+	}, [channels, selectedChannel?.id]);
 
 	const loadMembers = async (channelId: number) => {
 		if (!currentUserUid) return;
@@ -202,27 +222,8 @@ export function useChatManagement({
 		const messageContent = newMessage.trim();
 		setNewMessage('');
 
-		const tempId = -Date.now();
 		const replyToId = replyingTo?.id ?? null;
-		const optimisticMessage: MessageWithUser = {
-			id: tempId,
-			created_at: new Date().toISOString(),
-			content: messageContent,
-			edited_at: null,
-			deleted_at: null,
-			user_id: currentUserUid,
-			channel_id: channelId,
-			reply_to: replyToId,
-			users: {
-				uid_user: authUser?.id ?? currentUserUid,
-				username: authUser?.username ?? null,
-				name: authUser?.name ?? null,
-				last_name: authUser?.last_name ?? null,
-				role: authUser?.role ?? null,
-			},
-		};
 
-		setOptimisticMessages((prev) => [...prev, optimisticMessage]);
 		setReplyingTo(null);
 
 		try {
@@ -237,26 +238,12 @@ export function useChatManagement({
 				});
 				return;
 			}
+
+			setScrollTrigger((prev) => prev + 1);
 		} finally {
 			setSending(false);
 		}
 	};
-
-	const promoteOptimisticMessage = useCallback((tempId: number, realMessage: MessageWithUser) => {
-		setOptimisticMessages((prev) =>
-			prev.map((m) => (m.id === tempId ? { ...realMessage, id: tempId } : m))
-		);
-	}, []);
-
-	const removeOptimisticMessage = useCallback((tempId: number) => {
-		setOptimisticMessages((prev) => prev.filter((m) => m.id !== tempId));
-	}, []);
-
-	const removeOptimisticByContent = useCallback((realMessage: MessageWithUser) => {
-		setOptimisticMessages((prev) =>
-			prev.filter((m) => !(m.content === realMessage.content && m.user_id === realMessage.user_id))
-		);
-	}, []);
 
 	const handleChannelSelect = async (channel: ChannelWithLastMessage) => {
 		setSelectedChannel(channel);
@@ -302,6 +289,8 @@ export function useChatManagement({
 	const handleScrolledToUnread = async () => {
 		if (!selectedChannel?.last_message_id) return;
 
+		const unreadToRemove = selectedChannel.unread_count ?? 0;
+
 		void updateLastReadMessage(selectedChannel.last_message_id, selectedChannel.id, currentUserUid);
 
 		setSelectedChannel((prev) =>
@@ -309,9 +298,28 @@ export function useChatManagement({
 				? {
 						...prev,
 						last_read_message_id: prev.last_message_id,
+						unread_count: 0,
 					}
 				: prev
 		);
+
+		setChannels((prev) => {
+			const updated = prev.map((ch) =>
+				ch.id === selectedChannel.id
+					? {
+							...ch,
+							last_read_message_id: selectedChannel.last_message_id,
+							unread_count: 0,
+						}
+					: ch
+			);
+			channelsCache = { data: updated, timestamp: Date.now() };
+			return updated;
+		});
+
+		if (unreadToRemove > 0) {
+			decrementUnreadCount(unreadToRemove);
+		}
 	};
 
 	const handleReplyTo = (message: MessageWithUser) => {
@@ -462,7 +470,7 @@ export function useChatManagement({
 		pendingDeleteMessage,
 		pendingDeleteChannel,
 		pendingCleanupMessages,
-		optimisticMessages,
+		scrollTrigger,
 
 		// Setters
 		setNewMessage,
@@ -497,9 +505,6 @@ export function useChatManagement({
 		confirmDeleteMessage,
 		confirmDeleteChannel,
 		confirmCleanupMessages,
-		promoteOptimisticMessage,
-		removeOptimisticMessage,
-		removeOptimisticByContent,
 
 		// Cancel confirmations
 		cancelDeleteMessage: () => setPendingDeleteMessage(null),

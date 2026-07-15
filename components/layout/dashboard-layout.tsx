@@ -40,7 +40,6 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
-import { useChatUnreadCount } from '@/hooks/chat/use-chat-unread-count';
 import { useChatUnread } from '../provider/chat-unread-provider';
 
 const navigation = [
