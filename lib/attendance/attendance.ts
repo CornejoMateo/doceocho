@@ -28,23 +28,16 @@ export interface AttendanceSettings {
  * Create a new attendance record for the current user
  */
 export async function createAttendance(
-	date: string
+	date: string,
+	userId: string
 ): Promise<{ data: Attendance | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const {
-		data: { user },
-		error: userError,
-	} = await supabase.auth.getUser();
-
-	if (userError || !user) {
-		return { data: null, error: userError || new Error('Usuario no autenticado') };
-	}
 
 	const { data, error } = await supabase
 		.from('attendance')
 		.insert({
 			date,
-			user_id: user.id,
+			user_id: userId,
 		})
 		.select()
 		.single();
@@ -56,23 +49,16 @@ export async function createAttendance(
  * Get attendance for the current user for a specific date
  */
 export async function getAttendanceByDate(
-	date: string
+	date: string,
+	userId: string
 ): Promise<{ data: Attendance | null; error: any }> {
 	const supabase = getSupabaseClient();
-	const {
-		data: { user },
-		error: userError,
-	} = await supabase.auth.getUser();
-
-	if (userError || !user) {
-		return { data: null, error: userError || new Error('Usuario no autenticado') };
-	}
 
 	const { data, error } = await supabase
 		.from('attendance')
 		.select('*')
 		.eq('date', date)
-		.eq('user_id', user.id)
+		.eq('user_id', userId)
 		.single();
 
 	return { data, error };

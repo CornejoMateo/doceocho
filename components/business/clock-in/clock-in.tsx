@@ -53,6 +53,15 @@ export function ClockIn() {
 	}, []);
 
 	const handleClockAction = async (isOvertime: boolean) => {
+		if (!user) {
+			toast({
+				title: 'Error',
+				description: 'Usuario no autenticado',
+				variant: 'destructive',
+			});
+			return;
+		}
+
 		try {
 			// Get current location
 			const location = await getCurrentLocation();
@@ -80,10 +89,10 @@ export function ClockIn() {
 
 			// Get or create attendance
 			let attendance;
-			const { data: existingAttendance } = await getAttendanceByDate(today);
+			const { data: existingAttendance } = await getAttendanceByDate(today, user.uid);
 
 			if (!existingAttendance) {
-				const { data: newAttendance } = await createAttendance(today);
+				const { data: newAttendance } = await createAttendance(today, user.uid);
 				attendance = newAttendance;
 			} else {
 				attendance = existingAttendance;
