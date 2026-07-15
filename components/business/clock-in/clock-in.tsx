@@ -19,6 +19,7 @@ import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
 import { AttendanceHistory } from './attendance-history';
+import { AdminAttendanceHistory } from './admin-attendance-history';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
@@ -226,33 +227,36 @@ export function ClockIn() {
 		<div className="container mx-auto p-4 md:p-8">
 			<div className="grid gap-4 md:gap-6">
 				{user?.role === 'Admin' && (
-					<Card className="max-w-md mx-auto">
-						<CardHeader>
-							<CardTitle className="text-lg md:text-xl">Configuración de Asistencia</CardTitle>
-							<CardDescription className="text-sm md:text-base">
-								Configura el radio máximo en metros para permitir el fichaje
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<div className="space-y-2">
-								<Label htmlFor="admin-square-meters" className="text-sm md:text-base">
-									Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
-								</Label>
-								<Input
-									id="admin-square-meters"
-									type="number"
-									value={adminSquareMeters}
-									onChange={(e) => setAdminSquareMeters(e.target.value)}
-									min={DEFAULT_RADIUS_METERS}
-									placeholder="40"
-									className="text-base"
-								/>
-							</div>
-							<Button onClick={handleAdminSave} disabled={adminLoading} className="w-full">
-								{adminLoading ? 'Guardando...' : 'Guardar'}
-							</Button>
-						</CardContent>
-					</Card>
+					<>
+						<Card className="max-w-md mx-auto">
+							<CardHeader>
+								<CardTitle className="text-lg md:text-xl">Configuración de Asistencia</CardTitle>
+								<CardDescription className="text-sm md:text-base">
+									Configura el radio máximo en metros para permitir el fichaje
+								</CardDescription>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="admin-square-meters" className="text-sm md:text-base">
+										Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
+									</Label>
+									<Input
+										id="admin-square-meters"
+										type="number"
+										value={adminSquareMeters}
+										onChange={(e) => setAdminSquareMeters(e.target.value)}
+										min={DEFAULT_RADIUS_METERS}
+										placeholder="40"
+										className="text-base"
+									/>
+								</div>
+								<Button onClick={handleAdminSave} disabled={adminLoading} className="w-full">
+									{adminLoading ? 'Guardando...' : 'Guardar'}
+								</Button>
+							</CardContent>
+						</Card>
+						<AdminAttendanceHistory />
+					</>
 				)}
 				{user?.role !== 'Admin' && (
 					<>
