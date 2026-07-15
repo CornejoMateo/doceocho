@@ -173,9 +173,9 @@ export function AdminAttendanceHistory() {
 										<Button
 											onClick={() => handleUserSelect(summary.user_id)}
 											variant="ghost"
-											className="w-full flex justify-between items-center p-6 hover:bg-gray-50"
+											className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
 										>
-											<div className="text-left flex-1">
+											<div className="text-left flex-1 text-black">
 												<div className="font-medium text-base md:text-lg">{summary.user_name}</div>
 												<div className="text-sm md:text-base text-gray-500">
 													{summary.entries.length} registros
