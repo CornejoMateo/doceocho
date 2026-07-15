@@ -16,6 +16,7 @@ import {
 } from '@/lib/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
 import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
 
 export function ClockIn() {
@@ -89,10 +90,31 @@ export function ClockIn() {
 
 			// Get or create attendance
 			let attendance;
-			const { data: existingAttendance } = await getAttendanceByDate(today, user.uid);
+			const { data: existingAttendance, error: getError } = await getAttendanceByDate(
+				today,
+				user.uid
+			);
+
+			if (getError) {
+				toast({
+					title: 'Error',
+					description: translateError(getError) || 'No se pudo obtener el registro de asistencia',
+					variant: 'destructive',
+				});
+				return;
+			}
 
 			if (!existingAttendance) {
-				const { data: newAttendance } = await createAttendance(today, user.uid);
+				const { data: newAttendance, error: createError } = await createAttendance(today, user.uid);
+				if (createError) {
+					toast({
+						title: 'Error',
+						description:
+							translateError(createError) || 'No se pudo crear el registro de asistencia',
+						variant: 'destructive',
+					});
+					return;
+				}
 				attendance = newAttendance;
 			} else {
 				attendance = existingAttendance;
@@ -101,7 +123,7 @@ export function ClockIn() {
 			if (!attendance) {
 				toast({
 					title: 'Error',
-					description: 'No se pudo crear el registro de asistencia',
+					description: translateError('error') || 'No se pudo crear el registro de asistencia',
 					variant: 'destructive',
 				});
 				return;
@@ -128,7 +150,7 @@ export function ClockIn() {
 			if (entryError) {
 				toast({
 					title: 'Error',
-					description: 'No se pudo registrar el fichaje',
+					description: translateError('error') || 'No se pudo registrar el fichaje',
 					variant: 'destructive',
 				});
 				return;
@@ -162,7 +184,7 @@ export function ClockIn() {
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: error instanceof Error ? error.message : 'Error al obtener ubicación',
+				description: translateError('error') || 'Error al obtener ubicación',
 				variant: 'destructive',
 			});
 		}
@@ -187,14 +209,14 @@ export function ClockIn() {
 		if (error) {
 			toast({
 				title: 'Error',
-				description: 'No se pudo guardar la configuración',
+				description: translateError('error') || 'No se pudo guardar la configuración',
 				variant: 'destructive',
 			});
 		} else {
 			setRadiusMeters(value);
 			toast({
 				title: 'Configuración guardada',
-				description: 'El radio de ubicación se actualizó correctamente',
+				description: translateError('error') || 'El radio de ubicación se actualizó correctamente',
 			});
 		}
 	};
