@@ -165,7 +165,6 @@ export async function deleteMessageAction(
 ): Promise<{ success: boolean; error?: string; data?: Message }> {
 	try {
 		const supabase = await getServerSupabaseClient();
-		await getCurrentUser();
 
 		const { data, error } = await supabase
 			.from(TABLE)
