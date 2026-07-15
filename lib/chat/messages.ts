@@ -42,7 +42,7 @@ export async function getMessagesAction(
 
 		return { success: true, data: messages, hasMore: messages.length === limit };
 	} catch (error: any) {
-		return { success: false, error: error.message || 'Error al obtener mensajes' };
+		return { success: false, error: error.message || 'Error al obtener mensajes ' };
 	}
 }
 
