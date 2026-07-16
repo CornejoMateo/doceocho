@@ -8,6 +8,8 @@ export function useChatRealtime(channelId: number | null) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<MessageWithUser[]>([]);
 	const [loading, setLoading] = useState(false);
+	const [loadingMore, setLoadingMore] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const supabase = useMemo(() => getSupabaseClient(), []);
 	const messagesRef = useRef<MessageWithUser[]>([]);
@@ -36,11 +38,12 @@ export function useChatRealtime(channelId: number | null) {
 		const version = ++fetchVersionRef.current;
 
 		try {
-			const fetchedMessages = await getMessages(channelId);
+			const result = await getMessages(channelId);
 
 			if (version !== fetchVersionRef.current) return;
 
-			setMessages(fetchedMessages);
+			setMessages(result.messages);
+			setHasMore(result.hasMore);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Error');
 		} finally {
@@ -52,11 +55,38 @@ export function useChatRealtime(channelId: number | null) {
 		messagesRef.current = [];
 		setMessages([]);
 		setError(null);
+		setHasMore(true);
 
 		if (channelId) {
 			fetchMessages();
 		}
 	}, [fetchMessages]);
+
+	const loadOlderMessages = useCallback(async () => {
+		if (!channelId || !user || loadingMore || !hasMore || messages.length === 0) return;
+
+		setLoadingMore(true);
+
+		try {
+			const cursor = messages[0].created_at;
+			const result = await getMessages(channelId, cursor);
+
+			if (result.messages.length === 0) {
+				setHasMore(false);
+			} else {
+				setMessages((prev) => {
+					const existingIds = new Set(prev.map((m) => m.id));
+					const newMessages = result.messages.filter((m) => !existingIds.has(m.id));
+					return [...newMessages, ...prev];
+				});
+				setHasMore(result.hasMore);
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Error');
+		} finally {
+			setLoadingMore(false);
+		}
+	}, [channelId, user, loadingMore, hasMore, messages]);
 
 	useEffect(() => {
 		if (!channelId) return;
@@ -147,7 +177,10 @@ export function useChatRealtime(channelId: number | null) {
 	return {
 		messages,
 		loading,
+		loadingMore,
+		hasMore,
 		error,
 		refresh,
+		loadOlderMessages,
 	};
 }

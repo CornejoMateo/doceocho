@@ -53,7 +53,10 @@ export function ChatManagement() {
 	const {
 		messages,
 		loading: messagesLoading,
+		loadingMore,
+		hasMore,
 		refresh,
+		loadOlderMessages,
 	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
 
 	refreshRef.current = refresh;
@@ -260,6 +263,9 @@ export function ChatManagement() {
 								currentUserId={user.id}
 								editingMessage={chatManagement.editingMessage}
 								messagesLoading={messagesLoading}
+								loadingMore={loadingMore}
+								hasMore={hasMore}
+								onLoadMore={loadOlderMessages}
 								onEditMessage={chatManagement.handleEditMessage}
 								onDeleteMessage={chatManagement.handleDeleteMessage}
 								onSetEditingMessage={chatManagement.setEditingMessage}

@@ -10,6 +10,7 @@ import React, {
 	useImperativeHandle,
 	forwardRef,
 	useEffect,
+	useLayoutEffect,
 } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
@@ -34,6 +35,9 @@ interface MessagesListProps {
 	currentUserId: string;
 	editingMessage: { id: number; content: string } | null;
 	messagesLoading: boolean;
+	loadingMore: boolean;
+	hasMore: boolean;
+	onLoadMore: () => void;
 	onEditMessage: (messageId: number, newContent: string) => void;
 	onDeleteMessage: (messageId: number) => void;
 	onSetEditingMessage: (message: { id: number; content: string } | null) => void;
@@ -49,6 +53,9 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 		currentUserId,
 		editingMessage,
 		messagesLoading,
+		loadingMore,
+		hasMore,
+		onLoadMore,
 		onEditMessage,
 		onDeleteMessage,
 		onSetEditingMessage,
@@ -59,6 +66,8 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 ) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const messageRefs = useRef(new Map<number, HTMLDivElement>());
+	const sentinelRef = useRef<HTMLDivElement>(null);
+	const scrollAnchorRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
 
 	const messagesMap = useMemo(() => {
 		const map = new Map<number, MessageWithUser>();
@@ -73,12 +82,6 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 
 		if (!element) return false;
 
-		console.log({
-			messageId,
-			found: !!element,
-			containerHeight: containerRef.current?.scrollHeight,
-		});
-
 		element.scrollIntoView({
 			behavior: 'auto',
 			block: 'center',
@@ -87,14 +90,6 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 		});
 
 		return true;
-	}, []);
-
-	useEffect(() => {
-		console.log('MessagesList mounted');
-
-		return () => {
-			console.log('MessagesList unmounted');
-		};
 	}, []);
 
 	const scrollToBottom = useCallback(
@@ -141,6 +136,45 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 		[scrollToMessage, scrollToBottom, scrollToTop, isNearBottom]
 	);
 
+	useEffect(() => {
+		if (loadingMore && containerRef.current) {
+			scrollAnchorRef.current = {
+				scrollHeight: containerRef.current.scrollHeight,
+				scrollTop: containerRef.current.scrollTop,
+			};
+		}
+	}, [loadingMore]);
+
+	useLayoutEffect(() => {
+		if (scrollAnchorRef.current && containerRef.current && !loadingMore) {
+			const { scrollHeight: prevHeight, scrollTop: prevTop } = scrollAnchorRef.current;
+			const newHeight = containerRef.current.scrollHeight;
+			const delta = newHeight - prevHeight;
+
+			containerRef.current.scrollTop = prevTop + delta;
+			scrollAnchorRef.current = null;
+		}
+	}, [filteredMessages.length, loadingMore]);
+
+	useEffect(() => {
+		const sentinel = sentinelRef.current;
+		const container = containerRef.current;
+
+		if (!sentinel || !hasMore || loadingMore) return;
+
+		const observer = new IntersectionObserver(
+			([entry]) => {
+				if (entry.isIntersecting && hasMore && !loadingMore) {
+					onLoadMore();
+				}
+			},
+			{ root: container, threshold: 0 }
+		);
+
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [hasMore, loadingMore, onLoadMore, filteredMessages.length]);
+
 	if (messagesLoading) {
 		return (
 			<div className="flex-1 flex items-center justify-center min-h-0">
@@ -176,6 +210,14 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 			ref={containerRef}
 			className={cn('flex-1 min-h-0 overflow-y-auto', !initialScrollDone && 'invisible')}
 		>
+			{hasMore && <div ref={sentinelRef} className="h-px" />}
+
+			{loadingMore && (
+				<div className="text-center text-sm text-muted-foreground py-2">
+					Cargando mensajes anteriores...
+				</div>
+			)}
+
 			{filteredMessages.map((message) => (
 				<div
 					key={message.id}
