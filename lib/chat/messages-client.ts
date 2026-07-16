@@ -83,7 +83,5 @@ export async function deleteMessage(messageId: number) {
 		.select()
 		.single();
 
-	if (error) throw error;
-
-	return data;
+	return { data, error };
 }

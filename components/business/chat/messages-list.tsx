@@ -17,6 +17,7 @@ import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
 import { QuoteMessage } from './quote-message';
 import { formatCreatedAtChat } from '@/utils/format-date';
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface MessagesListRef {
 	scrollToMessage: (messageId: number, options?: ScrollIntoViewOptions) => void;
@@ -305,7 +306,7 @@ function MessageItemComponent({
 					<div className="text-sm italic opacity-70">{CHAT_CONSTANTS.MESSAGES.MESSAGE_DELETED}</div>
 				) : editingMessage?.id === message.id ? (
 					<div className="flex gap-2">
-						<Input
+						<Textarea
 							value={editingMessage.content}
 							onChange={(e) => onSetEditingMessage({ id: message.id, content: e.target.value })}
 							onKeyDown={(e) => {
@@ -317,7 +318,7 @@ function MessageItemComponent({
 								}
 							}}
 							autoFocus
-							className="flex-1"
+							className="min-h-[100px] resize-none"
 						/>
 						<Button size="sm" onClick={() => onEditMessage(message.id, editingMessage.content)}>
 							{CHAT_CONSTANTS.BUTTONS.SAVE}

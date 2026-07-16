@@ -43,7 +43,14 @@ export function useChatRealtime(channelId: number | null, isNearBottom?: () => b
 
 			if (version !== fetchVersionRef.current) return;
 
-			setMessages(result.messages);
+			setMessages((prev) => {
+				if (prev.length === 0) return result.messages;
+
+				const fetchedIds = new Set(result.messages.map((m) => m.id));
+				const realtimeOnly = prev.filter((m) => !fetchedIds.has(m.id));
+
+				return [...result.messages, ...realtimeOnly];
+			});
 			setHasMore(result.hasMore);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Error');

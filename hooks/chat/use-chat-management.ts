@@ -197,9 +197,13 @@ export function useChatManagement({
 
 	const loadMembers = async (channelId: number) => {
 		if (!currentUserUid) return;
-		const result = await getChannelMembers(channelId);
-		if (result) {
-			setMembers(result);
+		try {
+			const result = await getChannelMembers(channelId);
+			if (result) {
+				setMembers(result);
+			}
+		} catch {
+			setMembers([]);
 		}
 	};
 
@@ -323,14 +327,13 @@ export function useChatManagement({
 		const messageId = pendingDeleteMessage;
 		setPendingDeleteMessage(null);
 
-		const result = await deleteMessage(messageId);
-
-		if (result.success) {
+		try {
+			await deleteMessage(messageId);
 			toast({ title: 'Mensaje eliminado' });
-		} else {
+		} catch (err) {
 			toast({
 				title: 'Error al eliminar mensaje',
-				description: translateError(result.error) || 'Error al eliminar mensaje',
+				description: translateError(err) || 'Error al eliminar mensaje',
 				variant: 'destructive',
 			});
 		}
@@ -339,14 +342,14 @@ export function useChatManagement({
 	const handleEditMessage = async (messageId: number, newContent: string) => {
 		if (!currentUserUid) return;
 
-		const result = await editMessage(messageId, newContent);
-		if (result.success) {
+		try {
+			await editMessage(messageId, newContent);
 			setEditingMessage(null);
 			toast({ title: 'Mensaje editado' });
-		} else {
+		} catch (err) {
 			toast({
 				title: 'Error al editar mensaje',
-				description: translateError(result.error) || 'Error al editar mensaje',
+				description: translateError(err) || 'Error al editar mensaje',
 				variant: 'destructive',
 			});
 		}

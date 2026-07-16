@@ -102,7 +102,7 @@ export function ChatHeader({
 							{channel.name || CHAT_CONSTANTS.CHANNELS.NO_NAME}
 						</h2>
 
-						{channel.description && (
+						{channel.description && !isMobile && (
 							<p className="text-xs text-muted-foreground">{channel.description}</p>
 						)}
 					</div>
