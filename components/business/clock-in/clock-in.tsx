@@ -211,14 +211,14 @@ export function ClockIn() {
 		if (error) {
 			toast({
 				title: 'Error',
-				description: translateError('error') || 'No se pudo guardar la configuración',
+				description: translateError(error) || 'No se pudo guardar la configuración',
 				variant: 'destructive',
 			});
 		} else {
 			setRadiusMeters(value);
 			toast({
 				title: 'Configuración guardada',
-				description: translateError('error') || 'El radio de ubicación se actualizó correctamente',
+				description: 'El radio de ubicación se actualizó correctamente',
 			});
 		}
 	};
