@@ -7,6 +7,7 @@ import { getUserAttendanceHistory, AttendanceEntryWithDate } from '@/lib/attenda
 import { useAuth } from '@/components/provider/auth-provider';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { translateError } from '@/lib/error-translator';
 
 type FilterType = 'all' | 'regular' | 'overtime';
 
@@ -17,6 +18,7 @@ export function AttendanceHistory() {
 	const [showHistory, setShowHistory] = useState(false);
 	const [filterType, setFilterType] = useState<FilterType>('all');
 	const [dateFilter, setDateFilter] = useState<string>('');
+	const [error, setError] = useState<string | null>(null);
 	const { user } = useAuth();
 
 	const loadHistory = async () => {
@@ -24,9 +26,10 @@ export function AttendanceHistory() {
 		if (!userId) return;
 
 		setLoading(true);
+		setError(null);
 		const { data, error } = await getUserAttendanceHistory(userId as string);
 		if (error) {
-			console.error('Error loading attendance history:', error);
+			setError(translateError(error) || 'Error al cargar el historial');
 		} else {
 			setEntries(data || []);
 			setFilteredEntries(data || []);
@@ -108,6 +111,8 @@ export function AttendanceHistory() {
 					<CardContent className="space-y-4">
 						{loading ? (
 							<div className="text-center py-8">Cargando historial...</div>
+						) : error ? (
+							<div className="text-center py-6 text-red-500 text-sm">{error}</div>
 						) : (
 							<>
 								<div className="flex flex-col sm:flex-row gap-3">

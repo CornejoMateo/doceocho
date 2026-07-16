@@ -25,12 +25,14 @@ export function AdminAttendanceHistory() {
 	const [period, setPeriod] = useState<PeriodFilter>('day');
 	const [dateFilter, setDateFilter] = useState<string>('');
 	const [selectedUser, setSelectedUser] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
 	const loadHistory = async () => {
 		setLoading(true);
+		setError(null);
 		const { data, error } = await getAllAttendanceHistory();
 		if (error) {
-			translateError(error);
+			setError(translateError(error) || 'Error al cargar el historial de empleados');
 		} else {
 			setAllEntries(data || []);
 			const today = new Date().toISOString().split('T')[0];
@@ -126,6 +128,8 @@ export function AdminAttendanceHistory() {
 			<CardContent className="space-y-4">
 				{loading ? (
 					<div className="text-center py-8">Cargando historial...</div>
+				) : error ? (
+					<div className="text-center py-6 text-red-500 text-sm">{error}</div>
 				) : (
 					<>
 						<div className="flex flex-col sm:flex-row gap-3">

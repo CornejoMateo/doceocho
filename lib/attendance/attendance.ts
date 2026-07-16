@@ -73,7 +73,7 @@ export async function getAttendanceByDate(
 		.select('*')
 		.eq('date', date)
 		.eq('user_id', userId)
-		.single();
+		.maybeSingle();
 
 	return { data, error };
 }
@@ -219,21 +219,31 @@ export function calculateHoursWorked(entries: AttendanceEntryWithDate[]): number
 			(a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime()
 		);
 
-		// Pair entries: first entry with first exit, second entry with second exit, etc.
-		for (let i = 0; i < sortedEntries.length - 1; i++) {
-			const entry = sortedEntries[i];
-			const nextEntry = sortedEntries[i + 1];
+		// Maintain separate pending entries for regular and overtime
+		const pendingRegularIn: AttendanceEntryWithDate[] = [];
+		const pendingOvertimeIn: AttendanceEntryWithDate[] = [];
 
-			const isEntry = entry.type === 'regular_in' || entry.type === 'overtime_in';
-			const isExit = nextEntry.type === 'regular_out' || nextEntry.type === 'overtime_out';
-
-			if (isEntry && isExit) {
-				const startTime = new Date(entry.entry_time).getTime();
-				const endTime = new Date(nextEntry.entry_time).getTime();
-				const hours = (endTime - startTime) / (1000 * 60 * 60);
-				totalHours += hours;
-				// Skip the next entry since we already used it as the exit
-				i++;
+		for (const entry of sortedEntries) {
+			if (entry.type === 'regular_in') {
+				pendingRegularIn.push(entry);
+			} else if (entry.type === 'regular_out' && pendingRegularIn.length > 0) {
+				const matchingIn = pendingRegularIn.shift();
+				if (matchingIn) {
+					const startTime = new Date(matchingIn.entry_time).getTime();
+					const endTime = new Date(entry.entry_time).getTime();
+					const hours = (endTime - startTime) / (1000 * 60 * 60);
+					totalHours += hours;
+				}
+			} else if (entry.type === 'overtime_in') {
+				pendingOvertimeIn.push(entry);
+			} else if (entry.type === 'overtime_out' && pendingOvertimeIn.length > 0) {
+				const matchingIn = pendingOvertimeIn.shift();
+				if (matchingIn) {
+					const startTime = new Date(matchingIn.entry_time).getTime();
+					const endTime = new Date(entry.entry_time).getTime();
+					const hours = (endTime - startTime) / (1000 * 60 * 60);
+					totalHours += hours;
+				}
 			}
 		}
 	});

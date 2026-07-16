@@ -45,6 +45,9 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('violates check constraint')) {
 		return 'Los datos no cumplen con las validaciones requeridas.';
 	}
+	if (errorMessage.includes('cannot coerce') || errorMessage.includes('single JSON object')) {
+		return 'Error al procesar la solicitud. Intenta nuevamente.';
+	}
 
 	// Validation errors
 	if (errorMessage.includes('required') || errorMessage.includes('is required')) {
