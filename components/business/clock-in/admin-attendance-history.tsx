@@ -12,6 +12,7 @@ import {
 } from '@/lib/attendance/attendance';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { translateError } from '@/lib/error-translator';
 
 type PeriodFilter = 'day' | 'week' | 'month';
 
@@ -29,7 +30,7 @@ export function AdminAttendanceHistory() {
 		setLoading(true);
 		const { data, error } = await getAllAttendanceHistory();
 		if (error) {
-			console.error('Error loading attendance history:', error);
+			translateError(error);
 		} else {
 			setAllEntries(data || []);
 			const today = new Date().toISOString().split('T')[0];

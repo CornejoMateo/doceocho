@@ -219,18 +219,21 @@ export function calculateHoursWorked(entries: AttendanceEntryWithDate[]): number
 			(a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime()
 		);
 
-		for (let i = 0; i < sortedEntries.length - 1; i += 2) {
+		// Pair entries: first entry with first exit, second entry with second exit, etc.
+		for (let i = 0; i < sortedEntries.length - 1; i++) {
 			const entry = sortedEntries[i];
 			const nextEntry = sortedEntries[i + 1];
 
-			if (
-				(entry.type === 'regular_in' || entry.type === 'overtime_in') &&
-				(nextEntry.type === 'regular_out' || nextEntry.type === 'overtime_out')
-			) {
+			const isEntry = entry.type === 'regular_in' || entry.type === 'overtime_in';
+			const isExit = nextEntry.type === 'regular_out' || nextEntry.type === 'overtime_out';
+
+			if (isEntry && isExit) {
 				const startTime = new Date(entry.entry_time).getTime();
 				const endTime = new Date(nextEntry.entry_time).getTime();
 				const hours = (endTime - startTime) / (1000 * 60 * 60);
 				totalHours += hours;
+				// Skip the next entry since we already used it as the exit
+				i++;
 			}
 		}
 	});
