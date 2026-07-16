@@ -1,12 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-	// Solo validar al navegar entre páginas (GET)
-	if (request.method !== 'GET') {
-		return NextResponse.next();
-	}
-
+export async function proxy(request: NextRequest) {
 	let response = NextResponse.next({ request });
 
 	const supabase = createServerClient(
