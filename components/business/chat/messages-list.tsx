@@ -305,7 +305,7 @@ function MessageItemComponent({
 				{message.deleted_at ? (
 					<div className="text-sm italic opacity-70">{CHAT_CONSTANTS.MESSAGES.MESSAGE_DELETED}</div>
 				) : editingMessage?.id === message.id ? (
-					<div className="flex gap-2">
+					<div className="flex flex-col sm:flex-row gap-2">
 						<Textarea
 							value={editingMessage.content}
 							onChange={(e) => onSetEditingMessage({ id: message.id, content: e.target.value })}
@@ -318,19 +318,23 @@ function MessageItemComponent({
 								}
 							}}
 							autoFocus
-							className="min-h-[100px] resize-none"
+							className="min-h-[80px] resize-none"
 						/>
-						<Button size="sm" onClick={() => onEditMessage(message.id, editingMessage.content)}>
-							{CHAT_CONSTANTS.BUTTONS.SAVE}
-						</Button>
-						<Button
-							size="sm"
-							variant="outline"
-							className="bg-white text-amber-800 hover:bg-white hover:text-amber-800"
-							onClick={() => onSetEditingMessage(null)}
-						>
-							{CHAT_CONSTANTS.BUTTONS.CANCEL}
-						</Button>
+
+						<div className="flex gap-2">
+							<Button size="sm" onClick={() => onEditMessage(message.id, editingMessage.content)}>
+								{CHAT_CONSTANTS.BUTTONS.SAVE}
+							</Button>
+
+							<Button
+								size="sm"
+								variant="outline"
+								className="bg-white text-amber-800 hover:bg-white hover:text-amber-800"
+								onClick={() => onSetEditingMessage(null)}
+							>
+								{CHAT_CONSTANTS.BUTTONS.CANCEL}
+							</Button>
+						</div>
 					</div>
 				) : (
 					<div className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
