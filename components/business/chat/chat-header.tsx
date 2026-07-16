@@ -57,9 +57,9 @@ export function ChatHeader({
 	onBack,
 }: ChatHeaderProps) {
 	return (
-		<div className="p-4 border-b flex items-center gap-2 max-w-full">
+		<div className="p-4 border-b flex items-center gap-2 w-full min-w-0 overflow-hidden">
 			{isMobile && (
-				<Button variant="ghost" size="icon" onClick={onBack}>
+				<Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
 					<ArrowLeft className="h-5 w-5" />
 				</Button>
 			)}
@@ -97,12 +97,13 @@ export function ChatHeader({
 				</div>
 			) : (
 				<div className="flex items-center justify-between flex-1 min-w-0">
-					<div className="min-w-0 flex-1">
+					<div className="flex-1 min-w-0 overflow-hidden">
 						<h2 className="text-base font-semibold truncate">
 							{channel.name || CHAT_CONSTANTS.CHANNELS.NO_NAME}
 						</h2>
-						{channel.description && !isMobile && (
-							<p className="text-xs text-muted-foreground truncate">{channel.description}</p>
+
+						{channel.description && (
+							<p className="text-xs text-muted-foreground">{channel.description}</p>
 						)}
 					</div>
 					<div className="flex items-center gap-2 shrink-0">

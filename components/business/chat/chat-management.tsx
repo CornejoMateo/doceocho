@@ -210,7 +210,7 @@ export function ChatManagement() {
 				/>
 			)}
 			{(!isMobile || chatManagement.selectedChannel) && (
-				<Card className="flex-1 flex flex-col min-h-0">
+				<Card className="flex-1 min-w-0 flex flex-col min-h-0">
 					{chatManagement.selectedChannel ? (
 						<>
 							<ChatHeader
