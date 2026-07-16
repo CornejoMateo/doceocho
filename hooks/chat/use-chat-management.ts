@@ -278,8 +278,6 @@ export function useChatManagement({
 	const handleScrolledToUnread = async () => {
 		if (!selectedChannel?.last_message_id) return;
 
-		const unreadToRemove = selectedChannel.unread_count ?? 0;
-
 		void updateLastReadMessage(selectedChannel.last_message_id, selectedChannel.id, currentUserUid);
 
 		setSelectedChannel((prev) =>
@@ -302,15 +300,15 @@ export function useChatManagement({
 						}
 					: ch
 			);
-			channelsCache = { data: updated, timestamp: Date.now() };
+
+			channelsCache = {
+				data: updated,
+				timestamp: Date.now(),
+			};
+
 			return updated;
 		});
-
-		if (unreadToRemove > 0) {
-			decrementUnreadCount(unreadToRemove);
-		}
 	};
-
 	const handleReplyTo = (message: MessageWithUser) => {
 		setReplyingTo(message);
 	};

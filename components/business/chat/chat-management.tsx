@@ -128,12 +128,11 @@ export function ChatManagement() {
 	useEffect(() => {
 		const currentId = chatManagement.selectedChannel?.id ?? null;
 
-		if (
-			!currentId ||
-			currentId === previousChannelId.current ||
-			messagesLoading ||
-			filteredMessages.length === 0
-		) {
+		if (!currentId || messagesLoading || filteredMessages.length === 0) {
+			return;
+		}
+
+		if (currentId === previousChannelId.current && initialScrollDone) {
 			return;
 		}
 
@@ -166,9 +165,9 @@ export function ChatManagement() {
 		chatManagement.handleScrolledToUnread();
 	}, [
 		chatManagement.selectedChannel?.id,
-		chatManagement.firstUnreadMessageId,
 		messagesLoading,
-		filteredMessages,
+		filteredMessages.length,
+		initialScrollDone,
 	]);
 
 	if (!user) {

@@ -87,17 +87,17 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 		};
 	}, [user?.id, fetchUnreadCount]);
 
-	const incrementUnreadCount = (amount = 1) => {
+	const incrementUnreadCount = useCallback((amount = 1) => {
 		setTotalUnreadCount((prev) => prev + amount);
-	};
+	}, []);
 
-	const decrementUnreadCount = (amount = 1) => {
+	const decrementUnreadCount = useCallback((amount = 1) => {
 		setTotalUnreadCount((prev) => Math.max(0, prev - amount));
-	};
+	}, []);
 
-	const setUnreadCount = (count: number) => {
+	const setUnreadCount = useCallback((count: number) => {
 		setTotalUnreadCount(Math.max(0, count));
-	};
+	}, []);
 
 	const value = useMemo(
 		() => ({
@@ -107,7 +107,7 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 			decrementUnreadCount,
 			setUnreadCount,
 		}),
-		[totalUnreadCount, fetchUnreadCount]
+		[totalUnreadCount, fetchUnreadCount, incrementUnreadCount, decrementUnreadCount, setUnreadCount]
 	);
 
 	return <ChatUnreadContext.Provider value={value}>{children}</ChatUnreadContext.Provider>;
