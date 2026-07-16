@@ -3,8 +3,9 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { getMessages } from '@/lib/chat/messages-client';
 import { useAuth } from '@/components/provider/auth-provider';
+import { updateLastReadMessage } from '@/lib/chat/channels-client';
 
-export function useChatRealtime(channelId: number | null) {
+export function useChatRealtime(channelId: number | null, isNearBottom?: () => boolean) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<MessageWithUser[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -125,6 +126,9 @@ export function useChatRealtime(channelId: number | null) {
 							if (prev.some((m) => m.id === newRecord.id)) return prev;
 							return [...prev, messageWithUser];
 						});
+						if (newRecord.user_id !== user?.id && isNearBottom?.()) {
+							await updateLastReadMessage(newRecord.channel_id, newRecord.id, user?.id as string);
+						}
 
 						if (!existingUser) {
 							const { data: userData } = await supabase

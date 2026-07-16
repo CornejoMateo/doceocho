@@ -57,8 +57,10 @@ export function ChatManagement() {
 		hasMore,
 		refresh,
 		loadOlderMessages,
-	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
-
+	} = useChatRealtime(
+		chatManagement.selectedChannel?.id || null,
+		() => messagesListRef.current?.isNearBottom() ?? false
+	);
 	refreshRef.current = refresh;
 
 	useEffect(() => {
