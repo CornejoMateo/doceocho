@@ -8,8 +8,6 @@ export function useChatRealtime(channelId: number | null) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<MessageWithUser[]>([]);
 	const [loading, setLoading] = useState(false);
-	const [loadingMore, setLoadingMore] = useState(false);
-	const [hasMore, setHasMore] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const supabase = useMemo(() => getSupabaseClient(), []);
 	const messagesRef = useRef<MessageWithUser[]>([]);
@@ -17,6 +15,7 @@ export function useChatRealtime(channelId: number | null) {
 	useEffect(() => {
 		messagesRef.current = [];
 		setMessages([]);
+		setLoading(true);
 	}, [channelId]);
 
 	useEffect(() => {
@@ -24,33 +23,14 @@ export function useChatRealtime(channelId: number | null) {
 	}, [messages]);
 
 	const updateMessages = useCallback(
-		(
-			updater: MessageWithUser[] | ((prev: MessageWithUser[]) => MessageWithUser[]),
-			options?: { hasMore?: boolean }
-		) => {
+		(updater: MessageWithUser[] | ((prev: MessageWithUser[]) => MessageWithUser[])) => {
 			setMessages((prev) => (typeof updater === 'function' ? updater(prev) : updater));
-
-			if (options?.hasMore !== undefined) {
-				setHasMore(options.hasMore);
-			}
 		},
 		[]
 	);
 
 	const fetchVersionRef = useRef(0);
 	const realtimeVersionRef = useRef(0);
-
-	const addMessage = useCallback(
-		(message: MessageWithUser) => {
-			realtimeVersionRef.current++;
-
-			updateMessages((prev) => {
-				if (prev.some((m) => m.id === message.id)) return prev;
-				return [...prev, message];
-			});
-		},
-		[updateMessages]
-	);
 
 	const fetchMessages = useCallback(async () => {
 		if (!channelId || !user) {
@@ -85,22 +65,21 @@ export function useChatRealtime(channelId: number | null) {
 					return fetchedMessages;
 				});
 
-				setHasMore(result.hasMore ?? false);
+				setLoading(false);
+			} else {
+				setLoading(false);
 			}
 
 			if (result.error) {
 				setError(result.error);
 			}
-		} finally {
-			if (fetchVersion === fetchVersionRef.current) {
-				setLoading(false);
-			}
+		} catch {
+			setLoading(false);
 		}
 	}, [channelId, !!user]);
 
 	useEffect(() => {
 		setMessages([]);
-		setHasMore(true);
 		setError(null);
 
 		fetchMessages();
@@ -188,32 +167,6 @@ export function useChatRealtime(channelId: number | null) {
 		};
 	}, [channelId, supabase, user]);
 
-	const loadMore = useCallback(async (): Promise<number> => {
-		if (!channelId || !user || loadingMore || !hasMore) return 0;
-
-		setLoadingMore(true);
-		try {
-			const offset = messages.length;
-
-			const result = await getMessagesAction(channelId, offset);
-			if (result.error) {
-				setError(result.error || 'Error al cargar mensajes');
-				return 0;
-			} else if (result.data && result.data.length > 0) {
-				updateMessages((prev) => [...result.data!, ...prev], {
-					hasMore: result.hasMore ?? false,
-				});
-				return result.data.length;
-			}
-			return 0;
-		} catch (err: any) {
-			setError(err.message || 'Error al cargar mensajes');
-			return 0;
-		} finally {
-			setLoadingMore(false);
-		}
-	}, [channelId, user, loadingMore, hasMore, messages.length]);
-
 	const refresh = useCallback(() => {
 		fetchMessages();
 	}, [fetchMessages]);
@@ -221,10 +174,7 @@ export function useChatRealtime(channelId: number | null) {
 	return {
 		messages,
 		loading,
-		loadingMore,
-		hasMore,
 		error,
 		refresh,
-		loadMore,
 	};
 }

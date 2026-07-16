@@ -3,98 +3,122 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare, Edit2, Trash2, MessageCircle } from 'lucide-react';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
-import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
 import { QuoteMessage } from './quote-message';
 import { formatCreatedAtChat } from '@/utils/format-date';
+import { cn } from '@/lib/utils';
 
-export interface MessagesListHandle {
-	scrollToBottom: () => void;
+export interface MessagesListRef {
+	scrollToMessage: (messageId: number, options?: ScrollIntoViewOptions) => void;
+
+	scrollToBottom: (options?: ScrollIntoViewOptions) => void;
+
+	scrollToTop: (options?: ScrollToOptions) => void;
+
+	isNearBottom: (threshold?: number) => boolean;
 }
 
 interface MessagesListProps {
-	messages: MessageWithUser[];
 	filteredMessages: MessageWithUser[];
 	searchTerm: string;
 	isFiltering: boolean;
 	currentUserId: string;
 	editingMessage: { id: number; content: string } | null;
 	messagesLoading: boolean;
-	hasMore: boolean;
-	loadingMore: boolean;
-	onLoadMore: () => Promise<number>;
 	onEditMessage: (messageId: number, newContent: string) => void;
 	onDeleteMessage: (messageId: number) => void;
 	onSetEditingMessage: (message: { id: number; content: string } | null) => void;
 	onReplyTo: (message: MessageWithUser) => void;
-	channelId: number | null;
-	lastReadMessageId: number | null;
-	onScrolledToUnread: () => void;
+	initialScrollDone?: boolean;
 }
 
-export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(function MessagesList(
+export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(function MessagesList(
 	{
-		messages,
 		filteredMessages,
 		searchTerm,
 		isFiltering,
 		currentUserId,
 		editingMessage,
 		messagesLoading,
-		hasMore,
-		loadingMore,
-		onLoadMore,
 		onEditMessage,
 		onDeleteMessage,
 		onSetEditingMessage,
 		onReplyTo,
-		lastReadMessageId,
-		onScrolledToUnread,
+		initialScrollDone = false,
 	},
 	ref
 ) {
-	const virtuosoRef = useRef<VirtuosoHandle>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const messageRefs = useRef(new Map<number, HTMLDivElement>());
 
-	useImperativeHandle(ref, () => ({
-		scrollToBottom: () => {
-			if (!virtuosoRef.current || filteredMessages.length === 0) return;
-			virtuosoRef.current.scrollToIndex({
-				index: filteredMessages.length - 1,
-				align: 'end',
-				behavior: 'smooth',
+	const messagesMap = useMemo(() => {
+		const map = new Map<number, MessageWithUser>();
+		for (const msg of filteredMessages) {
+			map.set(msg.id, msg);
+		}
+		return map;
+	}, [filteredMessages]);
+
+	const scrollToMessage = useCallback((messageId: number, options?: ScrollIntoViewOptions) => {
+		const element = messageRefs.current.get(messageId);
+
+		if (!element) return false;
+
+		element.scrollIntoView({
+			behavior: 'auto',
+			block: 'center',
+			inline: 'nearest',
+			...options,
+		});
+
+		return true;
+	}, []);
+
+	const scrollToBottom = useCallback(
+		(options?: ScrollIntoViewOptions) => {
+			const last = filteredMessages.at(-1);
+
+			if (!last) return;
+
+			scrollToMessage(last.id, {
+				block: 'end',
+				...options,
 			});
 		},
-	}));
+		[filteredMessages, scrollToMessage]
+	);
 
-	const [firstItemIndex, setFirstItemIndex] = useState(100000);
-
-	const handleLoadMore = async () => {
-		const added = await onLoadMore();
-
-		if (added > 0) {
-			setFirstItemIndex((prev) => prev - added);
-		}
-	};
-
-	const firstUnreadIndex = filteredMessages.findIndex((msg) => msg.id > (lastReadMessageId ?? 0));
-
-	const didScrollToUnreadRef = useRef(false);
-
-	useEffect(() => {
-		if (!virtuosoRef.current) return;
-		if (didScrollToUnreadRef.current) return;
-		if (firstUnreadIndex === -1) return;
-
-		virtuosoRef.current.scrollToIndex({
-			index: firstUnreadIndex,
-			align: 'center',
-			behavior: 'smooth',
+	const scrollToTop = useCallback((options?: ScrollToOptions) => {
+		containerRef.current?.scrollTo({
+			top: 0,
+			behavior: 'auto',
+			...options,
 		});
-		didScrollToUnreadRef.current = true;
-		onScrolledToUnread();
-	}, [firstUnreadIndex]);
+	}, []);
+
+	const isNearBottom = useCallback((threshold = 100) => {
+		const container = containerRef.current;
+
+		if (!container) return false;
+
+		const distanceFromBottom =
+			container.scrollHeight - container.scrollTop - container.clientHeight;
+
+		return distanceFromBottom <= threshold;
+	}, []);
+
+	useImperativeHandle(
+		ref,
+		() => ({
+			scrollToMessage,
+			scrollToBottom,
+			scrollToTop,
+			isNearBottom,
+		}),
+		[scrollToMessage, scrollToBottom, scrollToTop, isNearBottom]
+	);
 
 	if (messagesLoading) {
 		return (
@@ -127,61 +151,49 @@ export const MessagesList = forwardRef<MessagesListHandle, MessagesListProps>(fu
 	}
 
 	return (
-		<div className="flex-1 min-h-0">
-			<Virtuoso
-				ref={virtuosoRef}
-				data={filteredMessages}
-				firstItemIndex={firstItemIndex}
-				initialTopMostItemIndex={
-					firstUnreadIndex !== -1 ? firstUnreadIndex : filteredMessages.length - 1
-				}
-				computeItemKey={(_, msg) => msg.id}
-				itemContent={(_, message) => (
-					<div className="px-3 py-1.5">
-						<MessageItem
-							message={message}
-							messages={messages}
-							currentUserId={currentUserId}
-							editingMessage={editingMessage}
-							onEditMessage={onEditMessage}
-							onDeleteMessage={onDeleteMessage}
-							onSetEditingMessage={onSetEditingMessage}
-							onReplyTo={onReplyTo}
-						/>
-					</div>
-				)}
-				components={{
-					Header: () =>
-						hasMore && !isFiltering ? (
-							<div className="text-center py-2">
-								<Button
-									size="sm"
-									variant="ghost"
-									onClick={handleLoadMore}
-									disabled={loadingMore}
-									className="text-muted-foreground"
-								>
-									{loadingMore ? 'Cargando...' : 'Cargar más mensajes'}
-								</Button>
-							</div>
-						) : null,
-					Footer: () =>
-						isFiltering && filteredMessages.length > 0 ? (
-							<div className="text-center text-sm text-muted-foreground py-2">
-								{filteredMessages.length}{' '}
-								{CHAT_CONSTANTS.MESSAGES.SEARCH_RESULTS(filteredMessages.length)}
-							</div>
-						) : null,
-				}}
-				style={{ height: '100%' }}
-			/>
+		<div
+			ref={containerRef}
+			className={cn('flex-1 min-h-0 overflow-y-auto', !initialScrollDone && 'invisible')}
+		>
+			{filteredMessages.map((message) => (
+				<div
+					key={message.id}
+					ref={(el) => {
+						if (el) {
+							messageRefs.current.set(message.id, el);
+						} else {
+							messageRefs.current.delete(message.id);
+						}
+					}}
+					className="px-3 py-1.5"
+				>
+					{' '}
+					<MessageItem
+						message={message}
+						messagesMap={messagesMap}
+						currentUserId={currentUserId}
+						editingMessage={editingMessage}
+						onEditMessage={onEditMessage}
+						onDeleteMessage={onDeleteMessage}
+						onSetEditingMessage={onSetEditingMessage}
+						onReplyTo={onReplyTo}
+					/>
+				</div>
+			))}
+
+			{isFiltering && filteredMessages.length > 0 && (
+				<div className="text-center text-sm text-muted-foreground py-2">
+					{filteredMessages.length}{' '}
+					{CHAT_CONSTANTS.MESSAGES.SEARCH_RESULTS(filteredMessages.length)}
+				</div>
+			)}
 		</div>
 	);
 });
 
 interface MessageItemProps {
 	message: MessageWithUser;
-	messages: MessageWithUser[];
+	messagesMap: Map<number, MessageWithUser>;
 	currentUserId: string;
 	editingMessage: { id: number; content: string } | null;
 	onEditMessage: (messageId: number, newContent: string) => void;
@@ -190,9 +202,9 @@ interface MessageItemProps {
 	onReplyTo: (message: MessageWithUser) => void;
 }
 
-function MessageItem({
+function MessageItemComponent({
 	message,
-	messages,
+	messagesMap,
 	currentUserId,
 	editingMessage,
 	onEditMessage,
@@ -201,7 +213,7 @@ function MessageItem({
 	onReplyTo,
 }: MessageItemProps) {
 	const isOwnMessage = message.user_id === currentUserId;
-	const quotedMessage = message.reply_to ? messages.find((m) => m.id === message.reply_to) : null;
+	const quotedMessage = message.reply_to ? messagesMap.get(message.reply_to) : null;
 
 	return (
 		<div
@@ -303,3 +315,5 @@ function MessageItem({
 		</div>
 	);
 }
+
+const MessageItem = React.memo(MessageItemComponent);

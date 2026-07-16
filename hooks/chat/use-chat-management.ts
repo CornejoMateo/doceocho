@@ -11,7 +11,6 @@ import { getChannelMembersAction, updateLastReadMessage } from '@/lib/chat/chann
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { useAuth } from '@/components/provider/auth-provider';
 import { useChatUnread } from '@/components/provider/chat-unread-provider';
 
 type ChannelsCacheEntry = {
@@ -69,7 +68,7 @@ export function useChatManagement({
 		name: string;
 	} | null>(null);
 	const [pendingCleanupMessages, setPendingCleanupMessages] = useState(false);
-	const { user: authUser } = useAuth();
+	const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<number | null>(null);
 
 	const { totalUnreadCount, decrementUnreadCount } = useChatUnread();
 
@@ -248,41 +247,31 @@ export function useChatManagement({
 	const handleChannelSelect = async (channel: ChannelWithLastMessage) => {
 		setSelectedChannel(channel);
 
-		const unreadToRemove = channel.unread_count ?? 0;
-
-		if (unreadToRemove > 0) {
-			decrementUnreadCount(unreadToRemove);
-		}
-
-		setChannels((prev) => {
-			const updated = prev.map((ch) =>
+		/* 		setChannels((prev) =>
+			prev.map((ch) =>
 				ch.id === channel.id
 					? {
 							...ch,
-							unread_count: 0,
-							last_read_message_id: channel.last_message_id,
+							unread_count: ch.unread_count,
 						}
 					: ch
-			);
+			)
+		); */
 
-			channelsCache = {
-				data: updated,
-				timestamp: Date.now(),
-			};
+		const firstUnread =
+			channel.unread_count && channel.unread_count > 0
+				? (channel.last_read_message_id ?? 0) + 1
+				: null;
 
-			return updated;
-		});
+		setFirstUnreadMessageId(firstUnread);
 
-		if (channel.last_message_id) {
-			updateLastReadMessage(channel.last_message_id, channel.id, currentUserUid);
-		}
+		setScrolledToUnread(false);
 
 		setSearchTerm('');
 		setShowSearch(false);
 		setShowDateSearch(false);
 		setDateRange({ from: '', to: '' });
 		setShowSidebar(false);
-		setScrolledToUnread(false);
 		setReplyingTo(null);
 	};
 
@@ -513,5 +502,8 @@ export function useChatManagement({
 
 		// Computed
 		isAdmin: currentUserRole === 'Admin',
+
+		firstUnreadMessageId,
+		setFirstUnreadMessageId,
 	};
 }

@@ -12,10 +12,8 @@ const timeZone = 'America/Argentina/Buenos_Aires';
 const TABLE = 'messages';
 
 export async function getMessagesAction(
-	channelId: number,
-	offset = 0,
-	limit = 50
-): Promise<{ success: boolean; error?: string; data?: MessageWithUser[]; hasMore?: boolean }> {
+	channelId: number
+): Promise<{ success: boolean; error?: string; data?: MessageWithUser[] }> {
 	try {
 		const supabase = await getServerSupabaseClient();
 
@@ -33,14 +31,13 @@ export async function getMessagesAction(
 			`
 			)
 			.eq('channel_id', channelId)
-			.order('created_at', { ascending: false })
-			.range(offset, offset + limit - 1);
+			.order('created_at', { ascending: true });
 
 		if (error) return { success: false, error: error.message };
 
-		const messages = (data || []).reverse() as unknown as MessageWithUser[];
+		const messages = (data || []) as unknown as MessageWithUser[];
 
-		return { success: true, data: messages, hasMore: messages.length === limit };
+		return { success: true, data: messages };
 	} catch (error: any) {
 		return { success: false, error: error.message || 'Error al obtener mensajes ' };
 	}

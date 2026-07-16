@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -9,7 +9,7 @@ import { usePushNotifications } from '@/hooks/push/use-push-notifications';
 import { useChatManagement } from '@/hooks/chat/use-chat-management';
 import { ChatSidebar } from './chat-sidebar';
 import { ChatHeader } from './chat-header';
-import { MessagesList, MessagesListHandle } from './messages-list';
+import { MessagesList, MessagesListRef } from './messages-list';
 import { MessageInput } from './message-input';
 import { PushNotificationSettings } from '@/components/business/chat/push-notification-settings';
 import { CleanupMessagesDialog } from '@/components/business/chat/cleanup-messages-dialog';
@@ -40,6 +40,8 @@ export function ChatManagement() {
 		unsubscribe,
 	} = usePushNotifications();
 
+	const [initialScrollDone, setInitialScrollDone] = useState(false);
+
 	const refreshRef = useRef<() => void>(() => {});
 
 	const chatManagement = useChatManagement({
@@ -53,18 +55,13 @@ export function ChatManagement() {
 	const {
 		messages,
 		loading: messagesLoading,
-		loadingMore,
-		hasMore,
-		loadMore,
 		refresh,
 	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
 
 	refreshRef.current = refresh;
 
-	const allMessages = useMemo(() => messages, [messages]);
-
 	const filteredMessages = useMemo(() => {
-		let result = allMessages;
+		let result = messages;
 
 		if (chatManagement.searchTerm) {
 			const term = chatManagement.searchTerm.toLowerCase();
@@ -91,27 +88,7 @@ export function ChatManagement() {
 		}
 
 		return result;
-	}, [allMessages, chatManagement.searchTerm, chatManagement.dateRange]);
-
-	const messagesListRef = useRef<MessagesListHandle>(null);
-	const pendingScrollRef = useRef(false);
-	const prevMessagesLenRef = useRef(messages.length);
-
-	useEffect(() => {
-		if (pendingScrollRef.current && messages.length > prevMessagesLenRef.current) {
-			pendingScrollRef.current = false;
-			requestAnimationFrame(() => {
-				messagesListRef.current?.scrollToBottom();
-			});
-		}
-		prevMessagesLenRef.current = messages.length;
-	}, [messages.length]);
-
-	useEffect(() => {
-		if (chatManagement.scrollTrigger > 0) {
-			pendingScrollRef.current = true;
-		}
-	}, [chatManagement.scrollTrigger]);
+	}, [messages, chatManagement.searchTerm, chatManagement.dateRange]);
 
 	useEffect(() => {
 		if (user) {
@@ -119,12 +96,88 @@ export function ChatManagement() {
 		}
 	}, [user, chatManagement.loadChannels]);
 
+	const messagesListRef = useRef<MessagesListRef>(null);
+
+	const previousLastMessageId = useRef<number | null>(null);
+
+	useEffect(() => {
+		if (filteredMessages.length === 0) return;
+
+		const lastMessage = filteredMessages.at(-1)!;
+
+		if (lastMessage.id === previousLastMessageId.current) return;
+
+		previousLastMessageId.current = lastMessage.id;
+		const nearBottom = messagesListRef.current?.isNearBottom();
+
+		if (lastMessage.user_id !== user?.id && nearBottom) {
+			messagesListRef.current?.scrollToBottom({
+				behavior: 'smooth',
+			});
+		} else {
+			if (lastMessage.user_id === user?.id) {
+				messagesListRef.current?.scrollToBottom({
+					behavior: 'smooth',
+				});
+			}
+		}
+	}, [filteredMessages, user?.id]);
+
+	const previousChannelId = useRef<number | null>(null);
+
+	useEffect(() => {
+		const currentId = chatManagement.selectedChannel?.id ?? null;
+
+		if (
+			!currentId ||
+			currentId === previousChannelId.current ||
+			messagesLoading ||
+			filteredMessages.length === 0
+		) {
+			return;
+		}
+
+		previousChannelId.current = currentId;
+
+		const unreadId = chatManagement.firstUnreadMessageId;
+
+		requestAnimationFrame(() => {
+			if (unreadId) {
+				const exists = filteredMessages.some((msg) => msg.id === unreadId);
+
+				if (exists) {
+					messagesListRef.current?.scrollToMessage(unreadId, {
+						block: 'center',
+						behavior: 'auto',
+					});
+
+					setInitialScrollDone(true);
+					chatManagement.handleScrolledToUnread();
+					return;
+				}
+			}
+
+			messagesListRef.current?.scrollToBottom({
+				behavior: 'auto',
+			});
+
+			setInitialScrollDone(true);
+		});
+		chatManagement.handleScrolledToUnread();
+	}, [
+		chatManagement.selectedChannel?.id,
+		chatManagement.firstUnreadMessageId,
+		messagesLoading,
+		filteredMessages,
+	]);
+
 	if (!user) {
 		return <div className="p-4">Cargando...</div>;
 	}
 
 	return (
-		<div className="flex min-h-[calc(100vh-8rem)] gap-4 relative overflow-hidden">
+		<div className="flex h-[calc(100vh-8rem)] gap-4 relative overflow-hidden">
+			{' '}
 			{(!isMobile || !chatManagement.selectedChannel) && (
 				<ChatSidebar
 					channels={chatManagement.channels}
@@ -132,7 +185,13 @@ export function ChatManagement() {
 					loading={chatManagement.loading}
 					initialLoadDone={chatManagement.initialLoadDone}
 					isAdmin={chatManagement.isAdmin}
-					onChannelSelect={chatManagement.handleChannelSelect}
+					onChannelSelect={(channel) => {
+						if (chatManagement.selectedChannel?.id !== channel.id) {
+							setInitialScrollDone(false);
+						}
+
+						chatManagement.handleChannelSelect(channel);
+					}}
 					onCreateChannel={chatManagement.handleCreateChannel}
 					onDeleteChannel={chatManagement.handleDeleteChannel}
 					pushNotificationSettings={
@@ -147,7 +206,6 @@ export function ChatManagement() {
 					}
 				/>
 			)}
-
 			{(!isMobile || chatManagement.selectedChannel) && (
 				<Card className="flex-1 flex flex-col min-h-0">
 					{chatManagement.selectedChannel ? (
@@ -189,9 +247,7 @@ export function ChatManagement() {
 							/>
 
 							<MessagesList
-								ref={messagesListRef}
 								key={chatManagement.selectedChannel?.id ?? 'no-channel'}
-								messages={allMessages}
 								filteredMessages={filteredMessages}
 								searchTerm={chatManagement.searchTerm}
 								isFiltering={
@@ -202,16 +258,12 @@ export function ChatManagement() {
 								currentUserId={user.id}
 								editingMessage={chatManagement.editingMessage}
 								messagesLoading={messagesLoading}
-								hasMore={hasMore}
-								loadingMore={loadingMore}
-								onLoadMore={loadMore}
 								onEditMessage={chatManagement.handleEditMessage}
 								onDeleteMessage={chatManagement.handleDeleteMessage}
 								onSetEditingMessage={chatManagement.setEditingMessage}
 								onReplyTo={chatManagement.handleReplyTo}
-								channelId={chatManagement.selectedChannel?.id ?? null}
-								lastReadMessageId={chatManagement.selectedChannel?.last_read_message_id ?? null}
-								onScrolledToUnread={chatManagement.handleScrolledToUnread}
+								ref={messagesListRef}
+								initialScrollDone={initialScrollDone}
 							/>
 
 							<MessageInput
@@ -238,7 +290,6 @@ export function ChatManagement() {
 					)}
 				</Card>
 			)}
-
 			{chatManagement.showCreateDialog && (
 				<CreateChannelDialog
 					open={chatManagement.showCreateDialog}
@@ -246,7 +297,6 @@ export function ChatManagement() {
 					onChannelCreated={chatManagement.handleChannelCreated}
 				/>
 			)}
-
 			{chatManagement.showMembersDialog && (
 				<ChannelMembersDialog
 					open={chatManagement.showMembersDialog}
@@ -261,7 +311,6 @@ export function ChatManagement() {
 					currentUserRole={user.role}
 				/>
 			)}
-
 			<CleanupMessagesDialog
 				open={chatManagement.showCleanupDialog}
 				onOpenChange={chatManagement.setShowCleanupDialog}
@@ -269,7 +318,6 @@ export function ChatManagement() {
 				onCleanupDateChange={chatManagement.setCleanupDate}
 				onCleanup={chatManagement.handleCleanupMessages}
 			/>
-
 			<AlertDialog
 				open={chatManagement.pendingDeleteMessage !== null}
 				onOpenChange={() => chatManagement.cancelDeleteMessage()}
@@ -289,7 +337,6 @@ export function ChatManagement() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-
 			<AlertDialog
 				open={chatManagement.pendingDeleteChannel !== null}
 				onOpenChange={() => chatManagement.cancelDeleteChannel()}
@@ -311,7 +358,6 @@ export function ChatManagement() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-
 			<AlertDialog
 				open={chatManagement.pendingCleanupMessages}
 				onOpenChange={() => chatManagement.cancelCleanupMessages()}
