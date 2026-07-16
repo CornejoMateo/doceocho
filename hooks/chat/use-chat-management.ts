@@ -70,7 +70,8 @@ export function useChatManagement({
 	const [pendingCleanupMessages, setPendingCleanupMessages] = useState(false);
 	const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<number | null>(null);
 
-	const { totalUnreadCount, decrementUnreadCount } = useChatUnread();
+	const { totalUnreadCount, fetchUnreadCount } = useChatUnread();
+	const [initialScrollDone, setInitialScrollDone] = useState(false);
 
 	const loadChannels = useCallback(
 		async (isBackgroundUpdate = false) => {
@@ -245,6 +246,8 @@ export function useChatManagement({
 	};
 
 	const handleChannelSelect = async (channel: ChannelWithLastMessage) => {
+		setInitialScrollDone(false);
+
 		setSelectedChannel(channel);
 
 		/* 		setChannels((prev) =>
@@ -259,9 +262,7 @@ export function useChatManagement({
 		); */
 
 		const firstUnread =
-			channel.unread_count && channel.unread_count > 0
-				? (channel.last_read_message_id ?? 0) + 1
-				: null;
+			channel.unread_count && channel.unread_count > 0 ? (channel.last_read_message_id ?? 0) : null;
 
 		setFirstUnreadMessageId(firstUnread);
 
@@ -278,7 +279,13 @@ export function useChatManagement({
 	const handleScrolledToUnread = async () => {
 		if (!selectedChannel?.last_message_id) return;
 
-		void updateLastReadMessage(selectedChannel.last_message_id, selectedChannel.id, currentUserUid);
+		await updateLastReadMessage(
+			selectedChannel.last_message_id,
+			selectedChannel.id,
+			currentUserUid
+		);
+
+		await fetchUnreadCount();
 
 		setSelectedChannel((prev) =>
 			prev
@@ -289,26 +296,8 @@ export function useChatManagement({
 					}
 				: prev
 		);
-
-		setChannels((prev) => {
-			const updated = prev.map((ch) =>
-				ch.id === selectedChannel.id
-					? {
-							...ch,
-							last_read_message_id: selectedChannel.last_message_id,
-							unread_count: 0,
-						}
-					: ch
-			);
-
-			channelsCache = {
-				data: updated,
-				timestamp: Date.now(),
-			};
-
-			return updated;
-		});
 	};
+
 	const handleReplyTo = (message: MessageWithUser) => {
 		setReplyingTo(message);
 	};
@@ -503,5 +492,7 @@ export function useChatManagement({
 
 		firstUnreadMessageId,
 		setFirstUnreadMessageId,
+		initialScrollDone,
+		setInitialScrollDone,
 	};
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -40,8 +40,6 @@ export function ChatManagement() {
 		unsubscribe,
 	} = usePushNotifications();
 
-	const [initialScrollDone, setInitialScrollDone] = useState(false);
-
 	const refreshRef = useRef<() => void>(() => {});
 
 	const chatManagement = useChatManagement({
@@ -59,6 +57,10 @@ export function ChatManagement() {
 	} = useChatRealtime(chatManagement.selectedChannel?.id || null);
 
 	refreshRef.current = refresh;
+
+	useEffect(() => {
+		chatManagement.setInitialScrollDone(false);
+	}, [chatManagement.selectedChannel?.id]);
 
 	const filteredMessages = useMemo(() => {
 		let result = messages;
@@ -101,8 +103,9 @@ export function ChatManagement() {
 	const previousLastMessageId = useRef<number | null>(null);
 
 	useEffect(() => {
-		if (filteredMessages.length === 0) return;
+		if (!chatManagement.initialScrollDone) return;
 
+		if (filteredMessages.length === 0) return;
 		const lastMessage = filteredMessages.at(-1)!;
 
 		if (lastMessage.id === previousLastMessageId.current) return;
@@ -121,53 +124,47 @@ export function ChatManagement() {
 				});
 			}
 		}
-	}, [filteredMessages, user?.id]);
+	}, [filteredMessages, user?.id, chatManagement.initialScrollDone]);
 
 	const previousChannelId = useRef<number | null>(null);
 
-	useEffect(() => {
-		const currentId = chatManagement.selectedChannel?.id ?? null;
+	useLayoutEffect(() => {
+		const currentId = chatManagement.selectedChannel?.id;
 
-		if (!currentId || messagesLoading || filteredMessages.length === 0) {
+		if (
+			!currentId ||
+			messagesLoading ||
+			filteredMessages.length === 0 ||
+			chatManagement.initialScrollDone
+		) {
 			return;
 		}
-
-		if (currentId === previousChannelId.current && initialScrollDone) {
-			return;
-		}
-
-		previousChannelId.current = currentId;
 
 		const unreadId = chatManagement.firstUnreadMessageId;
 
-		requestAnimationFrame(() => {
-			if (unreadId) {
-				const exists = filteredMessages.some((msg) => msg.id === unreadId);
-
-				if (exists) {
-					messagesListRef.current?.scrollToMessage(unreadId, {
-						block: 'center',
-						behavior: 'auto',
-					});
-
-					setInitialScrollDone(true);
-					chatManagement.handleScrolledToUnread();
-					return;
-				}
-			}
-
-			messagesListRef.current?.scrollToBottom({
+		if (unreadId) {
+			const success = messagesListRef.current?.scrollToMessage(unreadId, {
+				block: 'center',
 				behavior: 'auto',
 			});
 
-			setInitialScrollDone(true);
+			if (success) {
+				chatManagement.setInitialScrollDone(true);
+				chatManagement.handleScrolledToUnread();
+				return;
+			}
+		}
+
+		messagesListRef.current?.scrollToBottom({
+			behavior: 'auto',
 		});
-		chatManagement.handleScrolledToUnread();
+
+		chatManagement.setInitialScrollDone(true);
 	}, [
 		chatManagement.selectedChannel?.id,
+		filteredMessages,
 		messagesLoading,
-		filteredMessages.length,
-		initialScrollDone,
+		chatManagement.initialScrollDone,
 	]);
 
 	if (!user) {
@@ -175,7 +172,10 @@ export function ChatManagement() {
 	}
 
 	return (
-		<div className="flex h-[calc(100vh-8rem)] gap-4 relative overflow-hidden">
+		<div
+			key={chatManagement.selectedChannel?.id}
+			className="flex h-[calc(100vh-8rem)] gap-4 relative overflow-hidden"
+		>
 			{' '}
 			{(!isMobile || !chatManagement.selectedChannel) && (
 				<ChatSidebar
@@ -186,7 +186,8 @@ export function ChatManagement() {
 					isAdmin={chatManagement.isAdmin}
 					onChannelSelect={(channel) => {
 						if (chatManagement.selectedChannel?.id !== channel.id) {
-							setInitialScrollDone(false);
+							chatManagement.setInitialScrollDone(false);
+							previousLastMessageId.current = null;
 						}
 
 						chatManagement.handleChannelSelect(channel);
@@ -240,13 +241,15 @@ export function ChatManagement() {
 									chatManagement.setShowDateSearch(true);
 								}}
 								onBack={() => {
+									previousChannelId.current = null;
+									chatManagement.setInitialScrollDone(false);
+
 									chatManagement.setSelectedChannel(null);
 									chatManagement.setShowSidebar(true);
 								}}
 							/>
 
 							<MessagesList
-								key={chatManagement.selectedChannel?.id ?? 'no-channel'}
 								filteredMessages={filteredMessages}
 								searchTerm={chatManagement.searchTerm}
 								isFiltering={
@@ -262,7 +265,7 @@ export function ChatManagement() {
 								onSetEditingMessage={chatManagement.setEditingMessage}
 								onReplyTo={chatManagement.handleReplyTo}
 								ref={messagesListRef}
-								initialScrollDone={initialScrollDone}
+								initialScrollDone={chatManagement.initialScrollDone}
 							/>
 
 							<MessageInput

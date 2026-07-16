@@ -3,7 +3,14 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, MessageSquare, Edit2, Trash2, MessageCircle } from 'lucide-react';
-import React, { useMemo, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, {
+	useMemo,
+	useRef,
+	useCallback,
+	useImperativeHandle,
+	forwardRef,
+	useEffect,
+} from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
 import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
 import { QuoteMessage } from './quote-message';
@@ -66,6 +73,12 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 
 		if (!element) return false;
 
+		console.log({
+			messageId,
+			found: !!element,
+			containerHeight: containerRef.current?.scrollHeight,
+		});
+
 		element.scrollIntoView({
 			behavior: 'auto',
 			block: 'center',
@@ -74,6 +87,14 @@ export const MessagesList = forwardRef<MessagesListRef, MessagesListProps>(funct
 		});
 
 		return true;
+	}, []);
+
+	useEffect(() => {
+		console.log('MessagesList mounted');
+
+		return () => {
+			console.log('MessagesList unmounted');
+		};
 	}, []);
 
 	const scrollToBottom = useCallback(
