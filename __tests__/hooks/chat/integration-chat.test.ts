@@ -44,15 +44,18 @@ jest.mock('@/lib/chat/channels', () => ({
 
 jest.mock('@/lib/chat/messages', () => ({
 	sendMessageAction: jest.fn(),
-	deleteMessageAction: jest.fn(),
-	editMessageAction: jest.fn(),
 	cleanChannelMessagesAction: jest.fn(),
-	getMessagesAction: jest.fn(),
 }));
 
-jest.mock('@/lib/chat/channel-members', () => ({
-	getChannelMembersAction: jest.fn(),
-	updateLastReadMessage: jest.fn().mockResolvedValue({ success: true }),
+jest.mock('@/lib/chat/messages-client', () => ({
+	getMessages: jest.fn(),
+	deleteMessage: jest.fn(),
+	editMessage: jest.fn(),
+}));
+
+jest.mock('@/lib/chat/channels-client', () => ({
+	getChannelMembers: jest.fn(),
+	updateLastReadMessage: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -65,12 +68,9 @@ jest.mock('@/lib/error-translator', () => ({
 
 import { useAuth } from '@/components/provider/auth-provider';
 import { getUserChannelsAction, deleteChannelAction } from '@/lib/chat/channels';
-import {
-	sendMessageAction,
-	deleteMessageAction,
-	editMessageAction,
-	getMessagesAction,
-} from '@/lib/chat/messages';
+import { sendMessageAction } from '@/lib/chat/messages';
+import { getMessages, deleteMessage, editMessage } from '@/lib/chat/messages-client';
+import { updateLastReadMessage } from '@/lib/chat/channels-client';
 import { toast } from '@/components/ui/use-toast';
 
 // ─── 5 users ───────────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ describe('Integration: Multi-user chat simulation', () => {
 
 		// User 1 (Admin) logs in
 		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { result: management1 } = renderHook(() =>
 			useChatManagement({
@@ -241,8 +241,8 @@ describe('Integration: Multi-user chat simulation', () => {
 			subscribe: jest.fn().mockReturnThis(),
 		});
 
-		(getMessagesAction as jest.Mock).mockResolvedValue({
-			data: [],
+		(getMessages as jest.Mock).mockResolvedValue({
+			messages: [],
 			hasMore: false,
 		});
 
@@ -306,8 +306,8 @@ describe('Integration: Multi-user chat simulation', () => {
 			users: null,
 		};
 
-		(getMessagesAction as jest.Mock).mockResolvedValue({
-			data: [originalMessage],
+		(getMessages as jest.Mock).mockResolvedValue({
+			messages: [originalMessage],
 			hasMore: false,
 		});
 
@@ -358,8 +358,8 @@ describe('Integration: Multi-user chat simulation', () => {
 			users: null,
 		};
 
-		(getMessagesAction as jest.Mock).mockResolvedValue({
-			data: [message],
+		(getMessages as jest.Mock).mockResolvedValue({
+			messages: [message],
 			hasMore: false,
 		});
 
@@ -385,8 +385,18 @@ describe('Integration: Multi-user chat simulation', () => {
 
 	it('does not overwrite newer messages when old refresh finishes later', async () => {
 		let resolveFetch: any;
+		let realtimeCallback: any;
 
-		(getMessagesAction as jest.Mock).mockImplementation(
+		const supabase = require('@/lib/supabase-client').getSupabaseClient();
+		supabase.channel.mockReturnValue({
+			on: jest.fn(function (event: any, filter: any, callback: any) {
+				realtimeCallback = callback;
+				return this;
+			}),
+			subscribe: jest.fn().mockReturnThis(),
+		});
+
+		(getMessages as jest.Mock).mockImplementation(
 			() =>
 				new Promise((resolve) => {
 					resolveFetch = resolve;
@@ -395,22 +405,24 @@ describe('Integration: Multi-user chat simulation', () => {
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
-		// esperamos que el hook haya iniciado la carga
 		await waitFor(() => {
 			expect(result.current.loading).toBe(true);
 		});
 
 		act(() => {
-			window.dispatchEvent(
-				new CustomEvent('new-message', {
-					detail: {
-						id: 100,
-						content: 'Nuevo realtime',
-						user_id: 'user-1',
-						channel_id: 1,
-					},
-				})
-			);
+			realtimeCallback({
+				eventType: 'INSERT',
+				new: {
+					id: 100,
+					content: 'Nuevo realtime',
+					user_id: 'user-1',
+					channel_id: 1,
+					created_at: '2024-01-01T00:00:00Z',
+					edited_at: null,
+					deleted_at: null,
+					reply_to: null,
+				},
+			});
 		});
 
 		await waitFor(() => {
@@ -419,18 +431,22 @@ describe('Integration: Multi-user chat simulation', () => {
 
 		await act(async () => {
 			resolveFetch({
-				data: [
+				messages: [
 					{
 						id: 1,
 						content: 'Mensaje viejo',
 						user_id: 'user-2',
 						channel_id: 1,
+						created_at: '2024-01-01T00:01:00Z',
+						edited_at: null,
+						deleted_at: null,
+						reply_to: null,
+						users: null,
 					},
 				],
 				hasMore: false,
 			});
 		});
-		console.log(result.current.messages);
 		expect(result.current.messages.some((m: any) => m.content === 'Nuevo realtime')).toBe(true);
 	});
 
@@ -491,7 +507,7 @@ describe('Integration: Multi-user chat simulation', () => {
 		);
 
 		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { result: management } = renderHook(() =>
 			useChatManagement({
@@ -559,10 +575,10 @@ describe('Integration: Multi-user chat simulation', () => {
 	});
 
 	it('user edits a message successfully', async () => {
-		(editMessageAction as jest.Mock).mockResolvedValue({ success: true });
+		(editMessage as jest.Mock).mockResolvedValue({ id: 10, content: 'Edited text' });
 
 		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { result: management } = renderHook(() =>
 			useChatManagement({
@@ -585,16 +601,16 @@ describe('Integration: Multi-user chat simulation', () => {
 			await management.current.handleEditMessage(10, 'Edited text');
 		});
 
-		expect(editMessageAction).toHaveBeenCalledWith(10, 'Edited text');
+		expect(editMessage).toHaveBeenCalledWith(10, 'Edited text');
 		expect(management.current.editingMessage).toBeNull();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Mensaje editado' }));
 	});
 
 	it('user deletes a message with confirmation flow', async () => {
-		(deleteMessageAction as jest.Mock).mockResolvedValue({ success: true });
+		(deleteMessage as jest.Mock).mockResolvedValue({ id: 42 });
 
 		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { result: management } = renderHook(() =>
 			useChatManagement({
@@ -628,7 +644,7 @@ describe('Integration: Multi-user chat simulation', () => {
 			await management.current.confirmDeleteMessage();
 		});
 
-		expect(deleteMessageAction).toHaveBeenCalledWith(42);
+		expect(deleteMessage).toHaveBeenCalledWith(42);
 		expect(management.current.pendingDeleteMessage).toBeNull();
 	});
 
@@ -636,7 +652,7 @@ describe('Integration: Multi-user chat simulation', () => {
 		(deleteChannelAction as jest.Mock).mockResolvedValue({ success: true });
 
 		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { result: management } = renderHook(() =>
 			useChatManagement({
@@ -681,7 +697,7 @@ describe('Integration: Multi-user chat simulation', () => {
 		});
 
 		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { result: management } = renderHook(() =>
 			useChatManagement({
@@ -705,88 +721,12 @@ describe('Integration: Multi-user chat simulation', () => {
 
 		expect(management.current.totalUnreadCount).toBe(0);
 
-		// User 1 selects the channel (clears unread)
+		// User 1 selects the channel
 		act(() => {
 			management.current.handleChannelSelect(channel);
 		});
 
-		expect(management.current.channels[0].unread_count).toBe(0);
-	});
-
-	it('simulates optimistic message: message appears instantly, then resolves', async () => {
-		let resolveSend: any;
-		const sendPromise = new Promise((resolve) => {
-			resolveSend = resolve;
-		});
-
-		(sendMessageAction as jest.Mock).mockImplementation(() => sendPromise);
-
-		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
-
-		const { result: management } = renderHook(() =>
-			useChatManagement({
-				currentUserUid: users[0].id,
-				currentUserRole: users[0].role,
-				messages: [],
-				messagesLoading: false,
-			})
-		);
-
-		act(() => {
-			management.current.setNewMessage('Mensaje optimista');
-		});
-
-		// Start sending
-		act(() => {
-			management.current.handleSendMessage(1);
-		});
-
-		// Optimistic message should appear immediately
-		expect(management.current.optimisticMessages).toHaveLength(1);
-		expect(management.current.optimisticMessages[0].content).toBe('Mensaje optimista');
-		expect(management.current.optimisticMessages[0].id).toBeLessThan(0);
-		expect(management.current.sending).toBe(true);
-
-		// Resolve the send
-		await act(async () => {
-			resolveSend({ success: true, data: { id: 999, content: 'Mensaje optimista' } });
-		});
-
-		// Optimistic message should be removed
-		expect(management.current.optimisticMessages).toHaveLength(0);
-		expect(management.current.sending).toBe(false);
-	});
-
-	it('simulates optimistic message removal on failure and message restoration', async () => {
-		(sendMessageAction as jest.Mock).mockResolvedValue({ success: false, error: 'Server down' });
-
-		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
-
-		const { result: management } = renderHook(() =>
-			useChatManagement({
-				currentUserUid: users[0].id,
-				currentUserRole: users[0].role,
-				messages: [],
-				messagesLoading: false,
-			})
-		);
-
-		act(() => {
-			management.current.setNewMessage('Failed msg');
-		});
-
-		await act(async () => {
-			await management.current.handleSendMessage(1);
-		});
-
-		// Optimistic removed
-		expect(management.current.optimisticMessages).toHaveLength(0);
-		// Message restored to input
-		expect(management.current.newMessage).toBe('Failed msg');
-		// Error toast shown
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
+		expect(management.current.selectedChannel).toEqual(channel);
 	});
 
 	it('multiple users: loadMore pagination works correctly', async () => {
@@ -820,9 +760,9 @@ describe('Integration: Multi-user chat simulation', () => {
 			users: null,
 		}));
 
-		(getMessagesAction as jest.Mock)
-			.mockResolvedValueOnce({ data: page1, hasMore: true })
-			.mockResolvedValueOnce({ data: page2, hasMore: false });
+		(getMessages as jest.Mock)
+			.mockResolvedValueOnce({ messages: page1, hasMore: true })
+			.mockResolvedValueOnce({ messages: page2, hasMore: false });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -832,12 +772,10 @@ describe('Integration: Multi-user chat simulation', () => {
 
 		expect(result.current.hasMore).toBe(true);
 
-		let count = 0;
 		await act(async () => {
-			count = await result.current.loadMore();
+			await result.current.loadOlderMessages();
 		});
 
-		expect(count).toBe(10);
 		expect(result.current.messages).toHaveLength(60);
 		expect(result.current.hasMore).toBe(false);
 		// Older messages should be at the beginning

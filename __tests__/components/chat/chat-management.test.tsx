@@ -112,8 +112,9 @@ const mockChatManagement = {
 	pendingDeleteMessage: null,
 	pendingDeleteChannel: null,
 	pendingCleanupMessages: false,
-	optimisticMessages: [],
 	isAdmin: true,
+	firstUnreadMessageId: null,
+	initialScrollDone: false,
 	setNewMessage: jest.fn(),
 	setSearchTerm: jest.fn(),
 	setShowSearch: jest.fn(),
@@ -127,6 +128,7 @@ const mockChatManagement = {
 	setShowMembersDialog: jest.fn(),
 	setSelectedChannel: jest.fn(),
 	setChannels: jest.fn(),
+	setInitialScrollDone: jest.fn(),
 	loadChannels: jest.fn(),
 	loadMembers: jest.fn(),
 	handleSendMessage: jest.fn(),
@@ -154,7 +156,8 @@ const mockChatRealtime = {
 	loading: false,
 	loadingMore: false,
 	hasMore: false,
-	loadMore: jest.fn().mockResolvedValue(0),
+	refresh: jest.fn(),
+	loadOlderMessages: jest.fn(),
 };
 
 const mockPushNotifications = {

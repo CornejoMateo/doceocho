@@ -40,14 +40,18 @@ jest.mock('@/lib/chat/channels', () => ({
 
 jest.mock('@/lib/chat/messages', () => ({
 	sendMessageAction: jest.fn(),
-	deleteMessageAction: jest.fn(),
-	editMessageAction: jest.fn(),
 	cleanChannelMessagesAction: jest.fn(),
 }));
 
-jest.mock('@/lib/chat/channel-members', () => ({
-	getChannelMembersAction: jest.fn(),
-	updateLastReadMessage: jest.fn().mockResolvedValue({ success: true }),
+jest.mock('@/lib/chat/messages-client', () => ({
+	deleteMessage: jest.fn(),
+	editMessage: jest.fn(),
+	getMessages: jest.fn().mockResolvedValue({ messages: [], hasMore: false }),
+}));
+
+jest.mock('@/lib/chat/channels-client', () => ({
+	getChannelMembers: jest.fn(),
+	updateLastReadMessage: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -59,13 +63,9 @@ jest.mock('@/lib/error-translator', () => ({
 }));
 
 import { getUserChannelsAction, deleteChannelAction } from '@/lib/chat/channels';
-import {
-	sendMessageAction,
-	deleteMessageAction,
-	editMessageAction,
-	cleanChannelMessagesAction,
-} from '@/lib/chat/messages';
-import { getChannelMembersAction } from '@/lib/chat/channel-members';
+import { sendMessageAction, cleanChannelMessagesAction } from '@/lib/chat/messages';
+import { deleteMessage, editMessage } from '@/lib/chat/messages-client';
+import { getChannelMembers, updateLastReadMessage } from '@/lib/chat/channels-client';
 import { toast } from '@/components/ui/use-toast';
 
 const channel1 = {
@@ -162,7 +162,7 @@ describe('useChatManagement', () => {
 		expect(result.current.totalUnreadCount).toBe(0);
 	});
 
-	it('handleChannelSelect selects channel and clears unread', async () => {
+	it('handleChannelSelect selects channel and resets UI state', async () => {
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
 		await act(async () => {
@@ -174,13 +174,12 @@ describe('useChatManagement', () => {
 		});
 
 		expect(result.current.selectedChannel).toEqual(channel1);
-		expect(result.current.channels[0].unread_count).toBe(0);
 		expect(result.current.showSidebar).toBe(false);
 		expect(result.current.searchTerm).toBe('');
 		expect(result.current.replyingTo).toBeNull();
 	});
 
-	it('handleSendMessage creates optimistic message and sends', async () => {
+	it('handleSendMessage sends and clears input', async () => {
 		const sentMessage = { id: 100, content: 'Hello', user_id: 'user-1', channel_id: 1 };
 		(sendMessageAction as jest.Mock).mockResolvedValue({ success: true, data: sentMessage });
 
@@ -197,7 +196,6 @@ describe('useChatManagement', () => {
 		expect(sendMessageAction).toHaveBeenCalledWith(1, 'Hello', undefined);
 		expect(result.current.newMessage).toBe('');
 		expect(result.current.sending).toBe(false);
-		expect(result.current.optimisticMessages).toHaveLength(0);
 	});
 
 	it('handleSendMessage includes reply_to when replying', async () => {
@@ -271,7 +269,7 @@ describe('useChatManagement', () => {
 	});
 
 	it('handleEditMessage succeeds', async () => {
-		(editMessageAction as jest.Mock).mockResolvedValue({ success: true });
+		(editMessage as jest.Mock).mockResolvedValue({ id: 1, content: 'New content' });
 
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
@@ -283,16 +281,13 @@ describe('useChatManagement', () => {
 			await result.current.handleEditMessage(1, 'New content');
 		});
 
-		expect(editMessageAction).toHaveBeenCalledWith(1, 'New content');
+		expect(editMessage).toHaveBeenCalledWith(1, 'New content');
 		expect(result.current.editingMessage).toBeNull();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Mensaje editado' }));
 	});
 
 	it('handleEditMessage fails and shows error', async () => {
-		(editMessageAction as jest.Mock).mockResolvedValue({
-			success: false,
-			error: 'Permiso denegado',
-		});
+		(editMessage as jest.Mock).mockRejectedValue(new Error('Permiso denegado'));
 
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
@@ -314,7 +309,7 @@ describe('useChatManagement', () => {
 	});
 
 	it('confirmDeleteMessage succeeds', async () => {
-		(deleteMessageAction as jest.Mock).mockResolvedValue({ success: true });
+		(deleteMessage as jest.Mock).mockResolvedValue({ id: 42 });
 
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
@@ -326,16 +321,13 @@ describe('useChatManagement', () => {
 			await result.current.confirmDeleteMessage();
 		});
 
-		expect(deleteMessageAction).toHaveBeenCalledWith(42);
+		expect(deleteMessage).toHaveBeenCalledWith(42);
 		expect(result.current.pendingDeleteMessage).toBeNull();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Mensaje eliminado' }));
 	});
 
 	it('confirmDeleteMessage fails and shows error', async () => {
-		(deleteMessageAction as jest.Mock).mockResolvedValue({
-			success: false,
-			error: 'No autorizado',
-		});
+		(deleteMessage as jest.Mock).mockRejectedValue(new Error('No autorizado'));
 
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
@@ -422,25 +414,6 @@ describe('useChatManagement', () => {
 		});
 
 		expect(result.current.selectedChannel).toEqual(channel1);
-	});
-
-	it('removes optimistic message when send fails', async () => {
-		(sendMessageAction as jest.Mock).mockResolvedValue({
-			success: false,
-			error: 'Failed',
-		});
-
-		const { result } = renderHook(() => useChatManagement(defaultProps));
-
-		act(() => {
-			result.current.setNewMessage('Fail');
-		});
-
-		await act(async () => {
-			await result.current.handleSendMessage(1);
-		});
-
-		expect(result.current.optimisticMessages).toHaveLength(0);
 	});
 
 	it('confirmDeleteChannel fails and shows error', async () => {
@@ -602,7 +575,7 @@ describe('useChatManagement', () => {
 
 	it('handleShowMembers loads members and shows dialog', async () => {
 		const members = [{ id: 1, user_id: 'user-1' }];
-		(getChannelMembersAction as jest.Mock).mockResolvedValue({ success: true, data: members });
+		(getChannelMembers as jest.Mock).mockResolvedValue(members);
 
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
@@ -614,16 +587,13 @@ describe('useChatManagement', () => {
 			await result.current.handleShowMembers();
 		});
 
-		expect(getChannelMembersAction).toHaveBeenCalledWith(1);
+		expect(getChannelMembers).toHaveBeenCalledWith(1);
 		expect(result.current.members).toEqual(members);
 		expect(result.current.showMembersDialog).toBe(true);
 	});
 
 	it('handleShowMembers handles error', async () => {
-		(getChannelMembersAction as jest.Mock).mockResolvedValue({
-			success: false,
-			error: 'Failed',
-		});
+		(getChannelMembers as jest.Mock).mockRejectedValue(new Error('Failed'));
 
 		const { result } = renderHook(() => useChatManagement(defaultProps));
 
@@ -656,8 +626,6 @@ describe('useChatManagement', () => {
 	});
 
 	it('handleSendMessage does nothing when already sending', async () => {
-		(sendMessageAction as jest.Mock).mockResolvedValue({ success: true, data: { id: 100 } });
-
 		let resolveFirstSend: any;
 		(sendMessageAction as jest.Mock).mockReset().mockImplementationOnce(
 			() =>

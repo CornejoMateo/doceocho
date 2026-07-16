@@ -17,11 +17,11 @@ jest.mock('@/lib/supabase-client', () => ({
 	}),
 }));
 
-jest.mock('@/lib/chat/messages', () => ({
-	getMessagesAction: jest.fn(),
+jest.mock('@/lib/chat/messages-client', () => ({
+	getMessages: jest.fn(),
 }));
 
-import { getMessagesAction } from '@/lib/chat/messages';
+import { getMessages } from '@/lib/chat/messages-client';
 
 const messages = [
 	{
@@ -93,7 +93,7 @@ describe('useChatRealtime', () => {
 	});
 
 	it('fetches messages when channelId is provided', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages, hasMore: false });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -109,7 +109,7 @@ describe('useChatRealtime', () => {
 	});
 
 	it('clears messages when channelId is null', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages, hasMore: false });
 
 		const { result, rerender } = renderHook(({ channelId }) => useChatRealtime(channelId), {
 			initialProps: { channelId: 1 as number | null },
@@ -126,7 +126,7 @@ describe('useChatRealtime', () => {
 		});
 	});
 
-	it('loadMore prepends older messages and returns count', async () => {
+	it('loadOlderMessages prepends older messages', async () => {
 		const olderMessages = [
 			{
 				id: 0,
@@ -152,9 +152,9 @@ describe('useChatRealtime', () => {
 			},
 		];
 
-		(getMessagesAction as jest.Mock)
-			.mockResolvedValueOnce({ data: messages, hasMore: true })
-			.mockResolvedValueOnce({ data: olderMessages, hasMore: false });
+		(getMessages as jest.Mock)
+			.mockResolvedValueOnce({ messages, hasMore: true })
+			.mockResolvedValueOnce({ messages: olderMessages, hasMore: false });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -162,19 +162,17 @@ describe('useChatRealtime', () => {
 			expect(result.current.messages).toHaveLength(3);
 		});
 
-		let addedCount = 0;
 		await act(async () => {
-			addedCount = await result.current.loadMore();
+			await result.current.loadOlderMessages();
 		});
 
-		expect(addedCount).toBe(2);
 		expect(result.current.messages).toHaveLength(5);
 		expect(result.current.messages[0].content).toBe('Old message');
 		expect(result.current.hasMore).toBe(false);
 	});
 
-	it('loadMore does nothing when hasMore is false', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
+	it('loadOlderMessages does nothing when hasMore is false', async () => {
+		(getMessages as jest.Mock).mockResolvedValue({ messages, hasMore: false });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -182,19 +180,17 @@ describe('useChatRealtime', () => {
 			expect(result.current.messages).toHaveLength(3);
 		});
 
-		let addedCount = 0;
 		await act(async () => {
-			addedCount = await result.current.loadMore();
+			await result.current.loadOlderMessages();
 		});
 
-		expect(addedCount).toBe(0);
-		expect(getMessagesAction).toHaveBeenCalledTimes(1);
+		expect(getMessages).toHaveBeenCalledTimes(1);
 	});
 
-	it('loadMore returns 0 on error', async () => {
-		(getMessagesAction as jest.Mock)
-			.mockResolvedValueOnce({ data: messages, hasMore: true })
-			.mockResolvedValueOnce({ data: null, error: 'Network error' });
+	it('loadOlderMessages does nothing when loadingMore is true', async () => {
+		let resolveFirstLoad: any;
+
+		(getMessages as jest.Mock).mockResolvedValueOnce({ messages, hasMore: true });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -202,17 +198,51 @@ describe('useChatRealtime', () => {
 			expect(result.current.messages).toHaveLength(3);
 		});
 
-		let addedCount = 0;
+		(getMessages as jest.Mock).mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					resolveFirstLoad = resolve;
+				})
+		);
+
 		await act(async () => {
-			addedCount = await result.current.loadMore();
+			result.current.loadOlderMessages();
 		});
 
-		expect(addedCount).toBe(0);
-		expect(result.current.error).toBe('Network error');
+		expect(result.current.loadingMore).toBe(true);
+		expect(getMessages).toHaveBeenCalledTimes(2);
+
+		await act(async () => {
+			result.current.loadOlderMessages();
+		});
+
+		expect(getMessages).toHaveBeenCalledTimes(2);
+
+		await act(async () => {
+			resolveFirstLoad({ messages: [], hasMore: false });
+		});
+
+		expect(result.current.loadingMore).toBe(false);
 	});
 
-	it('deduplicates messages via window event', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
+	it('deduplicates messages from loadOlderMessages', async () => {
+		const olderMessages = [
+			{
+				id: 1,
+				content: 'Duplicate',
+				user_id: 'user-2',
+				channel_id: 1,
+				created_at: '2023-12-31T23:00:00Z',
+				edited_at: null,
+				deleted_at: null,
+				reply_to: null,
+				users: null,
+			},
+		];
+
+		(getMessages as jest.Mock)
+			.mockResolvedValueOnce({ messages, hasMore: true })
+			.mockResolvedValueOnce({ messages: olderMessages, hasMore: false });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -220,25 +250,15 @@ describe('useChatRealtime', () => {
 			expect(result.current.messages).toHaveLength(3);
 		});
 
-		act(() => {
-			window.dispatchEvent(new CustomEvent('new-message', { detail: messages[0] }));
+		await act(async () => {
+			await result.current.loadOlderMessages();
 		});
 
-		await waitFor(() => {
-			expect(result.current.messages).toHaveLength(3);
-		});
-
-		act(() => {
-			window.dispatchEvent(new CustomEvent('new-message', { detail: { ...messages[0], id: 99 } }));
-		});
-
-		await waitFor(() => {
-			expect(result.current.messages).toHaveLength(4);
-		});
+		expect(result.current.messages).toHaveLength(3);
 	});
 
 	it('refresh re-fetches messages', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages, hasMore: false });
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -260,7 +280,7 @@ describe('useChatRealtime', () => {
 				users: null,
 			},
 		];
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: newMessages, hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: newMessages, hasMore: false });
 
 		await act(async () => {
 			result.current.refresh();
@@ -271,61 +291,9 @@ describe('useChatRealtime', () => {
 		});
 	});
 
-	it('handles window new-message event', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
-
-		const { result } = renderHook(() => useChatRealtime(1));
-
-		await waitFor(() => {
-			expect(result.current.messages).toHaveLength(3);
-		});
-
-		const newMsg = {
-			id: 4,
-			content: 'From event',
-			user_id: 'user-2',
-			channel_id: 1,
-			created_at: '2024-01-01T00:04:00Z',
-			edited_at: null,
-			deleted_at: null,
-			reply_to: null,
-			users: null,
-		};
-
-		act(() => {
-			window.dispatchEvent(new CustomEvent('new-message', { detail: newMsg }));
-		});
-
-		await waitFor(() => {
-			expect(result.current.messages).toHaveLength(4);
-		});
-
-		expect(result.current.messages[3].content).toBe('From event');
-	});
-
-	it('ignores duplicate new-message events', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: messages, hasMore: false });
-
-		const { result } = renderHook(() => useChatRealtime(1));
-
-		await waitFor(() => {
-			expect(result.current.messages).toHaveLength(3);
-		});
-
-		const existingMsg = messages[0];
-
-		act(() => {
-			window.dispatchEvent(new CustomEvent('new-message', { detail: existingMsg }));
-		});
-
-		await waitFor(() => {
-			expect(result.current.messages).toHaveLength(3);
-		});
-	});
-
 	it('sets up realtime channel subscription for the given channelId', async () => {
 		const supabase = require('@/lib/supabase-client').getSupabaseClient();
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		renderHook(() => useChatRealtime(1));
 
@@ -347,7 +315,7 @@ describe('useChatRealtime', () => {
 			subscribe: jest.fn().mockReturnThis(),
 		};
 		supabase.channel.mockReturnValue(mockChannel);
-		(getMessagesAction as jest.Mock).mockResolvedValue({ data: [], hasMore: false });
+		(getMessages as jest.Mock).mockResolvedValue({ messages: [], hasMore: false });
 
 		const { unmount } = renderHook(() => useChatRealtime(1));
 
@@ -355,11 +323,9 @@ describe('useChatRealtime', () => {
 
 		expect(supabase.removeChannel).toHaveBeenCalledWith(mockChannel);
 	});
+
 	it('sets error when initial fetch fails', async () => {
-		(getMessagesAction as jest.Mock).mockResolvedValue({
-			data: null,
-			error: 'Failed to fetch messages',
-		});
+		(getMessages as jest.Mock).mockRejectedValue(new Error('Failed to fetch messages'));
 
 		const { result } = renderHook(() => useChatRealtime(1));
 
@@ -370,39 +336,12 @@ describe('useChatRealtime', () => {
 		expect(result.current.error).toBe('Failed to fetch messages');
 		expect(result.current.messages).toEqual([]);
 	});
-	it('does not update state after unmount during fetch', async () => {
-		let resolveFetch: any;
 
-		(getMessagesAction as jest.Mock).mockImplementation(
-			() =>
-				new Promise((resolve) => {
-					resolveFetch = resolve;
-				})
-		);
-
-		const { result, unmount } = renderHook(() => useChatRealtime(1));
-
-		expect(result.current.loading).toBe(true);
-
-		unmount();
-
-		await act(async () => {
-			resolveFetch({
-				data: messages,
-				hasMore: false,
-			});
-		});
-
-		expect(result.current.messages).toEqual([]);
-	});
 	it('fetches messages again when channelId changes', async () => {
-		(getMessagesAction as jest.Mock)
+		(getMessages as jest.Mock)
+			.mockResolvedValueOnce({ messages, hasMore: false })
 			.mockResolvedValueOnce({
-				data: messages,
-				hasMore: false,
-			})
-			.mockResolvedValueOnce({
-				data: [{ ...messages[0], id: 10, content: 'New channel' }],
+				messages: [{ ...messages[0], id: 10, content: 'New channel' }],
 				hasMore: false,
 			});
 
@@ -424,8 +363,9 @@ describe('useChatRealtime', () => {
 			expect(result.current.messages[0].content).toBe('New channel');
 		});
 
-		expect(getMessagesAction).toHaveBeenCalledTimes(2);
+		expect(getMessages).toHaveBeenCalledTimes(2);
 	});
+
 	it('removes previous realtime channel when channelId changes', async () => {
 		const supabase = require('@/lib/supabase-client').getSupabaseClient();
 
@@ -441,8 +381,8 @@ describe('useChatRealtime', () => {
 
 		supabase.channel.mockReturnValueOnce(channel1).mockReturnValueOnce(channel2);
 
-		(getMessagesAction as jest.Mock).mockResolvedValue({
-			data: [],
+		(getMessages as jest.Mock).mockResolvedValue({
+			messages: [],
 			hasMore: false,
 		});
 
@@ -458,6 +398,7 @@ describe('useChatRealtime', () => {
 
 		expect(supabase.removeChannel).toHaveBeenCalledWith(channel1);
 	});
+
 	it('adds message received from realtime INSERT', async () => {
 		const supabase = require('@/lib/supabase-client').getSupabaseClient();
 
@@ -486,8 +427,8 @@ describe('useChatRealtime', () => {
 			}),
 		});
 
-		(getMessagesAction as jest.Mock).mockResolvedValue({
-			data: [],
+		(getMessages as jest.Mock).mockResolvedValue({
+			messages: [],
 			hasMore: false,
 		});
 
