@@ -69,38 +69,6 @@ export async function removeMemberFromChannelAction(channelId: number, userId: s
 	}
 }
 
-export async function getChannelMembersAction(channelId: number) {
-	try {
-		await getCurrentUser();
-
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!
-		);
-
-		const { data, error } = await supabase
-			.from(TABLE)
-			.select(
-				`*,
-				users!inner (
-					username,
-					role,
-					name,
-					last_name,
-					uid_user
-				)
-				`
-			)
-			.eq('channel_id', channelId)
-			.order('joined_at', { ascending: true });
-
-		if (error) return { success: false, error: error.message };
-		return { success: true, data: data || [] };
-	} catch (e: any) {
-		return { success: false, error: e.message };
-	}
-}
-
 let usersCache: { data: any[]; timestamp: number } | null = null;
 const USERS_CACHE_TTL = 30_000;
 

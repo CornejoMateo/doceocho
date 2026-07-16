@@ -25,14 +25,14 @@ const ChatUnreadContext = createContext<ChatUnreadContextType | null>(null);
 export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 	const { user } = useAuth();
 
+	const supabase = useMemo(() => getSupabaseClient(), []);
+
 	const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
 	const fetchUnreadCount = useCallback(async () => {
 		if (!user?.id) return;
 
 		try {
-			const supabase = getSupabaseClient();
-
 			const { data, error } = await supabase.rpc('get_unread_messages_count', {
 				p_user_id: user.id,
 			});
@@ -41,8 +41,6 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 				console.error(error);
 				return;
 			}
-
-			console.log('Total unread:', data);
 			setTotalUnreadCount(data ?? 0);
 		} catch (error) {
 			console.error(error);
@@ -56,8 +54,6 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 		}
 
 		fetchUnreadCount();
-
-		const supabase = getSupabaseClient();
 
 		const channel = supabase
 			.channel(`chat-unread-${user.id}`)

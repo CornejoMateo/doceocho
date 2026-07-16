@@ -18,7 +18,7 @@ export async function getServerSupabaseClient() {
 							cookieStore.set(name, value, options)
 						);
 					} catch {
-						// Ignored — middleware refreshes the session
+						// Ignored — proxy refreshes the session
 					}
 				},
 			},

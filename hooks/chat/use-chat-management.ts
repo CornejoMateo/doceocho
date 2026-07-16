@@ -1,13 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChannelWithLastMessage, MessageWithUser } from '@/lib/chat/chat-types';
-import { getUserChannelsAction, deleteChannelAction } from '@/lib/chat/channels';
-import {
-	sendMessageAction,
-	deleteMessageAction,
-	editMessageAction,
-	cleanChannelMessagesAction,
-} from '@/lib/chat/messages';
-import { getChannelMembersAction, updateLastReadMessage } from '@/lib/chat/channel-members';
+import { deleteChannelAction } from '@/lib/chat/channels';
+import { getUserChannelsAction } from '@/lib/chat/channels';
+import { sendMessageAction, cleanChannelMessagesAction } from '@/lib/chat/messages';
+import { deleteMessage, editMessage } from '@/lib/chat/messages-client';
+import { getChannelMembers, updateLastReadMessage } from '@/lib/chat/channels-client';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
@@ -99,14 +96,6 @@ export function useChatManagement({
 				}
 
 				const result = await getUserChannelsAction();
-				console.table(
-					result.data?.map((c) => ({
-						name: c.name,
-						unread: c.unread_count,
-						lastRead: c.last_read_message_id,
-						lastMessage: c.last_message_id,
-					}))
-				);
 				if (result.success && result.data) {
 					channelsCache = { data: result.data, timestamp: Date.now() };
 					setChannels(result.data);
@@ -208,9 +197,9 @@ export function useChatManagement({
 
 	const loadMembers = async (channelId: number) => {
 		if (!currentUserUid) return;
-		const result = await getChannelMembersAction(channelId);
-		if (result.success && result.data) {
-			setMembers(result.data);
+		const result = await getChannelMembers(channelId);
+		if (result) {
+			setMembers(result);
 		}
 	};
 
@@ -280,8 +269,8 @@ export function useChatManagement({
 		if (!selectedChannel?.last_message_id) return;
 
 		await updateLastReadMessage(
-			selectedChannel.last_message_id,
 			selectedChannel.id,
+			selectedChannel.last_message_id,
 			currentUserUid
 		);
 
@@ -334,7 +323,7 @@ export function useChatManagement({
 		const messageId = pendingDeleteMessage;
 		setPendingDeleteMessage(null);
 
-		const result = await deleteMessageAction(messageId);
+		const result = await deleteMessage(messageId);
 
 		if (result.success) {
 			toast({ title: 'Mensaje eliminado' });
@@ -350,7 +339,7 @@ export function useChatManagement({
 	const handleEditMessage = async (messageId: number, newContent: string) => {
 		if (!currentUserUid) return;
 
-		const result = await editMessageAction(messageId, newContent);
+		const result = await editMessage(messageId, newContent);
 		if (result.success) {
 			setEditingMessage(null);
 			toast({ title: 'Mensaje editado' });

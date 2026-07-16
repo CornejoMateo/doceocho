@@ -1,7 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { MessageWithUser } from '@/lib/chat/chat-types';
-import { getMessagesAction } from '@/lib/chat/messages';
+import { getMessages } from '@/lib/chat/messages-client';
 import { useAuth } from '@/components/provider/auth-provider';
 
 export function useChatRealtime(channelId: number | null) {
@@ -11,12 +11,6 @@ export function useChatRealtime(channelId: number | null) {
 	const [error, setError] = useState<string | null>(null);
 	const supabase = useMemo(() => getSupabaseClient(), []);
 	const messagesRef = useRef<MessageWithUser[]>([]);
-
-	useEffect(() => {
-		messagesRef.current = [];
-		setMessages([]);
-		setLoading(true);
-	}, [channelId]);
 
 	useEffect(() => {
 		messagesRef.current = messages;
@@ -30,7 +24,6 @@ export function useChatRealtime(channelId: number | null) {
 	);
 
 	const fetchVersionRef = useRef(0);
-	const realtimeVersionRef = useRef(0);
 
 	const fetchMessages = useCallback(async () => {
 		if (!channelId || !user) {
@@ -40,50 +33,30 @@ export function useChatRealtime(channelId: number | null) {
 
 		setLoading(true);
 
-		const fetchVersion = ++fetchVersionRef.current;
-		const realtimeVersionAtStart = realtimeVersionRef.current;
+		const version = ++fetchVersionRef.current;
 
 		try {
-			const result = await getMessagesAction(channelId);
+			const fetchedMessages = await getMessages(channelId);
 
-			if (fetchVersion !== fetchVersionRef.current) {
-				return;
-			}
+			if (version !== fetchVersionRef.current) return;
 
-			if (result.data) {
-				const fetchedMessages = result.data;
-
-				setMessages((prev) => {
-					if (realtimeVersionRef.current > realtimeVersionAtStart) {
-						const fetchedIds = new Set(fetchedMessages.map((m) => m.id));
-
-						const realtimeMessages = prev.filter((m) => !fetchedIds.has(m.id));
-
-						return [...fetchedMessages, ...realtimeMessages];
-					}
-
-					return fetchedMessages;
-				});
-
-				setLoading(false);
-			} else {
-				setLoading(false);
-			}
-
-			if (result.error) {
-				setError(result.error);
-			}
-		} catch {
+			setMessages(fetchedMessages);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : 'Error');
+		} finally {
 			setLoading(false);
 		}
-	}, [channelId, !!user]);
+	}, [channelId, user]);
 
 	useEffect(() => {
+		messagesRef.current = [];
 		setMessages([]);
 		setError(null);
 
-		fetchMessages();
-	}, [channelId]);
+		if (channelId) {
+			fetchMessages();
+		}
+	}, [fetchMessages]);
 
 	useEffect(() => {
 		if (!channelId) return;
