@@ -107,7 +107,13 @@ describe('POST /api/users', () => {
 		const req = new Request('http://localhost/api/users', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ username: 'nuevo', password: '123456', role: 'Taller' }),
+			body: JSON.stringify({
+				username: 'nuevo',
+				password: '123456',
+				role: 'Taller',
+				name: 'Juan',
+				last_name: 'Pérez',
+			}),
 		});
 
 		const res = await POST(req);
@@ -119,7 +125,13 @@ describe('POST /api/users', () => {
 			expect.objectContaining({ email: 'nuevo@gmail.com', password: '123456' })
 		);
 		expect(chain.insert).toHaveBeenCalledWith(
-			expect.objectContaining({ uid_user: 'new-uid', username: 'nuevo', role: 'Taller' })
+			expect.objectContaining({
+				uid_user: 'new-uid',
+				username: 'nuevo',
+				role: 'Taller',
+				name: 'Juan',
+				last_name: 'Pérez',
+			})
 		);
 	});
 
@@ -290,22 +302,41 @@ describe('PUT /api/users', () => {
 	it('updates user profile fields', async () => {
 		const { chain } = mockSupabase();
 		chain.single.mockResolvedValue({
-			data: { uid_user: 'abc', username: 'updated', role: 'Admin' },
+			data: {
+				uid_user: 'abc',
+				username: 'updated',
+				role: 'Admin',
+				name: 'Juan',
+				last_name: 'Pérez',
+			},
 			error: null,
 		});
 
 		const req = new Request('http://localhost/api/users', {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ uid_user: 'abc', username: 'updated', role: 'Admin' }),
+			body: JSON.stringify({
+				uid_user: 'abc',
+				username: 'updated',
+				role: 'Admin',
+				name: 'Juan',
+				last_name: 'Pérez',
+			}),
 		});
 		const res = await PUT(req);
 		const body = await res.json();
 
 		expect(res.status).toBe(200);
 		expect(body.data.username).toBe('updated');
+		expect(body.data.name).toBe('Juan');
+		expect(body.data.last_name).toBe('Pérez');
 		expect(chain.update).toHaveBeenCalledWith(
-			expect.objectContaining({ username: 'updated', role: 'Admin' })
+			expect.objectContaining({
+				username: 'updated',
+				role: 'Admin',
+				name: 'Juan',
+				last_name: 'Pérez',
+			})
 		);
 	});
 

@@ -152,7 +152,11 @@ export async function updateEvent(
 
 export async function deleteEvent(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
-	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+	const { data, error } = await supabase.from(TABLE).delete().eq('id', id).select('id');
+
+	if (!error && (!data || data.length === 0)) {
+		return { data: null, error: new Error('No tienes permiso para eliminar este evento.') };
+	}
 
 	return { data: null, error };
 }

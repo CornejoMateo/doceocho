@@ -1,40 +1,16 @@
-import { useState } from 'react';
-import { Package, Edit, Trash2, Plus, Minus } from 'lucide-react';
+import { Package, Edit, Plus, Minus } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/components/provider/auth-provider';
-import { toast } from '@/components/ui/use-toast';
-import type { SupplyItemStock } from '@/lib/stock/supplies-stock';
 import ImageViewer from '@/components/ui/image-viewer';
 import { formatCurrency } from '@/utils/formats-money';
-
-interface SuppliesTableProps {
-	filteredStock: SupplyItemStock[];
-	onEdit: (id: number) => void;
-	onDelete: (id: number) => void;
-	onUpdateQuantity: (id: number, newQuantity: number) => Promise<void>;
-}
+import { useSupplyDialogs } from '@/hooks/supply/use-supply-dialogs';
+import { SupplyCard } from './supply-card';
+import { QuantityDialog } from './quantity-dialog';
+import { DeleteAlertDialog } from './delete-alert-dialog';
+import type { SuppliesTableProps } from './types';
+import { formatCreatedAt } from '@/utils/format-date';
 
 export function SuppliesTable({
 	filteredStock,
@@ -44,113 +20,26 @@ export function SuppliesTable({
 }: SuppliesTableProps) {
 	const { user } = useAuth();
 	const isAuthorized = user?.role === 'Admin';
-	const [showQuantityDialog, setShowQuantityDialog] = useState(false);
-	const [quantityDialogType, setQuantityDialogType] = useState<'increase' | 'decrease' | null>(
-		null
-	);
-	const [quantityChange, setQuantityChange] = useState<number | ''>('');
-	const [currentItemId, setCurrentItemId] = useState<number | null>(null);
-	const [currentItemTotal, setCurrentItemTotal] = useState<number>(0);
-	const [selectedImage, setSelectedImage] = useState<string | null>(null);
-	const [imageViewerOpen, setImageViewerOpen] = useState(false);
-	const [imageLoading, setImageLoading] = useState(false);
 
-	const openQuantityDialog = (id: number, type: 'increase' | 'decrease', currentQty: number) => {
-		setCurrentItemId(id);
-		setCurrentItemTotal(currentQty);
-		setQuantityDialogType(type);
-		setQuantityChange('');
-		setShowQuantityDialog(true);
-	};
-
-	const confirmQuantityUpdate = async () => {
-		if (!currentItemId || quantityChange === '' || !quantityDialogType) {
-			toast({ title: 'Error', description: 'Ingrese una cantidad válida', variant: 'destructive' });
-			return;
-		}
-
-		const adjustment = Number(quantityChange);
-		if (adjustment < 0) {
-			toast({
-				title: 'Error',
-				description: 'La cantidad debe ser positiva',
-				variant: 'destructive',
-			});
-			return;
-		}
-
-		const nextQuantity =
-			quantityDialogType === 'increase'
-				? currentItemTotal + adjustment
-				: currentItemTotal - adjustment;
-		if (nextQuantity < 0) {
-			toast({
-				title: 'Error',
-				description: `No puede disminuir ${adjustment} unidades. Solo tiene ${currentItemTotal} disponibles`,
-				variant: 'destructive',
-			});
-			return;
-		}
-
-		await onUpdateQuantity(currentItemId, nextQuantity);
-		toast({
-			title: 'Éxito',
-			description: `Cantidad ${quantityDialogType === 'increase' ? 'aumentada' : 'disminuida'} correctamente`,
-		});
-		setShowQuantityDialog(false);
-		setCurrentItemId(null);
-		setCurrentItemTotal(0);
-		setQuantityChange('');
-		setQuantityDialogType(null);
-	};
-
-	const openImageViewer = async (item: SupplyItemStock) => {
-		try {
-			setSelectedImage(null);
-			setImageViewerOpen(true);
-			setImageLoading(true);
-			const params = new URLSearchParams({ name_code: item.supply_code });
-			const res = await fetch(`/api/gallery/list?${params.toString()}`);
-			const data = await res.json();
-
-			if (!data.success) {
-				setImageViewerOpen(false);
-				toast({
-					title: 'Error',
-					description: data.error || 'No se pudo cargar la imagen',
-					variant: 'destructive',
-				});
-				return;
-			}
-
-			const imageUrl = data.images?.[0]?.image_url;
-			if (!imageUrl) {
-				setImageViewerOpen(false);
-				toast({
-					title: 'Sin imagen',
-					description: 'No se encontró una imagen para este insumo',
-					variant: 'destructive',
-				});
-				return;
-			}
-
-			setSelectedImage(imageUrl);
-			setImageViewerOpen(true);
-		} catch {
-			setImageViewerOpen(false);
-			toast({
-				title: 'Error',
-				description: 'No se pudo cargar la imagen',
-				variant: 'destructive',
-			});
-		} finally {
-			setImageLoading(false);
-		}
-	};
+	const {
+		showQuantityDialog,
+		setShowQuantityDialog,
+		quantityDialogType,
+		quantityChange,
+		setQuantityChange,
+		confirmQuantityUpdate,
+		openQuantityDialog,
+		selectedImage,
+		imageViewerOpen,
+		setImageViewerOpen,
+		imageLoading,
+		openImageViewer,
+	} = useSupplyDialogs(onUpdateQuantity);
 
 	return (
 		<Card className="overflow-hidden border-border bg-card">
-			<div className="overflow-x-auto">
+			{/* Desktop Table View */}
+			<div className="hidden md:block overflow-x-auto">
 				<table className="w-full">
 					<thead className="border-b border-border bg-secondary">
 						<tr>
@@ -279,34 +168,14 @@ export function SuppliesTable({
 											</td>
 										)}
 										<td className="px-2 py-2 text-center text-sm text-foreground">
-											{item.created_at?.split('T')[0] || '-'}
+											{formatCreatedAt(item.created_at) || '-'}
 										</td>
 										<td className="px-2 py-2 text-center">
 											<div className="flex items-center justify-center gap-2">
 												<Button variant="ghost" size="icon" onClick={() => onEdit(item.id)}>
 													<Edit className="h-4 w-4" />
 												</Button>
-												<AlertDialog>
-													<AlertDialogTrigger asChild>
-														<Button variant="ghost" size="icon">
-															<Trash2 className="h-4 w-4" />
-														</Button>
-													</AlertDialogTrigger>
-													<AlertDialogContent>
-														<AlertDialogHeader>
-															<AlertDialogTitle>Eliminar insumo</AlertDialogTitle>
-															<AlertDialogDescription>
-																Esta acción no se puede deshacer.
-															</AlertDialogDescription>
-														</AlertDialogHeader>
-														<AlertDialogFooter>
-															<AlertDialogCancel>Cancelar</AlertDialogCancel>
-															<AlertDialogAction onClick={() => onDelete(item.id)}>
-																Eliminar
-															</AlertDialogAction>
-														</AlertDialogFooter>
-													</AlertDialogContent>
-												</AlertDialog>
+												<DeleteAlertDialog onDelete={() => onDelete(item.id)} />
 											</div>
 										</td>
 										<td className="px-2 py-2 text-center">
@@ -317,8 +186,10 @@ export function SuppliesTable({
 													disabled={imageLoading}
 													className="mx-auto block"
 												>
-													<div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-muted">
-														<span className="text-xs text-foreground">Ver</span>
+													<div className="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded bg-muted">
+														<span className="text-xs text-foreground hover:cursor-pointer">
+															Ver
+														</span>
 													</div>
 												</button>
 											) : (
@@ -333,37 +204,37 @@ export function SuppliesTable({
 				</table>
 			</div>
 
-			<Dialog open={showQuantityDialog} onOpenChange={setShowQuantityDialog}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>
-							{quantityDialogType === 'increase' ? 'Aumentar cantidad' : 'Disminuir cantidad'}
-						</DialogTitle>
-						<DialogDescription>
-							{quantityDialogType === 'increase'
-								? '¿Cuántas unidades desea aumentar?'
-								: '¿Cuántas unidades desea disminuir?'}
-						</DialogDescription>
-					</DialogHeader>
-					<div className="py-4">
-						<Input
-							type="number"
-							value={quantityChange}
-							onChange={(e) => setQuantityChange(e.target.value ? Number(e.target.value) : '')}
-							placeholder="Ingrese la cantidad"
-							min="0"
-						/>
+			{/* Mobile Card View */}
+			<div className="md:hidden space-y-4 p-4">
+				{filteredStock.length === 0 ? (
+					<div className="flex flex-col items-center gap-2 text-muted-foreground py-12">
+						<Package className="h-12 w-12 opacity-50" />
+						<p className="text-lg font-medium">No hay insumos</p>
 					</div>
-					<DialogFooter>
-						<Button variant="outline" onClick={() => setShowQuantityDialog(false)}>
-							Cancelar
-						</Button>
-						<Button onClick={confirmQuantityUpdate}>
-							{quantityDialogType === 'increase' ? 'Aumentar' : 'Disminuir'}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				) : (
+					filteredStock.map((item) => (
+						<SupplyCard
+							key={item.id}
+							item={item}
+							isAuthorized={isAuthorized}
+							onEdit={onEdit}
+							onDelete={onDelete}
+							onQuantityChange={openQuantityDialog}
+							onImageView={openImageViewer}
+							imageLoading={imageLoading}
+						/>
+					))
+				)}
+			</div>
+
+			<QuantityDialog
+				open={showQuantityDialog}
+				onOpenChange={setShowQuantityDialog}
+				dialogType={quantityDialogType}
+				quantityChange={quantityChange}
+				setQuantityChange={setQuantityChange}
+				onConfirm={confirmQuantityUpdate}
+			/>
 
 			<ImageViewer
 				open={imageViewerOpen}

@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import { Work } from '@/lib/works/works';
-import { Checklist } from '@/lib/checklists/checklists';
+import { Checklist, ChecklistItem } from '@/lib/checklists/checklists';
+
+export type ChecklistItemState = {
+	id?: number;
+	description: string;
+	done?: boolean;
+	sort_order?: number | null;
+};
+
+export type ChecklistState = {
+	name: string | null;
+	description: string | null;
+	items: ChecklistItemState[];
+	width: number | null;
+	height: number | null;
+	depth: number | null;
+	type_furniture: string | null;
+};
 
 export function useChecklistModal() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -16,24 +33,30 @@ export function useChecklistModal() {
 		setSelectedWork(null);
 	};
 
-	const [checklist, setChecklist] = useState<{
-		name: string | null;
-		description: string | null;
-		items: { name: string; completed: boolean }[];
-	}>({
+	const [checklist, setChecklist] = useState<ChecklistState>({
 		name: null,
 		description: null,
 		items: [],
+		width: null,
+		height: null,
+		depth: null,
+		type_furniture: null,
 	});
 
-	const initializeChecklist = (checklistToEdit: Checklist) => {
+	const initializeChecklist = (checklistToEdit: Checklist, existingItems?: ChecklistItem[]) => {
 		setChecklist({
 			name: checklistToEdit.name || null,
 			description: checklistToEdit.description || null,
-			items: (checklistToEdit.items || []).map((item) => ({
-				name: item.name,
-				completed: item.done || false,
+			items: (existingItems || []).map((item) => ({
+				id: item.id,
+				description: item.description,
+				done: item.done,
+				sort_order: item.sort_order,
 			})),
+			width: checklistToEdit.width ?? null,
+			height: checklistToEdit.height ?? null,
+			depth: checklistToEdit.depth ?? null,
+			type_furniture: checklistToEdit.type_furniture ?? null,
 		});
 	};
 
@@ -42,6 +65,10 @@ export function useChecklistModal() {
 			name: null,
 			description: null,
 			items: [],
+			width: null,
+			height: null,
+			depth: null,
+			type_furniture: null,
 		});
 	};
 
@@ -52,12 +79,12 @@ export function useChecklistModal() {
 		}));
 	};
 
-	const addItem = (name: string) => {
-		if (!name.trim()) return;
+	const addItem = (description: string) => {
+		if (!description.trim()) return;
 
 		setChecklist((prev) => ({
 			...prev,
-			items: [...prev.items, { name: name.trim(), completed: false }],
+			items: [...prev.items, { description: description.trim() }],
 		}));
 	};
 
@@ -65,6 +92,20 @@ export function useChecklistModal() {
 		setChecklist((prev) => ({
 			...prev,
 			items: prev.items.filter((_, i) => i !== index),
+		}));
+	};
+
+	const updateItem = (index: number, description: string) => {
+		setChecklist((prev) => ({
+			...prev,
+			items: prev.items.map((item, i) => (i === index ? { ...item, description } : item)),
+		}));
+	};
+
+	const setItems = (items: ChecklistItemState[]) => {
+		setChecklist((prev) => ({
+			...prev,
+			items,
 		}));
 	};
 
@@ -77,6 +118,8 @@ export function useChecklistModal() {
 		updateField,
 		addItem,
 		removeItem,
+		updateItem,
+		setItems,
 		resetForm,
 		initializeChecklist,
 	};

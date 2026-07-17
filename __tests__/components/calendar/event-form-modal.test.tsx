@@ -203,10 +203,10 @@ describe('EventFormModal', () => {
 			const dateButton = screen.getByRole('button', { name: /seleccionar fecha/i });
 			await user.click(dateButton);
 
-			const dayButton = screen.getByRole('button', {
-				name: new RegExp(String(today.getDate()), 'i'),
-			});
-			await user.click(dayButton);
+			const dayButton = screen
+				.getAllByRole('button')
+				.find((btn) => btn.textContent === String(today.getDate()));
+			await user.click(dayButton!);
 
 			await user.click(screen.getByRole('button', { name: /guardar/i }));
 
@@ -239,10 +239,10 @@ describe('EventFormModal', () => {
 			const dateButton = screen.getByRole('button', { name: /seleccionar fecha/i });
 			await user.click(dateButton);
 
-			const dayButton = screen.getByRole('button', {
-				name: new RegExp(String(today.getDate()), 'i'),
-			});
-			await user.click(dayButton);
+			const dayButton = screen
+				.getAllByRole('button')
+				.find((btn) => btn.textContent === String(today.getDate()));
+			await user.click(dayButton!);
 
 			await user.click(screen.getByRole('button', { name: /guardar/i }));
 

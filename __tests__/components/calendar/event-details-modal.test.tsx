@@ -46,7 +46,7 @@ describe('EventDetailsModal', () => {
 		const event = {
 			id: 33,
 			title: 'Prueba evento',
-			date: '05-05-2025',
+			date: '2025-05-05',
 			client_name: 'ACME',
 			location: 'Ciudad',
 			address: 'Calle 1',
@@ -76,7 +76,7 @@ describe('EventDetailsModal', () => {
 		);
 
 		expect(screen.getByText('Prueba evento')).toBeInTheDocument();
-		expect(screen.getByText('05-05-2025')).toBeInTheDocument();
+		expect(screen.getByText('05/05/2025')).toBeInTheDocument();
 		expect(screen.getByText('ACME')).toBeInTheDocument();
 
 		// Badge del tipo
@@ -109,7 +109,7 @@ describe('EventDetailsModal', () => {
 		const event = {
 			id: 33,
 			title: 'Prueba evento',
-			date: '05-05-2025',
+			date: '2025-05-05',
 			type: 'reuniones',
 			type_id: 1,
 			status: 'Pendiente',

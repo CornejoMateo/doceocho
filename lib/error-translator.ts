@@ -68,6 +68,11 @@ export const translateError = (error: any): string => {
 		return 'Ya existe un archivo con ese nombre. Intenta nuevamente o usa otro archivo.';
 	}
 
+	// RLS errors
+	if (errorMessage.includes('RLS policy') || errorMessage.includes('row-level security')) {
+		return 'No tienes permisos para realizar esta acción.';
+	}
+
 	// Return original message if no translation found
 	return errorMessage || 'Ocurrió un error inesperado.';
 };

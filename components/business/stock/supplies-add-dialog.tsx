@@ -18,12 +18,7 @@ import { STOCK_CONFIGS } from '@/lib/stock/stock-config';
 import { toast } from '@/components/ui/use-toast';
 import { type SupplyItemStock } from '@/lib/stock/supplies-stock';
 import { useAuth } from '@/components/provider/auth-provider';
-import {
-	formatCurrency,
-	formatCurrencyWithoutSymbol,
-	formatNumber,
-	parseArsToNumber,
-} from '@/utils/formats-money';
+import { formatCurrencyWithoutSymbol, formatNumber, parseArsToNumber } from '@/utils/formats-money';
 
 type FormData = {
 	category: string;

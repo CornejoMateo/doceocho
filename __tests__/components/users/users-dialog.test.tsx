@@ -138,6 +138,8 @@ describe('UsersDialog', () => {
 
 		expect(screen.getByLabelText('Nombre de usuario')).toBeInTheDocument();
 		expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
+		expect(screen.getByLabelText('Nombre')).toBeInTheDocument();
+		expect(screen.getByLabelText('Apellido')).toBeInTheDocument();
 	});
 
 	it('creates a new user', async () => {
@@ -148,6 +150,8 @@ describe('UsersDialog', () => {
 		fireEvent.change(screen.getByLabelText('Nombre de usuario'), {
 			target: { value: 'nuevouser' },
 		});
+		fireEvent.change(screen.getByLabelText('Apellido'), { target: { value: 'Pérez' } });
+		fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Juan' } });
 		fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: '123456' } });
 		fireEvent.change(screen.getByTestId('select-role'), { target: { value: 'Taller' } });
 		fireEvent.click(screen.getByText('Crear usuario'));
@@ -157,6 +161,8 @@ describe('UsersDialog', () => {
 				username: 'nuevouser',
 				password: '123456',
 				role: 'Taller',
+				name: 'Juan',
+				last_name: 'Pérez',
 			});
 		});
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Usuario creado' }));

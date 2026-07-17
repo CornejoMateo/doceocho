@@ -17,6 +17,15 @@ function getSupabaseClient(): SupabaseClient {
 
 	supabase = createBrowserClient(url, anonKey);
 
+	// Debug: log session info
+	supabase.auth.getSession().then(({ data, error }) => {
+		console.log('[supabase-client] getSession result:', { data, error });
+	});
+
+	supabase.auth.getUser().then(({ data, error }) => {
+		console.log('[supabase-client] getUser result:', { data, error });
+	});
+
 	return supabase;
 }
 

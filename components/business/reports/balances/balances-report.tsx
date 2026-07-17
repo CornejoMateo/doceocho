@@ -32,10 +32,17 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Filter, Download } from 'lucide-react';
 import { normalizeMoney } from '@/utils/formats-money';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BudgetsReport } from '@/components/business/reports/budgets/budgets-report';
+import { useBalanceFilters } from '@/hooks/balances/use-balance-filters';
+import { BalanceFilterDialog } from './balance-filter-dialog';
+import { applyBalanceFilters, hasActiveFilters } from '@/helpers/balances/filter-balances';
+import {
+	generateBalancesPDF,
+	getFiltersDescription,
+} from '@/helpers/balances/generate-balance-pdf';
 
 type BalanceReportRow = {
 	id: number;
@@ -58,7 +65,9 @@ export function BalancesReport() {
 	const [rows, setRows] = useState<BalanceReportRow[]>([]);
 	const [sortField, setSortField] = useState<keyof BalanceReportRow>('contractDate');
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-	const [balanceTypeFilter, setBalanceTypeFilter] = useState<string>('all');
+
+	const { filters, updateFilters, resetFilters, filterDialogOpen, setFilterDialogOpen } =
+		useBalanceFilters();
 
 	// Calculate stats
 	const balanceStats = useMemo(() => {
@@ -92,10 +101,14 @@ export function BalancesReport() {
 				balances.map(async (b) => {
 					const totalPaid = totals?.[b.id]?.totalAmount ?? 0;
 					const totalPaidUSD = totals?.[b.id]?.totalAmountUSD ?? 0;
+					const totalExtraArs = totals?.[b.id]?.totalExtraAmount ?? 0;
+					const totalExtraUsd = totals?.[b.id]?.totalExtraAmountUSD ?? 0;
 					const budgetUsd = b.balance_amount_usd ?? 0;
 					const budgetArs = b.balance_amount_ars ?? 0;
-					const remainingUsd = normalizeMoney(budgetUsd - totalPaidUSD);
-					const remainingArs = normalizeMoney(budgetArs - totalPaid);
+					const effectiveBudgetArs = budgetArs + totalExtraArs;
+					const effectiveBudgetUsd = budgetUsd + totalExtraUsd;
+					const remainingArs = normalizeMoney(effectiveBudgetArs - totalPaid);
+					const remainingUsd = normalizeMoney(effectiveBudgetUsd - totalPaidUSD);
 
 					const clientName =
 						`${b.client?.last_name ?? ''} ${b.client?.name ?? ''}`.trim() || DEFAULT_FALLBACK;
@@ -111,11 +124,12 @@ export function BalancesReport() {
 					const usdContractRef = Number(b.contract_date_usd) || 0;
 
 					const balanceType =
-						remainingUsd > 0
+						remainingArs > 0
 							? BALANCE_TYPES.DEBTOR
-							: remainingUsd < 0
+							: remainingArs < 0
 								? BALANCE_TYPES.CREDITOR
 								: BALANCE_TYPES.CANCELLED;
+
 					const balanceAmountArs = remainingArs;
 					const balanceInUseUsd = remainingUsd;
 
@@ -133,7 +147,7 @@ export function BalancesReport() {
 						client: clientName,
 						work,
 						concept,
-						purchaseArs: budgetArs,
+						purchaseArs: effectiveBudgetArs,
 						deliveriesArs: totalPaid,
 						balanceType,
 						balanceAmountArs,
@@ -153,10 +167,8 @@ export function BalancesReport() {
 	const filteredRows = useMemo(() => {
 		let filtered = rows;
 
-		// Filter to type
-		if (balanceTypeFilter !== 'all') {
-			filtered = filtered.filter((r) => r.balanceType === balanceTypeFilter);
-		}
+		// Apply advanced filters (balance type, amount ranges)
+		filtered = applyBalanceFilters(filtered, filters);
 
 		// Filter to text
 		const s = searchTerm.trim().toLowerCase();
@@ -194,7 +206,7 @@ export function BalancesReport() {
 			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
 			return 0;
 		});
-	}, [rows, searchTerm, sortField, sortDirection, balanceTypeFilter]);
+	}, [rows, searchTerm, sortField, sortDirection, filters]);
 
 	const handleSort = (field: keyof BalanceReportRow) => {
 		if (sortField === field) {
@@ -214,6 +226,11 @@ export function BalancesReport() {
 		);
 	};
 
+	const handleDownloadPDF = () => {
+		const filtersDesc = getFiltersDescription(filters);
+		generateBalancesPDF(filteredRows, filtersDesc);
+	};
+
 	return (
 		<div className="space-y-6">
 			{/* Stats Cards */}
@@ -224,30 +241,31 @@ export function BalancesReport() {
 				<TabsList className="bg-card border border-border">
 					<TabsTrigger value="balances">Saldos</TabsTrigger>
 					<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
-					<TabsTrigger value="other">A definir</TabsTrigger>
+					<TabsTrigger value="other" disabled>
+						A definir
+					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="balances" className="space-y-4">
 					{/* Controls */}
 					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<Select value={balanceTypeFilter} onValueChange={setBalanceTypeFilter}>
-							<SelectTrigger className="w-full sm:w-[180px]">
-								<SelectValue placeholder="Tipo de saldo" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">Todos los tipos</SelectItem>
-								<SelectItem value={BALANCE_TYPES.DEBTOR}>Deudor</SelectItem>
-								<SelectItem value={BALANCE_TYPES.CREDITOR}>Acreedor</SelectItem>
-								<SelectItem value={BALANCE_TYPES.CANCELLED}>Cancelado</SelectItem>
-							</SelectContent>
-						</Select>
+						<div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+							<Button
+								variant={hasActiveFilters(filters) ? 'default' : 'outline'}
+								onClick={() => setFilterDialogOpen(true)}
+								className="gap-2"
+							>
+								<Filter className="h-4 w-4" />
+								Filtros
+							</Button>
 
-						<Input
-							placeholder="Buscar por cliente, obra, concepto..."
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-full sm:w-[300px]"
-						/>
+							<Input
+								placeholder="Buscar por cliente, obra, concepto..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								className="w-full sm:w-[300px]"
+							/>
+						</div>
 					</div>
 
 					<Card className="p-0 bg-card border-border overflow-x-auto">
@@ -255,29 +273,35 @@ export function BalancesReport() {
 							<div className="text-sm text-muted-foreground">
 								{loading ? 'Cargando...' : `${filteredRows.length} fila(s)`}
 							</div>
-							<Button variant="outline" onClick={() => refresh()} className="gap-2">
-								<RefreshCw className="h-4 w-4" />
-								Actualizar
-							</Button>
+							<div className="flex items-center gap-2">
+								<Button variant="outline" onClick={handleDownloadPDF} className="gap-2">
+									<Download className="h-4 w-4" />
+									Descargar PDF
+								</Button>
+								<Button variant="outline" onClick={() => refresh()} className="gap-2">
+									<RefreshCw className="h-4 w-4" />
+									Actualizar
+								</Button>
+							</div>
 						</div>
 
-						<Table>
+						<Table className="mx-auto">
 							<TableHeader>
 								<TableRow>
 									<TableHead
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('contractDate')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.contractDate}
 											{getSortIcon('contractDate')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 										onClick={() => handleSort('client')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.client}
 											{getSortIcon('client')}
 										</div>
@@ -286,34 +310,34 @@ export function BalancesReport() {
 										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('work')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.work}
 											{getSortIcon('work')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
 										onClick={() => handleSort('concept')}
 									>
-										<div className="flex items-center gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.concept}
 											{getSortIcon('concept')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('purchaseArs')}
 									>
-										<div className="flex items-center justify-end gap-1">
+										<div className="flex items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.purchase}
 											{getSortIcon('purchaseArs')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('deliveriesArs')}
 									>
-										<div className="flex items-center justify-end gap-1">
+										<div className="flex items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.deliveries}
 											{getSortIcon('deliveriesArs')}
 										</div>
@@ -328,39 +352,12 @@ export function BalancesReport() {
 										</div>
 									</TableHead>
 									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('balanceAmountArs')}
 									>
-										<div className="flex items-center justify-end gap-1">
+										<div className="flex items-center justify-center gap-1">
 											{BALANCES_REPORT_COLUMNS.balanceAmount}
 											{getSortIcon('balanceAmountArs')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('usdContractRef')}
-									>
-										<div className="flex items-center justify-end gap-1">
-											{BALANCES_REPORT_COLUMNS.usdContractRef}
-											{getSortIcon('usdContractRef')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('usdCurrentToCancel')}
-									>
-										<div className="flex items-center justify-end gap-1">
-											{BALANCES_REPORT_COLUMNS.usdCurrentToCancel}
-											{getSortIcon('usdCurrentToCancel')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('balanceInUseUsd')}
-									>
-										<div className="flex items-center justify-end gap-1">
-											{BALANCES_REPORT_COLUMNS.balanceInUseUsd}
-											{getSortIcon('balanceInUseUsd')}
 										</div>
 									</TableHead>
 								</TableRow>
@@ -369,41 +366,38 @@ export function BalancesReport() {
 							<TableBody>
 								{loading ? (
 									<TableRow>
-										<TableCell colSpan={11} className="text-center text-muted-foreground">
+										<TableCell colSpan={8} className="text-center text-muted-foreground">
 											Cargando saldos...
 										</TableCell>
 									</TableRow>
 								) : filteredRows.length === 0 ? (
 									<TableRow>
-										<TableCell colSpan={11} className="text-center text-muted-foreground">
+										<TableCell colSpan={8} className="text-center text-muted-foreground">
 											No hay resultados
 										</TableCell>
 									</TableRow>
 								) : (
 									filteredRows.map((r) => (
 										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap">{r.contractDate}</TableCell>
-											<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.work}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.concept}</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="whitespace-nowrap text-center">
+												{r.contractDate}
+											</TableCell>
+											<TableCell className="font-medium whitespace-nowrap text-center">
+												{r.client}
+											</TableCell>
+											<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
+											<TableCell className="whitespace-nowrap text-center">{r.concept}</TableCell>
+											<TableCell className="text-center whitespace-nowrap">
 												{formatCurrency(r.purchaseArs)}
 											</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="text-center whitespace-nowrap">
 												{formatCurrency(r.deliveriesArs)}
 											</TableCell>
-											<TableCell className="whitespace-nowrap">{r.balanceType}</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="whitespace-nowrap text-center">
+												{r.balanceType}
+											</TableCell>
+											<TableCell className="text-center whitespace-nowrap">
 												{formatCurrency(r.balanceAmountArs)}
-											</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
-												{formatCurrencyUSD(r.usdContractRef)}
-											</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
-												{formatCurrencyUSD(r.usdCurrentToCancel)}
-											</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
-												{formatCurrencyUSD(r.balanceInUseUsd)}
 											</TableCell>
 										</TableRow>
 									))
@@ -411,6 +405,14 @@ export function BalancesReport() {
 							</TableBody>
 						</Table>
 					</Card>
+
+					<BalanceFilterDialog
+						open={filterDialogOpen}
+						onOpenChange={setFilterDialogOpen}
+						filters={filters}
+						onFiltersChange={updateFilters}
+						onReset={resetFilters}
+					/>
 				</TabsContent>
 
 				<TabsContent value="budgets" className="space-y-4">

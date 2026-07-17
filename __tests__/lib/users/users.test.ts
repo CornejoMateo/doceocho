@@ -101,12 +101,20 @@ describe('users lib', () => {
 				username: 'nuevo',
 				password: '123456',
 				role: 'Taller',
+				name: 'Juan',
+				last_name: 'Pérez',
 			});
 
 			expect(global.fetch).toHaveBeenCalledWith('/api/users', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test-token' },
-				body: JSON.stringify({ username: 'nuevo', password: '123456', role: 'Taller' }),
+				body: JSON.stringify({
+					username: 'nuevo',
+					password: '123456',
+					role: 'Taller',
+					name: 'Juan',
+					last_name: 'Pérez',
+				}),
 			});
 			expect(result.error).toBeNull();
 			expect(result.data).toEqual({ success: true });
@@ -218,6 +226,32 @@ describe('users lib', () => {
 				body: JSON.stringify({ uid_user: '1', username: 'newuser' }),
 			});
 			expect(result.data?.username).toBe('newuser');
+		});
+
+		it('updates name and last_name', async () => {
+			(global.fetch as jest.Mock).mockResolvedValue({
+				ok: true,
+				headers: new Map([['content-type', 'application/json']]),
+				json: async () => ({
+					data: {
+						uid_user: '1',
+						username: 'user1',
+						role: 'Taller',
+						name: 'Juan',
+						last_name: 'Pérez',
+					},
+				}),
+			});
+
+			const result = await updateUser('1', { name: 'Juan', last_name: 'Pérez' });
+
+			expect(global.fetch).toHaveBeenCalledWith('/api/users', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test-token' },
+				body: JSON.stringify({ uid_user: '1', name: 'Juan', last_name: 'Pérez' }),
+			});
+			expect(result.data?.name).toBe('Juan');
+			expect(result.data?.last_name).toBe('Pérez');
 		});
 	});
 

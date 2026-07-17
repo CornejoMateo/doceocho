@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { deleteBudget } from './budgets';
 
 export type FolderBudget = {
 	id: number;
@@ -122,17 +123,21 @@ export async function deleteFolderBudget(id: number): Promise<{ data: null; erro
 export async function deleteFolderBudgetWithBudgets(folderId: number): Promise<{ error: any }> {
 	const supabase = getSupabaseClient();
 
-	// First, delete all budgets in the folder
-	const { error: budgetsError } = await supabase
+	const { data: budgets, error: budgetsError } = await supabase
 		.from('budgets')
-		.delete()
+		.select('id')
 		.eq('folder_budget_id', folderId);
 
 	if (budgetsError) {
 		return { error: budgetsError };
 	}
+	const results = await Promise.all((budgets ?? []).map((budget) => deleteBudget(budget.id)));
 
-	// Then delete the folder
+	const failed = results.find((r) => r.error);
+	if (failed) {
+		return { error: failed.error };
+	}
+
 	const { error: folderError } = await supabase.from(TABLE).delete().eq('id', folderId);
 
 	return { error: folderError };

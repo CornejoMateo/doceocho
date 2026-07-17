@@ -1,10 +1,21 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Loader2, Settings2 } from 'lucide-react';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
-import { createChecklist, getChecklistsByWorkId } from '@/lib/checklists/checklists';
+import { ItemsPredefinedDialog } from '@/components/business/works/checklists/items-predefined-dialog';
+import {
+	createChecklist,
+	createChecklistItems,
+	deleteChecklist,
+	getChecklistsByWorkId,
+} from '@/lib/checklists/checklists';
+import { listItemsPredefined } from '@/lib/checklists/items-predefined';
+import { type ItemsPredefined } from '@/lib/checklists/items-predefined';
+import { listMaterials } from '@/lib/checklists/materials';
+import { type Material } from '@/lib/checklists/materials';
 import { updateWorkGeneralNote } from '@/lib/works/works';
 import { type StatusFilter } from '@/constants/type-config';
 import { EmailNotificationModal } from '@/components/ui/email-notification-modal';
@@ -26,6 +37,7 @@ import { StatsCardsWorks } from '@/components/business/works/stats-cards-works';
 import { useChecklistModal } from '@/hooks/clients/use-checklist-modal';
 import { WorkCard } from '@/components/business/works/work-card';
 import { translateError } from '@/lib/error-translator';
+import { toast } from '@/components/ui/use-toast';
 
 export function WorksOpenings() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +47,10 @@ export function WorksOpenings() {
 
 	const { user } = useAuth();
 	const { works, loading, reload } = useWorksWithProgress();
+
+	const isAdmin = useMemo(() => {
+		return user?.role === 'Admin';
+	}, [user?.role]);
 
 	const { filteredData, paginatedData, totalPages } = paginateAndFilter(
 		works,
@@ -92,27 +108,83 @@ export function WorksOpenings() {
 		closeChecklist,
 	} = useChecklistModal();
 
+	const [itemsPredefinedOpen, setItemsPredefinedOpen] = useState(false);
+	const [itemsPredefinedData, setItemsPredefinedData] = useState<ItemsPredefined[]>([]);
+	const [materialsData, setMaterialsData] = useState<Material[]>([]);
+	const [itemsPredefinedLoading, setItemsPredefinedLoading] = useState(false);
+
+	const refreshItemsPredefined = useCallback(async () => {
+		const { data, error } = await listItemsPredefined();
+		if (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'Error al cargar los items predefinidos',
+				variant: 'destructive',
+			});
+		}
+		if (data) setItemsPredefinedData(data);
+	}, []);
+
+	const refreshMaterials = useCallback(async () => {
+		const { data, error } = await listMaterials();
+		if (data) setMaterialsData(data);
+		if (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'Error al cargar los materiales',
+				variant: 'destructive',
+			});
+		}
+	}, []);
+
+	useEffect(() => {
+		if (itemsPredefinedOpen) {
+			setItemsPredefinedLoading(true);
+			Promise.all([refreshItemsPredefined(), refreshMaterials()]).finally(() => {
+				setItemsPredefinedLoading(false);
+			});
+		}
+	}, [itemsPredefinedOpen, refreshItemsPredefined, refreshMaterials]);
+
 	const handleSaveChecklist = async (checklist: any) => {
 		const { data: existingChecklists } = await getChecklistsByWorkId(checklistWork?.id || -1);
 		const existingCount = existingChecklists?.length || 0;
 
-		const { error } = await createChecklist({
+		const { data: newChecklist, error } = await createChecklist({
 			work_id: checklistWork?.id || null,
 			name: checklist.name || `Mobiliario ${existingCount + 1}`,
 			description: checklist.description || '',
 			notes: '',
-			items: checklist.items.map((item: any) => ({
-				name: item.name,
-				done: item.completed,
-				key: 0,
-			})),
-			progress: checklist.items.length > 0 ? 0 : 100,
+			width: checklist.width ?? null,
+			height: checklist.height ?? null,
+			depth: checklist.depth ?? null,
+			type_furniture: checklist.type_furniture ?? null,
 		});
 
 		if (error) {
 			const errorMessage = translateError(error);
 			console.error('Error creating checklist:', errorMessage);
 			throw error;
+		}
+
+		if (newChecklist && checklist.items.length > 0) {
+			const { error: itemsError } = await createChecklistItems(
+				checklist.items.map((item: any) => ({
+					description: item.description,
+					checklist_id: newChecklist.id,
+				}))
+			);
+			if (itemsError) {
+				const errorMessage = translateError(itemsError);
+				console.error('Error creating checklist items:', errorMessage);
+				// Attempt to clean up the newly created checklist if items creation fails
+				try {
+					await deleteChecklist(newChecklist.id);
+				} catch (cleanupError) {
+					console.error('Failed to clean up orphaned checklist:', cleanupError);
+				}
+				throw itemsError;
+			}
 		}
 
 		reload();
@@ -140,6 +212,12 @@ export function WorksOpenings() {
 						<h2 className="text-2xl font-bold text-foreground">Checklists de obras</h2>
 						<p className="text-muted-foreground mt-1">Seguimiento de instalaciones y tareas</p>
 					</div>
+					{isAdmin && (
+						<Button variant="outline" size="sm" onClick={() => setItemsPredefinedOpen(true)}>
+							<Settings2 className="h-4 w-4 mr-2" />
+							Items predefinidos
+						</Button>
+					)}
 				</div>
 
 				{/* Search Bar */}
@@ -162,21 +240,30 @@ export function WorksOpenings() {
 			/>
 
 			{/* Installations list */}
-			<div className="space-y-4">
-				{paginatedData.map((installation) => {
-					return (
-						<WorkCard
-							key={installation.id}
-							work={installation}
-							user={user}
-							onOpenEmail={openEmail}
-							onOpenWhatsApp={openWhatsApp}
-							onOpenChecklist={openChecklist}
-							onUpdateGeneralNote={handleUpdateGeneralNote}
-						/>
-					);
-				})}
-			</div>
+			{loading ? (
+				<div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+					<Loader2 className="h-5 w-5 animate-spin" />
+					<span>Cargando obras</span>
+				</div>
+			) : paginatedData.length === 0 ? (
+				<p className="text-center py-12 text-muted-foreground">No hay obras para mostrar</p>
+			) : (
+				<div className="space-y-4">
+					{paginatedData.map((installation) => {
+						return (
+							<WorkCard
+								key={installation.id}
+								work={installation}
+								user={user}
+								onOpenEmail={openEmail}
+								onOpenWhatsApp={openWhatsApp}
+								onOpenChecklist={openChecklist}
+								onUpdateGeneralNote={handleUpdateGeneralNote}
+							/>
+						);
+					})}
+				</div>
+			)}
 
 			{/* Pagination */}
 			{totalPages > 1 && (
@@ -270,6 +357,16 @@ export function WorksOpenings() {
 					onSave={handleSaveChecklist}
 				/>
 			)}
+
+			<ItemsPredefinedDialog
+				open={itemsPredefinedOpen}
+				onOpenChange={setItemsPredefinedOpen}
+				materials={materialsData}
+				itemsPredefined={itemsPredefinedData}
+				refreshMaterials={refreshMaterials}
+				refreshItemsPredefined={refreshItemsPredefined}
+				isLoading={itemsPredefinedLoading}
+			/>
 		</div>
 	);
 }

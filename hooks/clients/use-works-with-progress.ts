@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChecklistItem } from '@/lib/checklists/checklists';
-import { getChecklistsByWorkIds } from '@/lib/checklists/checklists';
+import { getChecklistsByWorkIds, getItemsByChecklistIds } from '@/lib/checklists/checklists';
 import { listWorks } from '@/lib/works/works';
 import { WorkWithProgress } from '@/lib/works/works';
 import { updateWork } from '@/lib/works/works';
@@ -24,16 +23,23 @@ export function useWorksWithProgress() {
 			const workIds = worksData.map((w) => w.id);
 			const { data: allChecklists } = await getChecklistsByWorkIds(workIds);
 
-			const checklistsByWork = new Map<number, ChecklistItem[]>();
+			const checklistIds = (allChecklists ?? []).map((c) => c.id);
+			const { data: allItems, error: itemsError } = await getItemsByChecklistIds(checklistIds);
+			if (itemsError) throw itemsError;
+			const itemsByChecklist = new Map<number, any[]>();
+			if (allItems) {
+				for (const item of allItems) {
+					const existing = itemsByChecklist.get(item.checklist_id) || [];
+					existing.push(item);
+					itemsByChecklist.set(item.checklist_id, existing);
+				}
+			}
+
 			const hasNotesByWork = new Map<number, boolean>();
 
 			for (const cl of allChecklists ?? []) {
 				const wid = cl.work_id;
 				if (!wid) continue;
-
-				const items = cl.items ?? [];
-
-				checklistsByWork.set(wid, [...(checklistsByWork.get(wid) ?? []), ...items]);
 
 				if (!hasNotesByWork.get(wid)) {
 					hasNotesByWork.set(wid, !!cl.notes?.trim());
@@ -41,9 +47,17 @@ export function useWorksWithProgress() {
 			}
 
 			const enriched = worksData.map((work) => {
-				const tasks = checklistsByWork.get(work.id) ?? [];
-				const total = tasks.length;
-				const done = tasks.filter((t) => t.done).length;
+				const workChecklists = (allChecklists ?? []).filter((c) => c.work_id === work.id);
+
+				let total = 0;
+				let done = 0;
+				const tasks: any[] = [];
+				for (const cl of workChecklists) {
+					const clItems = itemsByChecklist.get(cl.id) || [];
+					total += clItems.length;
+					done += clItems.filter((t: any) => t.done).length;
+					tasks.push(...clItems);
+				}
 				const progress = total ? Math.round((done / total) * 100) : 100;
 				const hasGeneralNotes = !!work.general_note?.trim();
 

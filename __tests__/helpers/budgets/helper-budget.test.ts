@@ -146,15 +146,14 @@ describe('groupBudgetsByType', () => {
 });
 
 describe('getOrderedTypeKeys', () => {
-	it('sorts DEFAULT_TYPES first, then alphabetically', () => {
+	it('sorts keys alphabetically', () => {
 		const map = new Map<string, BudgetWithWork[]>();
 		map.set('Otros', []);
 		map.set('MDF', []);
 		map.set('Zebra', []);
 
 		const keys = getOrderedTypeKeys(map);
-		expect(keys[0]).toBe('MDF');
-		expect(keys[keys.length - 1]).toBe('Zebra');
+		expect(keys).toEqual(['MDF', 'Otros', 'Zebra']);
 	});
 
 	it('returns empty array for empty map', () => {

@@ -2,6 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 import { AuthProvider, useAuth } from '@/components/provider/auth-provider';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { UI } from 'react-day-picker';
 
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
@@ -90,6 +91,7 @@ describe('AuthProvider', () => {
 					role: 'Admin',
 					name: 'Admin',
 					last_name: 'User',
+					uid: '12345',
 				},
 			}),
 		});
@@ -114,6 +116,7 @@ describe('AuthProvider', () => {
 			role: 'Admin',
 			name: 'Admin',
 			last_name: 'User',
+			uid: '12345',
 		});
 
 		expect(global.fetch).toHaveBeenCalledWith('/api/me', {
@@ -164,6 +167,7 @@ describe('AuthProvider', () => {
 						role: 'Taller',
 						name: 'Juan',
 						last_name: 'Pérez',
+						uid: 'user-123',
 					},
 				}),
 			});
@@ -191,6 +195,7 @@ describe('AuthProvider', () => {
 				role: 'Taller',
 				name: 'Juan',
 				last_name: 'Pérez',
+				uid: 'user-123',
 			});
 
 			expect(sessionUser).toEqual({
@@ -198,6 +203,7 @@ describe('AuthProvider', () => {
 				role: 'Taller',
 				name: 'Juan',
 				last_name: 'Pérez',
+				uid: 'user-123',
 			});
 
 			expect(result.current.loading).toBe(false);

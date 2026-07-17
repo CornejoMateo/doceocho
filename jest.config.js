@@ -10,9 +10,4 @@ module.exports = {
 	},
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 	transformIgnorePatterns: ['/node_modules/(?!(your-module-to-transform|other-module)/)'],
-	globals: {
-		'ts-jest': {
-			tsconfig: 'tsconfig.test.json',
-		},
-	},
 };
