@@ -55,8 +55,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		} = await supabase.auth.getSession();
 
 		if (!session) {
-			clearChannelsCache();
-			setUser(null);
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+
+			console.log('[AUTH] getUser()', {
+				hasUser: !!user,
+			});
+
+			if (!user) {
+				setUser(null);
+			}
+
 			return;
 		}
 
@@ -76,7 +86,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async () => {
+		} = supabase.auth.onAuthStateChange(async (event, session) => {
+			console.log('[AUTH EVENT]', {
+				event,
+				hasSession: !!session,
+				userId: session?.user?.id,
+				expiresAt: session?.expires_at,
+				now: Math.floor(Date.now() / 1000),
+				expiresIn: session?.expires_at ? session.expires_at - Math.floor(Date.now() / 1000) : null,
+			});
+
 			if (cancelled) return;
 
 			try {
@@ -93,10 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			subscription.unsubscribe();
 		};
 	}, [supabase, loadProfile]);
-
-	useEffect(() => {
-		loadProfile().finally(() => setLoading(false));
-	}, [loadProfile]);
 
 	async function signIn(username: string, password: string): Promise<SessionUser> {
 		setLoading(true);
@@ -148,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function signOutUser() {
+		console.log('[AUTH] signOut()');
 		setLoading(true);
 
 		clearChannelsCache();
