@@ -75,6 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			if (profile) {
 				setUser(profile);
+			} else {
+				console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
+				return;
 			}
 		} catch (err) {
 			console.error('Error loading profile:', err);
@@ -161,6 +164,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			setLoading(false);
 		}
 	}
+
+	useEffect(() => {
+		const interval = setInterval(async () => {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			console.log('[SESSION]', {
+				expiresAt: session?.expires_at,
+				remaining: session?.expires_at && session.expires_at - Math.floor(Date.now() / 1000),
+			});
+		}, 60_000);
+
+		return () => clearInterval(interval);
+	}, []);
 
 	async function signOutUser() {
 		console.log('[AUTH] signOut()');
