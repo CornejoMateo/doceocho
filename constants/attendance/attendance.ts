@@ -4,4 +4,4 @@ export const TARGET_LOCATION = {
 	longitude: -64.36053694602371,
 };
 
-export const DEFAULT_RADIUS_METERS = 30;
+export const DEFAULT_RADIUS_METERS = 50;
