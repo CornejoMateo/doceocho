@@ -67,7 +67,9 @@ export function ClockIn() {
 
 		try {
 			// Get current location
-			const location = await getCurrentLocation();
+			const location = await getCurrentLocation().catch((error) => {
+				throw new Error(translateError(error));
+			});
 
 			// Check if within allowed radius
 			const withinRadius = isWithinRadius(
@@ -125,7 +127,7 @@ export function ClockIn() {
 			if (!attendance) {
 				toast({
 					title: 'Error',
-					description: translateError('error') || 'No se pudo crear el registro de asistencia',
+					description: 'No se pudo crear el registro de asistencia. Intenta nuevamente.',
 					variant: 'destructive',
 				});
 				return;
@@ -151,8 +153,10 @@ export function ClockIn() {
 
 			if (entryError) {
 				toast({
-					title: 'Error',
-					description: translateError('error') || 'No se pudo registrar el fichaje',
+					title: 'Error al registrar fichaje',
+					description:
+						translateError(entryError) ||
+						'No se pudo registrar el fichaje. Verifica tu conexión e intenta nuevamente.',
 					variant: 'destructive',
 				});
 				return;

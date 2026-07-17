@@ -49,6 +49,26 @@ export const translateError = (error: any): string => {
 		return 'Error al procesar la solicitud. Intenta nuevamente.';
 	}
 
+	// Geolocation errors
+	if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('permiso de ubicación')) {
+		return 'Permiso de ubicación denegado. Habilita la geolocalización en tu navegador.';
+	}
+	if (
+		errorMessage.includes('POSITION_UNAVAILABLE') ||
+		errorMessage.includes('ubicación no disponible')
+	) {
+		return 'Ubicación no disponible. Verifica tu GPS o conexión.';
+	}
+	if (errorMessage.includes('TIMEOUT') || errorMessage.includes('tiempo de espera')) {
+		return 'Tiempo de espera agotado al obtener ubicación. Intenta nuevamente.';
+	}
+	if (
+		errorMessage.includes('kCLErrorLocationUnknown') ||
+		errorMessage.includes('location unknown')
+	) {
+		return 'No se pudo determinar tu ubicación. Verifica los servicios de ubicación de tu dispositivo.';
+	}
+
 	// Validation errors
 	if (errorMessage.includes('required') || errorMessage.includes('is required')) {
 		return 'Faltan campos obligatorios.';

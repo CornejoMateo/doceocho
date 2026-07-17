@@ -86,7 +86,11 @@ export async function createAttendanceEntry(
 ): Promise<{ data: AttendanceEntry | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const { data, error } = await supabase.from('attendance_entries').insert(entry).select().single();
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.insert(entry)
+		.select()
+		.maybeSingle();
 
 	return { data, error };
 }
