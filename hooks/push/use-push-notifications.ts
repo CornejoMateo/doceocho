@@ -39,23 +39,18 @@ export function usePushNotifications() {
 	// Subscribe to push notifications
 	const subscribe = useCallback(async () => {
 		if (!isSupported || !user) {
-			console.error('Subscribe failed:', { isSupported, hasUser: !!user });
 			return { success: false, error: 'Not supported or user not logged in' };
 		}
 
 		// Check current permission directly instead of relying on state
 		const currentPermission = Notification.permission;
 		if (currentPermission !== 'granted') {
-			console.error('Subscribe failed: permission not granted', currentPermission);
 			return { success: false, error: `Permission not granted: ${currentPermission}` };
 		}
 
 		try {
-			console.log('Starting subscription process...');
-
 			// Register service worker
 			const registration = await navigator.serviceWorker.register('/sw.js');
-			console.log('Service Worker registered:', registration);
 
 			// Convert VAPID public key from base64 to Uint8Array
 			const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -64,7 +59,7 @@ export function usePushNotifications() {
 				return { success: false, error: 'VAPID public key not configured' };
 			}
 
-			console.log('VAPID public key configured:', vapidPublicKey.substring(0, 20) + '...');
+			// console.log('VAPID public key configured:', vapidPublicKey.substring(0, 20) + '...');
 
 			// Convert base64 URL-safe to standard base64
 			const base64Key = vapidPublicKey.replace(/-/g, '+').replace(/_/g, '/');
@@ -83,7 +78,7 @@ export function usePushNotifications() {
 					applicationServerKey,
 				}));
 
-			console.log('Push subscription created:', pushSubscription);
+			// console.log('Push subscription created:', pushSubscription);
 
 			const p256dh = pushSubscription.getKey('p256dh');
 			const auth = pushSubscription.getKey('auth');
@@ -99,12 +94,12 @@ export function usePushNotifications() {
 				},
 			};
 
-			console.log('Subscription data prepared:', subscriptionData);
+			// console.log('Subscription data prepared:', subscriptionData);
 
 			// Save subscription to database
 			const result = await savePushSubscription(user.uid, subscriptionData);
 
-			console.log('Save subscription result:', result);
+			// console.log('Save subscription result:', result);
 
 			if (result.success) {
 				setSubscription(subscriptionData);
