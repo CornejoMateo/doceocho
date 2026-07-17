@@ -33,7 +33,7 @@ export function ClockIn() {
 	useEffect(() => {
 		async function loadSettings() {
 			const { data: settings } = await getAttendanceSettings();
-			if (settings?.square_meters && settings.square_meters >= DEFAULT_RADIUS_METERS) {
+			if (settings?.square_meters) {
 				setRadiusMeters(settings.square_meters);
 				setAdminSquareMeters(settings.square_meters.toString());
 			}
