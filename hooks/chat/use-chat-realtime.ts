@@ -133,8 +133,8 @@ export function useChatRealtime(channelId: number | null, isNearBottom?: () => b
 							if (prev.some((m) => m.id === newRecord.id)) return prev;
 							return [...prev, messageWithUser];
 						});
-						if (newRecord.user_id !== user?.id && isNearBottom?.()) {
-							await updateLastReadMessage(newRecord.channel_id, newRecord.id, user?.id as string);
+						if (newRecord.user_id !== user?.uid && isNearBottom?.()) {
+							await updateLastReadMessage(newRecord.channel_id, newRecord.id, user?.uid as string);
 						}
 
 						if (!existingUser) {

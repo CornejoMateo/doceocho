@@ -91,7 +91,7 @@ describe('AuthProvider', () => {
 					role: 'Admin',
 					name: 'Admin',
 					last_name: 'User',
-					uid: '12345',
+					uid_user: '12345',
 				},
 			}),
 		});
@@ -167,7 +167,7 @@ describe('AuthProvider', () => {
 						role: 'Taller',
 						name: 'Juan',
 						last_name: 'Pérez',
-						uid: 'user-123',
+						uid_user: 'user-123',
 					},
 				}),
 			});

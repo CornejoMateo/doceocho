@@ -30,11 +30,11 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 	const [totalUnreadCount, setTotalUnreadCount] = useState(0);
 
 	const fetchUnreadCount = useCallback(async () => {
-		if (!user?.id) return;
+		if (!user?.uid) return;
 
 		try {
 			const { data, error } = await supabase.rpc('get_unread_messages_count', {
-				p_user_id: user.id,
+				p_user_id: user.uid,
 			});
 
 			if (error) {
@@ -45,10 +45,10 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 		} catch (error) {
 			console.error(error);
 		}
-	}, [user?.id]);
+	}, [user?.uid]);
 
 	useEffect(() => {
-		if (!user?.id) {
+		if (!user?.uid) {
 			setTotalUnreadCount(0);
 			return;
 		}
@@ -56,7 +56,7 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 		fetchUnreadCount();
 
 		const channel = supabase
-			.channel(`chat-unread-${user.id}`)
+			.channel(`chat-unread-${user.uid}`)
 			.on(
 				'postgres_changes',
 				{
@@ -72,7 +72,7 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 					event: 'UPDATE',
 					schema: 'public',
 					table: 'channel_members',
-					filter: `user_id=eq.${user.id}`,
+					filter: `user_id=eq.${user.uid}`,
 				},
 				fetchUnreadCount
 			)
@@ -81,7 +81,7 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 		return () => {
 			supabase.removeChannel(channel);
 		};
-	}, [user?.id, fetchUnreadCount]);
+	}, [user?.uid, fetchUnreadCount]);
 
 	const incrementUnreadCount = useCallback((amount = 1) => {
 		setTotalUnreadCount((prev) => prev + amount);

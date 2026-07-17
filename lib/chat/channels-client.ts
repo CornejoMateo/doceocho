@@ -1,5 +1,4 @@
 import { getSupabaseClient } from '@/lib/supabase-client';
-import { ChannelWithLastMessage } from './chat-types';
 
 export async function getChannelMembers(channelId: number) {
 	const supabase = getSupabaseClient();

@@ -3,7 +3,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { addChannelMember } from '@/lib/chat/channel-members';
-import type { Channel, ChannelWithMembers, ChannelWithLastMessage } from '@/lib/chat/chat-types';
+import type { Channel, ChannelWithLastMessage } from '@/lib/chat/chat-types';
 
 const TABLE = 'channels';
 
@@ -11,11 +11,9 @@ export async function createChannelAction(
 	name: string,
 	description: string
 ): Promise<{ success: boolean; error?: string; data?: Channel }> {
-	console.log(`[createChannelAction] Creating channel name=${name}`);
 	try {
 		const supabase = await getServerSupabaseClient();
 		const user = await getCurrentUser();
-		console.log(`[createChannelAction] Authenticated user userId=${user.id}`);
 
 		const { data, error } = await supabase
 			.from(TABLE)
@@ -24,27 +22,19 @@ export async function createChannelAction(
 			.single();
 
 		if (error) {
-			console.error(`[createChannelAction] Error creating channel:`, error.message);
 			return { success: false, error: error.message };
 		}
 		if (!data) {
-			console.error(`[createChannelAction] No data returned when creating channel`);
 			return { success: false, error: 'Error al crear el canal' };
 		}
 
-		console.log(
-			`[createChannelAction] Channel created channelId=${data.id}, adding creator as member`
-		);
 		const memberResult = await addChannelMember(data.id, user.id);
 		if (memberResult.error) {
-			console.error(`[createChannelAction] Error adding creator as member:`, memberResult.error);
 			return { success: false, error: memberResult.error };
 		}
 
-		console.log(`[createChannelAction] Successfully created channel channelId=${data.id}`);
 		return { success: true, data };
 	} catch (error: any) {
-		console.error(`[createChannelAction] Exception:`, error.message);
 		return { success: false, error: error.message || 'Error al crear el canal' };
 	}
 }

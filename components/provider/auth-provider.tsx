@@ -39,7 +39,7 @@ async function fetchProfile(token: string): Promise<SessionUser | null> {
 		role: json.data.role as UserRole,
 		name: json.data.name || '-',
 		last_name: json.data.last_name || '-',
-		uid: json.data.uid || '',
+		uid: json.data.uid_user || '',
 	};
 }
 
@@ -108,10 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			const sessionUser: SessionUser = {
 				username: res.data.username,
 				role: res.data.role as UserRole,
-				id: res.data.uid_user,
 				name: res.data.name || '-',
 				last_name: res.data.last_name || '-',
-				uid: res.data.uid || '',
+				uid: res.data.uid_user || '',
 			};
 
 			setUser(sessionUser);

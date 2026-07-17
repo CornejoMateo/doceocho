@@ -102,7 +102,7 @@ export function usePushNotifications() {
 			console.log('Subscription data prepared:', subscriptionData);
 
 			// Save subscription to database
-			const result = await savePushSubscription(user.id, subscriptionData);
+			const result = await savePushSubscription(user.uid, subscriptionData);
 
 			console.log('Save subscription result:', result);
 
@@ -126,7 +126,7 @@ export function usePushNotifications() {
 
 		try {
 			// Delete from database
-			const deleteResult = await deletePushSubscription(user.id, subscription.endpoint);
+			const deleteResult = await deletePushSubscription(user.uid, subscription.endpoint);
 			if (!deleteResult.success) {
 				return { success: false, error: deleteResult.error || 'Failed to delete subscription' };
 			}

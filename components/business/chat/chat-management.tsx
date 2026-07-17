@@ -43,7 +43,7 @@ export function ChatManagement() {
 	const refreshRef = useRef<() => void>(() => {});
 
 	const chatManagement = useChatManagement({
-		currentUserUid: user?.id || '',
+		currentUserUid: user?.uid || '',
 		currentUserRole: user?.role || '',
 		messages: [],
 		messagesLoading: false,
@@ -118,18 +118,18 @@ export function ChatManagement() {
 		previousLastMessageId.current = lastMessage.id;
 		const nearBottom = messagesListRef.current?.isNearBottom();
 
-		if (lastMessage.user_id !== user?.id && nearBottom) {
+		if (lastMessage.user_id !== user?.uid && nearBottom) {
 			messagesListRef.current?.scrollToBottom({
 				behavior: 'smooth',
 			});
 		} else {
-			if (lastMessage.user_id === user?.id) {
+			if (lastMessage.user_id === user?.uid) {
 				messagesListRef.current?.scrollToBottom({
 					behavior: 'smooth',
 				});
 			}
 		}
-	}, [filteredMessages, user?.id, chatManagement.initialScrollDone]);
+	}, [filteredMessages, user?.uid, chatManagement.initialScrollDone]);
 
 	const previousChannelId = useRef<number | null>(null);
 
@@ -262,7 +262,7 @@ export function ChatManagement() {
 									!!chatManagement.dateRange.from ||
 									!!chatManagement.dateRange.to
 								}
-								currentUserId={user.id}
+								currentUserId={user.uid}
 								editingMessage={chatManagement.editingMessage}
 								messagesLoading={messagesLoading}
 								loadingMore={loadingMore}
