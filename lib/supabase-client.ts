@@ -15,7 +15,13 @@ function getSupabaseClient(): SupabaseClient {
 		);
 	}
 
-	supabase = createBrowserClient(url, anonKey);
+	supabase = createBrowserClient(url, anonKey, {
+		auth: {
+			persistSession: true,
+			autoRefreshToken: true,
+			detectSessionInUrl: true,
+		},
+	});
 
 	return supabase;
 }
