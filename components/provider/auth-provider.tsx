@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UserRole } from '@/constants/users/user-role';
@@ -49,28 +49,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const supabase = getSupabaseClient();
 
 	const router = useRouter();
+	const loadProfile = useCallback(async () => {
+		const {
+			data: { session },
+		} = await supabase.auth.getSession();
+
+		if (!session) {
+			clearChannelsCache();
+			setUser(null);
+			return;
+		}
+
+		try {
+			const profile = await fetchProfile(session.access_token);
+
+			if (profile) {
+				setUser(profile);
+			}
+		} catch (err) {
+			console.error('Error loading profile:', err);
+		}
+	}, [supabase]);
 
 	useEffect(() => {
 		let cancelled = false;
 
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async (_event, session) => {
+		} = supabase.auth.onAuthStateChange(async () => {
 			if (cancelled) return;
 
-			if (!session) {
-				setUser(null);
-				setLoading(false);
-				return;
-			}
-
 			try {
-				const profile = await fetchProfile(session.access_token);
-				if (profile && !cancelled) setUser(profile);
-			} catch (err) {
-				console.error('Error fetching profile:', err);
+				await loadProfile();
 			} finally {
-				if (!cancelled) setLoading(false);
+				if (!cancelled) {
+					setLoading(false);
+				}
 			}
 		});
 
@@ -78,7 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			cancelled = true;
 			subscription.unsubscribe();
 		};
-	}, []);
+	}, [supabase, loadProfile]);
+
+	useEffect(() => {
+		loadProfile().finally(() => setLoading(false));
+	}, [loadProfile]);
 
 	async function signIn(username: string, password: string): Promise<SessionUser> {
 		setLoading(true);
@@ -113,8 +131,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				uid: res.data.uid_user || '',
 			};
 
-			setUser(sessionUser);
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
 
+			if (!session) {
+				throw new Error('No se pudo obtener la sesión');
+			}
+			await loadProfile();
 			return sessionUser;
 		} catch (err: any) {
 			throw err;
