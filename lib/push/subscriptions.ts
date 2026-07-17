@@ -116,7 +116,6 @@ export async function getChannelPushSubscriptions(
 		}
 
 		if (!members || members.length === 0) {
-			console.log('[push] No other members in channel');
 			return { data: [] };
 		}
 
@@ -141,7 +140,6 @@ export async function getChannelPushSubscriptions(
 
 		return { data: subscriptions };
 	} catch (error: any) {
-		console.error('[push] getChannelPushSubscriptions error:', error);
 		return { data: null, error: error.message };
 	}
 }

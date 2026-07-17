@@ -12,13 +12,6 @@ export function configureWebPush() {
 	const privateKey = process.env.VAPID_PRIVATE_KEY;
 	const subject = process.env.VAPID_SUBJECT;
 
-	console.log('[push] configureWebPush checking env vars', {
-		hasPublicKey: !!publicKey,
-		publicKeyPrefix: publicKey?.substring(0, 20),
-		hasPrivateKey: !!privateKey,
-		hasSubject: !!subject,
-	});
-
 	if (!publicKey || !privateKey) {
 		console.warn('[push] VAPID keys not configured. Push notifications will not work.');
 		return false;
@@ -30,7 +23,6 @@ export function configureWebPush() {
 	}
 
 	webpush.setVapidDetails(subject, publicKey, privateKey);
-	console.log('[push] VAPID configured successfully');
 	return true;
 }
 
@@ -40,19 +32,19 @@ export async function sendPushNotification(
 	payload: { title: string; body: string; icon?: string; data?: any }
 ) {
 	const endpointPreview = subscription.endpoint?.substring(0, 60) + '...';
-	console.log('[push] sendPushNotification called', { endpoint: endpointPreview });
+	// console.log('[push] sendPushNotification called', { endpoint: endpointPreview });
 
 	try {
 		await webpush.sendNotification(subscription, JSON.stringify(payload));
-		console.log('[push] sendPushNotification succeeded', { endpoint: endpointPreview });
+		// console.log('[push] sendPushNotification succeeded', { endpoint: endpointPreview });
 		return { success: true };
 	} catch (error: any) {
-		console.error('[push] sendPushNotification failed:', {
-			endpoint: endpointPreview,
-			error: error.message,
-			statusCode: error.statusCode,
-			body: error.body,
-		});
+		// console.error('[push] sendPushNotification failed:', {
+		// 	endpoint: endpointPreview,
+		// 	error: error.message,
+		// 	statusCode: error.statusCode,
+		// 	body: error.body,
+		// });
 		return { success: false, error: error.message };
 	}
 }
