@@ -3,11 +3,17 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getUserAttendanceHistory, AttendanceEntryWithDate } from '@/lib/attendance/attendance';
+import {
+	getUserAttendanceHistory,
+	AttendanceEntryWithDate,
+	getEntryTypeLabel,
+	getEntryTypeColor,
+} from '@/lib/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
+import { formatCreatedAt } from '@/utils/format-date';
 
 type FilterType = 'all' | 'regular' | 'overtime';
 
@@ -61,36 +67,6 @@ export function AttendanceHistory() {
 
 		setFilteredEntries(filtered);
 	}, [entries, filterType, dateFilter]);
-
-	const getEntryTypeLabel = (type: string) => {
-		switch (type) {
-			case 'regular_in':
-				return 'Entrada';
-			case 'regular_out':
-				return 'Salida';
-			case 'overtime_in':
-				return 'Entrada (HE)';
-			case 'overtime_out':
-				return 'Salida (HE)';
-			default:
-				return type;
-		}
-	};
-
-	const getEntryTypeColor = (type: string) => {
-		switch (type) {
-			case 'regular_in':
-				return 'text-green-600';
-			case 'regular_out':
-				return 'text-red-600';
-			case 'overtime_in':
-				return 'text-blue-600';
-			case 'overtime_out':
-				return 'text-orange-600';
-			default:
-				return 'text-gray-600';
-		}
-	};
 
 	return (
 		<>
@@ -172,9 +148,7 @@ export function AttendanceHistory() {
 														{getEntryTypeLabel(entry.type)}
 													</div>
 													<div className="text-xs md:text-sm text-gray-500">
-														{format(new Date(entry.attendance_date), 'dd/MM/yyyy', {
-															locale: es,
-														})}
+														{formatCreatedAt(entry.attendance_date)}
 													</div>
 												</div>
 												<div className="text-right">

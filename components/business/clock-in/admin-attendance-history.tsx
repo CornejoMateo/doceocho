@@ -9,10 +9,14 @@ import {
 	getUserAttendanceSummaries,
 	UserAttendanceSummary,
 	AttendanceEntryWithDate,
+	getEntryTypeLabel,
+	getEntryTypeColor,
+	formatHours,
 } from '@/lib/attendance/attendance';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
+import { formatCreatedAt } from '@/utils/format-date';
 
 type PeriodFilter = 'day' | 'week' | 'month';
 
@@ -69,42 +73,6 @@ export function AdminAttendanceHistory() {
 
 	const handleUserSelect = (userId: string) => {
 		setSelectedUser(userId === selectedUser ? null : userId);
-	};
-
-	const getEntryTypeLabel = (type: string) => {
-		switch (type) {
-			case 'regular_in':
-				return 'Entrada';
-			case 'regular_out':
-				return 'Salida';
-			case 'overtime_in':
-				return 'Entrada (HE)';
-			case 'overtime_out':
-				return 'Salida (HE)';
-			default:
-				return type;
-		}
-	};
-
-	const getEntryTypeColor = (type: string) => {
-		switch (type) {
-			case 'regular_in':
-				return 'text-green-600';
-			case 'regular_out':
-				return 'text-red-600';
-			case 'overtime_in':
-				return 'text-blue-600';
-			case 'overtime_out':
-				return 'text-orange-600';
-			default:
-				return 'text-gray-600';
-		}
-	};
-
-	const formatHours = (hours: number) => {
-		const h = Math.floor(hours);
-		const m = Math.round((hours - h) * 60);
-		return m > 0 ? `${h}h ${m}m` : `${h}h`;
 	};
 
 	if (!showHistory) {
@@ -211,9 +179,7 @@ export function AdminAttendanceHistory() {
 																	{getEntryTypeLabel(entry.type)}
 																</div>
 																<div className="text-xs md:text-sm text-gray-500">
-																	{format(new Date(entry.attendance_date), 'dd/MM/yyyy', {
-																		locale: es,
-																	})}
+																	{formatCreatedAt(entry.attendance_date)}
 																</div>
 															</div>
 															<div className="text-right">
