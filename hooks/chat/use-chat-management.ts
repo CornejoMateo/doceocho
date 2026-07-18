@@ -330,7 +330,8 @@ export function useChatManagement({
 		setPendingDeleteMessage(null);
 
 		try {
-			await deleteMessage(messageId);
+			const { error } = await deleteMessage(messageId);
+			if (error) throw error;
 			toast({ title: 'Mensaje eliminado' });
 		} catch (err) {
 			toast({
