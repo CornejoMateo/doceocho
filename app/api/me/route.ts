@@ -30,5 +30,10 @@ export async function GET(req: Request) {
 		return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
 	}
 
-	return NextResponse.json({ data: { ...profile, uid: profile.uid_user } });
+	return NextResponse.json({
+		data: {
+			...profile,
+			uid_user: user.id,
+		},
+	});
 }

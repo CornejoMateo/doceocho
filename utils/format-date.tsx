@@ -19,3 +19,32 @@ export function formatShortDate(value: string | null | undefined) {
 		return '-';
 	}
 }
+
+export const formatCreatedAtChat = (dateValue: unknown) => {
+	if (!dateValue) return 'N/A';
+
+	const date = new Date(String(dateValue));
+	if (isNaN(date.getTime())) return 'N/A';
+
+	const now = new Date();
+
+	const isToday =
+		date.getDate() === now.getDate() &&
+		date.getMonth() === now.getMonth() &&
+		date.getFullYear() === now.getFullYear();
+
+	if (isToday) {
+		return date.toLocaleTimeString('es-AR', {
+			hour: '2-digit',
+			minute: '2-digit',
+		});
+	}
+
+	return date.toLocaleString('es-AR', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+};
