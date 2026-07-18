@@ -1,3 +1,5 @@
+import { formatCreatedAt } from '@/utils/format-date';
+
 export const CHAT_CONSTANTS = {
 	MESSAGES: {
 		LOADING_CHANNELS: 'Cargando canales...',
@@ -46,7 +48,7 @@ export const CHAT_CONSTANTS = {
 		DELETE_CHANNEL: (name: string) =>
 			`¿Estás seguro de que quieres eliminar el canal "${name}"? Esta acción eliminará todos los mensajes y miembros del canal.`,
 		CLEANUP_MESSAGES: (date: string) =>
-			`¿Estás seguro de que quieres eliminar todos los mensajes anteriores a ${new Date(date).toLocaleDateString()}? Esta acción no se puede deshacer.`,
+			`¿Estás seguro de que quieres eliminar todos los mensajes anteriores a ${formatCreatedAt(new Date(date))}? Esta acción no se puede deshacer.`,
 	},
 	ALERTS: {
 		CHANNEL_DELETED: (count: number) => `Se eliminaron ${count || 0} mensajes del canal.`,
@@ -67,5 +69,4 @@ export const CHAT_CONSTANTS = {
 	},
 } as const;
 
-export const SCROLL_DELAY = 100;
 export const MAX_UNREAD_DISPLAY = 99;
