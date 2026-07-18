@@ -95,6 +95,7 @@ export function ChatSidebar({
 											onDeleteChannel(channel.id, channel.name || CHAT_CONSTANTS.CHANNELS.NO_NAME);
 										}}
 										className="shrink-0"
+										aria-label={`Eliminar ${channel.name || CHAT_CONSTANTS.CHANNELS.NO_NAME}`}
 									>
 										<Trash2 className="h-4 w-4 text-destructive" />
 									</Button>

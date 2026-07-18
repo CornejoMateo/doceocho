@@ -38,7 +38,11 @@ export function MessageInput({
 					onChange={(e) => onMessageChange(e.target.value)}
 					onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
 				/>
-				<Button onClick={onSendMessage} disabled={!newMessage.trim() || sending}>
+				<Button
+					onClick={onSendMessage}
+					disabled={!newMessage.trim() || sending}
+					aria-label="Enviar mensaje"
+				>
 					<Send className="h-4 w-4" />
 				</Button>
 			</div>

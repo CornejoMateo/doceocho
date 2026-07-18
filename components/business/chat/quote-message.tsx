@@ -28,7 +28,13 @@ export function QuoteMessage({ message, onCancel, showCancel = true }: QuoteMess
 				</p>
 			</div>
 			{showCancel && onCancel && (
-				<Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onCancel}>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-6 w-6 shrink-0"
+					onClick={onCancel}
+					aria-label="Cancelar cita"
+				>
 					<X className="h-4 w-4" />
 				</Button>
 			)}

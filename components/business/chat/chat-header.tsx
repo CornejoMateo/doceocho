@@ -59,7 +59,13 @@ export function ChatHeader({
 	return (
 		<div className="p-4 border-b flex items-center gap-2 w-full min-w-0 overflow-hidden">
 			{isMobile && (
-				<Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={onBack}
+					className="shrink-0"
+					aria-label="Volver"
+				>
 					<ArrowLeft className="h-5 w-5" />
 				</Button>
 			)}
@@ -72,7 +78,7 @@ export function ChatHeader({
 						autoFocus
 						className="flex-1"
 					/>
-					<Button size="sm" variant="ghost" onClick={onSearchToggle}>
+					<Button size="sm" variant="ghost" onClick={onSearchToggle} aria-label="Cerrar búsqueda">
 						<X className="h-4 w-4" />
 					</Button>
 				</div>
@@ -91,7 +97,12 @@ export function ChatHeader({
 						onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
 						className="flex-1"
 					/>
-					<Button size="sm" variant="ghost" onClick={onDateSearchToggle}>
+					<Button
+						size="sm"
+						variant="ghost"
+						onClick={onDateSearchToggle}
+						aria-label="Cerrar búsqueda"
+					>
 						<X className="h-4 w-4" />
 					</Button>
 				</div>
@@ -110,7 +121,7 @@ export function ChatHeader({
 						{isMobile ? (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
-									<Button size="sm" variant="outline">
+									<Button size="sm" variant="outline" aria-label="Menú">
 										<MoreVertical className="h-4 w-4" />
 									</Button>
 								</DropdownMenuTrigger>
@@ -137,10 +148,15 @@ export function ChatHeader({
 							</DropdownMenu>
 						) : (
 							<>
-								<Button size="sm" variant="outline" onClick={onSearchToggle}>
+								<Button size="sm" variant="outline" onClick={onSearchToggle} aria-label="Buscar">
 									<Search className="h-4 w-4" />
 								</Button>
-								<Button size="sm" variant="outline" onClick={onDateSearchToggle}>
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={onDateSearchToggle}
+									aria-label="Buscar por fecha"
+								>
 									<CalendarDays className="h-4 w-4" />
 								</Button>
 								{isAdmin && (

@@ -153,7 +153,12 @@ export function ChannelMembersDialog({
 											</option>
 										))}
 									</select>
-									<Button onClick={handleAddMember} disabled={loading || !selectedUser} size="icon">
+									<Button
+										onClick={handleAddMember}
+										disabled={loading || !selectedUser}
+										size="icon"
+										aria-label="Agregar miembro"
+									>
 										<UserPlus className="h-4 w-4" />
 									</Button>
 								</div>
@@ -199,6 +204,7 @@ export function ChannelMembersDialog({
 															})
 														}
 														disabled={loading}
+														aria-label={`Remover ${member.users?.username || 'Usuario'}`}
 													>
 														<UserMinus className="h-4 w-4 text-destructive" />
 													</Button>

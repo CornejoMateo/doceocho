@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Search, MessageSquare, Edit2, Trash2, MessageCircle } from 'lucide-react';
 import React, {
 	useMemo,
@@ -20,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 
 export interface MessagesListRef {
-	scrollToMessage: (messageId: number, options?: ScrollIntoViewOptions) => void;
+	scrollToMessage: (messageId: number, options?: ScrollIntoViewOptions) => boolean;
 
 	scrollToBottom: (options?: ScrollIntoViewOptions) => void;
 
@@ -352,6 +351,7 @@ function MessageItemComponent({
 								onClick={() => onReplyTo(message)}
 								className="hover:opacity-100 opacity-50"
 								title="Responder"
+								aria-label="Responder"
 							>
 								<MessageCircle className="h-3 w-3" />
 							</button>
@@ -365,12 +365,14 @@ function MessageItemComponent({
 											})
 										}
 										className="hover:opacity-100 opacity-50"
+										aria-label="Editar"
 									>
 										<Edit2 className="h-3 w-3" />
 									</button>
 									<button
 										onClick={() => onDeleteMessage(message.id)}
 										className="hover:opacity-100 opacity-50"
+										aria-label="Eliminar"
 									>
 										<Trash2 className="h-3 w-3" />
 									</button>
