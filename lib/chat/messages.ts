@@ -96,14 +96,7 @@ export async function sendMessageAction(
 					return;
 				}
 
-				console.log('[push] Calling sendPushNotificationToChannel', {
-					channelId,
-					senderUserId: user.id,
-					senderUsername: data.users?.username,
-					channelName: channel?.name,
-				});
-
-				const pushResult = await sendPushNotificationToChannel(
+				await sendPushNotificationToChannel(
 					supabase,
 					channelId,
 					user.id,
@@ -112,8 +105,6 @@ export async function sendMessageAction(
 					trimmed,
 					channel?.name ?? 'Canal'
 				);
-
-				console.log('[push] sendPushNotificationToChannel result:', pushResult);
 			} catch (error: any) {
 				console.error('[push] Failed to send push notification:', {
 					channelId,
@@ -132,51 +123,6 @@ export async function sendMessageAction(
 	}
 }
 
-export async function editMessageAction(
-	messageId: number,
-	content: string
-): Promise<{ success: boolean; error?: string; data?: Message }> {
-	try {
-		const supabase = await getServerSupabaseClient();
-
-		if (!content.trim()) {
-			return { success: false, error: 'El mensaje no puede estar vacío' };
-		}
-
-		const { data, error } = await supabase
-			.from(TABLE)
-			.update({ content: content.trim(), edited_at: new Date().toISOString() })
-			.eq('id', messageId)
-			.select()
-			.single();
-
-		if (error) return { success: false, error: error.message };
-		return { success: true, data };
-	} catch (err: any) {
-		return { success: false, error: err.message };
-	}
-}
-
-export async function deleteMessageAction(
-	messageId: number
-): Promise<{ success: boolean; error?: string; data?: Message }> {
-	try {
-		const supabase = await getServerSupabaseClient();
-
-		const { data, error } = await supabase
-			.from(TABLE)
-			.update({ deleted_at: new Date().toISOString() })
-			.eq('id', messageId)
-			.select()
-			.single();
-
-		if (error) return { success: false, error: error.message };
-		return { success: true, data };
-	} catch (err: any) {
-		return { success: false, error: err.message };
-	}
-}
-
 export async function cleanChannelMessagesAction(
 	channelId: number,
 	cleanupDate: string
@@ -185,11 +131,6 @@ export async function cleanChannelMessagesAction(
 		const supabase = await getServerSupabaseClient();
 
 		const [year, month, day] = cleanupDate.split('-').map(Number);
-
-		const startDateUtc = fromZonedTime(
-			new Date(year, month - 1, day, 0, 0, 0),
-			timeZone
-		).toISOString();
 
 		const endDateUtc = fromZonedTime(
 			new Date(year, month - 1, day + 1, 0, 0, 0),
@@ -200,7 +141,6 @@ export async function cleanChannelMessagesAction(
 			.from(TABLE)
 			.select('id')
 			.eq('channel_id', channelId)
-			.gte('created_at', startDateUtc)
 			.lt('created_at', endDateUtc);
 
 		if (error) return { success: false, error: error.message };
@@ -210,7 +150,6 @@ export async function cleanChannelMessagesAction(
 			.from(TABLE)
 			.delete()
 			.eq('channel_id', channelId)
-			.gte('created_at', startDateUtc)
 			.lt('created_at', endDateUtc);
 
 		if (deleteError) {
