@@ -73,14 +73,14 @@ self.addEventListener('notificationclick', (event) => {
 		event.waitUntil(
 			self.clients.matchAll({ type: 'window' }).then((clientList) => {
 				const targetUrl = new URL('/chat', self.location.origin).href;
-				for (const client of clientList) {
-					if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-						return client.focus();
-					}
+			for (const client of clientList) {
+				if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+					return client.navigate(targetUrl).then(() => client.focus());
 				}
-				if (clients.openWindow) {
-					return clients.openWindow(targetUrl);
-				}
+			}
+			if (self.clients.openWindow) {
+				return self.clients.openWindow(targetUrl);
+			}
 			})
 		);
 	}

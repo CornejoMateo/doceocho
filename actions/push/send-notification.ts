@@ -35,6 +35,7 @@ export async function sendPushNotificationToChannel(
 		}
 
 		let sentCount = 0;
+		let failedCount = 0;
 		for (let i = 0; i < subscriptions.length; i++) {
 			const subscription = subscriptions[i];
 
@@ -52,10 +53,17 @@ export async function sendPushNotificationToChannel(
 
 			if (result.success) {
 				sentCount++;
+			} else {
+				failedCount++;
 			}
 		}
 
-		return { success: true, sentCount };
+		return {
+			success: failedCount === 0,
+			sentCount,
+			failedCount,
+			error: failedCount ? `${failedCount} push notifications failed` : undefined,
+		};
 	} catch (error: any) {
 		console.error('[push] Error sending push notifications:', error);
 		return { success: false, error: error.message };

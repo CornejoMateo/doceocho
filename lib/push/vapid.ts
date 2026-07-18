@@ -35,7 +35,9 @@ export async function sendPushNotification(
 	// console.log('[push] sendPushNotification called', { endpoint: endpointPreview });
 
 	try {
-		await webpush.sendNotification(subscription, JSON.stringify(payload));
+		await webpush.sendNotification(subscription, JSON.stringify(payload), {
+			timeout: 10_000,
+		});
 		// console.log('[push] sendPushNotification succeeded', { endpoint: endpointPreview });
 		return { success: true };
 	} catch (error: any) {
