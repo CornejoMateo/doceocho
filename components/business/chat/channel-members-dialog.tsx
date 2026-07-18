@@ -54,11 +54,13 @@ export function ChannelMembersDialog({
 		null
 	);
 
+	const isAdmin = currentUserRole === 'Admin';
+
 	useEffect(() => {
-		if (open) {
+		if (open && isAdmin) {
 			loadAvailableUsers();
 		}
-	}, [open]);
+	}, [open, isAdmin]);
 
 	const loadAvailableUsers = async () => {
 		setLoading(true);
@@ -123,7 +125,6 @@ export function ChannelMembersDialog({
 
 	const existingMemberIds = members.map((m) => m.users?.uid_user || m.user_id);
 	const availableToAdd = availableUsers.filter((u) => !existingMemberIds.includes(u.uid_user));
-	const isAdmin = currentUserRole === 'Admin';
 
 	return (
 		<>

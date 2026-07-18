@@ -53,13 +53,16 @@ export function useChatRealtime(channelId: number | null, isNearBottom?: () => b
 			});
 			setHasMore(result.hasMore);
 		} catch (err) {
+			if (version !== fetchVersionRef.current) return;
 			setError(err instanceof Error ? err.message : 'Error');
 		} finally {
+			if (version !== fetchVersionRef.current) return;
 			setLoading(false);
 		}
 	}, [channelId, user]);
 
 	useEffect(() => {
+		fetchVersionRef.current++;
 		messagesRef.current = [];
 		setMessages([]);
 		setError(null);

@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { useAuth } from '@/components/provider/auth-provider';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { toast } from '../ui/use-toast';
 
 type ChatUnreadContextType = {
 	totalUnreadCount: number;
@@ -39,11 +40,19 @@ export function ChatUnreadProvider({ children }: { children: ReactNode }) {
 
 			if (error) {
 				console.error(error);
+				toast({
+					title: 'Error',
+					description: 'Fallo al obtener el conteo de mensajes no leídos.',
+				});
 				return;
 			}
 			setTotalUnreadCount(data ?? 0);
 		} catch (error) {
 			console.error(error);
+			toast({
+				title: 'Error',
+				description: 'Fallo al obtener el conteo de mensajes no leídos.',
+			});
 		}
 	}, [user?.uid]);
 

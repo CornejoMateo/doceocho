@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CHAT_CONSTANTS } from '../../../constants/chat/chat.constants';
+import { toast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
 
 interface PushNotificationSettingsProps {
 	isSupported: boolean;
@@ -32,7 +34,13 @@ export function PushNotificationSettings({
 			const subResult = await onSubscribe();
 			setLoading(false);
 			if (!subResult.success) {
-				setError(subResult.error || 'Error al suscribirse');
+				setError(translateError(subResult.error) || 'Error al suscribirse');
+				toast({
+					title: 'Error al suscribirse',
+					description:
+						error || 'Ocurrió un error al intentar suscribirse a las notificaciones push.',
+					variant: 'destructive',
+				});
 			}
 		}
 	};
@@ -43,7 +51,41 @@ export function PushNotificationSettings({
 		const result = await onSubscribe();
 		setLoading(false);
 		if (!result.success) {
-			setError(result.error || 'Error al suscribirse');
+			setError(translateError(result.error) || 'Error al suscribirse');
+			toast({
+				title: 'Error al suscribirse',
+				description: error || 'Ocurrió un error al intentar suscribirse a las notificaciones push.',
+				variant: 'destructive',
+			});
+		} else {
+			toast({
+				title: 'Suscripción exitosa',
+				description: 'Ahora recibirás notificaciones de los mensajes.',
+				variant: 'default',
+			});
+		}
+	};
+
+	const handleUnsubscribe = async () => {
+		setError(null);
+		setLoading(true);
+		const result = await onUnsubscribe();
+		setLoading(false);
+		if (!result.success) {
+			setError(translateError(result.error) || 'Error al cancelar la suscripción');
+			toast({
+				title: 'Error al cancelar la suscripción',
+				description:
+					error ||
+					'Ocurrió un error al intentar cancelar la suscripción a las notificaciones push.',
+				variant: 'destructive',
+			});
+		} else {
+			toast({
+				title: 'Suscripción cancelada',
+				description: 'Ya no recibiras notificaciones push de los mensajes.',
+				variant: 'default',
+			});
 		}
 	};
 
@@ -71,7 +113,7 @@ export function PushNotificationSettings({
 							: CHAT_CONSTANTS.PUSH_NOTIFICATIONS.SUBSCRIBE}
 					</span>
 					{subscription ? (
-						<Button size="sm" variant="ghost" onClick={onUnsubscribe} className="h-6 text-xs">
+						<Button size="sm" variant="ghost" onClick={handleUnsubscribe} className="h-6 text-xs">
 							{CHAT_CONSTANTS.PUSH_NOTIFICATIONS.UNSUBSCRIBE}
 						</Button>
 					) : (

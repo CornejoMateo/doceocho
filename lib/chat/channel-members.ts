@@ -6,6 +6,27 @@ import { createClient } from '@supabase/supabase-js';
 
 const TABLE = 'channel_members';
 
+async function requireCurrentUserAdmin() {
+	const user = await getCurrentUser();
+
+	const adminSupabase = createClient(
+		process.env.NEXT_PUBLIC_SUPABASE_URL!,
+		process.env.SUPABASE_SERVICE_ROLE_KEY!
+	);
+
+	const { data: profile, error } = await adminSupabase
+		.from('users')
+		.select('role')
+		.eq('uid_user', user.id)
+		.single();
+
+	if (error || !profile || profile.role !== 'Admin') {
+		throw new Error('FORBIDDEN');
+	}
+
+	return user;
+}
+
 export async function addChannelMember(
 	channelId: number,
 	userId: string
@@ -29,7 +50,7 @@ export async function addChannelMember(
 
 export async function addMemberToChannelAction(channelId: number, userId: string) {
 	try {
-		await getCurrentUser();
+		await requireCurrentUserAdmin();
 
 		const adminSupabase = createClient(
 			process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +75,7 @@ export async function addMemberToChannelAction(channelId: number, userId: string
 export async function removeMemberFromChannelAction(channelId: number, userId: string) {
 	try {
 		const supabase = await getServerSupabaseClient();
-		await getCurrentUser();
+		await requireCurrentUserAdmin();
 
 		const { error } = await supabase
 			.from(TABLE)
@@ -74,7 +95,7 @@ const USERS_CACHE_TTL = 30_000;
 
 export async function getAvailableUsersAction() {
 	try {
-		await getCurrentUser();
+		await requireCurrentUserAdmin();
 
 		if (usersCache && Date.now() - usersCache.timestamp < USERS_CACHE_TTL) {
 			return { success: true, data: usersCache.data };
@@ -85,7 +106,10 @@ export async function getAvailableUsersAction() {
 			process.env.SUPABASE_SERVICE_ROLE_KEY!
 		);
 
-		const { data, error } = await supabase.from('users').select('*').order('username');
+		const { data, error } = await supabase
+			.from('users')
+			.select('uid_user, username, role')
+			.order('username');
 
 		if (error) return { success: false, error: error.message };
 

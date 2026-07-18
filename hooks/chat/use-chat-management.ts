@@ -11,6 +11,7 @@ import { translateError } from '@/lib/error-translator';
 import { useChatUnread } from '@/components/provider/chat-unread-provider';
 
 type ChannelsCacheEntry = {
+	userId: string;
 	data: ChannelWithLastMessage[];
 	timestamp: number;
 };
@@ -81,23 +82,24 @@ export function useChatManagement({
 					return;
 				}
 
-				const isFresh = channelsCache && Date.now() - channelsCache.timestamp < CHANNELS_CACHE_TTL;
+				const cachedForUser = channelsCache?.userId === currentUserUid ? channelsCache : null;
+				const isFresh = cachedForUser && Date.now() - cachedForUser.timestamp < CHANNELS_CACHE_TTL;
 
-				if (channelsCache && !isBackgroundUpdate) {
-					setChannels(channelsCache.data);
+				if (cachedForUser && !isBackgroundUpdate) {
+					setChannels(cachedForUser.data);
 					setLoading(false);
 					setInitialLoadDone(true);
 				}
 
 				if (isFresh) return;
 
-				if (!channelsCache) {
+				if (!cachedForUser) {
 					setLoading(true);
 				}
 
 				const result = await getUserChannelsAction();
 				if (result.success && result.data) {
-					channelsCache = { data: result.data, timestamp: Date.now() };
+					channelsCache = { userId: currentUserUid, data: result.data, timestamp: Date.now() };
 					setChannels(result.data);
 				}
 			} finally {
