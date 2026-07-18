@@ -187,7 +187,7 @@ describe('ChannelMembersDialog', () => {
 	});
 
 	it('calls addMemberToChannelAction when adding a member', async () => {
-		(addMemberToChannelAction as jest.Mock).mockResolvedValue({ error: null });
+		(addMemberToChannelAction as jest.Mock).mockResolvedValue({ success: true });
 		render(<ChannelMembersDialog {...defaultProps} />);
 
 		await waitFor(() => {
