@@ -70,7 +70,6 @@ import { useAuth } from '@/components/provider/auth-provider';
 import { getUserChannelsAction, deleteChannelAction } from '@/lib/chat/channels';
 import { sendMessageAction } from '@/lib/chat/messages';
 import { getMessages, deleteMessage, editMessage } from '@/lib/chat/messages-client';
-import { updateLastReadMessage } from '@/lib/chat/channels-client';
 import { toast } from '@/components/ui/use-toast';
 
 // ─── 5 users ───────────────────────────────────────────────────────────────────
@@ -94,6 +93,7 @@ describe('Integration: Multi-user chat simulation', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		clearChannelsCache();
+		(useAuth as jest.Mock).mockReturnValue({ user: users[0] });
 		(getUserChannelsAction as jest.Mock).mockResolvedValue({ success: true, data: [channel] });
 	});
 

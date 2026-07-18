@@ -129,22 +129,22 @@ describe('useChatRealtime', () => {
 	it('loadOlderMessages prepends older messages', async () => {
 		const olderMessages = [
 			{
-				id: 0,
-				content: 'Old message',
-				user_id: 'user-4',
+				id: -1,
+				content: 'Even older',
+				user_id: 'user-5',
 				channel_id: 1,
-				created_at: '2023-12-31T23:00:00Z',
+				created_at: '2023-12-31T22:00:00Z',
 				edited_at: null,
 				deleted_at: null,
 				reply_to: null,
 				users: null,
 			},
 			{
-				id: -1,
-				content: 'Even older',
-				user_id: 'user-5',
+				id: 0,
+				content: 'Old message',
+				user_id: 'user-4',
 				channel_id: 1,
-				created_at: '2023-12-31T22:00:00Z',
+				created_at: '2023-12-31T23:00:00Z',
 				edited_at: null,
 				deleted_at: null,
 				reply_to: null,
@@ -167,7 +167,7 @@ describe('useChatRealtime', () => {
 		});
 
 		expect(result.current.messages).toHaveLength(5);
-		expect(result.current.messages[0].content).toBe('Old message');
+		expect(result.current.messages[0].content).toBe('Even older');
 		expect(result.current.hasMore).toBe(false);
 	});
 
