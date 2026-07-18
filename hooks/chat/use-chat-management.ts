@@ -329,12 +329,15 @@ export function useChatManagement({
 		const messageId = pendingDeleteMessage;
 		setPendingDeleteMessage(null);
 
+		const loadingToast = toast({ title: 'Eliminando mensaje...' });
+
 		try {
 			const { error } = await deleteMessage(messageId);
 			if (error) throw error;
-			toast({ title: 'Mensaje eliminado' });
+			loadingToast.update({ id: loadingToast.id, title: 'Mensaje eliminado' });
 		} catch (err) {
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Error al eliminar mensaje',
 				description: translateError(err) || 'Error al eliminar mensaje',
 				variant: 'destructive',
@@ -368,6 +371,8 @@ export function useChatManagement({
 		const { id: channelId, name: channelName } = pendingDeleteChannel;
 		setPendingDeleteChannel(null);
 
+		const loadingToast = toast({ title: 'Eliminando canal...' });
+
 		const result = await deleteChannelAction(channelId);
 		if (result.success) {
 			if (selectedChannel?.id === channelId) {
@@ -375,12 +380,14 @@ export function useChatManagement({
 			}
 			channelsCache = null;
 			loadChannels();
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Canal eliminado',
 				description: `El canal "${channelName}" ha sido eliminado.`,
 			});
 		} else {
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Error al eliminar canal',
 				description: translateError(result.error) || 'Error al eliminar canal',
 				variant: 'destructive',
@@ -397,10 +404,13 @@ export function useChatManagement({
 		if (!selectedChannel || !currentUserUid || !cleanupDate) return;
 		setPendingCleanupMessages(false);
 
+		const loadingToast = toast({ title: 'Eliminando mensajes...' });
+
 		const result = await cleanChannelMessagesAction(selectedChannel.id, cleanupDate);
 
 		if (result.success) {
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Mensajes eliminados',
 				description: `Se eliminaron ${result.deletedCount || 0} mensajes del canal.`,
 			});
@@ -408,7 +418,8 @@ export function useChatManagement({
 			setCleanupDate('');
 			onMessagesCleaned?.();
 		} else {
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Error al limpiar mensajes',
 				description: translateError(result.error) || 'Error al limpiar mensajes del canal',
 				variant: 'destructive',
