@@ -120,20 +120,3 @@ export async function getAvailableUsersAction() {
 		return { success: false, error: e.message };
 	}
 }
-
-export async function updateLastReadMessage(messageId: number, channelId: number, userId: string) {
-	try {
-		const supabase = await getServerSupabaseClient();
-
-		const { error } = await supabase
-			.from(TABLE)
-			.update({ last_read_message_id: messageId })
-			.eq('user_id', userId)
-			.eq('channel_id', channelId)
-			.or(`last_read_message_id.is.null,last_read_message_id.lt.${messageId}`);
-
-		return { success: !error, error };
-	} catch (error) {
-		return { success: false, error };
-	}
-}

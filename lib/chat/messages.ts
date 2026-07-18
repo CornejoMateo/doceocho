@@ -2,7 +2,7 @@
 
 import { getCurrentUser } from '@/lib/auth';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
-import type { Message, MessageWithUser } from '@/lib/chat/chat-types';
+import type { MessageWithUser } from '@/lib/chat/chat-types';
 import { sendPushNotificationToChannel } from '@/actions/push/send-notification';
 import { after } from 'next/server';
 
@@ -145,6 +145,49 @@ export async function cleanChannelMessagesAction(
 
 		if (error) return { success: false, error: error.message };
 		if (!messagesToDelete?.length) return { success: true, deletedCount: 0 };
+
+		const deleteIds = messagesToDelete.map((m) => m.id);
+
+		const { data: survivingMessages } = await supabase
+			.from(TABLE)
+			.select('id')
+			.eq('channel_id', channelId)
+			.gte('created_at', endDateUtc)
+			.order('created_at', { ascending: false })
+			.limit(1);
+
+		const newestSurvivingId = survivingMessages?.[0]?.id ?? null;
+
+		await supabase
+			.from('channels')
+			.update({ last_message_id: newestSurvivingId })
+			.eq('id', channelId)
+			.in('last_message_id', deleteIds);
+
+		const { data: membersToUpdate } = await supabase
+			.from('channel_members')
+			.select('id, last_read_message_id')
+			.eq('channel_id', channelId)
+			.not('last_read_message_id', 'is', null)
+			.in('last_read_message_id', deleteIds);
+
+		if (membersToUpdate?.length) {
+			for (const member of membersToUpdate) {
+				const { data: rebasedMessage } = await supabase
+					.from(TABLE)
+					.select('id')
+					.eq('channel_id', channelId)
+					.lte('created_at', endDateUtc)
+					.order('created_at', { ascending: false })
+					.limit(1)
+					.single();
+
+				await supabase
+					.from('channel_members')
+					.update({ last_read_message_id: rebasedMessage?.id ?? null })
+					.eq('id', member.id);
+			}
+		}
 
 		const { error: deleteError } = await supabase
 			.from(TABLE)

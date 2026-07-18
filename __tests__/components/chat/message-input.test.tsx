@@ -79,6 +79,18 @@ describe('MessageInput', () => {
 		expect(defaultProps.onSendMessage).toHaveBeenCalledTimes(1);
 	});
 
+	it('does not call onSendMessage when Enter is pressed with empty message', () => {
+		render(<MessageInput {...defaultProps} newMessage="" />);
+		fireEvent.keyDown(screen.getByDisplayValue(''), { key: 'Enter' });
+		expect(defaultProps.onSendMessage).not.toHaveBeenCalled();
+	});
+
+	it('does not call onSendMessage when Enter is pressed while sending', () => {
+		render(<MessageInput {...defaultProps} newMessage="Hello" sending />);
+		fireEvent.keyDown(screen.getByDisplayValue('Hello'), { key: 'Enter' });
+		expect(defaultProps.onSendMessage).not.toHaveBeenCalled();
+	});
+
 	it('does not call onSendMessage when other keys are pressed', () => {
 		render(<MessageInput {...defaultProps} newMessage="Hello" />);
 		fireEvent.keyDown(screen.getByDisplayValue('Hello'), { key: 'a' });

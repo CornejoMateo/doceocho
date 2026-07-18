@@ -36,7 +36,7 @@ export function MessageInput({
 					placeholder={CHAT_CONSTANTS.MESSAGES.INPUT_PLACEHOLDER}
 					value={newMessage}
 					onChange={(e) => onMessageChange(e.target.value)}
-					onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
+					onKeyDown={(e) => e.key === 'Enter' && newMessage.trim() && !sending && onSendMessage()}
 				/>
 				<Button
 					onClick={onSendMessage}

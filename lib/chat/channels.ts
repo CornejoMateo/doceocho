@@ -30,6 +30,7 @@ export async function createChannelAction(
 
 		const memberResult = await addChannelMember(data.id, user.id);
 		if (memberResult.error) {
+			await supabase.from(TABLE).delete().eq('id', data.id);
 			return { success: false, error: memberResult.error };
 		}
 
@@ -111,7 +112,14 @@ export async function getUserChannelsAction(): Promise<{
 			{ p_user_id: user.id }
 		);
 
-		if (unreadError) return { success: true, data: [] };
+		if (unreadError) {
+			const channels = data.map((item: any) => ({
+				...item.channels,
+				unread_count: 0,
+				last_read_message_id: item.last_read_message_id,
+			}));
+			return { success: true, data: channels };
+		}
 
 		const unreadMap = new Map(
 			(unreadData || []).map((item: any) => [Number(item.channel_id), Number(item.unread_count)])
