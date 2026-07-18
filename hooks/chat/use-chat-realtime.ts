@@ -28,38 +28,45 @@ export function useChatRealtime(channelId: number | null, isNearBottom?: () => b
 
 	const fetchVersionRef = useRef(0);
 
-	const fetchMessages = useCallback(async () => {
-		if (!channelId || !user) {
-			setMessages([]);
-			return;
-		}
+	const fetchMessages = useCallback(
+		async (replace = false) => {
+			if (!channelId || !user) {
+				setMessages([]);
+				return;
+			}
 
-		setLoading(true);
+			setLoading(true);
 
-		const version = ++fetchVersionRef.current;
+			const version = ++fetchVersionRef.current;
 
-		try {
-			const result = await getMessages(channelId);
+			try {
+				const result = await getMessages(channelId);
 
-			if (version !== fetchVersionRef.current) return;
+				if (version !== fetchVersionRef.current) return;
 
-			setMessages((prev) => {
-				if (prev.length === 0) return result.messages;
+				if (replace) {
+					setMessages(result.messages);
+				} else {
+					setMessages((prev) => {
+						if (prev.length === 0) return result.messages;
 
-				const fetchedIds = new Set(result.messages.map((m) => m.id));
-				const realtimeOnly = prev.filter((m) => !fetchedIds.has(m.id));
+						const fetchedIds = new Set(result.messages.map((m) => m.id));
+						const realtimeOnly = prev.filter((m) => !fetchedIds.has(m.id));
 
-				return [...result.messages, ...realtimeOnly];
-			});
-			setHasMore(result.hasMore);
-		} catch (err) {
-			if (version !== fetchVersionRef.current) return;
-			setError(err instanceof Error ? err.message : 'Error');
-		} finally {
-			if (version !== fetchVersionRef.current) return;
-			setLoading(false);
-		}
-	}, [channelId, user]);
+						return [...result.messages, ...realtimeOnly];
+					});
+				}
+				setHasMore(result.hasMore);
+			} catch (err) {
+				if (version !== fetchVersionRef.current) return;
+				setError(err instanceof Error ? err.message : 'Error');
+			} finally {
+				if (version !== fetchVersionRef.current) return;
+				setLoading(false);
+			}
+		},
+		[channelId, user]
+	);
 
 	useEffect(() => {
 		fetchVersionRef.current++;
@@ -185,7 +192,7 @@ export function useChatRealtime(channelId: number | null, isNearBottom?: () => b
 	}, [channelId, supabase, user]);
 
 	const refresh = useCallback(() => {
-		fetchMessages();
+		fetchMessages(true);
 	}, [fetchMessages]);
 
 	return {
