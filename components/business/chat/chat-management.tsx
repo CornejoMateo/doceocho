@@ -165,6 +165,13 @@ export function ChatManagement() {
 		});
 
 		chatManagement.setInitialScrollDone(true);
+
+		if (
+			chatManagement.selectedChannel?.unread_count &&
+			chatManagement.selectedChannel.unread_count > 0
+		) {
+			chatManagement.handleScrolledToUnread();
+		}
 	}, [
 		chatManagement.selectedChannel?.id,
 		filteredMessages,
