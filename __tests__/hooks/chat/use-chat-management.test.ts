@@ -55,7 +55,7 @@ jest.mock('@/lib/chat/channels-client', () => ({
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
-	toast: jest.fn(),
+	toast: jest.fn().mockReturnValue({ id: 'mock-toast', update: jest.fn() }),
 }));
 
 jest.mock('@/lib/error-translator', () => ({
@@ -323,7 +323,10 @@ describe('useChatManagement', () => {
 
 		expect(deleteMessage).toHaveBeenCalledWith(42);
 		expect(result.current.pendingDeleteMessage).toBeNull();
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Mensaje eliminado' }));
+		const updateMock = (toast as jest.Mock).mock.results[0].value.update;
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.objectContaining({ title: 'Mensaje eliminado' })
+		);
 	});
 
 	it('confirmDeleteMessage fails and shows error', async () => {
@@ -339,7 +342,8 @@ describe('useChatManagement', () => {
 			await result.current.confirmDeleteMessage();
 		});
 
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
+		const updateMock = (toast as jest.Mock).mock.results[0].value.update;
+		expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
 	});
 
 	it('cancelDeleteMessage clears pending', () => {
@@ -429,7 +433,8 @@ describe('useChatManagement', () => {
 			await result.current.confirmDeleteChannel();
 		});
 
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
+		const updateMock = (toast as jest.Mock).mock.results[0].value.update;
+		expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
 	});
 
 	it('cancelDeleteChannel clears pending', () => {
@@ -489,7 +494,10 @@ describe('useChatManagement', () => {
 		expect(result.current.pendingCleanupMessages).toBe(false);
 		expect(result.current.cleanupDate).toBe('');
 		expect(result.current.showCleanupDialog).toBe(false);
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Mensajes eliminados' }));
+		const updateMock = (toast as jest.Mock).mock.results[0].value.update;
+		expect(updateMock).toHaveBeenCalledWith(
+			expect.objectContaining({ title: 'Mensajes eliminados' })
+		);
 	});
 
 	it('confirmCleanupMessages fails and shows error', async () => {
@@ -516,7 +524,8 @@ describe('useChatManagement', () => {
 			await result.current.confirmCleanupMessages();
 		});
 
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
+		const updateMock = (toast as jest.Mock).mock.results[0].value.update;
+		expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
 	});
 
 	it('cancelCleanupMessages clears pending', () => {

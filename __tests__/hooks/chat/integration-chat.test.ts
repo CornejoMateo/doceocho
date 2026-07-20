@@ -59,7 +59,7 @@ jest.mock('@/lib/chat/channels-client', () => ({
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
-	toast: jest.fn(),
+	toast: jest.fn().mockReturnValue({ id: 'mock-toast', update: jest.fn() }),
 }));
 
 jest.mock('@/lib/error-translator', () => ({
