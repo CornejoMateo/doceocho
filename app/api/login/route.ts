@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
 	const { data: user, error } = await adminSupabase
 		.from('users')
-		.select('mail, username, role, name, last_name')
+		.select('mail, username, role, name, last_name, uid_user')
 		.eq('username', username)
 		.single();
 
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
 			role: user.role,
 			name: user.name,
 			last_name: user.last_name,
+			uid_user: user.uid_user,
 		},
 	});
 }

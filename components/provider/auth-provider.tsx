@@ -1,10 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UserRole } from '@/constants/users/user-role';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { clearChannelsCache } from '@/hooks/chat/use-chat-management';
 
 type SessionUser = {
 	username: string;
@@ -38,7 +39,7 @@ async function fetchProfile(token: string): Promise<SessionUser | null> {
 		role: json.data.role as UserRole,
 		name: json.data.name || '-',
 		last_name: json.data.last_name || '-',
-		uid: json.data.uid || '',
+		uid: json.data.uid_user || '',
 	};
 }
 
@@ -48,28 +49,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const supabase = getSupabaseClient();
 
 	const router = useRouter();
+	const loadProfile = useCallback(async () => {
+		const {
+			data: { session },
+		} = await supabase.auth.getSession();
+
+		if (!session) {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+
+			console.log('[AUTH] getUser()', {
+				hasUser: !!user,
+			});
+
+			if (!user) {
+				setUser(null);
+			}
+
+			return;
+		}
+
+		try {
+			const profile = await fetchProfile(session.access_token);
+
+			if (profile) {
+				setUser(profile);
+			} else {
+				console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
+				return;
+			}
+		} catch (err) {
+			console.error('Error loading profile:', err);
+		}
+	}, [supabase]);
 
 	useEffect(() => {
 		let cancelled = false;
 
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async (_event, session) => {
+		} = supabase.auth.onAuthStateChange(async (event, session) => {
+			console.log('[AUTH EVENT]', {
+				event,
+				hasSession: !!session,
+				userId: session?.user?.id,
+				expiresAt: session?.expires_at,
+				now: Math.floor(Date.now() / 1000),
+				expiresIn: session?.expires_at ? session.expires_at - Math.floor(Date.now() / 1000) : null,
+			});
+
 			if (cancelled) return;
 
-			if (!session) {
-				setUser(null);
-				setLoading(false);
-				return;
-			}
-
 			try {
-				const profile = await fetchProfile(session.access_token);
-				if (profile && !cancelled) setUser(profile);
-			} catch (err) {
-				console.error('Error fetching profile:', err);
+				await loadProfile();
 			} finally {
-				if (!cancelled) setLoading(false);
+				if (!cancelled) {
+					setLoading(false);
+				}
 			}
 		});
 
@@ -77,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			cancelled = true;
 			subscription.unsubscribe();
 		};
-	}, []);
+	}, [supabase, loadProfile]);
 
 	async function signIn(username: string, password: string): Promise<SessionUser> {
 		setLoading(true);
@@ -109,11 +146,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				role: res.data.role as UserRole,
 				name: res.data.name || '-',
 				last_name: res.data.last_name || '-',
-				uid: res.data.uid || '',
+				uid: res.data.uid_user || '',
 			};
 
-			setUser(sessionUser);
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
 
+			if (!session) {
+				throw new Error('No se pudo obtener la sesión');
+			}
+			await loadProfile();
 			return sessionUser;
 		} catch (err: any) {
 			throw err;
@@ -122,8 +165,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
+	useEffect(() => {
+		const interval = setInterval(async () => {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			console.log('[SESSION]', {
+				expiresAt: session?.expires_at,
+				remaining: session?.expires_at && session.expires_at - Math.floor(Date.now() / 1000),
+			});
+		}, 60_000);
+
+		return () => clearInterval(interval);
+	}, []);
+
 	async function signOutUser() {
+		console.log('[AUTH] signOut()');
 		setLoading(true);
+
+		clearChannelsCache();
 
 		try {
 			await supabase.auth.signOut();

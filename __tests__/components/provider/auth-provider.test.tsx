@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+
 import { AuthProvider, useAuth } from '@/components/provider/auth-provider';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { UI } from 'react-day-picker';
@@ -16,9 +17,16 @@ jest.mock('next/navigation', () => ({
 	useRouter: () => mockRouter,
 }));
 
+jest.mock('next/server', () => ({
+	after: jest.fn(),
+	NextResponse: { json: jest.fn() },
+}));
+
 const mockOnAuthStateChange = jest.fn();
 const mockSignInWithPassword = jest.fn();
 const mockSignOut = jest.fn();
+const mockGetSession = jest.fn();
+const mockGetUser = jest.fn();
 const mockUnsubscribe = jest.fn();
 
 function setupSupabase() {
@@ -28,12 +36,16 @@ function setupSupabase() {
 
 	mockSignInWithPassword.mockResolvedValue({ error: null });
 	mockSignOut.mockResolvedValue(undefined);
+	mockGetSession.mockResolvedValue({ data: { session: null } });
+	mockGetUser.mockResolvedValue({ data: { user: null } });
 
 	(getSupabaseClient as jest.Mock).mockReturnValue({
 		auth: {
 			onAuthStateChange: mockOnAuthStateChange,
 			signInWithPassword: mockSignInWithPassword,
 			signOut: mockSignOut,
+			getSession: mockGetSession,
+			getUser: mockGetUser,
 		},
 	});
 }
@@ -66,7 +78,7 @@ describe('AuthProvider', () => {
 		const authCallback = mockOnAuthStateChange.mock.calls[0][0];
 
 		await act(async () => {
-			authCallback('SIGNED_OUT', null);
+			await authCallback('SIGNED_OUT', null);
 		});
 
 		await waitFor(() => {
@@ -85,9 +97,13 @@ describe('AuthProvider', () => {
 					role: 'Admin',
 					name: 'Admin',
 					last_name: 'User',
-					uid: '12345',
+					uid_user: '12345',
 				},
 			}),
+		});
+
+		mockGetSession.mockResolvedValueOnce({
+			data: { session: { access_token: 'test-token', user: { email: 'admin@test.com' } } },
 		});
 
 		const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
@@ -95,7 +111,7 @@ describe('AuthProvider', () => {
 		const authCallback = mockOnAuthStateChange.mock.calls[0][0];
 
 		await act(async () => {
-			authCallback('SIGNED_IN', {
+			await authCallback('SIGNED_IN', {
 				access_token: 'test-token',
 				user: { email: 'admin@test.com' },
 			});
@@ -124,12 +140,16 @@ describe('AuthProvider', () => {
 			json: async () => ({ data: null }),
 		});
 
+		mockGetSession.mockResolvedValueOnce({
+			data: { session: { access_token: 'bad-token', user: { email: 'test@test.com' } } },
+		});
+
 		const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
 		const authCallback = mockOnAuthStateChange.mock.calls[0][0];
 
 		await act(async () => {
-			authCallback('SIGNED_IN', {
+			await authCallback('SIGNED_IN', {
 				access_token: 'bad-token',
 				user: { email: 'test@test.com' },
 			});
@@ -161,7 +181,24 @@ describe('AuthProvider', () => {
 						role: 'Taller',
 						name: 'Juan',
 						last_name: 'Pérez',
-						uid: 'user-123',
+						uid_user: 'user-123',
+					},
+				}),
+			});
+
+			mockGetSession.mockResolvedValue({
+				data: { session: { access_token: 'new-token', user: { email: 'juan@test.com' } } },
+			});
+
+			(global.fetch as jest.Mock).mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					data: {
+						username: 'juan',
+						role: 'Taller',
+						name: 'Juan',
+						last_name: 'Pérez',
+						uid_user: 'user-123',
 					},
 				}),
 			});
@@ -261,6 +298,10 @@ describe('AuthProvider', () => {
 
 	describe('signOutUser', () => {
 		it('signs out, clears user, and redirects to login', async () => {
+			mockGetSession.mockResolvedValueOnce({
+				data: { session: { access_token: 'tok', user: { email: 'a@b.com' } } },
+			});
+
 			(global.fetch as jest.Mock).mockResolvedValueOnce({
 				ok: true,
 				json: async () => ({
@@ -272,7 +313,7 @@ describe('AuthProvider', () => {
 
 			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
 			await act(async () => {
-				authCallback('SIGNED_IN', { access_token: 'tok', user: { email: 'a@b.com' } });
+				await authCallback('SIGNED_IN', { access_token: 'tok', user: { email: 'a@b.com' } });
 			});
 
 			await waitFor(() => {
@@ -288,6 +329,138 @@ describe('AuthProvider', () => {
 			expect(mockRouter.push).toHaveBeenCalledWith('/login');
 			expect(mockRouter.refresh).toHaveBeenCalled();
 			expect(result.current.loading).toBe(false);
+		});
+	});
+
+	describe('session persistence', () => {
+		it('keeps user alive on TOKEN_REFRESHED', async () => {
+			mockGetSession.mockResolvedValueOnce({
+				data: { session: { access_token: 'initial-token', user: { email: 'a@b.com' } } },
+			});
+
+			(global.fetch as jest.Mock).mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					data: { username: 'admin', role: 'Admin', name: 'A', last_name: 'B', uid_user: '123' },
+				}),
+			});
+
+			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+
+			await act(async () => {
+				await authCallback('SIGNED_IN', {
+					access_token: 'initial-token',
+					user: { email: 'a@b.com' },
+				});
+			});
+
+			await waitFor(() => {
+				expect(result.current.user).not.toBeNull();
+			});
+
+			const userAfterSignIn = result.current.user;
+
+			mockGetSession.mockResolvedValueOnce({
+				data: { session: { access_token: 'refreshed-token', user: { email: 'a@b.com' } } },
+			});
+
+			(global.fetch as jest.Mock).mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					data: { username: 'admin', role: 'Admin', name: 'A', last_name: 'B', uid_user: '123' },
+				}),
+			});
+
+			await act(async () => {
+				await authCallback('TOKEN_REFRESHED', {
+					access_token: 'refreshed-token',
+					user: { email: 'a@b.com' },
+				});
+			});
+
+			expect(result.current.user).not.toBeNull();
+			expect(result.current.user?.username).toBe(userAfterSignIn?.username);
+			expect(result.current.user?.uid).toBe(userAfterSignIn?.uid);
+		});
+
+		it('keeps user alive on TOKEN_REFRESHED even if fetchProfile fails', async () => {
+			mockGetSession.mockResolvedValueOnce({
+				data: { session: { access_token: 'initial-token', user: { email: 'a@b.com' } } },
+			});
+
+			(global.fetch as jest.Mock).mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					data: { username: 'admin', role: 'Admin', name: 'A', last_name: 'B', uid_user: '123' },
+				}),
+			});
+
+			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+
+			await act(async () => {
+				await authCallback('SIGNED_IN', {
+					access_token: 'initial-token',
+					user: { email: 'a@b.com' },
+				});
+			});
+
+			await waitFor(() => {
+				expect(result.current.user).not.toBeNull();
+			});
+
+			mockGetSession.mockResolvedValueOnce({
+				data: { session: { access_token: 'refreshed-token', user: { email: 'a@b.com' } } },
+			});
+
+			(global.fetch as jest.Mock).mockResolvedValueOnce({
+				ok: false,
+				json: async () => ({ error: 'Server error' }),
+			});
+
+			await act(async () => {
+				await authCallback('TOKEN_REFRESHED', {
+					access_token: 'refreshed-token',
+					user: { email: 'a@b.com' },
+				});
+			});
+
+			expect(result.current.user).not.toBeNull();
+			expect(result.current.user?.username).toBe('admin');
+		});
+
+		it('user is cleared only on SIGNED_OUT, not on TOKEN_REFRESHED with null session', async () => {
+			mockGetSession.mockResolvedValueOnce({
+				data: { session: { access_token: 'initial-token', user: { email: 'a@b.com' } } },
+			});
+
+			(global.fetch as jest.Mock).mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					data: { username: 'admin', role: 'Admin', name: 'A', last_name: 'B', uid_user: '123' },
+				}),
+			});
+
+			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+
+			await act(async () => {
+				await authCallback('SIGNED_IN', {
+					access_token: 'initial-token',
+					user: { email: 'a@b.com' },
+				});
+			});
+
+			await waitFor(() => {
+				expect(result.current.user).not.toBeNull();
+			});
+
+			await act(async () => {
+				await authCallback('SIGNED_OUT', null);
+			});
+
+			expect(result.current.user).toBeNull();
 		});
 	});
 
