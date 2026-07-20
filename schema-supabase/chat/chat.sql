@@ -86,9 +86,9 @@ CREATE POLICY "Channel members select"
 ON public.channel_members FOR SELECT
 TO authenticated
 USING (
-    user_id = auth.uid()
-    OR
-    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
+  ((user_id = auth.uid()) OR is_channel_member(channel_id, auth.uid()) OR (EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.uid_user = auth.uid()) AND ((u.role)::text = 'Admin'::text)))))
 );
 
 CREATE POLICY "Channel members insert"
@@ -156,9 +156,11 @@ CREATE POLICY "Channels select"
 ON public.channels FOR SELECT
 TO authenticated
 USING (
-    EXISTS (SELECT 1 FROM public.channel_members cm WHERE cm.channel_id = id AND cm.user_id = auth.uid())
-    OR
-    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
+  ((EXISTS ( SELECT 1
+   FROM channel_members cm
+  WHERE ((cm.channel_id = channels.id) AND (cm.user_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM users u
+  WHERE ((u.uid_user = auth.uid()) AND ((u.role)::text = 'Admin'::text)))))
 );
 
 CREATE POLICY "Channels insert"
