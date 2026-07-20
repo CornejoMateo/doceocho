@@ -73,12 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		try {
 			const profile = await fetchProfile(session.access_token);
 
-			if (profile) {
-				setUser(profile);
-			} else {
+			if (!profile) {
 				console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
+				setUser(null);
 				return;
 			}
+
+			setUser(profile);
 		} catch (err) {
 			console.error('Error loading profile:', err);
 		}

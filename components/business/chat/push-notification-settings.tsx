@@ -34,11 +34,12 @@ export function PushNotificationSettings({
 			const subResult = await onSubscribe();
 			setLoading(false);
 			if (!subResult.success) {
-				setError(translateError(subResult.error) || 'Error al suscribirse');
+				const message = translateError(subResult.error) || 'Error al suscribirse';
+				setError(message);
 				toast({
 					title: 'Error al suscribirse',
 					description:
-						error || 'Ocurrió un error al intentar suscribirse a las notificaciones push.',
+						message || 'Ocurrió un error al intentar suscribirse a las notificaciones push.',
 					variant: 'destructive',
 				});
 			}
