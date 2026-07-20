@@ -147,8 +147,16 @@ export function ChatManagement() {
 
 		const unreadId = chatManagement.firstUnreadMessageId;
 
-		if (unreadId) {
-			const success = messagesListRef.current?.scrollToMessage(unreadId, {
+		const targetId =
+			unreadId && unreadId > 0
+				? unreadId
+				: chatManagement.selectedChannel?.unread_count &&
+					  chatManagement.selectedChannel.unread_count > 0
+					? filteredMessages[0]?.id
+					: null;
+
+		if (targetId) {
+			const success = messagesListRef.current?.scrollToMessage(targetId, {
 				block: 'center',
 				behavior: 'auto',
 			});
@@ -165,13 +173,6 @@ export function ChatManagement() {
 		});
 
 		chatManagement.setInitialScrollDone(true);
-
-		if (
-			chatManagement.selectedChannel?.unread_count &&
-			chatManagement.selectedChannel.unread_count > 0
-		) {
-			chatManagement.handleScrolledToUnread();
-		}
 	}, [
 		chatManagement.selectedChannel?.id,
 		filteredMessages,
