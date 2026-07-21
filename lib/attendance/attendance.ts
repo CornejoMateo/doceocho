@@ -96,6 +96,43 @@ export async function createAttendanceEntry(
 }
 
 /**
+ * Update an attendance entry
+ */
+export async function updateAttendanceEntry(
+	id: number,
+	updates: Partial<AttendanceEntry>
+): Promise<{ data: AttendanceEntry | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.update(updates)
+		.eq('id', id)
+		.select()
+		.single();
+
+	return { data, error };
+}
+
+/**
+ * Delete an attendance entry
+ */
+export async function deleteAttendanceEntry(
+	id: number
+): Promise<{ data: AttendanceEntry | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.delete()
+		.eq('id', id)
+		.select()
+		.single();
+
+	return { data, error };
+}
+
+/**
  * Get attendance settings (for square_meters radius)
  */
 export async function getAttendanceSettings(): Promise<{
