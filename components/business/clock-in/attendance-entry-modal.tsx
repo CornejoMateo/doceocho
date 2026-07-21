@@ -25,6 +25,7 @@ import { updateAttendanceEntry, deleteAttendanceEntry } from '@/lib/attendance/a
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatCreatedAt } from '@/utils/format-date';
 
 interface AttendanceEntryModalProps {
 	entry: AttendanceEntryWithDate | null;
@@ -186,7 +187,7 @@ export function AttendanceEntryModal({
 
 					{entry && (
 						<div className="text-sm text-gray-500">
-							<p>Fecha: {format(new Date(entry.attendance_date), 'dd/MM/yyyy', { locale: es })}</p>
+							<p>Fecha: {formatCreatedAt(entry.attendance_date)}</p>
 							<p>Empleado: {entry.user_name || 'Desconocido'}</p>
 						</div>
 					)}

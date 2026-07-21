@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import {
@@ -12,7 +9,6 @@ import {
 	getAttendanceByDate,
 	createAttendanceEntry,
 	getAttendanceSettings,
-	updateAttendanceSettings,
 } from '@/lib/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
@@ -20,13 +16,14 @@ import { translateError } from '@/lib/error-translator';
 import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
 import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
+import { AttendanceSettings } from './attendance-settings';
+import { Settings } from 'lucide-react';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
-	const [adminSquareMeters, setAdminSquareMeters] = useState<string>('');
-	const [adminLoading, setAdminLoading] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
 	const { user } = useAuth();
 
 	// Load state from localStorage on mount
@@ -35,7 +32,6 @@ export function ClockIn() {
 			const { data: settings } = await getAttendanceSettings();
 			if (settings?.square_meters) {
 				setRadiusMeters(settings.square_meters);
-				setAdminSquareMeters(settings.square_meters.toString());
 			}
 		}
 
@@ -54,6 +50,13 @@ export function ClockIn() {
 
 		loadSettings();
 	}, []);
+
+	const loadSettings = async () => {
+		const { data: settings } = await getAttendanceSettings();
+		if (settings?.square_meters) {
+			setRadiusMeters(settings.square_meters);
+		}
+	};
 
 	const handleClockAction = async (isOvertime: boolean) => {
 		if (!user) {
@@ -196,69 +199,17 @@ export function ClockIn() {
 		}
 	};
 
-	const handleAdminSave = async () => {
-		const value = parseInt(adminSquareMeters, 10);
-
-		if (isNaN(value) || value < DEFAULT_RADIUS_METERS) {
-			toast({
-				title: 'Error',
-				description: `El radio debe ser al menos ${DEFAULT_RADIUS_METERS} metros`,
-				variant: 'destructive',
-			});
-			return;
-		}
-
-		setAdminLoading(true);
-		const { error } = await updateAttendanceSettings({ square_meters: value });
-		setAdminLoading(false);
-
-		if (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo guardar la configuración',
-				variant: 'destructive',
-			});
-		} else {
-			setRadiusMeters(value);
-			toast({
-				title: 'Configuración guardada',
-				description: 'El radio de ubicación se actualizó correctamente',
-			});
-		}
-	};
-
 	return (
 		<div className="container mx-auto p-4 md:p-8">
 			<div className="grid gap-4 md:gap-6">
 				{user?.role === 'Admin' && (
 					<>
-						<Card className="max-w-md mx-auto">
-							<CardHeader>
-								<CardTitle className="text-lg md:text-xl">Configuración de Asistencia</CardTitle>
-								<CardDescription className="text-sm md:text-base">
-									Configura el radio máximo en metros para permitir el fichaje
-								</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="admin-square-meters" className="text-sm md:text-base">
-										Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
-									</Label>
-									<Input
-										id="admin-square-meters"
-										type="number"
-										value={adminSquareMeters}
-										onChange={(e) => setAdminSquareMeters(e.target.value)}
-										min={DEFAULT_RADIUS_METERS}
-										placeholder="40"
-										className="text-base"
-									/>
-								</div>
-								<Button onClick={handleAdminSave} disabled={adminLoading} className="w-full">
-									{adminLoading ? 'Guardando...' : 'Guardar'}
-								</Button>
-							</CardContent>
-						</Card>
+						<div className="flex justify-end">
+							<Button variant="outline" onClick={() => setSettingsOpen(true)}>
+								<Settings className="h-4 w-4 mr-2" />
+								Configuración
+							</Button>
+						</div>
 						<AdminAttendanceHistory />
 					</>
 				)}
@@ -286,6 +237,16 @@ export function ClockIn() {
 					</>
 				)}
 			</div>
+			<AttendanceSettings
+				open={settingsOpen}
+				onOpenChange={(open) => {
+					setSettingsOpen(open);
+					if (!open) {
+						// Reload settings when closing to update radiusMeters
+						loadSettings();
+					}
+				}}
+			/>
 		</div>
 	);
 }
