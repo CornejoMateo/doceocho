@@ -12,13 +12,25 @@ import {
 	getEntryTypeLabel,
 	getEntryTypeColor,
 	formatHours,
+	deleteAttendanceEntry,
 } from '@/lib/attendance/attendance';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
-import { Pencil } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { Pencil, Trash2 } from 'lucide-react';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type PeriodFilter = 'day' | 'week' | 'month';
 
@@ -34,6 +46,8 @@ export function AdminAttendanceHistory() {
 	const [error, setError] = useState<string | null>(null);
 	const [selectedEntry, setSelectedEntry] = useState<AttendanceEntryWithDate | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
 
 	const loadHistory = async () => {
 		setLoading(true);
@@ -82,6 +96,32 @@ export function AdminAttendanceHistory() {
 	const handleEditEntry = (entry: AttendanceEntryWithDate) => {
 		setSelectedEntry(entry);
 		setModalOpen(true);
+	};
+
+	const handleDeleteEntry = (entry: AttendanceEntryWithDate) => {
+		setEntryToDelete(entry);
+		setDeleteDialogOpen(true);
+	};
+
+	const confirmDelete = async () => {
+		if (!entryToDelete) return;
+
+		const { error } = await deleteAttendanceEntry(entryToDelete.id);
+		if (error) {
+			toast({
+				title: 'Error al eliminar registro',
+				description: translateError(error) || 'No se pudo eliminar el registro',
+				variant: 'destructive',
+			});
+		} else {
+			toast({
+				title: 'Registro eliminado',
+				description: 'El registro de asistencia se eliminó correctamente',
+			});
+			loadHistory();
+		}
+		setDeleteDialogOpen(false);
+		setEntryToDelete(null);
 	};
 
 	const handleModalClose = () => {
@@ -205,14 +245,24 @@ export function AdminAttendanceHistory() {
 																			locale: es,
 																		})}
 																	</div>
-																	<Button
-																		variant="ghost"
-																		size="sm"
-																		onClick={() => handleEditEntry(entry)}
-																		className="h-8 w-8 p-0"
-																	>
-																		<Pencil className="h-4 w-4" />
-																	</Button>
+																	<div className="flex gap-1">
+																		<Button
+																			variant="ghost"
+																			size="sm"
+																			onClick={() => handleEditEntry(entry)}
+																			className="h-8 w-8 p-0"
+																		>
+																			<Pencil className="h-4 w-4" />
+																		</Button>
+																		<Button
+																			variant="ghost"
+																			size="sm"
+																			onClick={() => handleDeleteEntry(entry)}
+																			className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+																		>
+																			<Trash2 className="h-4 w-4" />
+																		</Button>
+																	</div>
 																</div>
 															</div>
 														))}
@@ -233,6 +283,23 @@ export function AdminAttendanceHistory() {
 				onOpenChange={handleModalClose}
 				onUpdate={loadHistory}
 			/>
+			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>¿Eliminar registro?</AlertDialogTitle>
+						<AlertDialogDescription>
+							¿Estás seguro de que deseas eliminar este registro de asistencia? Esta acción no se
+							puede deshacer.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancelar</AlertDialogCancel>
+						<AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+							Eliminar
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</>
 	);
 }

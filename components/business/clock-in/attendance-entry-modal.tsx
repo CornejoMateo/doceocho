@@ -41,7 +41,6 @@ export function AttendanceEntryModal({
 	onUpdate,
 }: AttendanceEntryModalProps) {
 	const [loading, setLoading] = useState(false);
-	const [deleteLoading, setDeleteLoading] = useState(false);
 	const [entryType, setEntryType] = useState<string>(entry?.type || 'regular_in');
 	const [entryTime, setEntryTime] = useState<string>(
 		entry?.entry_time ? format(new Date(entry.entry_time), 'HH:mm', { locale: es }) : ''
@@ -104,51 +103,6 @@ export function AttendanceEntryModal({
 		setLoading(false);
 	};
 
-	const handleDelete = async () => {
-		if (!entry) return;
-
-		if (
-			!confirm(
-				'¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.'
-			)
-		) {
-			return;
-		}
-
-		setDeleteLoading(true);
-		try {
-			const { error } = await deleteAttendanceEntry(entry.id);
-
-			if (error) {
-				toast({
-					title: 'Error al eliminar registro',
-					description: translateError(error) || 'No se pudo eliminar el registro',
-					variant: 'destructive',
-				});
-			} else {
-				toast({
-					title: 'Registro eliminado',
-					description: 'El registro de asistencia se eliminó correctamente',
-				});
-				onOpenChange(false);
-				onUpdate();
-			}
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: 'Error al procesar la solicitud',
-				variant: 'destructive',
-			});
-		}
-		setDeleteLoading(false);
-	};
-
-	const handleReset = () => {
-		if (!entry) return;
-		setEntryType(entry.type);
-		setEntryTime(format(new Date(entry.entry_time), 'HH:mm', { locale: es }));
-	};
-
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[500px]">
@@ -192,23 +146,10 @@ export function AttendanceEntryModal({
 						</div>
 					)}
 				</div>
-				<DialogFooter className="flex flex-col sm:flex-row gap-2">
-					<Button
-						variant="destructive"
-						onClick={handleDelete}
-						disabled={deleteLoading || loading}
-						className="w-full sm:w-auto"
-					>
-						{deleteLoading ? 'Eliminando...' : 'Eliminar'}
+				<DialogFooter>
+					<Button onClick={handleSave} disabled={loading} className="w-full">
+						{loading ? 'Guardando...' : 'Guardar'}
 					</Button>
-					<div className="flex gap-2 w-full sm:w-auto">
-						<Button variant="outline" onClick={handleReset} disabled={loading} className="flex-1">
-							Restaurar
-						</Button>
-						<Button onClick={handleSave} disabled={loading} className="flex-1">
-							{loading ? 'Guardando...' : 'Guardar'}
-						</Button>
-					</div>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
