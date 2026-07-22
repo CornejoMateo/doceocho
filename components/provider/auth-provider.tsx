@@ -52,7 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const loadProfile = useCallback(async () => {
 		const {
 			data: { session },
+			error,
 		} = await supabase.auth.getSession();
+
+		console.log('[GET SESSION]', {
+			hasSession: !!session,
+			error,
+		});
 
 		if (!session) {
 			const {
@@ -187,7 +193,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		clearChannelsCache();
 
 		try {
-			await supabase.auth.signOut();
+			await supabase.auth.signOut({
+				scope: 'local',
+			});
 
 			setUser(null);
 
