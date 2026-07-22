@@ -49,7 +49,7 @@ export function CreateEntryModal({
 		if (!userId) {
 			toast({
 				title: 'Error',
-				description: 'Debes seleccionar un empleado primero',
+				description: translateError('Usuario no autenticado'),
 				variant: 'destructive',
 			});
 			return;
@@ -59,7 +59,7 @@ export function CreateEntryModal({
 		if (!entryDate || !entryTime || !/^\d{2}:\d{2}$/.test(entryTime)) {
 			toast({
 				title: 'Error de validación',
-				description: 'La fecha y hora son requeridas',
+				description: translateError('La fecha y hora son requeridas'),
 				variant: 'destructive',
 			});
 			return;
@@ -94,7 +94,7 @@ export function CreateEntryModal({
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: 'Error al procesar la solicitud',
+				description: translateError(error) || 'Error al procesar la solicitud',
 				variant: 'destructive',
 			});
 		}

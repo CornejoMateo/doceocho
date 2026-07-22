@@ -40,7 +40,7 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		if (isNaN(value) || value < DEFAULT_RADIUS_METERS) {
 			toast({
 				title: 'Error',
-				description: `El radio debe ser al menos ${DEFAULT_RADIUS_METERS} metros`,
+				description: translateError(`El radio debe ser al menos ${DEFAULT_RADIUS_METERS} metros`),
 				variant: 'destructive',
 			});
 			return;

@@ -62,7 +62,7 @@ export function ClockIn() {
 		if (!user) {
 			toast({
 				title: 'Error',
-				description: 'Usuario no autenticado',
+				description: translateError('Usuario no autenticado'),
 				variant: 'destructive',
 			});
 			return;
@@ -86,7 +86,7 @@ export function ClockIn() {
 			if (!withinRadius) {
 				toast({
 					title: 'Ubicación no permitida',
-					description: 'Debes estar dentro del área permitida para fichar',
+					description: translateError('Debes estar dentro del área permitida'),
 					variant: 'destructive',
 				});
 				return;
@@ -130,7 +130,7 @@ export function ClockIn() {
 			if (!attendance) {
 				toast({
 					title: 'Error',
-					description: 'No se pudo crear el registro de asistencia. Intenta nuevamente.',
+					description: translateError('No se pudo crear el registro de asistencia'),
 					variant: 'destructive',
 				});
 				return;

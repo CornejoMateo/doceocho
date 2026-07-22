@@ -61,7 +61,7 @@ export function AttendanceEntryModal({
 		if (!entryTime || !/^\d{2}:\d{2}$/.test(entryTime)) {
 			toast({
 				title: 'Error de validación',
-				description: 'La hora debe tener formato HH:MM',
+				description: translateError('La hora debe tener formato HH:MM'),
 				variant: 'destructive',
 			});
 			return;
@@ -96,7 +96,7 @@ export function AttendanceEntryModal({
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: 'Error al procesar la solicitud',
+				description: translateError(error) || 'Error al procesar la solicitud',
 				variant: 'destructive',
 			});
 		}

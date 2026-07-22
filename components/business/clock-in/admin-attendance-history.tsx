@@ -113,7 +113,7 @@ export function AdminAttendanceHistory() {
 		if (error) {
 			toast({
 				title: 'Error al eliminar registro',
-				description: translateError(error) || 'No se pudo eliminar el registro',
+				description: translateError(error),
 				variant: 'destructive',
 			});
 		} else {

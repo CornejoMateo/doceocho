@@ -76,6 +76,30 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('invalid') && errorMessage.includes('email')) {
 		return 'El correo electrónico no es válido.';
 	}
+	if (errorMessage.includes('Usuario no autenticado')) {
+		return 'Usuario no autenticado. Inicia sesión para continuar.';
+	}
+	if (errorMessage.includes('Debes estar dentro del área permitida')) {
+		return 'Debes estar dentro del área permitida para fichar.';
+	}
+	if (errorMessage.includes('No se pudo crear el registro de asistencia')) {
+		return 'No se pudo crear el registro de asistencia. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('Debes seleccionar un empleado primero')) {
+		return 'Debes seleccionar un empleado primero.';
+	}
+	if (errorMessage.includes('La fecha y hora son requeridas')) {
+		return 'La fecha y hora son requeridas.';
+	}
+	if (errorMessage.includes('La hora debe tener formato HH:MM')) {
+		return 'La hora debe tener formato HH:MM.';
+	}
+	if (errorMessage.includes('Error al procesar la solicitud')) {
+		return 'Error al procesar la solicitud. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('El radio debe ser al menos')) {
+		return 'El radio debe ser al menos el valor mínimo de seguridad.';
+	}
 
 	// File/Upload errors
 	if (errorMessage.includes('file too large') || errorMessage.includes('size exceeded')) {
