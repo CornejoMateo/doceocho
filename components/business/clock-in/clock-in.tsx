@@ -193,7 +193,7 @@ export function ClockIn() {
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: translateError('error') || 'Error al obtener ubicación',
+				description: translateError(error) || 'Error al procesar la solicitud',
 				variant: 'destructive',
 			});
 		}

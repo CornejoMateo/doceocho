@@ -48,6 +48,15 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('cannot coerce') || errorMessage.includes('single JSON object')) {
 		return 'Error al procesar la solicitud. Intenta nuevamente.';
 	}
+	if (
+		errorMessage.includes('null value in column') ||
+		errorMessage.includes('violates not-null constraint')
+	) {
+		return 'Faltan datos obligatorios. Verifica que todos los campos requeridos estén completos.';
+	}
+	if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+		return 'Error en la base de datos. Contacta al administrador.';
+	}
 
 	// Geolocation errors
 	if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('permiso de ubicación')) {
@@ -99,6 +108,17 @@ export const translateError = (error: any): string => {
 	}
 	if (errorMessage.includes('El radio debe ser al menos')) {
 		return 'El radio debe ser al menos el valor mínimo de seguridad.';
+	}
+
+	// Attendance-specific errors
+	if (errorMessage.includes('attendance') && errorMessage.includes('not found')) {
+		return 'No se encontró el registro de asistencia para esta fecha.';
+	}
+	if (errorMessage.includes('attendance_entries') && errorMessage.includes('insert')) {
+		return 'Error al registrar el fichaje. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('attendance') && errorMessage.includes('insert')) {
+		return 'Error al crear el registro de asistencia. Intenta nuevamente.';
 	}
 
 	// File/Upload errors
