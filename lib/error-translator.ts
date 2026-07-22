@@ -28,19 +28,25 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('500') || errorMessage.includes('Internal server error')) {
 		return 'Error del servidor. Intenta nuevamente más tarde.';
 	}
+	if (errorMessage.includes('502') || errorMessage.includes('Bad gateway')) {
+		return 'El servidor no está disponible. Intenta más tarde.';
+	}
+	if (errorMessage.includes('503') || errorMessage.includes('Service unavailable')) {
+		return 'El servicio no está disponible temporalmente.';
+	}
 
 	// Database errors
 	if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
 		return 'Ya existe un registro con estos datos.';
 	}
 	if (errorMessage.includes('foreign key constraint')) {
-		return 'No se puede completar la operación. El dato está asociado a otros registros.';
+		return 'No se puede completar la operación ya que el dato que desea eliminar esta asociado a otros datos.';
 	}
 	if (errorMessage.includes('violates check constraint')) {
 		return 'Los datos no cumplen con las validaciones requeridas.';
 	}
 	if (errorMessage.includes('cannot coerce') || errorMessage.includes('single JSON object')) {
-		return 'Error al procesar los datos. Verifica el formato e intenta nuevamente.';
+		return 'Error al procesar la solicitud. Intenta nuevamente.';
 	}
 	if (
 		errorMessage.includes('null value in column') ||
@@ -76,6 +82,33 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('required') || errorMessage.includes('is required')) {
 		return 'Faltan campos obligatorios.';
 	}
+	if (errorMessage.includes('invalid') && errorMessage.includes('email')) {
+		return 'El correo electrónico no es válido.';
+	}
+	if (errorMessage.includes('Usuario no autenticado')) {
+		return 'Usuario no autenticado. Inicia sesión para continuar.';
+	}
+	if (errorMessage.includes('Debes estar dentro del área permitida')) {
+		return 'Debes estar dentro del área permitida para fichar.';
+	}
+	if (errorMessage.includes('No se pudo crear el registro de asistencia')) {
+		return 'No se pudo crear el registro de asistencia. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('Debes seleccionar un empleado primero')) {
+		return 'Debes seleccionar un empleado primero.';
+	}
+	if (errorMessage.includes('La fecha y hora son requeridas')) {
+		return 'La fecha y hora son requeridas.';
+	}
+	if (errorMessage.includes('La hora debe tener formato HH:MM')) {
+		return 'La hora debe tener formato HH:MM.';
+	}
+	if (errorMessage.includes('Error al procesar la solicitud')) {
+		return 'Error al procesar la solicitud. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('El radio debe ser al menos')) {
+		return 'El radio debe ser al menos el valor mínimo de seguridad.';
+	}
 
 	// Attendance-specific errors
 	if (errorMessage.includes('attendance') && errorMessage.includes('not found')) {
@@ -87,20 +120,19 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('attendance') && errorMessage.includes('insert')) {
 		return 'Error al crear el registro de asistencia. Intenta nuevamente.';
 	}
-	if (errorMessage.includes('Debes estar dentro del área permitida')) {
-		return 'Debes estar dentro del área permitida para fichar.';
+
+	// File/Upload errors
+	if (errorMessage.includes('file too large') || errorMessage.includes('size exceeded')) {
+		return 'El archivo es demasiado grande.';
 	}
-	if (errorMessage.includes('Debes seleccionar un empleado primero')) {
-		return 'Debes seleccionar un empleado primero.';
+	if (errorMessage.includes('invalid file type')) {
+		return 'Tipo de archivo no permitido.';
 	}
-	if (errorMessage.includes('La fecha y hora son requeridas')) {
-		return 'La fecha y hora son requeridas.';
-	}
-	if (errorMessage.includes('La hora debe tener formato HH:MM')) {
-		return 'La hora debe tener formato HH:MM.';
-	}
-	if (errorMessage.includes('El radio debe ser al menos')) {
-		return 'El radio debe ser al menos el valor mínimo de seguridad.';
+	if (
+		errorMessage.includes('The resource already exists') ||
+		errorMessage.includes('the resource already exists')
+	) {
+		return 'Ya existe un archivo con ese nombre. Intenta nuevamente o usa otro archivo.';
 	}
 
 	// RLS errors
