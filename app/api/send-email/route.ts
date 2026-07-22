@@ -69,14 +69,14 @@ export async function POST(req: Request) {
 
 		// Prepare email options
 		const mailOptions = {
-			from: process.env.EMAIL_FROM || 'noreply@AR-Aberturas.com',
+			from: process.env.EMAIL_FROM || 'noreply@Doceocho.com',
 			to: to,
 			subject: subject,
 			html: `
 				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
 					<div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
 						<div style="text-align: center; margin-bottom: 30px;">
-							<h1 style="color: #333; margin: 0; font-size: 24px;">AR Aberturas</h1>
+							<h1 style="color: #333; margin: 0; font-size: 24px;">Doceocho</h1>
 							<p style="color: #666; margin: 5px 0 0; font-size: 14px;">Sistema de Notificaciones por dlay.com.ar</p>
 						</div>
 						
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 											})
 										: ''
 								}
-								${scheduledTime ? ` a las ${scheduledTime}` : ''}
+								${scheduledTime ? ` a las ${scheduledTime} Aproximadamente` : ''}
 							</p>
 						</div>
 						`
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
 						
 						<div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
 							<p style="color: #666; margin: 0; font-size: 12px;">
-								Este email fue enviado automáticamente por el sistema de AR Aberturas.<br>
+								Este email fue enviado automáticamente por el sistema de Doceocho.<br>
 								Si tiene preguntas, por favor contacte a su representante de ventas.
 							</p>
 						</div>
@@ -133,25 +133,6 @@ export async function POST(req: Request) {
 		// Send email immediately
 		const info = await transporter.sendMail(mailOptions);
 		console.log('Email sent successfully:', info.messageId);
-
-		// Log the email in the database (optional but recommended by my friend chatgpt)
-		try {
-			await supabase.from('email_logs').insert({
-				client_id: clientId,
-				work_id: workId,
-				to: to,
-				subject: subject,
-				message: message,
-				scheduled_date: scheduledDate || null,
-				scheduled_time: scheduledTime || null,
-				sent_at: new Date().toISOString(),
-				status: 'sent',
-				message_id: info.messageId,
-			});
-		} catch (logError) {
-			console.error('Error logging email:', logError);
-			// Don't fail the request if logging fails
-		}
 
 		return NextResponse.json({
 			success: true,
