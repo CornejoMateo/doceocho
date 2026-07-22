@@ -22,6 +22,8 @@ export interface AttendanceSettings {
 	tolerance_quantity_minutes: number | null;
 	default_check_in_time: string | null;
 	default_check_out_time: string | null;
+	price_hour: number | null;
+	price_hour_overtime: number | null;
 }
 
 export interface AttendanceEntryWithDate extends AttendanceEntry {
