@@ -13,14 +13,16 @@ import {
 	getEntryTypeColor,
 	formatHours,
 	deleteAttendanceEntry,
+	hasMatchingPair,
 } from '@/lib/attendance/attendance';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
+import { CreateEntryModal } from './create-entry-modal';
 import { toast } from '@/components/ui/use-toast';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, AlertTriangle } from 'lucide-react';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -48,6 +50,7 @@ export function AdminAttendanceHistory() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
+	const [createModalOpen, setCreateModalOpen] = useState(false);
 
 	const loadHistory = async () => {
 		setLoading(true);
@@ -221,6 +224,18 @@ export function AdminAttendanceHistory() {
 
 											{selectedUser === summary.user_id && (
 												<div className="p-4 bg-gray-50 border-t">
+													<div className="flex justify-between items-center mb-4">
+														<h3 className="font-medium text-sm md:text-base">Registros</h3>
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => setCreateModalOpen(true)}
+															className="h-8 text-xs"
+														>
+															<Plus className="h-3 w-3 mr-1" />
+															Crear registro
+														</Button>
+													</div>
 													<div className="space-y-2">
 														{summary.entries.map((entry: AttendanceEntryWithDate) => (
 															<div
@@ -228,12 +243,19 @@ export function AdminAttendanceHistory() {
 																className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-2"
 															>
 																<div className="flex-1">
-																	<div
-																		className={`font-medium text-sm md:text-base ${getEntryTypeColor(
-																			entry.type
-																		)}`}
-																	>
-																		{getEntryTypeLabel(entry.type)}
+																	<div className="flex items-center gap-2">
+																		<div
+																			className={`font-medium text-sm md:text-base ${getEntryTypeColor(
+																				entry.type
+																			)}`}
+																		>
+																			{getEntryTypeLabel(entry.type)}
+																		</div>
+																		{!hasMatchingPair(entry, summary.entries) && (
+																			<span title="Registro sin par correspondiente">
+																				<AlertTriangle className="h-4 w-4 text-orange-500" />
+																			</span>
+																		)}
 																	</div>
 																	<div className="text-xs md:text-sm text-gray-500">
 																		{formatCreatedAt(entry.attendance_date)}
@@ -300,6 +322,13 @@ export function AdminAttendanceHistory() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+			<CreateEntryModal
+				userId={selectedUser}
+				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
+				open={createModalOpen}
+				onOpenChange={setCreateModalOpen}
+				onUpdate={loadHistory}
+			/>
 		</>
 	);
 }

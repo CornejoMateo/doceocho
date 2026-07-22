@@ -133,6 +133,76 @@ export async function deleteAttendanceEntry(
 }
 
 /**
+ * Create an attendance entry for admin (manual entry)
+ */
+export async function createAdminAttendanceEntry(
+	userId: string,
+	type: 'regular_in' | 'regular_out' | 'overtime_in' | 'overtime_out',
+	entryTime: string
+): Promise<{ data: AttendanceEntryWithDate | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	// First, ensure attendance record exists for the date
+	const date = new Date(entryTime).toISOString().split('T')[0];
+	const { data: attendance, error: attendanceError } = await supabase
+		.from('attendance')
+		.select('id')
+		.eq('date', date)
+		.eq('user_id', userId)
+		.maybeSingle();
+
+	if (attendanceError) return { data: null, error: attendanceError };
+
+	let attendanceId: number;
+	if (!attendance) {
+		// Create attendance record if it doesn't exist
+		const { data: newAttendance, error: createError } = await supabase
+			.from('attendance')
+			.insert({ date, user_id: userId })
+			.select()
+			.single();
+
+		if (createError) return { data: null, error: createError };
+		attendanceId = newAttendance.id;
+	} else {
+		attendanceId = attendance.id;
+	}
+
+	// Create the entry
+	const entry = {
+		attendance_id: attendanceId,
+		type,
+		entry_time: entryTime,
+		latitude: 0,
+		longitude: 0,
+	};
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.insert(entry)
+		.select(
+			`
+			*,
+			attendance (
+				date,
+				user_id
+			)
+		`
+		)
+		.single();
+
+	if (error) return { data: null, error };
+
+	const entryWithDate = {
+		...data,
+		attendance_date: data.attendance.date,
+		user_id: data.attendance.user_id,
+	} as AttendanceEntryWithDate;
+
+	return { data: entryWithDate, error: null };
+}
+
+/**
  * Get attendance settings (for square_meters radius)
  */
 export async function getAttendanceSettings(): Promise<{
@@ -290,6 +360,67 @@ export function calculateHoursWorked(entries: AttendanceEntryWithDate[]): number
 	});
 
 	return totalHours;
+}
+
+/**
+ * Check if an entry has a matching pair (in/out)
+ */
+export function hasMatchingPair(
+	entry: AttendanceEntryWithDate,
+	allEntries: AttendanceEntryWithDate[]
+): boolean {
+	const userEntries = allEntries.filter(
+		(e) => e.user_id === entry.user_id && e.attendance_date === entry.attendance_date
+	);
+
+	const sortedEntries = userEntries.sort(
+		(a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime()
+	);
+
+	const pendingRegularIn: AttendanceEntryWithDate[] = [];
+	const pendingOvertimeIn: AttendanceEntryWithDate[] = [];
+
+	for (const e of sortedEntries) {
+		if (e.id === entry.id) {
+			// Check if current entry has a matching pair
+			if (entry.type === 'regular_in') {
+				const hasMatchingOut = sortedEntries.some(
+					(laterEntry) =>
+						laterEntry.id !== entry.id &&
+						laterEntry.type === 'regular_out' &&
+						new Date(laterEntry.entry_time) > new Date(entry.entry_time)
+				);
+				return hasMatchingOut;
+			} else if (entry.type === 'regular_out') {
+				const hasMatchingIn = pendingRegularIn.length > 0;
+				return hasMatchingIn;
+			} else if (entry.type === 'overtime_in') {
+				const hasMatchingOut = sortedEntries.some(
+					(laterEntry) =>
+						laterEntry.id !== entry.id &&
+						laterEntry.type === 'overtime_out' &&
+						new Date(laterEntry.entry_time) > new Date(entry.entry_time)
+				);
+				return hasMatchingOut;
+			} else if (entry.type === 'overtime_out') {
+				const hasMatchingIn = pendingOvertimeIn.length > 0;
+				return hasMatchingIn;
+			}
+		}
+
+		// Track pending entries
+		if (e.type === 'regular_in') {
+			pendingRegularIn.push(e);
+		} else if (e.type === 'regular_out' && pendingRegularIn.length > 0) {
+			pendingRegularIn.shift();
+		} else if (e.type === 'overtime_in') {
+			pendingOvertimeIn.push(e);
+		} else if (e.type === 'overtime_out' && pendingOvertimeIn.length > 0) {
+			pendingOvertimeIn.shift();
+		}
+	}
+
+	return false;
 }
 
 /**
