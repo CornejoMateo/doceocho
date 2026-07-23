@@ -26,17 +26,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchProfile(token: string): Promise<SessionUser | null> {
 	const res = await fetch('/api/me', {
-		headers: { Authorization: `Bearer ${token}` },
+		headers: {
+			Authorization: `Bearer ${token}`,
+		},
 	});
 
-	if (!res.ok) return null;
+	if (!res.ok) {
+		console.error('[API /me]', {
+			status: res.status,
+			statusText: res.statusText,
+			body: await res.text(),
+		});
+
+		return null;
+	}
 
 	const json = await res.json();
-	if (!json.data) return null;
+
+	console.log('[API /me]', json);
+
+	if (!json.data) {
+		console.warn('[API /me] Sin data', json);
+		return null;
+	}
 
 	return {
 		username: json.data.username,
-		role: json.data.role as UserRole,
+		role: json.data.role,
 		name: json.data.name || '-',
 		last_name: json.data.last_name || '-',
 		uid: json.data.uid_user || '',
@@ -108,7 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			if (cancelled) return;
 
 			try {
-				await loadProfile();
+				if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_OUT') {
+					await loadProfile();
+				}
 			} finally {
 				if (!cancelled) {
 					setLoading(false);

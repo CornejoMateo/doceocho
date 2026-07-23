@@ -14,17 +14,31 @@ export async function GET(req: Request) {
 
 	const {
 		data: { user },
+		error,
 	} = await supabase.auth.getUser(token);
+
+	console.log('[API /me]', {
+		hasUser: !!user,
+		error,
+	});
+
+	if (error) {
+		console.error('[API /me] getUser()', error);
+	}
 
 	if (!user) {
 		return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
 	}
 
-	const { data: profile } = await supabase
+	const { data: profile, error: profileError } = await supabase
 		.from('users')
 		.select('username, role, name, last_name, uid_user')
 		.eq('uid_user', user.id)
 		.single();
+
+	console.log({
+		profileError,
+	});
 
 	if (!profile) {
 		return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
