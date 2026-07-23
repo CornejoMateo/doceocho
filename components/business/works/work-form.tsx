@@ -49,13 +49,7 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2 col-span-2 md:col-span-2">
 					<Label htmlFor="name">Nombre de la obra</Label>
-					<Input
-						id="name"
-						name="name"
-						value={formData.name || ''}
-						onChange={handleChange}
-						required
-					/>
+					<Input id="name" name="name" value={formData.name || ''} onChange={handleChange} />
 				</div>
 
 				<div className="space-y-2">

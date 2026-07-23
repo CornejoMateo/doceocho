@@ -38,6 +38,9 @@ describe('WorkForm', () => {
 
 		render(<WorkForm clientId={1} onSubmit={onSubmit} onCancel={onCancel} />);
 
+		fireEvent.change(screen.getByLabelText('Nombre de la obra'), {
+			target: { value: 'Obra Test' },
+		});
 		fireEvent.change(screen.getByLabelText('Localidad'), { target: { value: 'CABA' } });
 		fireEvent.change(screen.getByLabelText('Dirección'), {
 			target: { value: 'Av. Siempre Viva 123' },
