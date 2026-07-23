@@ -48,6 +48,7 @@ const baseWork: WorkWithProgress = {
 	hasNotes: false,
 	general_note: null,
 	tasks: [],
+	name: 'Obra Central',
 };
 
 describe('WorkCard', () => {
@@ -363,6 +364,8 @@ describe('WorkCard', () => {
 	});
 
 	it('falls back to work id when name is not provided', () => {
+		baseWork.name = null; // Remove name for this test
+
 		render(
 			<WorkCard
 				work={baseWork}

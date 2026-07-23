@@ -4,7 +4,7 @@ import { ChecklistItem, deleteChecklist } from '@/lib/checklists/checklists';
 
 export type Work = {
 	id: number;
-	name: string;
+	name: string | null;
 	created_at?: string;
 	locality?: string | null;
 	address?: string | null;

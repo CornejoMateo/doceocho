@@ -57,6 +57,7 @@ describe('WorkForm', () => {
 				furniture: 'Mesa y sillas',
 				architect: 'Arq. Pérez',
 				status: 'pending',
+				name: 'Obra Test',
 			})
 		);
 	});
