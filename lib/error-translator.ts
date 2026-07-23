@@ -116,6 +116,12 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('El radio debe ser al menos')) {
 		return 'El radio debe ser al menos el valor mínimo de seguridad.';
 	}
+	if (errorMessage.includes('El precio por hora debe ser un valor válido')) {
+		return 'El precio por hora debe ser un valor válido mayor o igual a 0.';
+	}
+	if (errorMessage.includes('El precio por hora extra debe ser un valor válido')) {
+		return 'El precio por hora extra debe ser un valor válido mayor o igual a 0.';
+	}
 
 	// Attendance-specific errors
 	if (errorMessage.includes('attendance') && errorMessage.includes('not found')) {
