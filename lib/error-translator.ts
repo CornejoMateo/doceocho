@@ -59,12 +59,19 @@ export const translateError = (error: any): string => {
 	}
 
 	// Geolocation errors
-	if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('permiso de ubicación')) {
+	if (
+		errorMessage.includes('PERMISSION_DENIED') ||
+		errorMessage.includes('permiso de ubicación') ||
+		errorMessage.includes('User denied Geolocation')
+	) {
 		return 'Permiso de ubicación denegado. Habilita la geolocalización en tu navegador.';
 	}
 	if (
 		errorMessage.includes('POSITION_UNAVAILABLE') ||
-		errorMessage.includes('ubicación no disponible')
+		errorMessage.includes('ubicación no disponible') ||
+		errorMessage.includes('position update is unavailable') ||
+		errorMessage.includes('Position update is unavailable') ||
+		errorMessage.includes('unavailable')
 	) {
 		return 'Ubicación no disponible. Verifica tu GPS o conexión.';
 	}

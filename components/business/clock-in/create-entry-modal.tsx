@@ -20,6 +20,7 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { createAdminAttendanceEntry, getEntryTypeLabel } from '@/lib/attendance/attendance';
+import { ENTRY_TYPES } from '@/constants/attendance/attendance';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
@@ -41,7 +42,7 @@ export function CreateEntryModal({
 	onUpdate,
 }: CreateEntryModalProps) {
 	const [loading, setLoading] = useState(false);
-	const [entryType, setEntryType] = useState<string>('regular_in');
+	const [entryType, setEntryType] = useState<string>(ENTRY_TYPES[0].value);
 	const [entryDate, setEntryDate] = useState<string>(new Date().toISOString().split('T')[0]);
 	const [entryTime, setEntryTime] = useState<string>(format(new Date(), 'HH:mm', { locale: es }));
 
@@ -68,8 +69,8 @@ export function CreateEntryModal({
 		setLoading(true);
 		try {
 			const [hours, minutes] = entryTime.split(':').map(Number);
-			const date = new Date(entryDate);
-			date.setHours(hours, minutes, 0, 0);
+			const [year, month, day] = entryDate.split('-').map(Number);
+			const date = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
 			const { error } = await createAdminAttendanceEntry(
 				userId,
@@ -131,10 +132,11 @@ export function CreateEntryModal({
 								<SelectValue placeholder="Selecciona tipo" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="regular_in">{getEntryTypeLabel('regular_in')}</SelectItem>
-								<SelectItem value="regular_out">{getEntryTypeLabel('regular_out')}</SelectItem>
-								<SelectItem value="overtime_in">{getEntryTypeLabel('overtime_in')}</SelectItem>
-								<SelectItem value="overtime_out">{getEntryTypeLabel('overtime_out')}</SelectItem>
+								{ENTRY_TYPES.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>

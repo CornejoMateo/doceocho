@@ -5,3 +5,10 @@ export const TARGET_LOCATION = {
 };
 
 export const DEFAULT_RADIUS_METERS = 50;
+
+export const ENTRY_TYPES = [
+	{ value: 'regular_in', label: 'Entrada' },
+	{ value: 'regular_out', label: 'Salida' },
+	{ value: 'overtime_in', label: 'Entrada (horas extras)' },
+	{ value: 'overtime_out', label: 'Salida (horas extras)' },
+];
