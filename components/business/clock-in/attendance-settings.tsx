@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -28,17 +28,22 @@ interface AttendanceSettingsProps {
 }
 
 export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsProps) {
-	const [adminSquareMeters, setAdminSquareMeters] = useState<string>('');
+	const [adminSquareMeters, setAdminSquareMeters] = useState<string>(
+		DEFAULT_RADIUS_METERS.toString()
+	);
 	const [priceHour, setPriceHour] = useState<string>(DEFAULT_PRICE_HOUR.toString());
 	const [priceHourOvertime, setPriceHourOvertime] = useState<string>(
 		DEFAULT_PRICE_HOUR_OVERTIME.toString()
 	);
 	const [adminLoading, setAdminLoading] = useState(false);
+	const [settingsLoaded, setSettingsLoaded] = useState(false);
 
 	const loadSettings = async () => {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setAdminSquareMeters(settings.square_meters.toString());
+		} else {
+			setAdminSquareMeters(DEFAULT_RADIUS_METERS.toString());
 		}
 		if (settings?.price_hour !== null && settings?.price_hour !== undefined) {
 			setPriceHour(settings.price_hour.toString());
@@ -46,6 +51,7 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		if (settings?.price_hour_overtime !== null && settings?.price_hour_overtime !== undefined) {
 			setPriceHourOvertime(settings.price_hour_overtime.toString());
 		}
+		setSettingsLoaded(true);
 	};
 
 	const handleAdminSave = async () => {
@@ -104,9 +110,18 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 	};
 
 	// Load settings when dialog opens
-	if (open && !adminSquareMeters) {
-		loadSettings();
-	}
+	useEffect(() => {
+		if (open) {
+			loadSettings();
+		}
+	}, [open]);
+
+	// Also load settings on mount if not loaded yet
+	useEffect(() => {
+		if (!settingsLoaded) {
+			loadSettings();
+		}
+	}, []);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
