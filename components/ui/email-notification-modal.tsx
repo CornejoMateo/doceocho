@@ -110,6 +110,12 @@ export function EmailNotificationModal({
 				title: 'Email enviado',
 				description: 'El email ha sido enviado correctamente.',
 			});
+			setFormData((prev) => ({
+				...prev,
+				message: generateDefaultMessage(),
+				scheduledDate: '',
+				scheduledTime: '',
+			}));
 			onOpenChange(false);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Error al enviar el email');
@@ -148,19 +154,7 @@ export function EmailNotificationModal({
 				}
 			}
 
-			const newMessage = `Estimado/a ${clientName},
-
-Le informamos que nuestro equipo de colocación estará llegando a la obra.${formData.scheduledDate || formData.scheduledTime ? ' en la fecha y horario indicados' : ' en las próximas horas'}.
-
-Detalles de la obra:
-${workDetails}${arrivalInfo}
-
-Por favor, asegúrese de que el lugar esté accesible y preparado para la instalación.
-
-Si tiene alguna pregunta o necesita coordinar algún detalle adicional, no dude en contactarnos.
-
-Atentamente,
-El equipo de Doceocho`;
+			const newMessage = generateDefaultMessage();
 
 			setFormData((prev) => ({
 				...prev,
@@ -181,31 +175,45 @@ El equipo de Doceocho`;
 	const generateDefaultMessage = () => {
 		const clientName = `${client?.name || ''} ${client?.last_name || ''}`.trim();
 		const workDetails = buildWorkDetails();
-
-		let arrivalInfo = '';
-		if (formData.scheduledDate || formData.scheduledTime) {
-			arrivalInfo = '\n\nHora estimada de llegada:\n';
-			if (formData.scheduledDate) {
-				arrivalInfo += `- Fecha: ${format(new Date(formData.scheduledDate + 'T00:00:00'), 'dd/MM/yyyy')}\n`;
-			}
-			if (formData.scheduledTime) {
-				arrivalInfo += `- Hora: ${formData.scheduledTime} Aproximadamente\n`;
-			}
-		}
+		const arrivalInfo = buildArrivalInfo();
 
 		return `Estimado/a ${clientName},
 
-Le informamos que nuestro equipo de colocación estará llegando a la obra.${formData.scheduledDate || formData.scheduledTime ? ' en la fecha y horario indicados' : ' en las próximas horas'}.
+Le informamos que nuestro equipo de colocación estará llegando a la obra,${
+			arrivalInfo ? ' en la fecha y horario indicados.' : ' en las próximas horas.'
+		}
 
 Detalles de la obra:
-${workDetails}${arrivalInfo}
+${workDetails}
+${arrivalInfo}
 
 Por favor, asegúrese de que el lugar esté accesible y preparado para la instalación.
 
 Si tiene alguna pregunta o necesita coordinar algún detalle adicional, no dude en contactarnos.
 
 Atentamente,
+
 El equipo de Doceocho`;
+	};
+
+	const buildArrivalInfo = () => {
+		if (!formData.scheduledDate && !formData.scheduledTime) {
+			return '';
+		}
+
+		const lines = ['\n\Fecha y hora estimada de llegada:'];
+
+		if (formData.scheduledDate) {
+			lines.push(
+				`- Fecha: ${format(new Date(formData.scheduledDate + 'T00:00:00'), 'dd/MM/yyyy')}`
+			);
+		}
+
+		if (formData.scheduledTime) {
+			lines.push(`- Hora: ${formData.scheduledTime} (aproximadamente)`);
+		}
+
+		return lines.join('\n');
 	};
 
 	const handleInputChange = (field: string, value: string) => {
@@ -332,7 +340,7 @@ El equipo de Doceocho`;
 										El equipo de colocación llegará el{' '}
 										{formData.scheduledDate &&
 											format(new Date(formData.scheduledDate + 'T00:00:00'), 'dd/MM/yyyy')}
-										{formData.scheduledTime && ` a las ${formData.scheduledTime} (Aproximadamente)`}
+										{formData.scheduledTime && ` a las ${formData.scheduledTime}`}
 									</AlertDescription>
 								</Alert>
 							)}
@@ -341,7 +349,19 @@ El equipo de Doceocho`;
 				</div>
 
 				<DialogFooter>
-					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
+					<Button
+						variant="outline"
+						onClick={() => {
+							(onOpenChange(false),
+								setFormData((prev) => ({
+									...prev,
+									message: generateDefaultMessage(),
+									scheduledDate: '',
+									scheduledTime: '',
+								})));
+						}}
+						disabled={isSending}
+					>
 						Cancelar
 					</Button>
 					<Button onClick={handleSend} disabled={isSending || !formData.to}>

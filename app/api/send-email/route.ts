@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 											})
 										: ''
 								}
-								${scheduledTime ? ` a las ${scheduledTime} Aproximadamente` : ''}
+								${scheduledTime ? ` a las ${scheduledTime}` : ''}
 							</p>
 						</div>
 						`
