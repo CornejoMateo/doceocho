@@ -73,11 +73,14 @@ export function WorkCard({
 			<div className="p-6">
 				<div className="flex flex-col lg:flex-row items-start justify-between gap-4">
 					<div className="flex-1 min-w-0 space-y-3">
-						<div className="flex items-start gap-3">
+						<div className="flex items-center gap-3">
 							<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
 								<ClipboardCheck className="h-5 w-5 text-primary" />
 							</div>
-							<h3 className="text-lg font-semibold text-foreground">{work.id}</h3>
+
+							<div className="text-muted-foreground">
+								<span>{work.name || work.id}</span>
+							</div>
 						</div>
 
 						<div className="flex-1 min-w-0">
@@ -91,12 +94,6 @@ export function WorkCard({
 								{[work.client_last_name, work.client_name].filter(Boolean).join(' ') ||
 									'Cliente no especificado'}
 							</p>
-							{work.name && (
-								<div className="flex items-center gap-2 text-muted-foreground mt-4">
-									<Home className="h-4 w-4 flex-shrink-0" />
-									<span>{work.name}</span>
-								</div>
-							)}
 						</div>
 						<div className="grid gap-2 md:grid-cols-4 text-sm">
 							<div className="flex items-center text-muted-foreground">
