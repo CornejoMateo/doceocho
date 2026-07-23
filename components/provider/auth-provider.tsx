@@ -123,14 +123,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			if (cancelled) return;
 
-			try {
-				if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_OUT') {
-					await loadProfile();
-				}
-			} finally {
-				if (!cancelled) {
+			switch (event) {
+				case 'SIGNED_IN':
+				case 'INITIAL_SESSION':
+					try {
+						await loadProfile();
+					} finally {
+						if (!cancelled) {
+							setLoading(false);
+						}
+					}
+					break;
+
+				case 'SIGNED_OUT':
+					setUser(null);
 					setLoading(false);
-				}
+					break;
+
+				case 'TOKEN_REFRESHED':
+					break;
 			}
 		});
 
