@@ -5,6 +5,8 @@ create table public.attendance_settings (
   square_meters bigint null,
   default_check_in_time text null,
   default_check_out_time text null,
+  price_hour numeric null,
+  price_hour_overtime numeric null,
   constraint attendance_settings_pkey primary key (id)
 ) TABLESPACE pg_default;
 

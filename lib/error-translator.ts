@@ -48,14 +48,30 @@ export const translateError = (error: any): string => {
 	if (errorMessage.includes('cannot coerce') || errorMessage.includes('single JSON object')) {
 		return 'Error al procesar la solicitud. Intenta nuevamente.';
 	}
+	if (
+		errorMessage.includes('null value in column') ||
+		errorMessage.includes('violates not-null constraint')
+	) {
+		return 'Faltan datos obligatorios. Verifica que todos los campos requeridos estén completos.';
+	}
+	if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+		return 'Error en la base de datos. Contacta al administrador.';
+	}
 
 	// Geolocation errors
-	if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('permiso de ubicación')) {
+	if (
+		errorMessage.includes('PERMISSION_DENIED') ||
+		errorMessage.includes('permiso de ubicación') ||
+		errorMessage.includes('User denied Geolocation')
+	) {
 		return 'Permiso de ubicación denegado. Habilita la geolocalización en tu navegador.';
 	}
 	if (
 		errorMessage.includes('POSITION_UNAVAILABLE') ||
-		errorMessage.includes('ubicación no disponible')
+		errorMessage.includes('ubicación no disponible') ||
+		errorMessage.includes('position update is unavailable') ||
+		errorMessage.includes('Position update is unavailable') ||
+		errorMessage.includes('unavailable')
 	) {
 		return 'Ubicación no disponible. Verifica tu GPS o conexión.';
 	}
@@ -75,6 +91,41 @@ export const translateError = (error: any): string => {
 	}
 	if (errorMessage.includes('invalid') && errorMessage.includes('email')) {
 		return 'El correo electrónico no es válido.';
+	}
+	if (errorMessage.includes('Usuario no autenticado')) {
+		return 'Usuario no autenticado. Inicia sesión para continuar.';
+	}
+	if (errorMessage.includes('Debes estar dentro del área permitida')) {
+		return 'Debes estar dentro del área permitida para fichar.';
+	}
+	if (errorMessage.includes('No se pudo crear el registro de asistencia')) {
+		return 'No se pudo crear el registro de asistencia. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('Debes seleccionar un empleado primero')) {
+		return 'Debes seleccionar un empleado primero.';
+	}
+	if (errorMessage.includes('La fecha y hora son requeridas')) {
+		return 'La fecha y hora son requeridas.';
+	}
+	if (errorMessage.includes('La hora debe tener formato HH:MM')) {
+		return 'La hora debe tener formato HH:MM.';
+	}
+	if (errorMessage.includes('Error al procesar la solicitud')) {
+		return 'Error al procesar la solicitud. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('El radio debe ser al menos')) {
+		return 'El radio debe ser al menos el valor mínimo de seguridad.';
+	}
+
+	// Attendance-specific errors
+	if (errorMessage.includes('attendance') && errorMessage.includes('not found')) {
+		return 'No se encontró el registro de asistencia para esta fecha.';
+	}
+	if (errorMessage.includes('attendance_entries') && errorMessage.includes('insert')) {
+		return 'Error al registrar el fichaje. Intenta nuevamente.';
+	}
+	if (errorMessage.includes('attendance') && errorMessage.includes('insert')) {
+		return 'Error al crear el registro de asistencia. Intenta nuevamente.';
 	}
 
 	// File/Upload errors
