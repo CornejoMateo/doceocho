@@ -28,6 +28,7 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 		furniture: '',
 		zone: '',
 		hood: '',
+		name: '',
 	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -46,6 +47,17 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 	return (
 		<form onSubmit={handleSubmit} className="space-y-4">
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div className="space-y-2 col-span-2 md:col-span-2">
+					<Label htmlFor="name">Nombre de la obra</Label>
+					<Input
+						id="name"
+						name="name"
+						value={formData.name || ''}
+						onChange={handleChange}
+						required
+					/>
+				</div>
+
 				<div className="space-y-2">
 					<Label htmlFor="locality">Localidad</Label>
 					<Input
@@ -55,6 +67,28 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 						onChange={handleChange}
 						placeholder="Ej: Córdoba Capital"
 						required
+					/>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="zone">Zona</Label>
+					<Input
+						id="zone"
+						name="zone"
+						value={formData.zone || ''}
+						onChange={handleChange}
+						placeholder="Ej: Zona Norte"
+					/>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="hood">Barrio</Label>
+					<Input
+						id="hood"
+						name="hood"
+						value={formData.hood || ''}
+						onChange={handleChange}
+						placeholder="Ej: Centro"
 					/>
 				</div>
 
@@ -88,28 +122,6 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 						value={formData.architect || ''}
 						onChange={handleChange}
 						placeholder="Nombre del arquitecto"
-					/>
-				</div>
-
-				<div className="space-y-2">
-					<Label htmlFor="zone">Zona</Label>
-					<Input
-						id="zone"
-						name="zone"
-						value={formData.zone || ''}
-						onChange={handleChange}
-						placeholder="Ej: Zona Norte"
-					/>
-				</div>
-
-				<div className="space-y-2">
-					<Label htmlFor="hood">Barrio</Label>
-					<Input
-						id="hood"
-						name="hood"
-						value={formData.hood || ''}
-						onChange={handleChange}
-						placeholder="Ej: Centro"
 					/>
 				</div>
 			</div>
