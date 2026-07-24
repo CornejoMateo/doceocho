@@ -260,16 +260,6 @@ export function ClockIn() {
 						<AttendanceHistory />
 					</>
 				)}
-				{showScanner && (
-					<QRScanner
-						onClose={() => setShowScanner(false)}
-						onScan={async (token) => {
-							setShowScanner(false);
-
-							await handleClockAction(false, token);
-						}}
-					/>
-				)}
 				{isQR && (
 					<Card className="max-w-md mx-auto">
 						<CardHeader>
@@ -285,6 +275,19 @@ export function ClockIn() {
 						</CardContent>
 					</Card>
 				)}
+				<QRScanner
+					onClose={() => setShowScanner(false)}
+					onScan={(token) => {
+						console.log('TOKEN ESCANEADO:', token);
+
+						setShowScanner(false);
+
+						toast({
+							title: 'QR detectado',
+							description: 'El código fue leído correctamente',
+						});
+					}}
+				/>
 			</div>
 			<AttendanceSettings
 				open={settingsOpen}
