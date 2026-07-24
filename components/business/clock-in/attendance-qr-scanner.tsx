@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import QrScanner from 'qr-scanner';
 
 interface QRScannerProps {
 	onScan: (token: string) => void;
@@ -9,43 +9,47 @@ interface QRScannerProps {
 }
 
 export default function QRScanner({ onScan, onClose }: QRScannerProps) {
-	const scannerRef = useRef<Html5Qrcode | null>(null);
+	const videoRef = useRef<HTMLVideoElement>(null);
+	const scannerRef = useRef<QrScanner | null>(null);
 
 	useEffect(() => {
-		const scanner = new Html5Qrcode('qr-reader');
+		if (!videoRef.current) return;
+
+		const scanner = new QrScanner(
+			videoRef.current,
+			(result) => {
+				console.log('QR detectado:', result.data);
+
+				scanner.stop();
+
+				onScan(result.data);
+			},
+			{
+				preferredCamera: 'environment',
+			}
+		);
 
 		scannerRef.current = scanner;
 
-		scanner.start(
-			{
-				facingMode: 'environment',
-			},
-			{
-				fps: 10,
-				qrbox: 250,
-			},
-			(decodedText) => {
-				console.log('QR detectado:', decodedText);
-
-				alert('QR detectado');
-
-				scanner.stop().then(() => {
-					onScan(decodedText);
-				});
-			},
-			() => {}
-		);
+		scanner.start().catch((error) => {
+			console.error('Error iniciando cámara:', error);
+		});
 
 		return () => {
-			if (scannerRef.current) {
-				scannerRef.current.stop().catch(() => {});
-			}
+			scanner.stop();
+			scanner.destroy();
 		};
-	}, [onScan, onClose]);
+	}, [onScan]);
 
 	return (
 		<div>
-			<div id="qr-reader" />
+			<video
+				ref={videoRef}
+				style={{
+					width: '100%',
+					maxWidth: 400,
+				}}
+			/>
 
 			<button onClick={onClose}>Cancelar</button>
 		</div>
