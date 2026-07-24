@@ -18,6 +18,9 @@ import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
 import { Settings } from 'lucide-react';
+import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import QRScanner from './attendance-qr-scanner';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
@@ -25,6 +28,12 @@ export function ClockIn() {
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const { user } = useAuth();
+
+	const [showScanner, setShowScanner] = useState(false);
+
+	const isAuthorized = user?.role === 'Admin';
+	const isTaller = user?.role === 'Taller';
+	const isQR = user?.role === 'QR';
 
 	// Load state from localStorage on mount
 	useEffect(() => {
@@ -58,19 +67,31 @@ export function ClockIn() {
 		}
 	};
 
-	const handleClockAction = async (isOvertime: boolean) => {
-		if (!user) {
-			toast({
-				title: 'Error',
-				description: translateError('Usuario no autenticado'),
-				variant: 'destructive',
-			});
-			return;
-		}
-
+	const handleClockAction = async (isOvertime: boolean, qrToken: string) => {
 		try {
+			const response = await fetch('/api/attendance/check-in', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					token: qrToken,
+				}),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error);
+			} else {
+				toast({
+					title: 'QR válido',
+					description: 'El código QR fue validado correctamente',
+				});
+			}
+
 			// Get current location
-			const location = await getCurrentLocation().catch((error) => {
+			/* const location = await getCurrentLocation().catch((error) => {
 				throw new Error(translateError(error));
 			});
 
@@ -91,7 +112,7 @@ export function ClockIn() {
 				});
 				return;
 			}
-
+ */
 			// Get current date
 			const today = new Date().toISOString().split('T')[0];
 
@@ -99,7 +120,7 @@ export function ClockIn() {
 			let attendance;
 			const { data: existingAttendance, error: getError } = await getAttendanceByDate(
 				today,
-				user.uid
+				user?.uid as string
 			);
 
 			if (getError) {
@@ -112,7 +133,10 @@ export function ClockIn() {
 			}
 
 			if (!existingAttendance) {
-				const { data: newAttendance, error: createError } = await createAttendance(today, user.uid);
+				const { data: newAttendance, error: createError } = await createAttendance(
+					today,
+					user?.uid as string
+				);
 				if (createError) {
 					toast({
 						title: 'Error',
@@ -146,7 +170,7 @@ export function ClockIn() {
 					: 'regular_in';
 
 			// Create entry
-			const { error: entryError } = await createAttendanceEntry({
+			/* 			const { error: entryError } = await createAttendanceEntry({
 				attendance_id: attendance.id,
 				type: entryType,
 				entry_time: new Date().toISOString(),
@@ -163,7 +187,7 @@ export function ClockIn() {
 					variant: 'destructive',
 				});
 				return;
-			}
+			} */
 
 			// Update local state
 			if (isOvertime) {
@@ -202,7 +226,7 @@ export function ClockIn() {
 	return (
 		<div className="container mx-auto p-4 md:p-8">
 			<div className="grid gap-4 md:gap-6">
-				{user?.role === 'Admin' && (
+				{isAuthorized && (
 					<>
 						<div className="flex justify-end">
 							<Button variant="outline" onClick={() => setSettingsOpen(true)}>
@@ -213,18 +237,18 @@ export function ClockIn() {
 						<AdminAttendanceHistory />
 					</>
 				)}
-				{user?.role !== 'Admin' && (
+				{isTaller && (
 					<>
 						<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
 							<Button
-								onClick={() => handleClockAction(false)}
+								onClick={() => setShowScanner(true)}
 								size="lg"
 								className="text-base md:text-lg px-6 py-4 md:px-8 md:py-6 w-full sm:w-auto min-h-[60px] md:min-h-[72px]"
 							>
 								{isClockedIn ? 'Registrar salida' : 'Registrar entrada'}
 							</Button>
 							<Button
-								onClick={() => handleClockAction(true)}
+								onClick={() => setShowScanner(true)}
 								size="lg"
 								className="text-base md:text-lg px-6 py-4 md:px-8 md:py-6 w-full sm:w-auto min-h-[60px] md:min-h-[72px]"
 							>
@@ -235,6 +259,31 @@ export function ClockIn() {
 						</div>
 						<AttendanceHistory />
 					</>
+				)}
+				{showScanner && (
+					<QRScanner
+						onClose={() => setShowScanner(false)}
+						onScan={async (token) => {
+							setShowScanner(false);
+
+							await handleClockAction(false, token);
+						}}
+					/>
+				)}
+				{isQR && (
+					<Card className="max-w-md mx-auto">
+						<CardHeader>
+							<CardTitle>QR de fichaje</CardTitle>
+							<CardDescription>
+								Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
+								minuto.
+							</CardDescription>
+						</CardHeader>
+
+						<CardContent className="flex justify-center">
+							<AttendanceQRCode />
+						</CardContent>
+					</Card>
 				)}
 			</div>
 			<AttendanceSettings
