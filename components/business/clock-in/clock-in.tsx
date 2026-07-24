@@ -275,19 +275,16 @@ export function ClockIn() {
 						</CardContent>
 					</Card>
 				)}
-				<QRScanner
-					onClose={() => setShowScanner(false)}
-					onScan={(token) => {
-						console.log('TOKEN ESCANEADO:', token);
+				{showScanner && isTaller && (
+					<QRScanner
+						onClose={() => setShowScanner(false)}
+						onScan={async (token) => {
+							setShowScanner(false);
 
-						setShowScanner(false);
-
-						toast({
-							title: 'QR detectado',
-							description: 'El código fue leído correctamente',
-						});
-					}}
-				/>
+							await handleClockAction(false, token);
+						}}
+					/>
+				)}
 			</div>
 			<AttendanceSettings
 				open={settingsOpen}
