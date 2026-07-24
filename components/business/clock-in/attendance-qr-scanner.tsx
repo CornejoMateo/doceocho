@@ -27,6 +27,8 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 			(decodedText) => {
 				console.log('QR detectado:', decodedText);
 
+				alert('QR detectado');
+
 				scanner.stop().then(() => {
 					onScan(decodedText);
 				});

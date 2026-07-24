@@ -51,7 +51,7 @@ export default function AttendanceQRCode() {
 	}, []);
 
 	if (!token) {
-		return null;
+		return <div className="flex items-center justify-center h-[320px]">Cargando QR...</div>;
 	}
 
 	return <QRCodeSVG value={token} size={320} level="M" includeMargin />;
