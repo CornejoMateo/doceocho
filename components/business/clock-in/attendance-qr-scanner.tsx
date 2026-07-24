@@ -41,7 +41,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 				scannerRef.current.stop().catch(() => {});
 			}
 		};
-	}, []);
+	}, [onScan, onClose]);
 
 	return (
 		<div>
