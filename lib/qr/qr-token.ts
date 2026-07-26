@@ -1,8 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const secret = new TextEncoder().encode(process.env.QR_SECRET_KEY!);
-console.log('QR_SECRET_KEY:', process.env.QR_SECRET_KEY);
-console.log('SECRET LENGTH:', secret.length);
 
 export async function createQRToken() {
 	const window = Math.floor(Date.now() / 60000);
@@ -19,9 +17,20 @@ export async function createQRToken() {
 }
 
 export async function verifyQRToken(token: string) {
-	const { payload } = await jwtVerify(token, secret);
+	console.log('ANTES DE JWT VERIFY');
+
+	const result = await jwtVerify(token, secret);
+
+	console.log('DESPUES DE JWT VERIFY', result);
+
+	const { payload } = result;
 
 	const currentWindow = Math.floor(Date.now() / 60000);
+
+	console.log({
+		payloadWindow: payload.window,
+		currentWindow,
+	});
 
 	if (payload.window !== currentWindow && payload.window !== currentWindow - 1) {
 		throw new Error('QR expirado');
