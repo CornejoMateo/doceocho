@@ -18,7 +18,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 		const scanner = new QrScanner(
 			videoRef.current,
 			(result) => {
-				console.log('QR detectado:', result.data);
+				console.log('QR detectado RAW:', JSON.stringify(result.data));
 
 				scanner.stop();
 

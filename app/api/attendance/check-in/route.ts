@@ -3,7 +3,13 @@ import { verifyQRToken } from '@/lib/qr/qr-token';
 
 export async function POST(req: Request) {
 	try {
-		const { token } = await req.json();
+		const body = await req.json();
+
+		console.log('BODY RECIBIDO:', body);
+
+		const { token } = body;
+
+		console.log('TOKEN:', token);
 
 		if (!token || typeof token !== 'string') {
 			return NextResponse.json(
@@ -22,7 +28,9 @@ export async function POST(req: Request) {
 		return NextResponse.json({
 			success: true,
 		});
-	} catch {
+	} catch (error) {
+		console.error(error);
+
 		return NextResponse.json(
 			{
 				success: false,
