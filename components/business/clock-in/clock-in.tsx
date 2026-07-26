@@ -39,8 +39,11 @@ export function ClockIn() {
 
 	useEffect(() => {
 		if (!user) return;
+		if (!user.uid) return;
 
-		loadSettings();
+		if (isAuthorized) {
+			loadSettings();
+		}
 		loadAttendanceStatus();
 	}, [user]);
 
@@ -53,6 +56,9 @@ export function ClockIn() {
 
 	const loadAttendanceStatus = async () => {
 		if (!user) return;
+
+		console.log('user:', user);
+		console.log('uid:', JSON.stringify(user?.uid));
 
 		const { data, error } = await getAttendanceStatus(user.uid);
 
@@ -88,21 +94,27 @@ export function ClockIn() {
 
 		return location;
 	};
-
 	const finishClockAction = async (token: string) => {
+		console.log('Validando QR...');
+		console.log('token:', token);
+
 		const validateResponse = await fetch('/api/attendance/check-in', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({
-				token,
-			}),
+			body: JSON.stringify({ token }),
 		});
 
+		console.log('check-in status:', validateResponse.status);
+
 		if (!validateResponse.ok) {
-			throw new Error('QR inválido');
+			const data = await validateResponse.json();
+			console.log(data);
+			throw new Error(data.message);
 		}
+
+		console.log('Registrando fichaje...');
 
 		const registerResponse = await fetch('/api/attendance/register', {
 			method: 'POST',
@@ -116,10 +128,16 @@ export function ClockIn() {
 			}),
 		});
 
+		console.log('register status:', registerResponse.status);
+
 		if (!registerResponse.ok) {
-			throw new Error('No se pudo registrar el fichaje');
+			const data = await registerResponse.json();
+			console.log(data);
+			throw new Error(data.message);
 		}
+
 		await loadAttendanceStatus();
+
 		toast({
 			title: 'Fichaje registrado',
 			description: 'Entrada registrada correctamente',
@@ -216,9 +234,17 @@ export function ClockIn() {
 						onScan={async (token) => {
 							setShowScanner(false);
 
-							await finishClockAction(token);
-
-							setPendingClockAction(null);
+							try {
+								await finishClockAction(token);
+							} catch (error) {
+								toast({
+									title: 'Error',
+									description: translateError(error),
+									variant: 'destructive',
+								});
+							} finally {
+								setPendingClockAction(null);
+							}
 						}}
 					/>
 				)}
