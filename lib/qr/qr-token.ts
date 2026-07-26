@@ -1,6 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const secret = new TextEncoder().encode(process.env.QR_SECRET_KEY!);
+console.log('QR_SECRET_KEY:', process.env.QR_SECRET_KEY);
+console.log('SECRET LENGTH:', secret.length);
 
 export async function createQRToken() {
 	const window = Math.floor(Date.now() / 60000);
