@@ -17,20 +17,9 @@ export async function createQRToken() {
 }
 
 export async function verifyQRToken(token: string) {
-	console.log('ANTES DE JWT VERIFY');
-
-	const result = await jwtVerify(token, secret);
-
-	console.log('DESPUES DE JWT VERIFY', result);
-
-	const { payload } = result;
+	const { payload } = await jwtVerify(token, secret);
 
 	const currentWindow = Math.floor(Date.now() / 60000);
-
-	console.log({
-		payloadWindow: payload.window,
-		currentWindow,
-	});
 
 	if (payload.window !== currentWindow && payload.window !== currentWindow - 1) {
 		throw new Error('QR expirado');

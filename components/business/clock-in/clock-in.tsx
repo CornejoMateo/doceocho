@@ -94,10 +94,8 @@ export function ClockIn() {
 
 		return location;
 	};
-	const finishClockAction = async (token: string) => {
-		console.log('Validando QR...');
-		console.log('token:', token);
 
+	const finishClockAction = async (token: string) => {
 		const validateResponse = await fetch('/api/attendance/check-in', {
 			method: 'POST',
 			headers: {
@@ -116,7 +114,7 @@ export function ClockIn() {
 
 		console.log('Registrando fichaje...');
 
-		const registerResponse = await fetch('/api/attendance/register', {
+		const registerResponse = await fetch('/api/attendance/register-attendance', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -211,7 +209,7 @@ export function ClockIn() {
 					</>
 				)}
 				{isQR && (
-					<Card className="max-w-md mx-auto">
+					<Card className="w-full max-w-md mx-auto">
 						<CardHeader>
 							<CardTitle>QR de fichaje</CardTitle>
 							<CardDescription>
@@ -220,7 +218,7 @@ export function ClockIn() {
 							</CardDescription>
 						</CardHeader>
 
-						<CardContent className="flex justify-center">
+						<CardContent className="flex justify-center overflow-hidden">
 							<AttendanceQRCode />
 						</CardContent>
 					</Card>

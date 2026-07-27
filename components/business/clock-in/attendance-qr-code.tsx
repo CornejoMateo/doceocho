@@ -54,5 +54,13 @@ export default function AttendanceQRCode() {
 		return <div className="flex items-center justify-center h-[320px]">Cargando QR...</div>;
 	}
 
-	return <QRCodeSVG value={token} size={320} level="M" includeMargin />;
+	return (
+		<QRCodeSVG
+			className="w-full max-w-[280px] h-auto"
+			value={token}
+			size={320}
+			level="M"
+			marginSize={1}
+		/>
+	);
 }
