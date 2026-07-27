@@ -24,6 +24,7 @@ import {
 	MessageSquare,
 	LayoutList,
 	Trash2,
+	Clock,
 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
@@ -57,8 +58,9 @@ const navigation = [
 	{ name: 'Reportes de Presupuestos', href: '/budgets', icon: FileText, disabled: false },
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
+	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
 	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
-];
+] as const;
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -72,8 +74,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 	const allowedByRole = useMemo(() => {
 		return {
-			Admin: ['Panel', 'Insumos', 'Clientes', 'Kanban', 'Calendario', 'Flujo de Fondos', 'Obras', 'Chat', 'Reportes'],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras'],
+			Admin: [
+				'Panel',
+				'Insumos',
+				'Clientes',
+				'Kanban',
+				'Calendario',
+				'Flujo de Fondos',
+				'Obras',
+        'Chat',
+				'Reportes',
+				'Fichar',
+			],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Fichar'],
+			QR: ['Fichar'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
@@ -81,6 +95,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		return {
 			Admin: '/',
 			Taller: '/supplies',
+			QR: '/clock-in',
 		} as Record<UserRole, string>;
 	}, []);
 
