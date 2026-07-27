@@ -48,6 +48,7 @@ const baseWork: WorkWithProgress = {
 	hasNotes: false,
 	general_note: null,
 	tasks: [],
+	name: 'Obra Central',
 };
 
 describe('WorkCard', () => {
@@ -292,5 +293,90 @@ describe('WorkCard', () => {
 		);
 
 		expect(screen.getByText('Nota general')).toBeInTheDocument();
+	});
+
+	it('renders all 5 action buttons for admin users', () => {
+		render(
+			<WorkCard
+				work={baseWork}
+				user={{ role: 'Admin' }}
+				onOpenEmail={onOpenEmail}
+				onOpenWhatsApp={onOpenWhatsApp}
+				onOpenChecklist={onOpenChecklist}
+				onUpdateGeneralNote={onUpdateGeneralNote}
+			/>
+		);
+
+		expect(screen.getByText('Ver checklists')).toBeInTheDocument();
+		expect(screen.getByText('Agregar checklists')).toBeInTheDocument();
+		expect(screen.getByText('Agregar nota')).toBeInTheDocument();
+		expect(screen.getByText('Email')).toBeInTheDocument();
+		expect(screen.getByText('WhatsApp')).toBeInTheDocument();
+	});
+
+	it('uses responsive flex-col lg:flex-row layout', () => {
+		const { container } = render(
+			<WorkCard
+				work={baseWork}
+				user={{ role: 'Admin' }}
+				onOpenEmail={onOpenEmail}
+				onOpenWhatsApp={onOpenWhatsApp}
+				onOpenChecklist={onOpenChecklist}
+				onUpdateGeneralNote={onUpdateGeneralNote}
+			/>
+		);
+
+		const layoutDiv = container.querySelector('.flex.flex-col.lg\\:flex-row');
+		expect(layoutDiv).toBeInTheDocument();
+	});
+
+	it('buttons container has w-full for mobile stacking', () => {
+		const { container } = render(
+			<WorkCard
+				work={baseWork}
+				user={{ role: 'Admin' }}
+				onOpenEmail={onOpenEmail}
+				onOpenWhatsApp={onOpenWhatsApp}
+				onOpenChecklist={onOpenChecklist}
+				onUpdateGeneralNote={onUpdateGeneralNote}
+			/>
+		);
+
+		const buttonsDiv = container.querySelector('.flex.flex-col.gap-2.w-full.lg\\:w-auto');
+		expect(buttonsDiv).toBeInTheDocument();
+	});
+
+	it('renders work name when provided', () => {
+		const workWithName = { ...baseWork, name: 'Obra Centro' };
+
+		render(
+			<WorkCard
+				work={workWithName}
+				user={{ role: 'Admin' }}
+				onOpenEmail={onOpenEmail}
+				onOpenWhatsApp={onOpenWhatsApp}
+				onOpenChecklist={onOpenChecklist}
+				onUpdateGeneralNote={onUpdateGeneralNote}
+			/>
+		);
+
+		expect(screen.getByText('Obra Centro')).toBeInTheDocument();
+	});
+
+	it('falls back to work id when name is not provided', () => {
+		baseWork.name = null; // Remove name for this test
+
+		render(
+			<WorkCard
+				work={baseWork}
+				user={{ role: 'Admin' }}
+				onOpenEmail={onOpenEmail}
+				onOpenWhatsApp={onOpenWhatsApp}
+				onOpenChecklist={onOpenChecklist}
+				onUpdateGeneralNote={onUpdateGeneralNote}
+			/>
+		);
+
+		expect(screen.getByText(String(baseWork.id))).toBeInTheDocument();
 	});
 });
