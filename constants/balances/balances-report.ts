@@ -5,14 +5,10 @@ export const BALANCES_REPORT_COLUMNS = {
 	client: 'CLIENTE',
 	work: 'OBRA',
 	concept: 'CONCEPTO',
-	purchase: 'compra',
-	deliveries: 'entregas',
+	purchase: 'COMPRA',
+	deliveries: 'ENTREGAS',
 	balanceType: 'TIPO DE SALDO',
 	balanceAmount: 'MONTO DE SALDO',
-	usdContractRef: 'USD REF. FECHA DE CONTRATACION',
-	usdCurrentToCancel: 'USD AL MOMENTO DE CANCELAR SALDO ACTUAL',
-	observations: 'OBSERVACIONES',
-	balanceInUseUsd: 'SALDO EN USD',
 } as const;
 
 export const BALANCE_TYPES = {
@@ -23,3 +19,23 @@ export const BALANCE_TYPES = {
 } as const;
 
 export const DEFAULT_FALLBACK = '-';
+
+export const BALANCE_FILTER_DEFAULTS = {
+	balanceType: 'all',
+	minPurchaseArs: '',
+	maxPurchaseArs: '',
+	minDeliveriesArs: '',
+	maxDeliveriesArs: '',
+	minBalanceArs: '',
+	maxBalanceArs: '',
+} as const;
+
+export const BALANCE_FILTER_LABELS = {
+	balanceType: 'Tipo de saldo',
+	minPurchaseArs: 'Compra ARS mínima',
+	maxPurchaseArs: 'Compra ARS máxima',
+	minDeliveriesArs: 'Entregas ARS mínimas',
+	maxDeliveriesArs: 'Entregas ARS máximas',
+	minBalanceArs: 'Saldo ARS mínimo',
+	maxBalanceArs: 'Saldo ARS máximo',
+} as const;

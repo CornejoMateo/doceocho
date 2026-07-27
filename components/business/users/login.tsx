@@ -66,7 +66,7 @@ export default function LoginPage() {
 			<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#4F5C4D] to-[#3A3F36]">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#FBF7F0] mx-auto mb-4"></div>
-					<p className="text-[#FBF7F0] text-lg">Cargando...</p>
+					<p className="text-[#FBF7F0] text-lg">Iniciando sesión...</p>
 				</div>
 			</div>
 		);
