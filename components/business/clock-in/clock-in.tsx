@@ -16,6 +16,7 @@ import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QRScanner from './attendance-qr-scanner';
+import { getSupabaseClient } from '@/lib/supabase-client';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
@@ -29,13 +30,29 @@ export function ClockIn() {
 			longitude: number;
 		};
 	} | null>(null);
+
+	const { user: authUser } = useAuth();
+
 	const { user } = useAuth();
 
-	const [showScanner, setShowScanner] = useState(false);
+	useEffect(() => {
+		const check = async () => {
+			const supabase = getSupabaseClient();
 
-	const isAuthorized = user?.role === 'Admin';
-	const isTaller = user?.role === 'Taller';
-	const isQR = user?.role === 'QR';
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+
+			console.log('AuthProvider:', user?.uid);
+			console.log('Supabase session:', session?.user.id);
+		};
+
+		check();
+	}, [user]);
+
+	console.log('AuthProvider user:', authUser?.uid);
+
+	const [showScanner, setShowScanner] = useState(false);
 
 	useEffect(() => {
 		if (!user) return;
@@ -46,6 +63,10 @@ export function ClockIn() {
 		}
 		loadAttendanceStatus();
 	}, [user]);
+
+	const isAuthorized = user?.role === 'Admin';
+	const isTaller = user?.role === 'Taller';
+	const isQR = user?.role === 'QR';
 
 	const loadSettings = async () => {
 		const { data: settings } = await getAttendanceSettings();
