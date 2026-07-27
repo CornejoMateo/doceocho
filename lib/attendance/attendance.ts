@@ -241,7 +241,7 @@ export async function getAttendanceSettings(): Promise<{
 		.from('attendance_settings')
 		.select('*')
 		.eq('id', 1)
-		.single();
+		.maybeSingle();
 
 	return { data, error };
 }
@@ -256,8 +256,7 @@ export async function updateAttendanceSettings(
 
 	const { data, error } = await supabase
 		.from('attendance_settings')
-		.update(settings)
-		.eq('id', 1)
+		.upsert({ ...settings, id: 1 })
 		.select()
 		.single();
 
