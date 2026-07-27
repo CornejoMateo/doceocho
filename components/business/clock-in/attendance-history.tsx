@@ -77,7 +77,7 @@ export function AttendanceHistory() {
 			) : (
 				<Card>
 					<CardHeader>
-						<div className="flex items-center justify-between">
+						<div className="flex items-center justify-between w-full">
 							<CardTitle className="text-lg md:text-xl">Historial de Fichajes</CardTitle>
 							<Button onClick={handleToggleHistory} variant="ghost" size="sm">
 								Ocultar

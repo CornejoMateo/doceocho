@@ -208,29 +208,49 @@ export function ClockIn() {
 						{loading ? (
 							<p className="text-muted-foreground text-sm">Cargando...</p>
 						) : (
-							<>
-								{!isClockedIn && !isClockedInOvertime && (
-									<>
-										<Button onClick={() => handleClockAction(false)}>Registrar entrada</Button>
-
-										<Button onClick={() => handleClockAction(true)}>
-											Registrar entrada (horas extras)
+							<div className="flex flex-col items-center gap-2 w-full max-w-sm justify-center mx-auto">
+								<div className="flex flex-col sm:flex-row gap-2 justify-center w-full">
+									{' '}
+									{!isClockedIn && !isClockedInOvertime && (
+										<>
+											<Button
+												size="sm"
+												className="w-full sm:flex-1"
+												onClick={() => handleClockAction(false)}
+											>
+												Registrar entrada
+											</Button>
+											<Button
+												size="sm"
+												className="w-full sm:flex-1"
+												onClick={() => handleClockAction(true)}
+											>
+												Registrar entrada (horas extras)
+											</Button>
+										</>
+									)}
+									{isClockedIn && (
+										<Button
+											size="sm"
+											className="w-full sm:flex-1"
+											onClick={() => handleClockAction(false)}
+										>
+											Registrar salida
 										</Button>
-									</>
-								)}
-
-								{isClockedIn && (
-									<Button onClick={() => handleClockAction(false)}>Registrar salida</Button>
-								)}
-
-								{isClockedInOvertime && (
-									<Button onClick={() => handleClockAction(true)}>
-										Registrar salida (horas extras)
-									</Button>
-								)}
-							</>
+									)}
+									{isClockedInOvertime && (
+										<Button
+											size="sm"
+											className="w-full sm:flex-1"
+											onClick={() => handleClockAction(true)}
+										>
+											Registrar salida (horas extras)
+										</Button>
+									)}
+								</div>
+								<AttendanceHistory />
+							</div>
 						)}
-						<AttendanceHistory />
 					</>
 				)}
 				{isQR && (
