@@ -210,7 +210,6 @@ export function ClockIn() {
 						) : (
 							<div className="flex flex-col items-center gap-2 w-full max-w-sm justify-center mx-auto">
 								<div className="flex flex-col sm:flex-row gap-2 justify-center w-full">
-									{' '}
 									{!isClockedIn && !isClockedInOvertime && (
 										<>
 											<Button
