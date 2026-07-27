@@ -148,18 +148,26 @@ export function WorksList({
 							<div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
 								<div className="flex-1 min-w-0">
 									<EditableField
+										value={work.name || ''}
+										onSave={async (newValue) => {
+											await handleUpdateWork(work.id, { name: newValue });
+										}}
+										className="text-base sm:text-lg font-semibold truncate"
+									/>
+									<EditableField
 										value={work.address || ''}
 										onSave={async (newValue) => {
 											await handleUpdateWork(work.id, { address: newValue });
 										}}
 										label="Dirección"
-										className="text-base sm:text-lg font-semibold truncate"
+										className="text-xs sm:text-sm text-muted-foreground truncate"
 									/>
 									<EditableField
 										value={work.locality || ''}
 										onSave={async (newValue) => {
 											await handleUpdateWork(work.id, { locality: newValue });
 										}}
+										label="Localidad"
 										className="text-xs sm:text-sm text-muted-foreground truncate"
 									/>
 									<EditableField
@@ -168,6 +176,7 @@ export function WorksList({
 											await handleUpdateWork(work.id, { zone: newValue });
 										}}
 										formatDisplay={(value) => value || 'Zona no especificada'}
+										label="Zona"
 										className="text-xs sm:text-sm text-muted-foreground truncate"
 									/>
 									<EditableField
@@ -176,6 +185,7 @@ export function WorksList({
 											await handleUpdateWork(work.id, { hood: newValue });
 										}}
 										formatDisplay={(value) => value || 'Barrio no especificado'}
+										label="Barrio"
 										className="text-xs sm:text-sm text-muted-foreground truncate"
 									/>
 								</div>
