@@ -16,7 +16,6 @@ import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QRScanner from './attendance-qr-scanner';
-import { getSupabaseClient } from '@/lib/supabase-client';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
@@ -142,10 +141,14 @@ export function ClockIn() {
 
 			await loadAttendanceStatus();
 
+			const isCheckOut = isClockedIn || isClockedInOvertime;
+
 			loadingToast.update({
 				id: loadingToast.id,
 				title: 'Fichaje registrado',
-				description: 'Entrada registrada correctamente',
+				description: isCheckOut
+					? 'Salida registrada correctamente'
+					: 'Entrada registrada correctamente',
 			});
 		} catch (error) {
 			loadingToast.update({
