@@ -31,37 +31,24 @@ export function ClockIn() {
 		};
 	} | null>(null);
 
-	const { user: authUser } = useAuth();
-
 	const { user } = useAuth();
 
-	useEffect(() => {
-		const check = async () => {
-			const supabase = getSupabaseClient();
-
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-
-			console.log('AuthProvider:', user?.uid);
-			console.log('Supabase session:', session?.user.id);
-		};
-
-		check();
-	}, [user]);
-
-	console.log('AuthProvider user:', authUser?.uid);
-
 	const [showScanner, setShowScanner] = useState(false);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		if (!user) return;
 		if (!user.uid) return;
 
-		if (isAuthorized) {
-			loadSettings();
-		}
-		loadAttendanceStatus();
+		const init = async () => {
+			if (isAuthorized) {
+				await loadSettings();
+			}
+			await loadAttendanceStatus();
+			setLoading(false);
+		};
+
+		init();
 	}, [user]);
 
 	const isAuthorized = user?.role === 'Admin';
@@ -117,50 +104,58 @@ export function ClockIn() {
 	};
 
 	const finishClockAction = async (token: string) => {
-		const validateResponse = await fetch('/api/attendance/check-in', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({ token }),
+		const loadingToast = toast({
+			title: 'Registrando fichaje...',
+			description: 'Validando datos y guardando en la base de datos.',
 		});
 
-		console.log('check-in status:', validateResponse.status);
+		try {
+			const validateResponse = await fetch('/api/attendance/check-in', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ token }),
+			});
 
-		if (!validateResponse.ok) {
-			const data = await validateResponse.json();
-			console.log(data);
-			throw new Error(data.message);
+			if (!validateResponse.ok) {
+				const data = await validateResponse.json();
+				throw new Error(data.message);
+			}
+
+			const registerResponse = await fetch('/api/attendance/register-attendance', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					isOvertime: pendingClockAction?.isOvertime,
+					latitude: pendingClockAction?.location.latitude,
+					longitude: pendingClockAction?.location.longitude,
+				}),
+			});
+
+			if (!registerResponse.ok) {
+				const data = await registerResponse.json();
+				throw new Error(data.message);
+			}
+
+			await loadAttendanceStatus();
+
+			loadingToast.update({
+				id: loadingToast.id,
+				title: 'Fichaje registrado',
+				description: 'Entrada registrada correctamente',
+			});
+		} catch (error) {
+			loadingToast.update({
+				id: loadingToast.id,
+				title: 'Error al registrar fichaje',
+				description: translateError(error),
+				variant: 'destructive',
+			});
+			throw error;
 		}
-
-		console.log('Registrando fichaje...');
-
-		const registerResponse = await fetch('/api/attendance/register-attendance', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				isOvertime: pendingClockAction?.isOvertime,
-				latitude: pendingClockAction?.location.latitude,
-				longitude: pendingClockAction?.location.longitude,
-			}),
-		});
-
-		console.log('register status:', registerResponse.status);
-
-		if (!registerResponse.ok) {
-			const data = await registerResponse.json();
-			console.log(data);
-			throw new Error(data.message);
-		}
-
-		await loadAttendanceStatus();
-
-		toast({
-			title: 'Fichaje registrado',
-			description: 'Entrada registrada correctamente',
-		});
 	};
 
 	const handleClockAction = async (isOvertime: boolean) => {
@@ -207,24 +202,30 @@ export function ClockIn() {
 				)}
 				{isTaller && (
 					<>
-						{!isClockedIn && !isClockedInOvertime && (
+						{loading ? (
+							<p className="text-muted-foreground text-sm">Cargando...</p>
+						) : (
 							<>
-								<Button onClick={() => handleClockAction(false)}>Registrar entrada</Button>
+								{!isClockedIn && !isClockedInOvertime && (
+									<>
+										<Button onClick={() => handleClockAction(false)}>Registrar entrada</Button>
 
-								<Button onClick={() => handleClockAction(true)}>
-									Registrar entrada (horas extras)
-								</Button>
+										<Button onClick={() => handleClockAction(true)}>
+											Registrar entrada (horas extras)
+										</Button>
+									</>
+								)}
+
+								{isClockedIn && (
+									<Button onClick={() => handleClockAction(false)}>Registrar salida</Button>
+								)}
+
+								{isClockedInOvertime && (
+									<Button onClick={() => handleClockAction(true)}>
+										Registrar salida (horas extras)
+									</Button>
+								)}
 							</>
-						)}
-
-						{isClockedIn && (
-							<Button onClick={() => handleClockAction(false)}>Registrar salida</Button>
-						)}
-
-						{isClockedInOvertime && (
-							<Button onClick={() => handleClockAction(true)}>
-								Registrar salida (horas extras)
-							</Button>
 						)}
 						<AttendanceHistory />
 					</>
@@ -255,12 +256,7 @@ export function ClockIn() {
 
 							try {
 								await finishClockAction(token);
-							} catch (error) {
-								toast({
-									title: 'Error',
-									description: translateError(error),
-									variant: 'destructive',
-								});
+							} catch {
 							} finally {
 								setPendingClockAction(null);
 							}

@@ -11,8 +11,6 @@ export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
 		const { isOvertime, latitude, longitude } = await req.json();
-
-		console.log('USER:', user.id);
 		const userId = user?.id;
 
 		if (!userId) {
