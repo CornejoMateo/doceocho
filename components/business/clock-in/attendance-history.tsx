@@ -77,7 +77,7 @@ export function AttendanceHistory() {
 			) : (
 				<Card>
 					<CardHeader>
-						<div className="flex items-center justify-between w-full">
+						<div className="flex items-center justify-between">
 							<CardTitle className="text-lg md:text-xl">Historial de Fichajes</CardTitle>
 							<Button onClick={handleToggleHistory} variant="ghost" size="sm">
 								Ocultar
@@ -92,12 +92,12 @@ export function AttendanceHistory() {
 						) : (
 							<>
 								<div className="flex flex-col sm:flex-row gap-3">
-									<div className="flex gap-2">
+									<div className="flex gap-2 w-full sm:w-auto">
 										<Button
 											variant={filterType === 'all' ? 'default' : 'outline'}
 											size="sm"
 											onClick={() => setFilterType('all')}
-											className="flex-1 sm:flex-none"
+											className="h-10 flex-1 sm:flex-none"
 										>
 											Todos
 										</Button>
@@ -105,7 +105,7 @@ export function AttendanceHistory() {
 											variant={filterType === 'regular' ? 'default' : 'outline'}
 											size="sm"
 											onClick={() => setFilterType('regular')}
-											className="flex-1 sm:flex-none"
+											className="h-10 flex-1 sm:flex-none"
 										>
 											Normal
 										</Button>
@@ -113,7 +113,7 @@ export function AttendanceHistory() {
 											variant={filterType === 'overtime' ? 'default' : 'outline'}
 											size="sm"
 											onClick={() => setFilterType('overtime')}
-											className="flex-1 sm:flex-none"
+											className="h-10 flex-1 sm:flex-none"
 										>
 											Horas Extras
 										</Button>
@@ -133,7 +133,7 @@ export function AttendanceHistory() {
 											: 'No hay registros con los filtros aplicados'}
 									</div>
 								) : (
-									<div className="space-y-2">
+									<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
 										{filteredEntries.map((entry) => (
 											<div
 												key={entry.id}
