@@ -82,6 +82,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Fichar',
 			],
 			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Obras', 'Fichar'],
+			QR: ['Fichar'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
@@ -89,6 +90,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		return {
 			Admin: '/',
 			Taller: '/supplies',
+			QR: '/clock-in',
 		} as Record<UserRole, string>;
 	}, []);
 
