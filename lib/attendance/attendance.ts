@@ -237,7 +237,11 @@ export async function getAttendanceSettings(): Promise<{
 }> {
 	const supabase = getSupabaseClient();
 
-	const { data, error } = await supabase.from('attendance_settings').select('*').single();
+	const { data, error } = await supabase
+		.from('attendance_settings')
+		.select('*')
+		.eq('id', 1)
+		.single();
 
 	return { data, error };
 }
@@ -252,7 +256,8 @@ export async function updateAttendanceSettings(
 
 	const { data, error } = await supabase
 		.from('attendance_settings')
-		.upsert(settings)
+		.update(settings)
+		.eq('id', 1)
 		.select()
 		.single();
 

@@ -33,23 +33,15 @@ export function PaymentSummaryModal({ userId, userName, open, onOpenChange }: Pa
 		if (!userId || !userName) return;
 
 		setLoading(true);
-		console.log('Loading payment summary for user:', userId, userName);
 		const { data, error } = await calculatePaymentSummary(userId, userName);
 
 		if (error) {
-			console.error('Error loading payment summary:', error);
 			toast({
 				title: 'Error',
 				description: translateError(error) || 'No se pudo cargar el resumen de pagos',
 				variant: 'destructive',
 			});
 		} else {
-			console.log('Payment summary loaded:', data);
-			if (data) {
-				console.log('Daily data:', data.daily);
-				console.log('Weekly data:', data.weekly);
-				console.log('Monthly data:', data.monthly);
-			}
 			setSummary(data);
 		}
 		setLoading(false);
