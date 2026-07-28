@@ -16,6 +16,7 @@ import { es } from 'date-fns/locale';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { formatCurrency } from '@/utils/formats-money';
+import { formatCreatedAt } from '@/utils/format-date';
 import { DollarSign, Calendar, Clock } from 'lucide-react';
 
 interface PaymentSummaryProps {
@@ -57,10 +58,6 @@ export function PaymentSummaryModal({ userId, userName, open, onOpenChange }: Pa
 	if (!userId || !userName) {
 		return null;
 	}
-
-	const formatDate = (dateStr: string) => {
-		return format(new Date(dateStr), 'dd/MM/yyyy', { locale: es });
-	};
 
 	const formatMonth = (monthStr: string) => {
 		const [year, month] = monthStr.split('-');
@@ -124,7 +121,7 @@ export function PaymentSummaryModal({ userId, userName, open, onOpenChange }: Pa
 											<div className="flex items-center gap-3">
 												<Calendar className="h-4 w-4 text-gray-500" />
 												<div>
-													<div className="font-medium">{formatDate(day.date)}</div>
+													<div className="font-medium">{formatCreatedAt(day.date)}</div>
 													<div className="text-sm text-gray-500">
 														{day.regular_hours}h normales · {day.overtime_hours}h extras
 													</div>
@@ -153,7 +150,7 @@ export function PaymentSummaryModal({ userId, userName, open, onOpenChange }: Pa
 												<Calendar className="h-4 w-4 text-gray-500" />
 												<div>
 													<div className="font-medium">
-														{formatDate(week.week_start)} - {formatDate(week.week_end)}
+														{formatCreatedAt(week.week_start)} - {formatCreatedAt(week.week_end)}
 													</div>
 													<div className="text-sm text-gray-500">
 														{week.regular_hours}h normales · {week.overtime_hours}h extras
