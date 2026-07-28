@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -36,9 +36,8 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		DEFAULT_PRICE_HOUR_OVERTIME.toString()
 	);
 	const [adminLoading, setAdminLoading] = useState(false);
-	const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-	const loadSettings = async () => {
+	const loadSettings = useCallback(async () => {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setAdminSquareMeters(settings.square_meters.toString());
@@ -51,8 +50,7 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		if (settings?.price_hour_overtime !== null && settings?.price_hour_overtime !== undefined) {
 			setPriceHourOvertime(settings.price_hour_overtime.toString());
 		}
-		setSettingsLoaded(true);
-	};
+	}, []);
 
 	const handleAdminSave = async () => {
 		const radiusValue = parseInt(adminSquareMeters, 10);
@@ -109,19 +107,11 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		}
 	};
 
-	// Load settings when dialog opens
 	useEffect(() => {
 		if (open) {
 			loadSettings();
 		}
-	}, [open]);
-
-	// Also load settings on mount if not loaded yet
-	useEffect(() => {
-		if (!settingsLoaded) {
-			loadSettings();
-		}
-	}, []);
+	}, [open, loadSettings]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
