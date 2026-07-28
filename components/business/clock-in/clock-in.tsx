@@ -64,9 +64,6 @@ export function ClockIn() {
 	const loadAttendanceStatus = async () => {
 		if (!user) return;
 
-		console.log('user:', user);
-		console.log('uid:', JSON.stringify(user?.uid));
-
 		const { data, error } = await getAttendanceStatus(user.uid);
 
 		if (error) {
@@ -103,6 +100,14 @@ export function ClockIn() {
 	};
 
 	const finishClockAction = async (token: string) => {
+		validateLocation().catch((error) => {
+			toast({
+				title: 'Error',
+				description: translateError(error),
+				variant: 'destructive',
+			});
+			throw error;
+		});
 		const loadingToast = toast({
 			title: 'Registrando fichaje...',
 			description: 'Validando datos y guardando en la base de datos.',
@@ -131,6 +136,7 @@ export function ClockIn() {
 					isOvertime: pendingClockAction?.isOvertime,
 					latitude: pendingClockAction?.location.latitude,
 					longitude: pendingClockAction?.location.longitude,
+					radiusMeters: radiusMeters,
 				}),
 			});
 
@@ -153,7 +159,8 @@ export function ClockIn() {
 		} catch (error) {
 			loadingToast.update({
 				id: loadingToast.id,
-				title: 'Error al registrar fichaje',
+				title:
+					'Error al registrar fichaje. Saca una foto del error para poder mostrarsela a los desarrolladores',
 				description: translateError(error),
 				variant: 'destructive',
 			});

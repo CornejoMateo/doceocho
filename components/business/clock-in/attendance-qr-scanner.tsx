@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import QrScanner from 'qr-scanner';
+import { Button } from '@/components/ui/button';
 
 interface QRScannerProps {
 	onScan: (token: string) => void;
@@ -42,7 +43,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 	}, [onScan]);
 
 	return (
-		<div>
+		<div className="flex flex-col items-center justify-center space-y-4">
 			<video
 				ref={videoRef}
 				style={{
@@ -50,8 +51,9 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 					maxWidth: 400,
 				}}
 			/>
-
-			<button onClick={onClose}>Cancelar</button>
+			<Button variant="outline" onClick={onClose} className="w-full max-w-md">
+				Cancelar
+			</Button>
 		</div>
 	);
 }
