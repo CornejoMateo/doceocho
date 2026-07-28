@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
+import { formatCurrency } from '@/utils/formats-money';
 import { DollarSign, Calendar, Clock } from 'lucide-react';
 
 interface PaymentSummaryProps {
@@ -56,13 +57,6 @@ export function PaymentSummaryModal({ userId, userName, open, onOpenChange }: Pa
 	if (!userId || !userName) {
 		return null;
 	}
-
-	const formatCurrency = (value: number) => {
-		return new Intl.NumberFormat('es-AR', {
-			style: 'currency',
-			currency: 'ARS',
-		}).format(value);
-	};
 
 	const formatDate = (dateStr: string) => {
 		return format(new Date(dateStr), 'dd/MM/yyyy', { locale: es });
