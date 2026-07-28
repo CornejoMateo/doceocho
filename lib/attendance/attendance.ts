@@ -67,7 +67,8 @@ export interface PaymentSummary {
 		overtime_hours: number;
 		total_payment: number;
 	}[];
-  
+}
+
 /**
  * Create a new attendance record for the current user
  */
