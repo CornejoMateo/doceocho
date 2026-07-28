@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -14,7 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAttendanceSettings, updateAttendanceSettings } from '@/lib/attendance/attendance';
-import { DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
+import {
+	DEFAULT_RADIUS_METERS,
+	DEFAULT_PRICE_HOUR,
+	DEFAULT_PRICE_HOUR_OVERTIME,
+} from '@/constants/attendance/attendance';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 
@@ -24,30 +28,68 @@ interface AttendanceSettingsProps {
 }
 
 export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsProps) {
-	const [adminSquareMeters, setAdminSquareMeters] = useState<string>('');
+	const [adminSquareMeters, setAdminSquareMeters] = useState<string>(
+		DEFAULT_RADIUS_METERS.toString()
+	);
+	const [priceHour, setPriceHour] = useState<string>(DEFAULT_PRICE_HOUR.toString());
+	const [priceHourOvertime, setPriceHourOvertime] = useState<string>(
+		DEFAULT_PRICE_HOUR_OVERTIME.toString()
+	);
 	const [adminLoading, setAdminLoading] = useState(false);
 
-	const loadSettings = async () => {
+	const loadSettings = useCallback(async () => {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setAdminSquareMeters(settings.square_meters.toString());
+		} else {
+			setAdminSquareMeters(DEFAULT_RADIUS_METERS.toString());
 		}
-	};
+		if (settings?.price_hour !== null && settings?.price_hour !== undefined) {
+			setPriceHour(settings.price_hour.toString());
+		}
+		if (settings?.price_hour_overtime !== null && settings?.price_hour_overtime !== undefined) {
+			setPriceHourOvertime(settings.price_hour_overtime.toString());
+		}
+	}, []);
 
 	const handleAdminSave = async () => {
-		const value = parseInt(adminSquareMeters, 10);
+		const radiusValue = parseInt(adminSquareMeters, 10);
+		const priceHourValue = parseFloat(priceHour);
+		const priceHourOvertimeValue = parseFloat(priceHourOvertime);
 
-		if (isNaN(value) || value < DEFAULT_RADIUS_METERS) {
+		if (isNaN(radiusValue) || radiusValue < DEFAULT_RADIUS_METERS) {
 			toast({
 				title: 'Error',
-				description: translateError(`El radio debe ser al menos ${DEFAULT_RADIUS_METERS} metros`),
+				description: `El radio debe ser al menos ${DEFAULT_RADIUS_METERS} metros`,
+				variant: 'destructive',
+			});
+			return;
+		}
+
+		if (isNaN(priceHourValue) || priceHourValue < 0) {
+			toast({
+				title: 'Error',
+				description: 'El precio por hora debe ser un valor válido',
+				variant: 'destructive',
+			});
+			return;
+		}
+
+		if (isNaN(priceHourOvertimeValue) || priceHourOvertimeValue < 0) {
+			toast({
+				title: 'Error',
+				description: 'El precio por hora extra debe ser un valor válido',
 				variant: 'destructive',
 			});
 			return;
 		}
 
 		setAdminLoading(true);
-		const { error } = await updateAttendanceSettings({ square_meters: value });
+		const { error } = await updateAttendanceSettings({
+			square_meters: radiusValue,
+			price_hour: priceHourValue,
+			price_hour_overtime: priceHourOvertimeValue,
+		});
 		setAdminLoading(false);
 
 		if (error) {
@@ -59,16 +101,17 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		} else {
 			toast({
 				title: 'Configuración guardada',
-				description: 'El radio de ubicación se actualizó correctamente',
+				description: 'La configuración se actualizó correctamente',
 			});
 			onOpenChange(false);
 		}
 	};
 
-	// Load settings when dialog opens
-	if (open && !adminSquareMeters) {
-		loadSettings();
-	}
+	useEffect(() => {
+		if (open) {
+			loadSettings();
+		}
+	}, [open, loadSettings]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -97,6 +140,46 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 									onChange={(e) => setAdminSquareMeters(e.target.value)}
 									min={DEFAULT_RADIUS_METERS}
 									placeholder={DEFAULT_RADIUS_METERS.toString()}
+									className="text-base"
+								/>
+							</div>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-lg">Precios por Hora</CardTitle>
+							<CardDescription className="text-sm">
+								Configura los precios por hora para calcular los pagos a fin de mes
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="price-hour" className="text-sm">
+									Precio por hora normal
+								</Label>
+								<Input
+									id="price-hour"
+									type="number"
+									step="0.01"
+									value={priceHour}
+									onChange={(e) => setPriceHour(e.target.value)}
+									min="0"
+									placeholder={DEFAULT_PRICE_HOUR.toString()}
+									className="text-base"
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="price-hour-overtime" className="text-sm">
+									Precio por hora extra
+								</Label>
+								<Input
+									id="price-hour-overtime"
+									type="number"
+									step="0.01"
+									value={priceHourOvertime}
+									onChange={(e) => setPriceHourOvertime(e.target.value)}
+									min="0"
+									placeholder={DEFAULT_PRICE_HOUR_OVERTIME.toString()}
 									className="text-base"
 								/>
 							</div>

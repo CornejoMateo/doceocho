@@ -21,8 +21,9 @@ import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
 import { CreateEntryModal } from './create-entry-modal';
+import { PaymentSummaryModal } from './payment-summary';
 import { toast } from '@/components/ui/use-toast';
-import { Pencil, Trash2, Plus, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, Plus, AlertTriangle, DollarSign } from 'lucide-react';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -51,6 +52,7 @@ export function AdminAttendanceHistory() {
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
 	const [createModalOpen, setCreateModalOpen] = useState(false);
+	const [paymentSummaryOpen, setPaymentSummaryOpen] = useState(false);
 
 	const loadHistory = async () => {
 		setLoading(true);
@@ -224,17 +226,28 @@ export function AdminAttendanceHistory() {
 
 											{selectedUser === summary.user_id && (
 												<div className="p-4 bg-gray-50 border-t">
-													<div className="flex justify-between items-center mb-4">
+													<div className="flex justify-between items-center mb-4 gap-2">
 														<h3 className="font-medium text-sm md:text-base">Registros</h3>
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() => setCreateModalOpen(true)}
-															className="h-8 text-xs"
-														>
-															<Plus className="h-3 w-3 mr-1" />
-															Crear registro
-														</Button>
+														<div className="flex gap-2">
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() => setPaymentSummaryOpen(true)}
+																className="h-8 text-xs"
+															>
+																<DollarSign className="h-3 w-3 mr-1" />
+																Pagos
+															</Button>
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() => setCreateModalOpen(true)}
+																className="h-8 text-xs"
+															>
+																<Plus className="h-3 w-3 mr-1" />
+																Crear registro
+															</Button>
+														</div>
 													</div>
 													<div className="space-y-2">
 														{summary.entries.map((entry: AttendanceEntryWithDate) => (
@@ -328,6 +341,12 @@ export function AdminAttendanceHistory() {
 				open={createModalOpen}
 				onOpenChange={setCreateModalOpen}
 				onUpdate={loadHistory}
+			/>
+			<PaymentSummaryModal
+				userId={selectedUser}
+				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
+				open={paymentSummaryOpen}
+				onOpenChange={setPaymentSummaryOpen}
 			/>
 		</>
 	);
