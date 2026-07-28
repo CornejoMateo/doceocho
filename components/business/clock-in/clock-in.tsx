@@ -4,12 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
-import {
-	createAttendance,
-	getAttendanceByDate,
-	createAttendanceEntry,
-	getAttendanceSettings,
-} from '@/lib/attendance/attendance';
+import { getAttendanceSettings, getAttendanceStatus } from '@/lib/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
@@ -18,38 +13,46 @@ import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
 import { Settings } from 'lucide-react';
+import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import QRScanner from './attendance-qr-scanner';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [pendingClockAction, setPendingClockAction] = useState<{
+		isOvertime: boolean;
+		location: {
+			latitude: number;
+			longitude: number;
+		};
+	} | null>(null);
+
 	const { user } = useAuth();
 
-	// Load state from localStorage on mount
+	const [showScanner, setShowScanner] = useState(false);
+	const [loading, setLoading] = useState(true);
+
 	useEffect(() => {
-		async function loadSettings() {
-			const { data: settings } = await getAttendanceSettings();
-			if (settings?.square_meters) {
-				setRadiusMeters(settings.square_meters);
-			}
-		}
+		if (!user) return;
+		if (!user.uid) return;
 
-		// Load attendance state from localStorage
-		const today = new Date().toISOString().split('T')[0];
-		const savedState = localStorage.getItem(`attendance_state_${today}`);
-		if (savedState) {
-			try {
-				const state = JSON.parse(savedState);
-				setIsClockedIn(state.isClockedIn || false);
-				setIsClockedInOvertime(state.isClockedInOvertime || false);
-			} catch (e) {
-				// If parsing fails, use default state
+		const init = async () => {
+			if (isAuthorized) {
+				await loadSettings();
 			}
-		}
+			await loadAttendanceStatus();
+			setLoading(false);
+		};
 
-		loadSettings();
-	}, []);
+		init();
+	}, [user]);
+
+	const isAuthorized = user?.role === 'Admin';
+	const isTaller = user?.role === 'Taller';
+	const isQR = user?.role === 'QR';
 
 	const loadSettings = async () => {
 		const { data: settings } = await getAttendanceSettings();
@@ -58,142 +61,129 @@ export function ClockIn() {
 		}
 	};
 
+	const loadAttendanceStatus = async () => {
+		if (!user) return;
+
+		console.log('user:', user);
+		console.log('uid:', JSON.stringify(user?.uid));
+
+		const { data, error } = await getAttendanceStatus(user.uid);
+
+		if (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error),
+				variant: 'destructive',
+			});
+			return;
+		}
+
+		setIsClockedIn(data?.regularOpen ?? false);
+		setIsClockedInOvertime(data?.overtimeOpen ?? false);
+	};
+
+	const validateLocation = async () => {
+		const location = await getCurrentLocation().catch((error) => {
+			throw new Error(translateError(error));
+		});
+
+		const withinRadius = isWithinRadius(
+			location.latitude,
+			location.longitude,
+			TARGET_LOCATION.latitude,
+			TARGET_LOCATION.longitude,
+			radiusMeters
+		);
+
+		if (!withinRadius) {
+			throw new Error('Debes estar dentro del área permitida');
+		}
+
+		return location;
+	};
+
+	const finishClockAction = async (token: string) => {
+		const loadingToast = toast({
+			title: 'Registrando fichaje...',
+			description: 'Validando datos y guardando en la base de datos.',
+		});
+
+		try {
+			const validateResponse = await fetch('/api/attendance/check-in', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ token }),
+			});
+
+			if (!validateResponse.ok) {
+				const data = await validateResponse.json();
+				throw new Error(data.message);
+			}
+
+			const registerResponse = await fetch('/api/attendance/register-attendance', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					isOvertime: pendingClockAction?.isOvertime,
+					latitude: pendingClockAction?.location.latitude,
+					longitude: pendingClockAction?.location.longitude,
+				}),
+			});
+
+			if (!registerResponse.ok) {
+				const data = await registerResponse.json();
+				throw new Error(data.message);
+			}
+
+			await loadAttendanceStatus();
+
+			const isCheckOut = isClockedIn || isClockedInOvertime;
+
+			loadingToast.update({
+				id: loadingToast.id,
+				title: 'Fichaje registrado',
+				description: isCheckOut
+					? 'Salida registrada correctamente'
+					: 'Entrada registrada correctamente',
+			});
+		} catch (error) {
+			loadingToast.update({
+				id: loadingToast.id,
+				title: 'Error al registrar fichaje',
+				description: translateError(error),
+				variant: 'destructive',
+			});
+			throw error;
+		}
+	};
+
 	const handleClockAction = async (isOvertime: boolean) => {
 		if (!user) {
 			toast({
 				title: 'Error',
-				description: translateError('Usuario no autenticado'),
+				description: 'Usuario no autenticado',
 				variant: 'destructive',
 			});
 			return;
 		}
 
 		try {
-			// Get current location
-			const location = await getCurrentLocation().catch((error) => {
-				throw new Error(translateError(error));
+			const location = await validateLocation();
+
+			setPendingClockAction({
+				isOvertime,
+				location,
 			});
 
-			// Check if within allowed radius
-			const withinRadius = isWithinRadius(
-				location.latitude,
-				location.longitude,
-				TARGET_LOCATION.latitude,
-				TARGET_LOCATION.longitude,
-				radiusMeters
-			);
-
-			if (!withinRadius) {
-				toast({
-					title: 'Ubicación no permitida',
-					description: translateError('Debes estar dentro del área permitida'),
-					variant: 'destructive',
-				});
-				return;
-			}
-
-			// Get current date
-			const today = new Date().toISOString().split('T')[0];
-
-			// Get or create attendance
-			let attendance;
-			const { data: existingAttendance, error: getError } = await getAttendanceByDate(
-				today,
-				user.uid
-			);
-
-			if (getError) {
-				toast({
-					title: 'Error',
-					description: translateError(getError) || 'No se pudo obtener el registro de asistencia',
-					variant: 'destructive',
-				});
-				return;
-			}
-
-			if (!existingAttendance) {
-				const { data: newAttendance, error: createError } = await createAttendance(today, user.uid);
-				if (createError) {
-					toast({
-						title: 'Error',
-						description:
-							translateError(createError) || 'No se pudo crear el registro de asistencia',
-						variant: 'destructive',
-					});
-					return;
-				}
-				attendance = newAttendance;
-			} else {
-				attendance = existingAttendance;
-			}
-
-			if (!attendance) {
-				toast({
-					title: 'Error',
-					description: translateError('No se pudo crear el registro de asistencia'),
-					variant: 'destructive',
-				});
-				return;
-			}
-
-			// Determine entry type
-			const entryType = isOvertime
-				? isClockedInOvertime
-					? 'overtime_out'
-					: 'overtime_in'
-				: isClockedIn
-					? 'regular_out'
-					: 'regular_in';
-
-			// Create entry
-			const { error: entryError } = await createAttendanceEntry({
-				attendance_id: attendance.id,
-				type: entryType,
-				entry_time: new Date().toISOString(),
-				latitude: location.latitude,
-				longitude: location.longitude,
-			});
-
-			if (entryError) {
-				toast({
-					title: 'Error al registrar fichaje',
-					description:
-						translateError(entryError) ||
-						'No se pudo registrar el fichaje. Verifica tu conexión e intenta nuevamente.',
-					variant: 'destructive',
-				});
-				return;
-			}
-
-			// Update local state
-			if (isOvertime) {
-				setIsClockedInOvertime(!isClockedInOvertime);
-			} else {
-				setIsClockedIn(!isClockedIn);
-			}
-
-			// Save state to localStorage
-			const attendanceDate = new Date().toISOString().split('T')[0];
-			const newState = {
-				isClockedIn: isOvertime ? isClockedIn : !isClockedIn,
-				isClockedInOvertime: isOvertime ? !isClockedInOvertime : isClockedInOvertime,
-			};
-			localStorage.setItem(`attendance_state_${attendanceDate}`, JSON.stringify(newState));
-
-			toast({
-				title: 'Fichaje registrado',
-				description: isOvertime
-					? isClockedInOvertime
-						? 'Salida (horas extras) registrada'
-						: 'Entrada (horas extras) registrada'
-					: isClockedIn
-						? 'Salida registrada'
-						: 'Entrada registrada',
-			});
+			setShowScanner(true);
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: translateError(error) || 'Error al procesar la solicitud',
+				description: translateError(error),
 				variant: 'destructive',
 			});
 		}
@@ -202,7 +192,7 @@ export function ClockIn() {
 	return (
 		<div className="container mx-auto p-4 md:p-8">
 			<div className="grid gap-4 md:gap-6">
-				{user?.role === 'Admin' && (
+				{isAuthorized && (
 					<>
 						<div className="flex justify-end">
 							<Button variant="outline" onClick={() => setSettingsOpen(true)}>
@@ -213,28 +203,68 @@ export function ClockIn() {
 						<AdminAttendanceHistory />
 					</>
 				)}
-				{user?.role !== 'Admin' && (
+				{isTaller && (
 					<>
-						<div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-							<Button
-								onClick={() => handleClockAction(false)}
-								size="lg"
-								className="text-base md:text-lg px-6 py-4 md:px-8 md:py-6 w-full sm:w-auto min-h-[60px] md:min-h-[72px]"
-							>
-								{isClockedIn ? 'Registrar salida' : 'Registrar entrada'}
-							</Button>
-							<Button
-								onClick={() => handleClockAction(true)}
-								size="lg"
-								className="text-base md:text-lg px-6 py-4 md:px-8 md:py-6 w-full sm:w-auto min-h-[60px] md:min-h-[72px]"
-							>
-								{isClockedInOvertime
-									? 'Registrar salida (horas extras)'
-									: 'Registrar entrada (horas extras)'}
-							</Button>
-						</div>
+						{loading ? (
+							<p className="text-muted-foreground text-sm">Cargando...</p>
+						) : (
+							<>
+								{!isClockedIn && !isClockedInOvertime && (
+									<>
+										<Button onClick={() => handleClockAction(false)}>Registrar entrada</Button>
+
+										<Button onClick={() => handleClockAction(true)}>
+											Registrar entrada (horas extras)
+										</Button>
+									</>
+								)}
+
+								{isClockedIn && (
+									<Button onClick={() => handleClockAction(false)}>Registrar salida</Button>
+								)}
+
+								{isClockedInOvertime && (
+									<Button onClick={() => handleClockAction(true)}>
+										Registrar salida (horas extras)
+									</Button>
+								)}
+							</>
+						)}
 						<AttendanceHistory />
 					</>
+				)}
+				{isQR && (
+					<Card className="w-full max-w-md mx-auto">
+						<CardHeader>
+							<CardTitle>QR de fichaje</CardTitle>
+							<CardDescription>
+								Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
+								minuto.
+							</CardDescription>
+						</CardHeader>
+
+						<CardContent className="flex justify-center overflow-hidden">
+							<AttendanceQRCode />
+						</CardContent>
+					</Card>
+				)}
+				{showScanner && isTaller && (
+					<QRScanner
+						onClose={() => {
+							setShowScanner(false);
+							setPendingClockAction(null);
+						}}
+						onScan={async (token) => {
+							setShowScanner(false);
+
+							try {
+								await finishClockAction(token);
+							} catch {
+							} finally {
+								setPendingClockAction(null);
+							}
+						}}
+					/>
 				)}
 			</div>
 			<AttendanceSettings

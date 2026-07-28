@@ -40,6 +40,11 @@ export interface UserAttendanceSummary {
 	entries: AttendanceEntryWithDate[];
 }
 
+export interface AttendanceStatus {
+	regularOpen: boolean;
+	overtimeOpen: boolean;
+}
+
 export interface PaymentSummary {
 	user_id: string;
 	user_name: string;
@@ -62,8 +67,7 @@ export interface PaymentSummary {
 		overtime_hours: number;
 		total_payment: number;
 	}[];
-}
-
+  
 /**
  * Create a new attendance record for the current user
  */
@@ -716,4 +720,44 @@ export function getUserAttendanceSummaries(
 	});
 
 	return Object.values(userMap);
+}
+
+export async function getAttendanceStatus(
+	userId: string
+): Promise<{ data: AttendanceStatus | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const today = new Date().toISOString().split('T')[0];
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			type,
+			entry_time,
+			attendance!inner (
+				date,
+				user_id
+			)
+		`
+		)
+		.eq('attendance.date', today)
+		.eq('attendance.user_id', userId)
+		.order('entry_time', { ascending: false });
+
+	if (error) {
+		return { data: null, error };
+	}
+
+	const lastRegular = data.find((e) => e.type === 'regular_in' || e.type === 'regular_out');
+
+	const lastOvertime = data.find((e) => e.type === 'overtime_in' || e.type === 'overtime_out');
+
+	return {
+		data: {
+			regularOpen: lastRegular?.type === 'regular_in',
+			overtimeOpen: lastOvertime?.type === 'overtime_in',
+		},
+		error: null,
+	};
 }

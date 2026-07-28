@@ -21,6 +21,7 @@ import {
 	AlertCircle,
 	DollarSign,
 	Settings,
+	MessageSquare,
 	LayoutList,
 	Trash2,
 	Clock,
@@ -43,6 +44,7 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
+import { useChatUnread } from '../provider/chat-unread-provider';
 import { toast } from '@/components/ui/use-toast';
 
 const navigation = [
@@ -57,6 +59,7 @@ const navigation = [
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
 	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
+	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
 ] as const;
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -67,6 +70,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname() || '/';
 	const router = useRouter();
 	const { user, loading, signOutUser } = useAuth();
+	const { totalUnreadCount } = useChatUnread();
 
 	const allowedByRole = useMemo(() => {
 		return {
@@ -78,10 +82,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Calendario',
 				'Flujo de Fondos',
 				'Obras',
+        'Chat',
 				'Reportes',
 				'Fichar',
 			],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Obras', 'Fichar'],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Fichar'],
+			QR: ['Fichar'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
@@ -89,6 +95,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		return {
 			Admin: '/',
 			Taller: '/supplies',
+			QR: '/clock-in',
 		} as Record<UserRole, string>;
 	}, []);
 
@@ -142,7 +149,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	}
 
 	return (
-		<div className="min-h-screen bg-background">
+		<div className="min-h-screen bg-background flex flex-col">
 			{sidebarOpen && (
 				<div
 					className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
@@ -213,7 +220,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 												onClick={() => setSidebarOpen(false)}
 											>
 												<item.icon className="h-5 w-5" />
-												{item.name}
+												<span className="flex items-center gap-2">
+													{item.name}
+													{item.name === 'Chat' && totalUnreadCount > 0 && (
+														<div className="bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+															{totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+														</div>
+													)}
+												</span>
 											</Link>
 										)}
 									</div>
@@ -269,9 +283,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 			<UsersDialog open={usersDialogOpen} onOpenChange={setUsersDialogOpen} />
 
-			<div className={cn('transition-all duration-200', sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-64')}>
+			<div
+				className={cn(
+					'flex-1 flex flex-col min-h-0 transition-all duration-200',
+					sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-64'
+				)}
+			>
 				{' '}
-				<header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
+				<header className="sticky top-0 z-30 shrink-0 flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
 					<Button
 						variant="ghost"
 						size="icon"
@@ -329,7 +348,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						<ThemeToggle />
 					</div>
 				</header>
-				<main className="p-4 lg:p-6">{children}</main>
+				<main className="flex-1 min-h-0 p-4 lg:p-6">{children}</main>
 			</div>
 		</div>
 	);

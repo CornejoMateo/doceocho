@@ -1,48 +1,54 @@
 ------ RPC Function to create a board and add the creator as a member -------
 
-create or replace function public.create_board_with_member(
-    p_name text,
-    p_description text,
-    p_color text default '#4F5C4D'
+CREATE OR REPLACE FUNCTION public.create_board_with_member(
+  p_name text,
+  p_description text,
+  p_color varchar
 )
-returns json
-language plpgsql
-as $$
-declare
-    v_board_id bigint;
-    v_user_id uuid;
-begin
-    v_user_id := auth.uid();
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_board_id bigint;
+  v_user_id uuid := auth.uid();
+  v_is_admin boolean;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Usuario no autenticado';
+  END IF;
 
-    insert into public.kanban_boards (
-        name,
-        description,
-        color
-    )
-    values (
-        p_name,
-        p_description,
-        p_color
-    )
-    returning id into v_board_id;
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.users
+    WHERE uid_user = v_user_id
+      AND role = 'Admin'
+  )
+  INTO v_is_admin;
 
-    insert into public.kanban_board_members (
-        board_id,
-        user_id
-    )
-    values (
-        v_board_id,
-        v_user_id
-    );
+  IF NOT v_is_admin THEN
+    RAISE EXCEPTION 'No tenés permisos para crear tableros';
+  END IF;
 
-    return json_build_object(
-        'id', v_board_id,
-        'name', p_name,
-        'description', p_description,
-        'color', p_color
-    );
-end;
+  INSERT INTO public.kanban_boards (name, description, color)
+  VALUES (p_name, p_description, p_color)
+  RETURNING id INTO v_board_id;
+
+  INSERT INTO public.kanban_board_members (board_id, user_id)
+  VALUES (v_board_id, v_user_id);
+
+  RETURN jsonb_build_object(
+    'id', v_board_id,
+    'name', p_name,
+    'description', p_description,
+    'color', p_color
+  );
+END;
 $$;
+
+GRANT EXECUTE ON FUNCTION public.create_board_with_member(text, text, varchar)
+TO authenticated;
 
 ------- Kanban Boards Table -------
 
@@ -99,13 +105,6 @@ USING (
         FROM kanban_board_members kbm
         WHERE kbm.board_id = kanban_boards.id
           AND kbm.user_id = auth.uid()
-    )
-    OR
-    EXISTS (
-        SELECT 1
-        FROM users u
-        WHERE u.uid_user = auth.uid()
-          AND u.role = 'Admin'
     )
 );
 

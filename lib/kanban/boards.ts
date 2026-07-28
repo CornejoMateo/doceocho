@@ -1,6 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { Board, BoardWithMembers, BoardFormData } from '@/components/business/kanban/types';
-import { addBoardMember } from './board-members';
 import { getListsByBoardId, deleteList } from './lists';
 
 const TABLE = 'kanban_boards';

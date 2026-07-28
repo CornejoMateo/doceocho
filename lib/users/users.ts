@@ -1,12 +1,14 @@
 import { UserRole } from '@/constants/users/user-role';
+import { getSupabaseClient } from '@/lib/supabase-client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type User = {
-	uid_user: string;
 	username: string;
 	name?: string;
 	last_name?: string;
 	role: UserRole;
 	mail?: string;
+	uid_user: string;
 };
 
 export type CreateUserInput = {
@@ -19,10 +21,10 @@ export type CreateUserInput = {
 };
 
 async function getAuthHeaders() {
-	const { getSupabaseClient } = await import('../supabase-client');
+	const supabase = getSupabaseClient();
 	const {
 		data: { session },
-	} = await getSupabaseClient().auth.getSession();
+	} = await supabase.auth.getSession();
 
 	if (!session?.access_token) {
 		throw new Error('No autenticado');
@@ -49,9 +51,12 @@ async function apiFetch(path: string, options?: RequestInit) {
 	return body;
 }
 
-export async function getUser(username: string): Promise<{ data: User | null; error: any }> {
-	const supabase = (await import('../supabase-client')).getSupabaseClient();
-	const { data, error } = await supabase
+export async function getUser(
+	username: string,
+	supabase?: SupabaseClient
+): Promise<{ data: User | null; error: any }> {
+	const client = supabase ?? getSupabaseClient();
+	const { data, error } = await client
 		.from('users')
 		.select('*')
 		.eq('username', username)
@@ -131,4 +136,36 @@ export async function updateUser(
 	} catch (err: any) {
 		return { data: null, error: err.message || 'Error al actualizar usuario' };
 	}
+}
+
+export async function getUserByUid(uid: string): Promise<{ data: User | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('users')
+		.select('*')
+		.eq('uid_user', uid)
+		.maybeSingle();
+
+	if (error) {
+		return { data: null, error: 'Error al buscar usuario' };
+	}
+	if (!data) {
+		return { data: null, error: 'Usuario no encontrado' };
+	}
+
+	return { data, error: null };
+}
+
+export async function isAdmin(userId: string) {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from('users')
+		.select('role')
+		.eq('uid_user', userId)
+		.single();
+
+	if (error || !data) return false;
+
+	return data.role === 'Admin';
 }

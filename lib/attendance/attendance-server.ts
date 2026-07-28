@@ -1,0 +1,99 @@
+import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
+import { AttendanceEntry, Attendance, AttendanceSettings } from './attendance';
+
+export async function createAttendanceEntry(
+	entry: AttendanceEntry
+): Promise<{ data: AttendanceEntry | null; error: any }> {
+	const supabase = await getServerSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.insert(entry)
+		.select()
+		.maybeSingle();
+
+	return { data, error };
+}
+
+export async function createAttendance(
+	date: string,
+	userId: string
+): Promise<{ data: Attendance | null; error: any }> {
+	const supabase = await getServerSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance')
+		.insert({
+			date,
+			user_id: userId,
+		})
+		.select()
+		.single();
+
+	return { data, error };
+}
+
+export async function getAttendanceForToday(userId: string) {
+	const supabase = await getServerSupabaseClient();
+	const today = new Date().toISOString().split('T')[0];
+
+	const { data, error } = await supabase
+		.from('attendance')
+		.select('*')
+		.eq('date', today)
+		.eq('user_id', userId)
+		.maybeSingle();
+
+	if (error) {
+		throw error;
+	}
+
+	return data;
+}
+
+export async function getAttendanceSettings(): Promise<{
+	data: AttendanceSettings | null;
+	error: any;
+}> {
+	const supabase = await getServerSupabaseClient();
+
+	const { data, error } = await supabase.from('attendance_settings').select('*').single();
+
+	return { data, error };
+}
+
+export async function getAttendanceByDate(
+	date: string,
+	userId: string
+): Promise<{ data: Attendance | null; error: any }> {
+	const supabase = await getServerSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance')
+		.select('*')
+		.eq('date', date)
+		.eq('user_id', userId)
+		.maybeSingle();
+
+	return { data, error };
+}
+
+export async function getLastAttendanceEntry(
+	attendanceId: number,
+	isOvertime: boolean
+): Promise<{ data: AttendanceEntry | null; error: any }> {
+	const supabase = await getServerSupabaseClient();
+
+	const types = isOvertime ? ['overtime_in', 'overtime_out'] : ['regular_in', 'regular_out'];
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select('*')
+		.eq('attendance_id', attendanceId)
+		.in('type', types)
+		.order('entry_time', { ascending: false })
+		.limit(1)
+		.maybeSingle();
+
+	return { data, error };
+}

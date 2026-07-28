@@ -69,6 +69,7 @@ describe('LoginPage', () => {
 			role: 'Admin',
 			name: 'Admin',
 			last_name: 'User',
+			id: 'some-uid',
 		});
 		setupAuth({ signIn });
 
@@ -89,6 +90,7 @@ describe('LoginPage', () => {
 			role: 'Admin',
 			name: 'Admin',
 			last_name: 'User',
+			id: 'some-uid',
 		});
 		setupAuth({ signIn });
 
@@ -109,6 +111,7 @@ describe('LoginPage', () => {
 			role: 'Taller',
 			name: 'Taller',
 			last_name: 'User',
+			id: 'some-uid',
 		});
 		setupAuth({ signIn });
 
@@ -162,19 +165,19 @@ describe('LoginPage', () => {
 		fireEvent.change(screen.getByPlaceholderText('Contraseña'), { target: { value: 'pass' } });
 		fireEvent.click(screen.getByText('Acceder al sistema'));
 
-		expect(screen.getByText('Cargando...')).toBeInTheDocument();
+		expect(screen.getByText('Iniciando sesión...')).toBeInTheDocument();
 	});
 
 	it('redirects automatically if user is already authenticated', () => {
 		setupAuth({
-			user: { username: 'admin1', role: 'Admin', name: 'Admin', last_name: 'User' },
+			user: { username: 'admin1', role: 'Admin', name: 'Admin', last_name: 'User', id: 'some-uid' },
 			loading: false,
 		});
 
 		render(<LoginPage />);
 
 		expect(mockRouter.push).toHaveBeenCalledWith('/');
-		expect(screen.getByText('Cargando...')).toBeInTheDocument();
+		expect(screen.getByText('Iniciando sesión...')).toBeInTheDocument();
 	});
 
 	it('does not redirect while loading is true', () => {

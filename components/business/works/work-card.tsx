@@ -71,13 +71,16 @@ export function WorkCard({
 	const cardContent = (
 		<Card key={work.id} className="bg-card border-border">
 			<div className="p-6">
-				<div className="flex items-start justify-between gap-4">
+				<div className="flex flex-col lg:flex-row items-start justify-between gap-4">
 					<div className="flex-1 min-w-0 space-y-3">
-						<div className="flex items-start gap-3">
+						<div className="flex items-center gap-3">
 							<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
 								<ClipboardCheck className="h-5 w-5 text-primary" />
 							</div>
-							<h3 className="text-lg font-semibold text-foreground">{work.id}</h3>
+
+							<div className="text-muted-foreground">
+								<span>{work.name || work.id}</span>
+							</div>
 						</div>
 
 						<div className="flex-1 min-w-0">
@@ -92,7 +95,6 @@ export function WorkCard({
 									'Cliente no especificado'}
 							</p>
 						</div>
-
 						<div className="grid gap-2 md:grid-cols-4 text-sm">
 							<div className="flex items-center text-muted-foreground">
 								<AddressLink
@@ -134,7 +136,7 @@ export function WorkCard({
 						)}
 					</div>
 
-					<div className="flex flex-col gap-2">
+					<div className="flex flex-col gap-2 w-full lg:w-auto">
 						<ChecklistCompletionModal workId={work.id}>
 							<Button variant="outline" size="sm">
 								<CheckCircle2 className="mr-2 h-4 w-4" />

@@ -30,6 +30,8 @@ interface Client {
 interface Work {
 	id: number;
 	locality?: string | null;
+	zone?: string | null;
+	hood?: string | null;
 	address?: string | null;
 	client_id?: number | null;
 	client_name?: string | null;
@@ -64,6 +66,7 @@ export function EmailNotificationModal({
 	const [isSending, setIsSending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [formData, setFormData] = useState({
+		to: '',
 		subject: '',
 		message: '',
 		scheduledDate: '',
@@ -73,6 +76,7 @@ export function EmailNotificationModal({
 	const resetForm = () => {
 		const defaultMessage = generateDefaultMessage();
 		setFormData({
+			to: client?.email || '',
 			subject: '',
 			message: defaultMessage,
 			scheduledDate: '',
@@ -82,8 +86,8 @@ export function EmailNotificationModal({
 	};
 
 	const handleSend = async () => {
-		if (!client?.email || !work) {
-			setError('No se puede enviar el email: falta información del cliente o la obra');
+		if (!formData.to || !work) {
+			setError('No se puede enviar el email: falta información del destinatario o la obra');
 			return;
 		}
 
@@ -92,9 +96,9 @@ export function EmailNotificationModal({
 			setError(null);
 
 			const emailData: EmailData = {
-				clientId: client.id,
+				clientId: client?.id as number,
 				workId: work.id,
-				to: client.email,
+				to: formData.to,
 				subject: formData.subject || `Notificación sobre obra en ${work.locality}`,
 				message: formData.message || generateDefaultMessage(),
 				scheduledDate: formData.scheduledDate || undefined,
@@ -106,6 +110,12 @@ export function EmailNotificationModal({
 				title: 'Email enviado',
 				description: 'El email ha sido enviado correctamente.',
 			});
+			setFormData((prev) => ({
+				...prev,
+				message: generateDefaultMessage(),
+				scheduledDate: '',
+				scheduledTime: '',
+			}));
 			onOpenChange(false);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Error al enviar el email');
@@ -131,11 +141,11 @@ export function EmailNotificationModal({
 	useEffect(() => {
 		if (isOpen && client && work && (formData.scheduledDate || formData.scheduledTime)) {
 			const clientName = `${client?.name || ''} ${client?.last_name || ''}`.trim();
-			const workLocation = `${work?.locality || ''}${work?.address ? `, ${work.address}` : ''}`;
+			const workDetails = buildWorkDetails();
 
 			let arrivalInfo = '';
 			if (formData.scheduledDate || formData.scheduledTime) {
-				arrivalInfo = '\n\nHora estimada de llegada:\n';
+				arrivalInfo = '\n\nFecha y hora de llegada:\n';
 				if (formData.scheduledDate) {
 					arrivalInfo += `- Fecha: ${format(new Date(formData.scheduledDate + 'T00:00:00'), 'dd/MM/yyyy')}\n`;
 				}
@@ -144,19 +154,7 @@ export function EmailNotificationModal({
 				}
 			}
 
-			const newMessage = `Estimado/a ${clientName},
-
-Le informamos que nuestro equipo de colocación estará llegando a la obra ubicada en ${workLocation}${formData.scheduledDate || formData.scheduledTime ? ' en la fecha y horario indicados' : ' en las próximas horas'}.
-
-Detalles de la obra:
-- Ubicación: ${workLocation}${arrivalInfo}
-
-Por favor, asegúrese de que el lugar esté accesible y preparado para la instalación.
-
-Si tiene alguna pregunta o necesita coordinar algún detalle adicional, no dude en contactarnos.
-
-Atentamente,
-El equipo de Doceocho`;
+			const newMessage = generateDefaultMessage();
 
 			setFormData((prev) => ({
 				...prev,
@@ -165,34 +163,57 @@ El equipo de Doceocho`;
 		}
 	}, [formData.scheduledDate, formData.scheduledTime, isOpen, client, work]);
 
+	const buildWorkDetails = () => {
+		const lines: string[] = [];
+		if (work?.locality) lines.push(`- Localidad: ${work.locality}`);
+		if (work?.zone) lines.push(`- Zona: ${work.zone}`);
+		if (work?.hood) lines.push(`- Barrio: ${work.hood}`);
+		if (work?.address) lines.push(`- Dirección: ${work.address}`);
+		return lines.join('\n');
+	};
+
 	const generateDefaultMessage = () => {
 		const clientName = `${client?.name || ''} ${client?.last_name || ''}`.trim();
-		const workLocation = `${work?.locality || ''}${work?.address ? `, ${work.address}` : ''}`;
-
-		let arrivalInfo = '';
-		if (formData.scheduledDate || formData.scheduledTime) {
-			arrivalInfo = '\n\nHora estimada de llegada:\n';
-			if (formData.scheduledDate) {
-				arrivalInfo += `- Fecha: ${format(new Date(formData.scheduledDate + 'T00:00:00'), 'dd/MM/yyyy')}\n`;
-			}
-			if (formData.scheduledTime) {
-				arrivalInfo += `- Hora: ${formData.scheduledTime}\n`;
-			}
-		}
+		const workDetails = buildWorkDetails();
+		const arrivalInfo = buildArrivalInfo();
 
 		return `Estimado/a ${clientName},
 
-Le informamos que nuestro equipo de colocación estará llegando a la obra ubicada en ${workLocation}${formData.scheduledDate || formData.scheduledTime ? ' en la fecha y horario indicados' : ' en las próximas horas'}.
+Le informamos que nuestro equipo de colocación estará llegando a la obra,${
+			arrivalInfo ? ' en la fecha y horario indicados.' : ' en las próximas horas.'
+		}
 
 Detalles de la obra:
-- Ubicación: ${workLocation}${arrivalInfo}
+${workDetails}
+${arrivalInfo}
 
 Por favor, asegúrese de que el lugar esté accesible y preparado para la instalación.
 
 Si tiene alguna pregunta o necesita coordinar algún detalle adicional, no dude en contactarnos.
 
 Atentamente,
+
 El equipo de Doceocho`;
+	};
+
+	const buildArrivalInfo = () => {
+		if (!formData.scheduledDate && !formData.scheduledTime) {
+			return '';
+		}
+
+		const lines = ['\n\Fecha y hora estimada de llegada:'];
+
+		if (formData.scheduledDate) {
+			lines.push(
+				`- Fecha: ${format(new Date(formData.scheduledDate + 'T00:00:00'), 'dd/MM/yyyy')}`
+			);
+		}
+
+		if (formData.scheduledTime) {
+			lines.push(`- Hora: ${formData.scheduledTime} (aproximadamente)`);
+		}
+
+		return lines.join('\n');
 	};
 
 	const handleInputChange = (field: string, value: string) => {
@@ -257,6 +278,17 @@ El equipo de Doceocho`;
 					{/* Email Form */}
 					<div className="space-y-4">
 						<div className="space-y-2">
+							<Label htmlFor="to">Destinatario</Label>
+							<Input
+								id="to"
+								type="email"
+								value={formData.to}
+								onChange={(e) => handleInputChange('to', e.target.value)}
+								placeholder="email@ejemplo.com"
+							/>
+						</div>
+
+						<div className="space-y-2">
 							<Label htmlFor="subject">Asunto del Email</Label>
 							<Input
 								id="subject"
@@ -280,7 +312,7 @@ El equipo de Doceocho`;
 						{/* Arrival Time Information */}
 						<div className="border-t pt-4">
 							<h4 className="font-medium text-sm mb-3">Fecha y hora de llegada</h4>
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
 								<div className="space-y-2">
 									<Label htmlFor="scheduledDate">Fecha de llegada</Label>
 									<Input
@@ -317,10 +349,22 @@ El equipo de Doceocho`;
 				</div>
 
 				<DialogFooter>
-					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
+					<Button
+						variant="outline"
+						onClick={() => {
+							(onOpenChange(false),
+								setFormData((prev) => ({
+									...prev,
+									message: generateDefaultMessage(),
+									scheduledDate: '',
+									scheduledTime: '',
+								})));
+						}}
+						disabled={isSending}
+					>
 						Cancelar
 					</Button>
-					<Button onClick={handleSend} disabled={isSending || !client.email}>
+					<Button onClick={handleSend} disabled={isSending || !formData.to}>
 						{isSending ? (
 							<>
 								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
