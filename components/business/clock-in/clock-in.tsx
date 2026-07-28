@@ -208,29 +208,38 @@ export function ClockIn() {
 						{loading ? (
 							<p className="text-muted-foreground text-sm">Cargando...</p>
 						) : (
-							<>
-								{!isClockedIn && !isClockedInOvertime && (
-									<>
-										<Button onClick={() => handleClockAction(false)}>Registrar entrada</Button>
+							<div className="flex flex-col items-center gap-4 w-full">
+								<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
+									{!isClockedIn && !isClockedInOvertime && (
+										<>
+											<Button onClick={() => handleClockAction(false)} className="flex-1">
+												Registrar entrada
+											</Button>
 
-										<Button onClick={() => handleClockAction(true)}>
-											Registrar entrada (horas extras)
+											<Button onClick={() => handleClockAction(true)} className="flex-1">
+												Registrar entrada (horas extras)
+											</Button>
+										</>
+									)}
+
+									{isClockedIn && (
+										<Button onClick={() => handleClockAction(false)} className="w-full">
+											Registrar salida
 										</Button>
-									</>
-								)}
+									)}
 
-								{isClockedIn && (
-									<Button onClick={() => handleClockAction(false)}>Registrar salida</Button>
-								)}
+									{isClockedInOvertime && (
+										<Button onClick={() => handleClockAction(true)} className="w-full">
+											Registrar salida (horas extras)
+										</Button>
+									)}
+								</div>
 
-								{isClockedInOvertime && (
-									<Button onClick={() => handleClockAction(true)}>
-										Registrar salida (horas extras)
-									</Button>
-								)}
-							</>
+								<div className="w-full max-w-2xl">
+									<AttendanceHistory />
+								</div>
+							</div>
 						)}
-						<AttendanceHistory />
 					</>
 				)}
 				{isQR && (

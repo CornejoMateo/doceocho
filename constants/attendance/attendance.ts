@@ -1,7 +1,7 @@
 //modificar con la ubicación de la empresa
 export const TARGET_LOCATION = {
-	latitude: -33.11610121245522,
-	longitude: -64.37392290555951,
+	latitude: -33.12014693131956,
+	longitude: -64.34463907854392,
 };
 
 export const DEFAULT_RADIUS_METERS = 50;

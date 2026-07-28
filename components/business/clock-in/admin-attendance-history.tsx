@@ -166,7 +166,7 @@ export function AdminAttendanceHistory() {
 										variant={period === 'day' ? 'default' : 'outline'}
 										size="sm"
 										onClick={() => handlePeriodChange('day')}
-										className="flex-1 sm:flex-none"
+										className="h-10 flex-1 sm:flex-none"
 									>
 										Día
 									</Button>
@@ -174,7 +174,7 @@ export function AdminAttendanceHistory() {
 										variant={period === 'week' ? 'default' : 'outline'}
 										size="sm"
 										onClick={() => handlePeriodChange('week')}
-										className="flex-1 sm:flex-none"
+										className="h-10 flex-1 sm:flex-none"
 									>
 										Semana
 									</Button>
@@ -182,7 +182,7 @@ export function AdminAttendanceHistory() {
 										variant={period === 'month' ? 'default' : 'outline'}
 										size="sm"
 										onClick={() => handlePeriodChange('month')}
-										className="flex-1 sm:flex-none"
+										className="h-10 flex-1 sm:flex-none"
 									>
 										Mes
 									</Button>
@@ -200,7 +200,7 @@ export function AdminAttendanceHistory() {
 									No hay registros de asistencia
 								</div>
 							) : (
-								<div className="space-y-4">
+								<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
 									{summaries.map((summary: UserAttendanceSummary) => (
 										<div key={summary.user_id} className="border rounded-lg overflow-hidden">
 											<Button
@@ -209,18 +209,16 @@ export function AdminAttendanceHistory() {
 												className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
 											>
 												<div className="text-left flex-1 text-black">
-													<div className="font-medium text-base md:text-lg">
-														{summary.user_name}
-													</div>
-													<div className="text-sm md:text-base text-gray-500">
+													<div className="font-medium text-sm md:text-lg">{summary.user_name}</div>
+													<div className="text-sm md:text-xs text-gray-500">
 														{summary.entries.length} registros
 													</div>
 												</div>
 												<div className="text-right flex-1">
-													<div className="font-bold text-xl md:text-2xl text-blue-600">
+													<div className="font-bold text-base md:text-1xl text-blue-600">
 														{formatHours(summary.total_hours)}
 													</div>
-													<div className="text-sm text-gray-500">horas trabajadas</div>
+													<div className="text-xs text-gray-500">horas trabajadas</div>
 												</div>
 											</Button>
 
@@ -249,7 +247,7 @@ export function AdminAttendanceHistory() {
 															</Button>
 														</div>
 													</div>
-													<div className="space-y-2">
+													<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
 														{summary.entries.map((entry: AttendanceEntryWithDate) => (
 															<div
 																key={entry.id}

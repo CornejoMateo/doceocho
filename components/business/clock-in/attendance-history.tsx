@@ -97,7 +97,7 @@ export function AttendanceHistory() {
 											variant={filterType === 'all' ? 'default' : 'outline'}
 											size="sm"
 											onClick={() => setFilterType('all')}
-											className="flex-1 sm:flex-none"
+											className="h-10 flex-1 sm:flex-none"
 										>
 											Todos
 										</Button>
@@ -105,7 +105,7 @@ export function AttendanceHistory() {
 											variant={filterType === 'regular' ? 'default' : 'outline'}
 											size="sm"
 											onClick={() => setFilterType('regular')}
-											className="flex-1 sm:flex-none"
+											className="h-10 flex-1 sm:flex-none"
 										>
 											Normal
 										</Button>
@@ -113,7 +113,7 @@ export function AttendanceHistory() {
 											variant={filterType === 'overtime' ? 'default' : 'outline'}
 											size="sm"
 											onClick={() => setFilterType('overtime')}
-											className="flex-1 sm:flex-none"
+											className="h-10 flex-1 sm:flex-none"
 										>
 											Horas Extras
 										</Button>
