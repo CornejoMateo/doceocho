@@ -69,7 +69,7 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		if (isNaN(priceHourValue) || priceHourValue < 0) {
 			toast({
 				title: 'Error',
-				description: translateError('El precio por hora debe ser un valor válido'),
+				description: 'El precio por hora debe ser un valor válido',
 				variant: 'destructive',
 			});
 			return;
@@ -78,7 +78,7 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		if (isNaN(priceHourOvertimeValue) || priceHourOvertimeValue < 0) {
 			toast({
 				title: 'Error',
-				description: translateError('El precio por hora extra debe ser un valor válido'),
+				description: 'El precio por hora extra debe ser un valor válido',
 				variant: 'destructive',
 			});
 			return;
