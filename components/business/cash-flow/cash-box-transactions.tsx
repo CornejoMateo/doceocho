@@ -46,7 +46,7 @@ export function CashBoxTransactions({
 									<div
 										className={`rounded-full p-2 ${
 											transaction.type === 'income'
-												? 'bg-green-500/10 text-green-500'
+												? 'bg-green-100/10 text-green-900'
 												: 'bg-red-500/10 text-red-500'
 										}`}
 									>
@@ -63,7 +63,9 @@ export function CashBoxTransactions({
 													? getPaymentMethodLabel(transaction.category)
 													: getExpenseCategoryLabel(transaction.category)
 												: ''}{' '}
-											{transaction.bank_account ? ` - ${transaction.bank_account.name}` : ''}
+											{transaction.bank_account
+												? ` - (${transaction.bank_account.bank} - ${transaction.bank_account.name})`
+												: ''}
 										</p>
 										<p className="font-medium text-foreground">
 											{transaction.description ? transaction.description : ''}
