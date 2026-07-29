@@ -47,6 +47,7 @@ import { formatCurrency } from '@/utils/formats-money';
 import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
+import { formatCreatedAt } from '@/utils/format-date';
 
 function CashFlowTransactionsRealtime({
 	cashBoxId,
@@ -255,7 +256,11 @@ export function CashFlowManagement() {
 				</TabsList>
 
 				<TabsContent value="current" className="space-y-6">
-					{!openCashBox ? (
+					{loadingCashBoxes ? (
+						<Card className="p-12 bg-card border-border text-center">
+							<p className="text-muted-foreground">Cargando...</p>
+						</Card>
+					) : !openCashBox ? (
 						<Card className="p-12 bg-card border-border text-center">
 							<div className="flex flex-col items-center gap-4">
 								<div className="rounded-full bg-secondary p-4">
@@ -309,12 +314,19 @@ export function CashFlowManagement() {
 							{/* Transactions List */}
 							<Card className="bg-card border-border">
 								<div className="p-6">
-									<h3 className="text-lg font-semibold text-foreground mb-4">
-										Movimientos del día
-									</h3>
+									<div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+										<h3 className="text-lg font-semibold text-foreground">
+											Movimientos correspondientes a la caja actual
+										</h3>
+
+										<div className="flex items-center gap-2 text-sm text-muted-foreground">
+											<span>Caja del {formatCreatedAt(openCashBox?.date)}</span>
+										</div>
+									</div>
 									{transactions.length === 0 ? (
 										<p className="text-muted-foreground text-center py-8">
-											No hay movimientos registrados hoy
+											No hay movimientos registrados para la caja actual. Agrega ingresos o egresos
+											para verlos aquí.
 										</p>
 									) : (
 										<div className="space-y-3">
@@ -353,7 +365,7 @@ export function CashFlowManagement() {
 													<div className="flex items-center justify-between w-full sm:w-auto gap-4">
 														<p
 															className={`font-semibold ${
-																transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+																transaction.type === 'income' ? 'text-green-800' : 'text-red-500'
 															}`}
 														>
 															{transaction.type === 'income' ? '+' : '-'}
@@ -436,9 +448,9 @@ export function CashFlowManagement() {
 							Esta acción no se puede deshacer. Se eliminará permanentemente la transacción
 							{transactionToDelete && (
 								<>
-									{' '}
-									{transactionToDelete.description ||
-										getPaymentMethodLabel(transactionToDelete.category)}
+									{transactionToDelete.description || transactionToDelete.type === 'income'
+										? getPaymentMethodLabel(transactionToDelete.category)
+										: getExpenseCategoryLabel(transactionToDelete.category)}
 								</>
 							)}
 							.

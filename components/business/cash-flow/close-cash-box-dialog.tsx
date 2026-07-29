@@ -47,11 +47,10 @@ export function CloseCashBoxDialog({
 				<DialogHeader>
 					<DialogTitle className="text-destructive flex items-center gap-2">
 						<AlertTriangle className="h-5 w-5" />
-						Cerrar y Reiniciar Caja
+						Cerrar y reiniciar caja
 					</DialogTitle>
 					<DialogDescription>
-						Estás a punto de cerrar la caja actual. El saldo actual se guardará como saldo final y
-						se creará una nueva caja para el próximo día.
+						Estás a punto de cerrar la caja actual. El saldo actual se guardará como saldo final.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -76,7 +75,13 @@ export function CloseCashBoxDialog({
 				</div>
 
 				<DialogFooter>
-					<Button variant="outline" onClick={() => onOpenChange(false)}>
+					<Button
+						variant="outline"
+						onClick={() => {
+							onOpenChange(false);
+							setNotes('');
+						}}
+					>
 						Cancelar
 					</Button>
 					<Button variant="destructive" onClick={handleSubmit} disabled={loading}>

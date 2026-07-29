@@ -118,7 +118,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center gap-2 flex-wrap">
 											<h4 className="font-semibold text-foreground truncate">
-												{formatCreatedAt(box.date)}
+												{formatCreatedAt(box.created_at) + ' - ' + formatCreatedAt(box.closed_at)}
 											</h4>
 											<Badge variant="secondary">Cerrada</Badge>
 										</div>
@@ -127,18 +127,24 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 										</p>
 									</div>
 								</div>
-								<div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 w-full sm:w-auto">
-									<div className="text-right sm:text-left">
-										<p className="text-sm text-green-500">
-											Ingresos: {formatCurrency(totalIncome)}
-										</p>
-										<p className="text-sm text-red-500">Egresos: {formatCurrency(totalExpense)}</p>
+								<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+									<div className="flex gap-3">
+										<div className="rounded-lg bg-green-500/10 px-3 py-2">
+											<p className="text-xs text-muted-foreground">Ingresos</p>
+											<p className="font-semibold text-green-600">{formatCurrency(totalIncome)}</p>
+										</div>
+
+										<div className="rounded-lg bg-red-500/10 px-3 py-2">
+											<p className="text-xs text-muted-foreground">Egresos</p>
+											<p className="font-semibold text-red-600">{formatCurrency(totalExpense)}</p>
+										</div>
 									</div>
+
 									<Button
-										variant="ghost"
+										variant="outline"
 										size="sm"
 										onClick={() => toggleExpand(box.id)}
-										className="gap-2 w-full sm:w-auto justify-center"
+										className="gap-2 sm:ml-auto"
 									>
 										{isExpanded ? (
 											<>
