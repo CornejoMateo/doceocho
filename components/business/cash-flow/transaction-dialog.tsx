@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -23,6 +23,8 @@ import { BankAccount } from '@/lib/cash-flow/cash-flow';
 import { translateError } from '@/lib/error-translator';
 import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 import { createTransaction } from '@/lib/cash-flow/cash-flow';
+import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
+import { EXPENSES_CATEGORIES } from '@/constants/cashflow/cashflow';
 
 interface TransactionDialogProps {
 	open: boolean;
@@ -38,17 +40,6 @@ interface CategoryOption {
 	label: string;
 }
 
-const INCOME_CATEGORIES: CategoryOption[] = [
-	{ value: 'cash', label: 'Efectivo' },
-	{ value: 'transfer', label: 'Transferencia' },
-];
-const EXPENSE_CATEGORIES: CategoryOption[] = [
-	{ value: 'salary', label: 'Pago de Sueldo' },
-	{ value: 'suppliers', label: 'Pago a Proveedores' },
-	{ value: 'services', label: 'Servicios' },
-	{ value: 'other', label: 'Otros Gastos' },
-];
-
 export function TransactionDialog({
 	open,
 	onOpenChange,
@@ -61,7 +52,6 @@ export function TransactionDialog({
 	const [category, setCategory] = useState('');
 	const [description, setDescription] = useState('');
 	const [bankAccountId, setBankAccountId] = useState<string>('');
-	const [reference, setReference] = useState('');
 	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +69,6 @@ export function TransactionDialog({
 				category,
 				description: description || null,
 				bank_account_id: category === 'transfer' && bankAccountId ? parseInt(bankAccountId) : null,
-				reference: reference || null,
 			};
 
 			const { error } = await createTransaction(transactionData);
@@ -99,10 +88,9 @@ export function TransactionDialog({
 		setCategory('');
 		setDescription('');
 		setBankAccountId('');
-		setReference('');
 	};
 
-	const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+	const categories = type === 'income' ? PAYMENT_METHODS : EXPENSES_CATEGORIES;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,10 +120,16 @@ export function TransactionDialog({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="category">Categoría</Label>
+							<Label htmlFor="category">{type === 'income' ? 'Método de pago' : 'Categoría'}</Label>
 							<Select value={category} onValueChange={setCategory} required>
 								<SelectTrigger>
-									<SelectValue placeholder="Selecciona una categoría" />
+									<SelectValue
+										placeholder={
+											type === 'income'
+												? 'Selecciona un método de pago'
+												: 'Selecciona una categoría'
+										}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{categories.map((cat) => (
@@ -174,18 +168,6 @@ export function TransactionDialog({
 								onChange={(e) => setDescription(e.target.value)}
 							/>
 						</div>
-
-						{category === 'transfer' && (
-							<div className="space-y-2">
-								<Label htmlFor="reference">Referencia (opcional)</Label>
-								<Input
-									id="reference"
-									placeholder="Número de referencia o comprobante"
-									value={reference}
-									onChange={(e) => setReference(e.target.value)}
-								/>
-							</div>
-						)}
 					</div>
 
 					<DialogFooter>

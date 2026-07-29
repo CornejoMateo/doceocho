@@ -30,7 +30,6 @@ export type Transaction = {
 	category: string;
 	description: string | null;
 	bank_account_id: number | null;
-	reference: string | null;
 };
 
 export type TransactionWithBankAccount = Transaction & {
@@ -52,18 +51,6 @@ export type CashBoxSummary = {
 	is_closed: boolean;
 	transaction_count: number;
 };
-
-export function translateCategory(category: string): string {
-	const translations: Record<string, string> = {
-		cash: 'Efectivo',
-		transfer: 'Transferencia',
-		salary: 'Pago de Sueldo',
-		suppliers: 'Pago a Proveedores',
-		services: 'Servicios',
-		other: 'Otros Gastos',
-	};
-	return translations[category] || category;
-}
 
 const BANK_ACCOUNTS_TABLE = 'bank_accounts';
 const CASH_BOXES_TABLE = 'cash_boxes';

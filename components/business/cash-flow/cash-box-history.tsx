@@ -5,11 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { History, Eye, ChevronUp } from 'lucide-react';
-import { CashBox, getCashBoxWithTransactions, translateCategory } from '@/lib/cash-flow/cash-flow';
+import { CashBox, getCashBoxWithTransactions } from '@/lib/cash-flow/cash-flow';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
+import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 
 interface CashBoxHistoryProps {
 	cashBoxes: CashBox[];
@@ -170,10 +171,10 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 													{transaction.type === 'income' ? '+' : '-'}
 												</span>
 												<span className="text-foreground">
-													{transaction.description || translateCategory(transaction.category)}
+													{transaction.description || getExpenseCategoryLabel(transaction.category)}
 												</span>
 												<span className="text-muted-foreground">
-													({translateCategory(transaction.category)})
+													({getExpenseCategoryLabel(transaction.category)})
 												</span>
 											</div>
 											<span className="font-medium text-foreground">
