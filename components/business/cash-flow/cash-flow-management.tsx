@@ -37,7 +37,6 @@ import {
 	deleteTransaction,
 	listActiveBankAccounts,
 	listTransactions,
-	translateCategory,
 } from '@/lib/cash-flow/cash-flow';
 import { CashBoxSummaryCard } from '@/components/business/cash-flow/cash-box-summary-card';
 import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
@@ -46,11 +45,12 @@ import { BankAccountsDialog } from '@/components/business/cash-flow/bank-account
 import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
 import { formatCurrency } from '@/utils/formats-money';
 import { translateError } from '@/lib/error-translator';
+import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
+import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 
 function CashFlowTransactionsRealtime({
 	cashBoxId,
 	onTransactionsChange,
-	onRefreshReady,
 }: {
 	cashBoxId: number;
 	onTransactionsChange: (transactions: TransactionWithBankAccount[]) => void;
@@ -68,11 +68,6 @@ function CashFlowTransactionsRealtime({
 	useEffect(() => {
 		onTransactionsChange(data);
 	}, [data, onTransactionsChange]);
-
-	useEffect(() => {
-		onRefreshReady?.(refresh);
-		return () => onRefreshReady?.(null);
-	}, [refresh, onRefreshReady]);
 
 	return null;
 }
@@ -345,7 +340,9 @@ export function CashFlowManagement() {
 														<div>
 															<p className="text-sm text-muted-foreground">
 																{transaction.category
-																	? translateCategory(transaction.category)
+																	? transaction.type === 'income'
+																		? getPaymentMethodLabel(transaction.category)
+																		: getExpenseCategoryLabel(transaction.category)
 																	: ''}
 															</p>
 															<p className="font-medium text-foreground">
@@ -441,7 +438,7 @@ export function CashFlowManagement() {
 								<>
 									{' '}
 									{transactionToDelete.description ||
-										translateCategory(transactionToDelete.category)}
+										getPaymentMethodLabel(transactionToDelete.category)}
 								</>
 							)}
 							.
