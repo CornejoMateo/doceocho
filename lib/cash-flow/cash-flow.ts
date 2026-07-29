@@ -13,7 +13,6 @@ export type BankAccount = {
 export type CashBox = {
 	id: number;
 	created_at?: string;
-	date: string;
 	opening_balance: number;
 	closing_balance?: number | null;
 	is_closed: boolean;
@@ -42,7 +41,6 @@ export type CashBoxWithTransactions = CashBox & {
 
 export type CashBoxSummary = {
 	id: number;
-	date: string;
 	opening_balance: number;
 	total_income: number;
 	total_expense: number;
@@ -129,7 +127,7 @@ export async function listCashBoxes(): Promise<{ data: CashBox[] | null; error: 
 	const { data, error } = await supabase
 		.from(CASH_BOXES_TABLE)
 		.select('*')
-		.order('date', { ascending: false });
+		.order('created_at', { ascending: false });
 	return { data, error };
 }
 
@@ -139,7 +137,7 @@ export async function getOpenCashBox(): Promise<{ data: CashBox | null; error: a
 		.from(CASH_BOXES_TABLE)
 		.select('*')
 		.eq('is_closed', false)
-		.order('date', { ascending: false })
+		.order('created_at', { ascending: false })
 		.limit(1)
 		.single();
 	return { data, error };
@@ -245,7 +243,6 @@ export async function getCashBoxSummary(
 
 	const summary: CashBoxSummary = {
 		id: cashBox.id,
-		date: cashBox.date,
 		opening_balance: Number(cashBox.opening_balance),
 		total_income: totalIncome,
 		total_expense: totalExpense,
