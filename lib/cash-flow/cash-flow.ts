@@ -158,6 +158,12 @@ export async function getCashBoxWithTransactions(
 		.select('*, transactions:transactions_box(*, bank_account:bank_accounts(*))')
 		.eq('id', id)
 		.single();
+
+	if (data?.transactions) {
+		data.transactions.sort(
+			(a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+		);
+	}
 	return { data, error };
 }
 
