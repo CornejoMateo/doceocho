@@ -26,20 +26,35 @@ interface CashBoxWithTransactions extends CashBox {
 export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistoryProps) {
 	const [expandedBoxes, setExpandedBoxes] = useState<Set<number>>(new Set());
 	const [boxesWithTransactions, setBoxesWithTransactions] = useState<CashBoxWithTransactions[]>([]);
+	const [loadingTransactions, setLoadingTransactions] = useState(true);
+
+	const ITEMS_PER_PAGE = 6;
+
+	const [currentPage, setCurrentPage] = useState(1);
 
 	useEffect(() => {
 		loadTransactions();
 	}, [cashBoxes]);
+
 	const loadTransactions = async () => {
+		setLoadingTransactions(true);
+
 		try {
 			const boxesWithTrans = await Promise.all(
 				cashBoxes.map(async (box) => {
 					if (!box.is_closed) return { ...box, transactions: [] };
+
 					const { data, error } = await getCashBoxWithTransactions(box.id);
+
 					if (error) throw error;
-					return { ...box, transactions: data?.transactions || [] };
+
+					return {
+						...box,
+						transactions: data?.transactions || [],
+					};
 				})
 			);
+
 			setBoxesWithTransactions(boxesWithTrans);
 		} catch (error) {
 			toast({
@@ -47,6 +62,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 				description: translateError(error) || 'No se pudieron cargar las transacciones.',
 				variant: 'destructive',
 			});
+		} finally {
+			setLoadingTransactions(false);
 		}
 	};
 
@@ -62,7 +79,18 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 
 	const closedBoxes = boxesWithTransactions.filter((box) => box.is_closed);
 
-	if (loading) {
+	const totalPages = Math.ceil(closedBoxes.length / ITEMS_PER_PAGE);
+
+	const paginatedBoxes = closedBoxes.slice(
+		(currentPage - 1) * ITEMS_PER_PAGE,
+		currentPage * ITEMS_PER_PAGE
+	);
+
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [closedBoxes.length]);
+
+	if (loading || loadingTransactions) {
 		return (
 			<Card className="p-12 bg-card border-border text-center">
 				<p className="text-muted-foreground">Cargando historial...</p>
@@ -87,7 +115,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	}
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-4 overflow-y-auto max-h-[500px] pr-2">
 			<div className="flex items-center justify-between">
 				<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
 				<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
@@ -96,7 +124,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 				</Button>
 			</div>
 
-			{closedBoxes.map((box) => {
+			{paginatedBoxes.map((box) => {
 				const totalIncome =
 					box.transactions
 						?.filter((t: any) => t.type === 'income')
@@ -194,6 +222,33 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 					</Card>
 				);
 			})}
+			{totalPages > 1 && (
+				<div className="flex items-center justify-between pt-2">
+					<p className="text-sm text-muted-foreground">
+						Página {currentPage} de {totalPages}
+					</p>
+
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setCurrentPage((p) => p - 1)}
+							disabled={currentPage === 1}
+						>
+							Anterior
+						</Button>
+
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setCurrentPage((p) => p + 1)}
+							disabled={currentPage === totalPages}
+						>
+							Siguiente
+						</Button>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
