@@ -7,6 +7,7 @@ const nextConfig = {
 		unoptimized: true,
 	},
 	serverExternalPackages: ['jspdf', 'fflate'],
+	allowedDevOrigins: ['192.168.68.57'],
 	turbopack: {}, // Configuración vacía para evitar problemas
 	webpack: (config, { isServer }) => {
 		// Ignorar módulos problemáticos en el cliente

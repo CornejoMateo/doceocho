@@ -62,7 +62,8 @@ export const translateError = (error: any): string => {
 	if (
 		errorMessage.includes('PERMISSION_DENIED') ||
 		errorMessage.includes('permiso de ubicación') ||
-		errorMessage.includes('User denied Geolocation')
+		errorMessage.includes('User denied Geolocation') ||
+		errorMessage.includes('origin does not have permission to use Geolocation service')
 	) {
 		return 'Permiso de ubicación denegado. Habilita la geolocalización en tu navegador.';
 	}

@@ -12,15 +12,24 @@ import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/a
 import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
-import { Settings } from 'lucide-react';
+import { Settings, MapPin, AlertCircle } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QRScanner from './attendance-qr-scanner';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from '@/components/ui/dialog';
 
 export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+	const [targetLocation, setTargetLocation] = useState(TARGET_LOCATION);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
@@ -29,6 +38,7 @@ export function ClockIn() {
 			longitude: number;
 		};
 	} | null>(null);
+	const [locationPermissionModal, setLocationPermissionModal] = useState(false);
 
 	const { user } = useAuth();
 
@@ -59,6 +69,12 @@ export function ClockIn() {
 		if (settings?.square_meters) {
 			setRadiusMeters(settings.square_meters);
 		}
+		if (settings?.target_latitude && settings?.target_longitude) {
+			setTargetLocation({
+				latitude: settings.target_latitude,
+				longitude: settings.target_longitude,
+			});
+		}
 	};
 
 	const loadAttendanceStatus = async () => {
@@ -81,14 +97,24 @@ export function ClockIn() {
 
 	const validateLocation = async () => {
 		const location = await getCurrentLocation().catch((error) => {
+			// Check if it's a permission error and show modal
+			const errorMessage = error?.message || String(error);
+			if (
+				errorMessage.includes('PERMISSION_DENIED') ||
+				errorMessage.includes('origin does not have permission') ||
+				errorMessage.includes('Permiso de ubicación denegado')
+			) {
+				setLocationPermissionModal(true);
+				throw new Error('Permiso de ubicación requerido');
+			}
 			throw new Error(translateError(error));
 		});
 
 		const withinRadius = isWithinRadius(
 			location.latitude,
 			location.longitude,
-			TARGET_LOCATION.latitude,
-			TARGET_LOCATION.longitude,
+			targetLocation.latitude,
+			targetLocation.longitude,
 			radiusMeters
 		);
 
@@ -293,6 +319,68 @@ export function ClockIn() {
 					}
 				}}
 			/>
+			<Dialog open={locationPermissionModal} onOpenChange={setLocationPermissionModal}>
+				<DialogContent className="sm:max-w-[425px]">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<MapPin className="h-5 w-5 text-orange-500" />
+							Permiso de ubicación requerido
+						</DialogTitle>
+						<DialogDescription>
+							Necesitamos tu ubicación para registrar el fichaje y verificar que estás dentro del
+							área permitida.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="flex items-start gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
+							<AlertCircle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+							<div className="text-sm text-orange-900">
+								<p className="font-semibold mb-1">Instrucciones para iOS:</p>
+								<ol className="list-decimal list-inside space-y-1">
+									<li>
+										Ve a <strong>Configuración</strong>
+									</li>
+									<li>Busca esta aplicación</li>
+									<li>
+										Toca <strong>Ubicación</strong>
+									</li>
+									<li>
+										Selecciona <strong>Mientras usas la app</strong>
+									</li>
+								</ol>
+							</div>
+						</div>
+						<div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+							<AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+							<div className="text-sm text-blue-900">
+								<p className="font-semibold mb-1">Instrucciones para Android:</p>
+								<ol className="list-decimal list-inside space-y-1">
+									<li>Toca el botón de permisos en tu navegador</li>
+									<li>
+										Selecciona <strong>Permitir</strong> para la ubicación
+									</li>
+								</ol>
+							</div>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setLocationPermissionModal(false)}>
+							Cancelar
+						</Button>
+						<Button
+							onClick={() => {
+								setLocationPermissionModal(false);
+								// Retry the clock action
+								if (pendingClockAction) {
+									handleClockAction(pendingClockAction.isOvertime);
+								}
+							}}
+						>
+							Intentar nuevamente
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

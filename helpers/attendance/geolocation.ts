@@ -17,6 +17,18 @@ export function getCurrentLocation(): Promise<{ latitude: number; longitude: num
 				});
 			},
 			(error) => {
+				// Provide helpful instructions for iOS users when permission is denied
+				if (error.code === error.PERMISSION_DENIED) {
+					const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+					if (isIOS) {
+						reject(
+							new Error(
+								'Permiso de ubicación denegado. En iOS: Configuración > Tu App > Ubicación > Mientras usas la app'
+							)
+						);
+						return;
+					}
+				}
 				reject(error);
 			},
 			{

@@ -17,6 +17,11 @@ export default function LoginPage() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [isRedirecting, setIsRedirecting] = useState(false);
+	const [isMounted, setIsMounted] = useState(false);
+
+	React.useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	const getHomeByRole = (role: UserRole) => {
 		const map: Record<UserRole, string> = {
@@ -140,10 +145,10 @@ export default function LoginPage() {
 
 					<Button
 						type="submit"
-						disabled={loading}
+						disabled={loading || !isMounted}
 						className="w-full py-2 bg-[#4F5C4D] hover:bg-[#3A4538] text-[#FBF7F0] font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
 					>
-						{loading ? 'Iniciando sesión...' : 'Acceder al sistema'}
+						{isMounted && loading ? 'Iniciando sesión...' : 'Acceder al sistema'}
 					</Button>
 				</form>
 
