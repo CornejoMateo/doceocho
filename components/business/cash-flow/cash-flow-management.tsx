@@ -46,6 +46,7 @@ import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box-dialog';
+import { formatCurrency } from '@/utils/formats-money';
 
 function CashFlowTransactionsRealtime({
 	cashBoxId,
@@ -384,15 +385,20 @@ export function CashFlowManagement() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Esta acción no se puede deshacer. Se eliminará permanentemente la transacción
+							Esta acción no se puede deshacer. Se eliminará permanentemente la transacción{' '}
 							{transactionToDelete && (
 								<>
-									{transactionToDelete.description || transactionToDelete.type === 'income'
-										? getPaymentMethodLabel(transactionToDelete.category)
-										: getExpenseCategoryLabel(transactionToDelete.category)}
+									<span className="font-semibold">
+										{transactionToDelete.description ||
+											(transactionToDelete.type === 'income'
+												? getPaymentMethodLabel(transactionToDelete.category)
+												: getExpenseCategoryLabel(transactionToDelete.category))}{' '}
+									</span>
+									<span>
+										con el siguiente monto: <b>{formatCurrency(transactionToDelete.amount)}</b>
+									</span>
 								</>
 							)}
-							.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
