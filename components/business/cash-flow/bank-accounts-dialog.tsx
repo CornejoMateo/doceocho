@@ -40,6 +40,7 @@ import {
 } from '@/lib/cash-flow/cash-flow';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
+import { ACCOUNT_TYPES, getAccountTypeLabel } from '@/constants/cashflow/cashflow';
 
 interface BankAccountsDialogProps {
 	open: boolean;
@@ -178,7 +179,7 @@ export function BankAccountsDialog({
 					{!isAdding && (
 						<Button onClick={handleAdd} className="w-full gap-2">
 							<Plus className="h-4 w-4" />
-							Agregar Nueva Cuenta
+							Agregar nueva cuenta
 						</Button>
 					)}
 
@@ -225,9 +226,11 @@ export function BankAccountsDialog({
 											<SelectValue placeholder="Selecciona el tipo" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="checking">Cuenta Corriente</SelectItem>
-											<SelectItem value="savings">Caja de Ahorro</SelectItem>
-											<SelectItem value="other">Otro</SelectItem>
+											{ACCOUNT_TYPES.map((type) => (
+												<SelectItem key={type.value} value={type.value}>
+													{type.label}
+												</SelectItem>
+											))}
 										</SelectContent>
 									</Select>
 								</div>
@@ -253,9 +256,7 @@ export function BankAccountsDialog({
 										<p className="text-sm text-muted-foreground">{account.bank}</p>
 										<p className="text-sm text-muted-foreground">{account.account_number}</p>
 										<Badge variant="secondary" className="mt-2">
-											{account.account_type === 'checking' && 'Cuenta Corriente'}
-											{account.account_type === 'savings' && 'Caja de Ahorro'}
-											{account.account_type === 'other' && 'Otro'}
+											{getAccountTypeLabel(account.account_type)}
 										</Badge>
 									</div>
 									<div className="flex gap-2">
