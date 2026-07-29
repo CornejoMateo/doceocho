@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
+import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
 
 interface AddTransactionSectionProps {
 	addingMode: 'transaction' | 'extra' | null;
@@ -191,13 +192,11 @@ export function AddTransactionSection({
 								<SelectValue placeholder="Seleccionar método" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="Efectivo">Efectivo</SelectItem>
-								<SelectItem value="Transferencia">Transferencia</SelectItem>
-								<SelectItem value="Debito">Débito</SelectItem>
-								<SelectItem value="Credito">Crédito</SelectItem>
-								<SelectItem value="Cheque Fisico">Cheque (físico)</SelectItem>
-								<SelectItem value="Echeq">Echeq</SelectItem>
-								<SelectItem value="Dólar">Dólar</SelectItem>
+								{PAYMENT_METHODS.map((method) => (
+									<SelectItem key={method.value} value={method.value}>
+										{method.label}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>
