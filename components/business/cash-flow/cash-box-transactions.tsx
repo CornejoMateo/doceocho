@@ -62,7 +62,8 @@ export function CashBoxTransactions({
 												? transaction.type === 'income'
 													? getPaymentMethodLabel(transaction.category)
 													: getExpenseCategoryLabel(transaction.category)
-												: ''}
+												: ''}{' '}
+											{transaction.bank_account ? ` - ${transaction.bank_account.name}` : ''}
 										</p>
 										<p className="font-medium text-foreground">
 											{transaction.description ? transaction.description : ''}
