@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -25,6 +25,7 @@ import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 import { createTransaction } from '@/lib/cash-flow/cash-flow';
 import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
 import { EXPENSES_CATEGORIES } from '@/constants/cashflow/cashflow';
+import { toast } from '@/components/ui/use-toast';
 
 interface TransactionDialogProps {
 	open: boolean;
@@ -33,11 +34,6 @@ interface TransactionDialogProps {
 	cashBoxId: number;
 	bankAccounts: BankAccount[];
 	onTransactionCreated: () => void;
-}
-
-interface CategoryOption {
-	value: string;
-	label: string;
 }
 
 export function TransactionDialog({
@@ -56,7 +52,14 @@ export function TransactionDialog({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!amount || !category) return;
+		if (!amount || !category) {
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: 'Por favor completa todos los campos requeridos.',
+			});
+			return;
+		}
 		const parsedAmount = parseArsToNumber(amount);
 		if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
 
@@ -68,7 +71,8 @@ export function TransactionDialog({
 				amount: parsedAmount,
 				category,
 				description: description || null,
-				bank_account_id: category === 'transfer' && bankAccountId ? parseInt(bankAccountId) : null,
+				bank_account_id:
+					category === 'bank_transfer' && bankAccountId ? Number(bankAccountId) : null,
 			};
 
 			const { error } = await createTransaction(transactionData);
@@ -141,7 +145,7 @@ export function TransactionDialog({
 							</Select>
 						</div>
 
-						{category === 'transfer' && (
+						{category === 'bank_transfer' && (
 							<div className="space-y-2">
 								<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 								<Select value={bankAccountId} onValueChange={setBankAccountId}>
@@ -171,7 +175,14 @@ export function TransactionDialog({
 					</div>
 
 					<DialogFooter>
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => {
+								onOpenChange(false);
+								resetForm();
+							}}
+						>
 							Cancelar
 						</Button>
 						<Button type="submit" disabled={loading}>
