@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { History, Eye, ChevronUp } from 'lucide-react';
 import { CashBox, getCashBoxWithTransactions } from '@/lib/cash-flow/cash-flow';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatCreatedAt } from '@/utils/format-date';
+import { formatCreatedAt, formatTime } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
+import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 
 interface CashBoxHistoryProps {
 	cashBoxes: CashBox[];
@@ -204,12 +205,28 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 												>
 													{transaction.type === 'income' ? '+' : '-'}
 												</span>
-												<span className="text-foreground">
-													{transaction.description || getExpenseCategoryLabel(transaction.category)}
-												</span>
-												<span className="text-muted-foreground">
-													({getExpenseCategoryLabel(transaction.category)})
-												</span>
+
+												<div className="flex flex-col">
+													<span className="text-foreground">
+														{transaction.description ||
+															(transaction.type === 'income'
+																? getPaymentMethodLabel(transaction.category)
+																: getExpenseCategoryLabel(transaction.category))}
+													</span>
+
+													<span className="text-muted-foreground">
+														(
+														{transaction.type === 'income'
+															? getPaymentMethodLabel(transaction.category)
+															: getExpenseCategoryLabel(transaction.category)}
+														)
+													</span>
+
+													<span className="text-xs text-muted-foreground">
+														{formatCreatedAt(transaction.created_at)} •{' '}
+														{formatTime(transaction.created_at)}
+													</span>
+												</div>
 											</div>
 											<span className="font-medium text-foreground">
 												{formatCurrency(Number(transaction.amount))}
