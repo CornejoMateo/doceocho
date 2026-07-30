@@ -222,11 +222,24 @@ returns void
 language plpgsql
 as $$
 begin
-  update public.cash_boxes
+  update public.cash_boxes cb
   set
     is_closed = true,
-    closed_at = now()
-  where is_closed = false;
+    closed_at = now(),
+    closing_balance =
+      coalesce(cb.opening_balance, 0) +
+      coalesce((
+        select sum(
+          case
+            when t.type = 'income' then t.amount
+            when t.type = 'expense' then -t.amount
+            else 0
+          end
+        )
+        from public.transactions_box t
+        where t.cash_box_id = cb.id
+      ), 0)
+  where cb.is_closed = false;
 end;
 $$;
 
