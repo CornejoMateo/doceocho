@@ -7,6 +7,8 @@ create table public.attendance_settings (
   default_check_out_time text null,
   price_hour numeric null,
   price_hour_overtime numeric null,
+  target_latitude numeric null,
+  target_longitude numeric null,
   constraint attendance_settings_pkey primary key (id)
 ) TABLESPACE pg_default;
 
