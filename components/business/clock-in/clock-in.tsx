@@ -21,6 +21,8 @@ export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+	const [latitude, setLatitude] = useState<number | null>(null);
+	const [longitude, setLongitude] = useState<number | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
@@ -40,9 +42,7 @@ export function ClockIn() {
 		if (!user.uid) return;
 
 		const init = async () => {
-			if (isAuthorized) {
-				await loadSettings();
-			}
+			await loadSettings();
 			await loadAttendanceStatus();
 			setLoading(false);
 		};
@@ -58,6 +58,16 @@ export function ClockIn() {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setRadiusMeters(settings.square_meters);
+		}
+		if (settings?.target_latitude !== null && settings?.target_latitude !== undefined) {
+			setLatitude(settings.target_latitude);
+		} else {
+			setLatitude(TARGET_LOCATION.latitude);
+		}
+		if (settings?.target_longitude !== null && settings?.target_longitude !== undefined) {
+			setLongitude(settings.target_longitude);
+		} else {
+			setLongitude(TARGET_LOCATION.longitude);
 		}
 	};
 
@@ -87,8 +97,8 @@ export function ClockIn() {
 		const withinRadius = isWithinRadius(
 			location.latitude,
 			location.longitude,
-			TARGET_LOCATION.latitude,
-			TARGET_LOCATION.longitude,
+			latitude || TARGET_LOCATION.latitude,
+			longitude || TARGET_LOCATION.longitude,
 			radiusMeters
 		);
 
@@ -137,6 +147,8 @@ export function ClockIn() {
 					latitude: pendingClockAction?.location.latitude,
 					longitude: pendingClockAction?.location.longitude,
 					radiusMeters: radiusMeters,
+					lat: latitude || TARGET_LOCATION.latitude,
+					long: longitude || TARGET_LOCATION.longitude,
 				}),
 			});
 

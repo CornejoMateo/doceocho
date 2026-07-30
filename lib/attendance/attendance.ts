@@ -24,6 +24,8 @@ export interface AttendanceSettings {
 	default_check_out_time: string | null;
 	price_hour: number | null;
 	price_hour_overtime: number | null;
+	target_latitude: number | null;
+	target_longitude: number | null;
 }
 
 export interface AttendanceEntryWithDate extends AttendanceEntry {

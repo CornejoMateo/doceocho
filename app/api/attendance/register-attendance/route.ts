@@ -12,7 +12,7 @@ import { TARGET_LOCATION } from '@/constants/attendance/attendance';
 export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
-		const { isOvertime, latitude, longitude, radiusMeters } = await req.json();
+		const { isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
 		const userId = user?.id;
 
 		if (!userId) {
@@ -51,15 +51,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		if (
-			!isWithinRadius(
-				latitude,
-				longitude,
-				TARGET_LOCATION.latitude,
-				TARGET_LOCATION.longitude,
-				radiusMeters
-			)
-		) {
+		if (!isWithinRadius(latitude, longitude, lat, long, radiusMeters)) {
 			return NextResponse.json(
 				{
 					success: false,
