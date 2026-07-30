@@ -94,7 +94,7 @@ export function AddTransactionSection({
 
 	if (!addingMode) {
 		return (
-			<div className="flex gap-2 justify-center">
+			<div className="flex flex-col sm:flex-row gap-2 justify-center">
 				<Button
 					variant="outline"
 					size="sm"
@@ -127,7 +127,8 @@ export function AddTransactionSection({
 	};
 
 	return (
-		<div className="space-y-4 p-4 border rounded-lg">
+		<div className="space-y-4 p-4 border rounded-lg min-w-0 overflow-hidden">
+			{' '}
 			<h3 className="text-sm font-semibold">
 				{isEditing
 					? 'Editar transacción'
@@ -135,7 +136,6 @@ export function AddTransactionSection({
 						? 'Nuevo monto extra'
 						: 'Nueva transacción'}
 			</h3>
-
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{' '}
 				<div className="space-y-2">
@@ -243,7 +243,6 @@ export function AddTransactionSection({
 					onChange={(e) => onNotesChange(e.target.value)}
 				/>
 			</div>
-
 			<div className="space-y-2">
 				<Label>Archivos adjuntos</Label>
 				{selectedFiles.length > 0 && (
@@ -290,7 +289,6 @@ export function AddTransactionSection({
 					</Button>
 				</div>
 			</div>
-
 			<div className="flex gap-1 justify-end">
 				<Button variant="outline" size="sm" onClick={onCancel}>
 					Cancelar
