@@ -151,11 +151,10 @@ create table public.transactions_box (
   created_at timestamp with time zone not null default now(),
   cash_box_id bigint not null,
   type character varying not null,
-  amount numeric(10, 2) not null,
+  amount numeric not null,
   category character varying not null,
   description character varying null,
   bank_account_id bigint null,
-  reference character varying null,
   constraint transactions_pkey primary key (id),
   constraint transactions_cash_box_id_fkey foreign key (cash_box_id) references public.cash_boxes (id) on update CASCADE on delete CASCADE,
   constraint transactions_bank_account_id_fkey foreign key (bank_account_id) references public.bank_accounts (id) on update CASCADE on delete SET NULL,
@@ -215,3 +214,85 @@ USING (
         AND u.role = 'Admin'
   )
 );
+
+------ AUTOMATIC CLOSE CASH BOXES ------
+
+create or replace function public.close_open_cash_box()
+returns void
+language plpgsql
+as $$
+begin
+  update public.cash_boxes
+  set
+    is_closed = true,
+    closed_at = now()
+  where is_closed = false;
+end;
+$$;
+
+select cron.schedule(
+  'close-open-cash-box',
+  '45 2 * * 1',  -- Domingo a las 23:00
+  $$select public.close_open_cash_box();$$
+);
+
+------ TRIGGER TO CREATE CASH BOX TRANSACTIONS WHEN INSERTING A TRANSACTION BALANCES ------
+
+create or replace function public.sync_balance_transaction_to_cash_box()
+returns trigger
+language plpgsql
+as $$
+declare
+    v_cash_box_id bigint;
+begin
+    -- if the transaction is an extra amount, then we don't need to create a cash box transaction
+    if coalesce(new.is_extra_amount, false) then
+        return new;
+    end if;
+
+    -- Search for an open cash box
+    select id
+    into v_cash_box_id
+    from public.cash_boxes
+    where is_closed = false
+    limit 1;
+
+    -- If not exists, creste a new cash box
+    if v_cash_box_id is null then
+        insert into public.cash_boxes (
+            created_at,
+            is_closed
+        )
+        values (
+            now(),
+            false
+        )
+        returning id into v_cash_box_id;
+    end if;
+
+    -- Create a new cash box transaction
+    insert into public.transactions_box (
+        cash_box_id,
+        type,
+        category,
+        description,
+        bank_account_id,
+        amount
+    )
+    values (
+        v_cash_box_id,
+        'income',
+        new.payment_method,
+        new.notes,
+        new.bank_account_id,
+        new.amount
+    );
+
+    return new;
+end;
+$$;
+
+create trigger trg_sync_balance_transaction_to_cash_box
+after insert on public.balance_transactions
+for each row
+execute function public.sync_balance_transaction_to_cash_box();
