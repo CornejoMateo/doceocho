@@ -26,7 +26,7 @@ export function CashBoxSummaryCard({ summary }: CashBoxSummaryCardProps) {
 				<div className="flex items-center justify-between">
 					<div>
 						<p className="text-sm font-medium text-muted-foreground">Saldo Inicial</p>
-						<p className="text-1xl font-bold text-foreground mt-2">
+						<p className="text-xl font-bold text-foreground mt-2">
 							{formatCurrency(summary.opening_balance)}
 						</p>
 					</div>
@@ -40,7 +40,7 @@ export function CashBoxSummaryCard({ summary }: CashBoxSummaryCardProps) {
 				<div className="flex items-center justify-between">
 					<div>
 						<p className="text-sm font-medium text-muted-foreground">Total Ingresos</p>
-						<p className="text-1xl font-bold text-green-500 mt-2">
+						<p className="text-xl font-bold text-green-500 mt-2">
 							{formatCurrency(summary.total_income)}
 						</p>
 					</div>
@@ -54,7 +54,7 @@ export function CashBoxSummaryCard({ summary }: CashBoxSummaryCardProps) {
 				<div className="flex items-center justify-between">
 					<div>
 						<p className="text-sm font-medium text-muted-foreground">Total Egresos</p>
-						<p className="text-1xl font-bold text-red-500 mt-2 wrap">
+						<p className="text-xl font-bold text-red-500 mt-2 wrap">
 							{formatCurrency(summary.total_expense)}
 						</p>
 					</div>
@@ -68,7 +68,7 @@ export function CashBoxSummaryCard({ summary }: CashBoxSummaryCardProps) {
 				<div className="flex items-center justify-between min-w-0">
 					<div>
 						<p className="text-sm font-medium text-muted-foreground">Saldo Actual</p>
-						<p className="text-1x1 font-bold text-foreground mt-2 whitespace-normal break-words">
+						<p className="text-xl font-bold text-foreground mt-2 whitespace-normal break-all">
 							{formatCurrency(summary.current_balance)}
 						</p>
 					</div>

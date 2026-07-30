@@ -33,8 +33,10 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!name || !bank || !accountNumber || !accountType) return;
-
+		const trimmedName = name.trim();
+		const trimmedBank = bank.trim();
+		const trimmedAccountNumber = accountNumber.trim();
+		if (!trimmedName || !trimmedBank || !trimmedAccountNumber || !accountType) return;
 		setIsSubmitting(true);
 		try {
 			if (account) {

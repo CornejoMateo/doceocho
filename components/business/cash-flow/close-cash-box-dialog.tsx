@@ -35,9 +35,9 @@ export function CloseCashBoxDialog({
 		setLoading(true);
 		try {
 			await onCloseCashBox(currentBalance, notes || undefined);
-			setNotes('');
 		} finally {
 			setLoading(false);
+			setNotes('');
 		}
 	};
 

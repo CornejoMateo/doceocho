@@ -112,7 +112,7 @@ export function TransactionDialog({
 					</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={handleSubmit}>
-					<div className="space-y-4 py-4">
+					<div className="space-y-4 py-4 min-w-0">
 						<div className="space-y-2">
 							<Label htmlFor="amount">Monto</Label>
 							<Input
@@ -150,10 +150,10 @@ export function TransactionDialog({
 						</div>
 
 						{category === 'bank_transfer' && (
-							<div className="space-y-2">
+							<div className="space-y-2 min-w-0">
 								<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 								<Select value={bankAccountId} onValueChange={setBankAccountId}>
-									<SelectTrigger>
+									<SelectTrigger className="w-full overflow-hidden">
 										<SelectValue placeholder="Selecciona una cuenta" />
 									</SelectTrigger>
 									<SelectContent>

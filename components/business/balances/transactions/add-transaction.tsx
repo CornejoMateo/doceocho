@@ -18,7 +18,7 @@ import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
 import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
@@ -77,16 +77,18 @@ export function AddTransactionSection({
 }: AddTransactionSectionProps) {
 	const isEditing = !!editingTransaction;
 
+	const fetchActiveBankAccounts = useCallback(async () => {
+		const { data } = await listActiveBankAccounts();
+		return data ?? [];
+	}, []);
+
 	const {
 		data: bankAccounts,
 		loading: loadingBankAccounts,
 		refresh: refreshBankAccounts,
 	} = useOptimizedRealtime<BankAccount>(
 		'bank_accounts',
-		async () => {
-			const { data } = await listActiveBankAccounts();
-			return data ?? [];
-		},
+		fetchActiveBankAccounts,
 		'active_bank_accounts_cache'
 	);
 
@@ -218,8 +220,10 @@ export function AddTransactionSection({
 					<div className="space-y-2">
 						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
-							<SelectTrigger>
-								<SelectValue placeholder="Selecciona una cuenta" />
+							<SelectTrigger className="w-full">
+								<span className="truncate">
+									Banco Santander Río - Cuenta Corriente Principal (123456789123456789)
+								</span>
 							</SelectTrigger>
 							<SelectContent>
 								{bankAccounts.map((account) => (

@@ -103,7 +103,12 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	);
 
 	useEffect(() => {
-		setBoxesWithTransactions(cashBoxes);
+		setBoxesWithTransactions((prev) =>
+			cashBoxes.map((box) => {
+				const cached = prev.find((b) => b.id === box.id);
+				return cached ? { ...box, ...cached } : box;
+			})
+		);
 	}, [cashBoxes]);
 
 	useEffect(() => {

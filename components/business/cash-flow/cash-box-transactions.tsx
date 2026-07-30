@@ -22,7 +22,7 @@ export function CashBoxTransactions({
 		<Card className="bg-card border-border">
 			<div className="p-6 overflow-y-auto max-h-[400px]">
 				<div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-					<h3 className="text-lg font-semibold text-foreground">
+					<h3 className="text-base font-semibold text-foreground">
 						Movimientos correspondientes a la caja actual
 					</h3>
 
@@ -31,7 +31,7 @@ export function CashBoxTransactions({
 					</div>
 				</div>
 				{transactions.length === 0 ? (
-					<p className="text-muted-foreground text-center py-8">
+					<p className="text-muted-foreground text-center py-8 text-sm">
 						No hay movimientos registrados para la caja actual. Agrega ingresos o egresos para
 						verlos aquí.
 					</p>

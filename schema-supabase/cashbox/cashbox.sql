@@ -249,6 +249,10 @@ select cron.schedule(
   $$select public.close_open_cash_box();$$
 );
 
+create unique index one_open_cash_box
+on public.cash_boxes (is_closed)
+where is_closed = false;
+
 ------ TRIGGER TO CREATE CASH BOX TRANSACTIONS WHEN INSERTING A TRANSACTION BALANCES ------
 
 create or replace function public.sync_balance_transaction_to_cash_box()
