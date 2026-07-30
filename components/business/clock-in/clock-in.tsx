@@ -42,9 +42,7 @@ export function ClockIn() {
 		if (!user.uid) return;
 
 		const init = async () => {
-			if (isAuthorized) {
-				await loadSettings();
-			}
+			await loadSettings();
 			await loadAttendanceStatus();
 			setLoading(false);
 		};
@@ -60,8 +58,16 @@ export function ClockIn() {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setRadiusMeters(settings.square_meters);
-			setLatitude(settings.target_latitude ?? TARGET_LOCATION.latitude);
-			setLongitude(settings.target_longitude ?? TARGET_LOCATION.longitude);
+		}
+		if (settings?.target_latitude !== null && settings?.target_latitude !== undefined) {
+			setLatitude(settings.target_latitude);
+		} else {
+			setLatitude(TARGET_LOCATION.latitude);
+		}
+		if (settings?.target_longitude !== null && settings?.target_longitude !== undefined) {
+			setLongitude(settings.target_longitude);
+		} else {
+			setLongitude(TARGET_LOCATION.longitude);
 		}
 	};
 
@@ -141,6 +147,8 @@ export function ClockIn() {
 					latitude: pendingClockAction?.location.latitude,
 					longitude: pendingClockAction?.location.longitude,
 					radiusMeters: radiusMeters,
+					lat: latitude || TARGET_LOCATION.latitude,
+					long: longitude || TARGET_LOCATION.longitude,
 				}),
 			});
 
