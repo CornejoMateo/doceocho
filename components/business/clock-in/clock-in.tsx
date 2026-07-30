@@ -21,6 +21,8 @@ export function ClockIn() {
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+	const [latitude, setLatitude] = useState<number | null>(null);
+	const [longitude, setLongitude] = useState<number | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
@@ -58,6 +60,8 @@ export function ClockIn() {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setRadiusMeters(settings.square_meters);
+			setLatitude(settings.target_latitude ?? TARGET_LOCATION.latitude);
+			setLongitude(settings.target_longitude ?? TARGET_LOCATION.longitude);
 		}
 	};
 
@@ -87,8 +91,8 @@ export function ClockIn() {
 		const withinRadius = isWithinRadius(
 			location.latitude,
 			location.longitude,
-			TARGET_LOCATION.latitude,
-			TARGET_LOCATION.longitude,
+			latitude || TARGET_LOCATION.latitude,
+			longitude || TARGET_LOCATION.longitude,
 			radiusMeters
 		);
 
