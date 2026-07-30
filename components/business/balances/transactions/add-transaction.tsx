@@ -18,6 +18,9 @@ import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
 import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
+import { useState } from 'react';
+import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
 interface AddTransactionSectionProps {
 	addingMode: 'transaction' | 'extra' | null;
@@ -33,6 +36,8 @@ interface AddTransactionSectionProps {
 	onNotesChange: (value: string) => void;
 	paymentMethod: string;
 	onPaymentMethodChange: (value: string) => void;
+	onBankAccountIdChange: (value: string) => void;
+	bankAccountId: string;
 	onCancel: () => void;
 	onSave: () => void;
 	onStartAddTransaction: () => void;
@@ -58,6 +63,8 @@ export function AddTransactionSection({
 	onNotesChange,
 	paymentMethod,
 	onPaymentMethodChange,
+	onBankAccountIdChange,
+	bankAccountId,
 	onCancel,
 	onSave,
 	onStartAddTransaction,
@@ -69,6 +76,19 @@ export function AddTransactionSection({
 	onRemoveFile,
 }: AddTransactionSectionProps) {
 	const isEditing = !!editingTransaction;
+
+	const {
+		data: bankAccounts,
+		loading: loadingBankAccounts,
+		refresh: refreshBankAccounts,
+	} = useOptimizedRealtime<BankAccount>(
+		'bank_accounts',
+		async () => {
+			const { data } = await listActiveBankAccounts();
+			return data ?? [];
+		},
+		'active_bank_accounts_cache'
+	);
 
 	if (!addingMode) {
 		return (
@@ -114,7 +134,8 @@ export function AddTransactionSection({
 						: 'Nueva transacción'}
 			</h3>
 
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{' '}
 				<div className="space-y-2">
 					<Label htmlFor="transaction-date">Fecha</Label>
 					<Popover>
@@ -143,7 +164,6 @@ export function AddTransactionSection({
 						</PopoverContent>
 					</Popover>
 				</div>
-
 				<div className="space-y-2">
 					<Label htmlFor="transaction-amount">Monto en pesos</Label>
 					<Input
@@ -154,7 +174,7 @@ export function AddTransactionSection({
 					/>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="quote-usd">Cotización USD</Label>
 					<Input
@@ -174,33 +194,52 @@ export function AddTransactionSection({
 					/>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
-					<Label htmlFor="notes">Observaciones</Label>
-					<Input
-						id="notes"
-						type="text"
-						value={notes}
-						onChange={(e) => onNotesChange(e.target.value)}
-					/>
+					{addingMode === 'transaction' && (
+						<div className="space-y-2">
+							<Label htmlFor="payment-method">Método de pago</Label>
+							<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+								<SelectTrigger id="payment-method">
+									<SelectValue placeholder="Seleccionar método" />
+								</SelectTrigger>
+								<SelectContent>
+									{PAYMENT_METHODS.map((method) => (
+										<SelectItem key={method.value} value={method.value}>
+											{method.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 				</div>
-				{addingMode === 'transaction' && (
+				{addingMode === 'transaction' && paymentMethod === 'bank_transfer' && (
 					<div className="space-y-2">
-						<Label htmlFor="payment-method">Método de pago</Label>
-						<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-							<SelectTrigger id="payment-method">
-								<SelectValue placeholder="Seleccionar método" />
+						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
+						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
+							<SelectTrigger>
+								<SelectValue placeholder="Selecciona una cuenta" />
 							</SelectTrigger>
 							<SelectContent>
-								{PAYMENT_METHODS.map((method) => (
-									<SelectItem key={method.value} value={method.value}>
-										{method.label}
+								{bankAccounts.map((account) => (
+									<SelectItem key={account.id} value={String(account.id)}>
+										{account.bank} - {account.name} ({account.account_number})
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
 					</div>
 				)}
+			</div>
+			<div className="space-y-2">
+				<Label htmlFor="notes">Observaciones</Label>
+				<Input
+					id="notes"
+					type="text"
+					value={notes}
+					onChange={(e) => onNotesChange(e.target.value)}
+				/>
 			</div>
 
 			<div className="space-y-2">

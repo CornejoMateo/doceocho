@@ -8,17 +8,17 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table';
-import { BalanceTransaction } from '@/lib/balances/balance_transactions';
+import { BalanceTransactionWithBankAccount } from '@/lib/balances/balance_transactions';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 
 interface TransactionsTableProps {
 	isLoading: boolean;
-	transactions: BalanceTransaction[];
+	transactions: BalanceTransactionWithBankAccount[];
 	formatDate: (dateStr: string | null | undefined) => string;
-	onDeleteTransaction: (transaction: BalanceTransaction) => void;
-	onEditTransaction: (transaction: BalanceTransaction) => void;
-	onViewFiles: (transaction: BalanceTransaction) => void;
+	onDeleteTransaction: (transaction: BalanceTransactionWithBankAccount) => void;
+	onEditTransaction: (transaction: BalanceTransactionWithBankAccount) => void;
+	onViewFiles: (transaction: BalanceTransactionWithBankAccount) => void;
 }
 
 export function TransactionsTable({
@@ -59,8 +59,13 @@ export function TransactionsTable({
 					transactions.map((transaction) => (
 						<TableRow key={transaction.id}>
 							<TableCell>{formatDate(transaction.date)}</TableCell>
-							<TableCell className="text-center font-sm">
+							<TableCell className="text-center font-sm whitespace-normal break-words">
 								{getPaymentMethodLabel(transaction.payment_method || '')}
+								{transaction.bank_account_id && transaction.bank_account ? (
+									<div className="text-xs text-muted-foreground">
+										{transaction.bank_account.name} - {transaction.bank_account.bank}
+									</div>
+								) : null}
 							</TableCell>
 							<TableCell className="text-center font-sm w-[200px] whitespace-normal break-words">
 								<div className="flex items-center gap-1 justify-center">
