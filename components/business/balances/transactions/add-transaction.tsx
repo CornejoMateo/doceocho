@@ -220,10 +220,8 @@ export function AddTransactionSection({
 					<div className="space-y-2">
 						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
-							<SelectTrigger className="w-full">
-								<span className="truncate">
-									Banco Santander Río - Cuenta Corriente Principal (123456789123456789)
-								</span>
+							<SelectTrigger>
+								<SelectValue placeholder="Selecciona una cuenta" />
 							</SelectTrigger>
 							<SelectContent>
 								{bankAccounts.map((account) => (

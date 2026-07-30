@@ -102,7 +102,7 @@ export function TransactionDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[500px]">
+			<DialogContent className="sm:max-w-[500px] w-full">
 				<DialogHeader>
 					<DialogTitle>{type === 'income' ? 'Registrar Ingreso' : 'Registrar Egreso'}</DialogTitle>
 					<DialogDescription>
@@ -111,7 +111,7 @@ export function TransactionDialog({
 							: 'Registra un nuevo egreso de la caja actual'}
 					</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={handleSubmit}>
+				<form onSubmit={handleSubmit} className="min-w-0">
 					<div className="space-y-4 py-4 min-w-0">
 						<div className="space-y-2">
 							<Label htmlFor="amount">Monto</Label>
@@ -153,7 +153,7 @@ export function TransactionDialog({
 							<div className="space-y-2 min-w-0">
 								<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 								<Select value={bankAccountId} onValueChange={setBankAccountId}>
-									<SelectTrigger className="w-full overflow-hidden">
+									<SelectTrigger className="w-full">
 										<SelectValue placeholder="Selecciona una cuenta" />
 									</SelectTrigger>
 									<SelectContent>
