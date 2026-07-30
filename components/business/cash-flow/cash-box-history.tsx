@@ -157,7 +157,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 									</div>
 								</div>
 								<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-									<div className="flex gap-3">
+									<div className="flex gap-3 flex-wrap">
 										<div className="rounded-lg bg-green-500/10 px-3 py-2">
 											<p className="text-xs text-muted-foreground">Ingresos</p>
 											<p className="font-semibold text-green-600">{formatCurrency(totalIncome)}</p>
@@ -207,19 +207,22 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 												</span>
 
 												<div className="flex flex-col">
-													<span className="text-foreground">
-														{transaction.description ||
-															(transaction.type === 'income'
-																? getPaymentMethodLabel(transaction.category)
-																: getExpenseCategoryLabel(transaction.category))}
-													</span>
+													{transaction.description && (
+														<span className="text-foreground">{transaction.description}</span>
+													)}
 
 													<span className="text-muted-foreground">
-														(
 														{transaction.type === 'income'
 															? getPaymentMethodLabel(transaction.category)
 															: getExpenseCategoryLabel(transaction.category)}
-														)
+														{transaction.category === 'bank_transfer' &&
+															transaction.bank_account && (
+																<>
+																	{' '}
+																	({transaction.bank_account.bank} - {transaction.bank_account.name}
+																	){' '}
+																</>
+															)}
 													</span>
 
 													<span className="text-xs text-muted-foreground">
