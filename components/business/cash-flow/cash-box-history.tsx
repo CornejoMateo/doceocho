@@ -22,63 +22,78 @@ interface CashBoxHistoryProps {
 interface CashBoxWithTransactions extends CashBox {
 	transactions?: any[];
 	showTransactions?: boolean;
+	totalIncome?: number;
+	totalExpense?: number;
 }
 
 export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistoryProps) {
 	const [expandedBoxes, setExpandedBoxes] = useState<Set<number>>(new Set());
 	const [boxesWithTransactions, setBoxesWithTransactions] = useState<CashBoxWithTransactions[]>([]);
-	const [loadingTransactions, setLoadingTransactions] = useState(true);
+	const [loadingBoxId, setLoadingBoxId] = useState<number | null>(null);
 
 	const ITEMS_PER_PAGE = 6;
 
 	const [currentPage, setCurrentPage] = useState(1);
-
-	useEffect(() => {
-		loadTransactions();
-	}, [cashBoxes]);
-
-	const loadTransactions = async () => {
-		setLoadingTransactions(true);
-
+	const loadTransactions = async (boxId: number) => {
+		setLoadingBoxId(boxId);
 		try {
-			const boxesWithTrans = await Promise.all(
-				cashBoxes.map(async (box) => {
-					if (!box.is_closed) return { ...box, transactions: [] };
+			const { data, error } = await getCashBoxWithTransactions(boxId);
 
-					const { data, error } = await getCashBoxWithTransactions(box.id);
+			if (error) throw error;
 
-					if (error) throw error;
+			const transactions = data?.transactions ?? [];
 
-					return {
-						...box,
-						transactions: data?.transactions || [],
-					};
-				})
+			const totalIncome = transactions
+				.filter((t) => t.type === 'income')
+				.reduce((sum, t) => sum + Number(t.amount), 0);
+
+			const totalExpense = transactions
+				.filter((t) => t.type === 'expense')
+				.reduce((sum, t) => sum + Number(t.amount), 0);
+
+			setBoxesWithTransactions((prev) =>
+				prev.map((box) =>
+					box.id === boxId
+						? {
+								...box,
+								transactions,
+								totalIncome,
+								totalExpense,
+							}
+						: box
+				)
 			);
-
-			setBoxesWithTransactions(boxesWithTrans);
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: translateError(error) || 'No se pudieron cargar las transacciones.',
+				description: translateError(error),
 				variant: 'destructive',
 			});
 		} finally {
-			setLoadingTransactions(false);
+			setLoadingBoxId(null);
 		}
 	};
 
-	const toggleExpand = (id: number) => {
+	const toggleExpand = async (box: CashBoxWithTransactions) => {
 		const newExpanded = new Set(expandedBoxes);
-		if (newExpanded.has(id)) {
-			newExpanded.delete(id);
-		} else {
-			newExpanded.add(id);
+
+		if (newExpanded.has(box.id)) {
+			newExpanded.delete(box.id);
+			setExpandedBoxes(newExpanded);
+			return;
 		}
+
+		newExpanded.add(box.id);
 		setExpandedBoxes(newExpanded);
+
+		const loadedBox = boxesWithTransactions.find((b) => b.id === box.id);
+
+		if (!loadedBox?.transactions) {
+			loadTransactions(box.id);
+		}
 	};
 
-	const closedBoxes = boxesWithTransactions.filter((box) => box.is_closed);
+	const closedBoxes = cashBoxes.filter((box) => box.is_closed);
 
 	const totalPages = Math.ceil(closedBoxes.length / ITEMS_PER_PAGE);
 
@@ -88,10 +103,14 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	);
 
 	useEffect(() => {
+		setBoxesWithTransactions(cashBoxes);
+	}, [cashBoxes]);
+
+	useEffect(() => {
 		setCurrentPage(1);
 	}, [closedBoxes.length]);
 
-	if (loading || loadingTransactions) {
+	if (loading) {
 		return (
 			<Card className="p-12 bg-card border-border text-center">
 				<p className="text-muted-foreground">Cargando historial...</p>
@@ -126,16 +145,12 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 			</div>
 
 			{paginatedBoxes.map((box) => {
-				const totalIncome =
-					box.transactions
-						?.filter((t: any) => t.type === 'income')
-						.reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
-				const totalExpense =
-					box.transactions
-						?.filter((t: any) => t.type === 'expense')
-						.reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0;
-				const isExpanded = expandedBoxes.has(box.id);
+				const isLoadingTransactions = loadingBoxId === box.id;
+				const loadedBox = boxesWithTransactions.find((b) => b.id === box.id);
+				const totalIncome = loadedBox?.totalIncome ?? 0;
+				const totalExpense = loadedBox?.totalExpense ?? 0;
 
+				const isExpanded = expandedBoxes.has(box.id);
 				return (
 					<Card key={box.id} className="bg-card border-border">
 						<div className="p-6">
@@ -158,28 +173,43 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 								</div>
 								<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
 									<div className="flex gap-3 flex-wrap">
-										<div className="rounded-lg bg-green-500/10 px-3 py-2">
-											<p className="text-xs text-muted-foreground">Ingresos</p>
-											<p className="font-semibold text-green-600">{formatCurrency(totalIncome)}</p>
-										</div>
+										{loadedBox?.transactions && loadedBox.transactions.length > 0 && (
+											<>
+												<div className="rounded-lg bg-green-500/10 px-3 py-2">
+													<p className="text-xs text-muted-foreground">Ingresos</p>
+													<p className="font-semibold text-green-600">
+														{formatCurrency(totalIncome)}
+													</p>
+												</div>
 
-										<div className="rounded-lg bg-red-500/10 px-3 py-2">
-											<p className="text-xs text-muted-foreground">Egresos</p>
-											<p className="font-semibold text-red-600">{formatCurrency(totalExpense)}</p>
-										</div>
+												<div className="rounded-lg bg-red-500/10 px-3 py-2">
+													<p className="text-xs text-muted-foreground">Egresos</p>
+													<p className="font-semibold text-red-600">
+														{formatCurrency(totalExpense)}
+													</p>
+												</div>
+											</>
+										)}
 									</div>
 
 									<Button
 										variant="outline"
 										size="sm"
-										onClick={() => toggleExpand(box.id)}
+										onClick={() => toggleExpand(box)}
 										className="gap-2 sm:ml-auto"
 									>
 										{isExpanded ? (
-											<>
-												<ChevronUp className="h-4 w-4" />
-												Ocultar
-											</>
+											isLoadingTransactions ? (
+												<>
+													<div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+													Cargando detalles de caja...
+												</>
+											) : (
+												<>
+													<ChevronUp className="h-4 w-4" />
+													Ocultar
+												</>
+											)
 										) : (
 											<>
 												<Eye className="h-4 w-4" />
@@ -190,9 +220,15 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 								</div>
 							</div>
 
-							{isExpanded && box.transactions && box.transactions.length > 0 && (
+							{isExpanded && loadedBox?.transactions && !isLoadingTransactions && (
 								<div className="mt-4 pt-4 border-t space-y-2">
-									{box.transactions.map((transaction: any) => (
+									{loadedBox.transactions.length === 0 && (
+										<p className="text-center text-muted-foreground py-8">
+											No hay movimientos registrados en esta caja
+										</p>
+									)}
+
+									{loadedBox.transactions.map((transaction: any) => (
 										<div
 											key={transaction.id}
 											className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 text-sm"
