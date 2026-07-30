@@ -78,6 +78,10 @@ export function TransactionDialog({
 			const { error } = await createTransaction(transactionData);
 			if (error) throw error;
 
+			toast({
+				title: type === 'income' ? 'Ingreso registrado' : 'Egreso registrado',
+				description: `La transacción fue registrada correctamente en la caja.`,
+			});
 			onTransactionCreated();
 			resetForm();
 		} catch (error) {
