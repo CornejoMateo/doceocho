@@ -94,6 +94,8 @@ export function BalanceDetailsModal({
 		setTransactionDate,
 		transactionAmount,
 		setTransactionAmount,
+		bankAccountId,
+		setBankAccountId,
 		paymentMethod,
 		setPaymentMethod,
 		notes,
@@ -223,6 +225,8 @@ export function BalanceDetailsModal({
 							onNotesChange={setNotes}
 							paymentMethod={paymentMethod}
 							onPaymentMethodChange={setPaymentMethod}
+							onBankAccountIdChange={setBankAccountId}
+							bankAccountId={bankAccountId}
 							onCancel={resetTransactionForm}
 							onSave={
 								editingTransaction

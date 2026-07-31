@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { BankAccount } from '@/lib/cash-flow/cash-flow';
 
 export type BalanceTransaction = {
 	id: number;
@@ -11,20 +12,26 @@ export type BalanceTransaction = {
 	payment_method?: string | null;
 	notes?: string | null;
 	is_extra_amount?: boolean;
+	bank_account_id?: number | null;
+};
+
+export type BalanceTransactionWithBankAccount = BalanceTransaction & {
+	bank_account?: BankAccount | null;
 };
 
 const TABLE = 'balance_transactions';
 
 // No va a hacer falta seguramente
 export async function listTransactions(): Promise<{
-	data: BalanceTransaction[] | null;
+	data: BalanceTransactionWithBankAccount[] | null;
 	error: any;
 }> {
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase
 		.from(TABLE)
-		.select('*')
+		.select('*, bank_account:bank_accounts(*)')
 		.order('created_at', { ascending: false });
+
 	return { data, error };
 }
 
@@ -39,11 +46,11 @@ export async function getTransactionById(
 
 export async function getTransactionsByBalanceId(
 	balanceId: number
-): Promise<{ data: BalanceTransaction[] | null; error: any }> {
+): Promise<{ data: BalanceTransactionWithBankAccount[] | null; error: any }> {
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase
 		.from(TABLE)
-		.select('*')
+		.select('*, bank_account:bank_accounts(*)')
 		.eq('balance_id', balanceId)
 		.order('date', { ascending: false });
 	return { data, error };

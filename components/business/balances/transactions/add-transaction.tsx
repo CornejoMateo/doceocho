@@ -17,6 +17,10 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
+import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
+import { useCallback } from 'react';
+import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
 interface AddTransactionSectionProps {
 	addingMode: 'transaction' | 'extra' | null;
@@ -32,6 +36,8 @@ interface AddTransactionSectionProps {
 	onNotesChange: (value: string) => void;
 	paymentMethod: string;
 	onPaymentMethodChange: (value: string) => void;
+	onBankAccountIdChange: (value: string) => void;
+	bankAccountId: string;
 	onCancel: () => void;
 	onSave: () => void;
 	onStartAddTransaction: () => void;
@@ -57,6 +63,8 @@ export function AddTransactionSection({
 	onNotesChange,
 	paymentMethod,
 	onPaymentMethodChange,
+	onBankAccountIdChange,
+	bankAccountId,
 	onCancel,
 	onSave,
 	onStartAddTransaction,
@@ -69,9 +77,24 @@ export function AddTransactionSection({
 }: AddTransactionSectionProps) {
 	const isEditing = !!editingTransaction;
 
+	const fetchActiveBankAccounts = useCallback(async () => {
+		const { data } = await listActiveBankAccounts();
+		return data ?? [];
+	}, []);
+
+	const {
+		data: bankAccounts,
+		loading: loadingBankAccounts,
+		refresh: refreshBankAccounts,
+	} = useOptimizedRealtime<BankAccount>(
+		'bank_accounts',
+		fetchActiveBankAccounts,
+		'active_bank_accounts_cache'
+	);
+
 	if (!addingMode) {
 		return (
-			<div className="flex gap-2 justify-center">
+			<div className="flex flex-col sm:flex-row gap-2 justify-center">
 				<Button
 					variant="outline"
 					size="sm"
@@ -104,7 +127,8 @@ export function AddTransactionSection({
 	};
 
 	return (
-		<div className="space-y-4 p-4 border rounded-lg">
+		<div className="space-y-4 p-4 border rounded-lg min-w-0 overflow-hidden">
+			{' '}
 			<h3 className="text-sm font-semibold">
 				{isEditing
 					? 'Editar transacción'
@@ -112,8 +136,8 @@ export function AddTransactionSection({
 						? 'Nuevo monto extra'
 						: 'Nueva transacción'}
 			</h3>
-
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{' '}
 				<div className="space-y-2">
 					<Label htmlFor="transaction-date">Fecha</Label>
 					<Popover>
@@ -142,7 +166,6 @@ export function AddTransactionSection({
 						</PopoverContent>
 					</Popover>
 				</div>
-
 				<div className="space-y-2">
 					<Label htmlFor="transaction-amount">Monto en pesos</Label>
 					<Input
@@ -153,7 +176,7 @@ export function AddTransactionSection({
 					/>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="quote-usd">Cotización USD</Label>
 					<Input
@@ -173,37 +196,53 @@ export function AddTransactionSection({
 					/>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
-					<Label htmlFor="notes">Observaciones</Label>
-					<Input
-						id="notes"
-						type="text"
-						value={notes}
-						onChange={(e) => onNotesChange(e.target.value)}
-					/>
+					{addingMode === 'transaction' && (
+						<div className="space-y-2">
+							<Label htmlFor="payment-method">Método de pago</Label>
+							<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+								<SelectTrigger id="payment-method">
+									<SelectValue placeholder="Seleccionar método" />
+								</SelectTrigger>
+								<SelectContent>
+									{PAYMENT_METHODS.map((method) => (
+										<SelectItem key={method.value} value={method.value}>
+											{method.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 				</div>
-				{addingMode === 'transaction' && (
+				{addingMode === 'transaction' && paymentMethod === 'bank_transfer' && (
 					<div className="space-y-2">
-						<Label htmlFor="payment-method">Método de pago</Label>
-						<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-							<SelectTrigger id="payment-method">
-								<SelectValue placeholder="Seleccionar método" />
+						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
+						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
+							<SelectTrigger>
+								<SelectValue placeholder="Selecciona una cuenta" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="Efectivo">Efectivo</SelectItem>
-								<SelectItem value="Transferencia">Transferencia</SelectItem>
-								<SelectItem value="Debito">Débito</SelectItem>
-								<SelectItem value="Credito">Crédito</SelectItem>
-								<SelectItem value="Cheque Fisico">Cheque (físico)</SelectItem>
-								<SelectItem value="Echeq">Echeq</SelectItem>
-								<SelectItem value="Dólar">Dólar</SelectItem>
+								{bankAccounts.map((account) => (
+									<SelectItem key={account.id} value={String(account.id)}>
+										{account.bank} - {account.name} ({account.account_number})
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>
 				)}
 			</div>
-
+			<div className="space-y-2">
+				<Label htmlFor="notes">Observaciones</Label>
+				<Input
+					id="notes"
+					type="text"
+					value={notes}
+					onChange={(e) => onNotesChange(e.target.value)}
+				/>
+			</div>
 			<div className="space-y-2">
 				<Label>Archivos adjuntos</Label>
 				{selectedFiles.length > 0 && (
@@ -250,7 +289,6 @@ export function AddTransactionSection({
 					</Button>
 				</div>
 			</div>
-
 			<div className="flex gap-1 justify-end">
 				<Button variant="outline" size="sm" onClick={onCancel}>
 					Cancelar
