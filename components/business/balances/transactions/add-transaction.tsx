@@ -220,7 +220,7 @@ export function AddTransactionSection({
 					<div className="space-y-2">
 						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
-							<SelectTrigger>
+							<SelectTrigger className="w-full">
 								<SelectValue placeholder="Selecciona una cuenta" />
 							</SelectTrigger>
 							<SelectContent>
