@@ -27,6 +27,15 @@ export async function GET(req: Request) {
 	}
 
 	if (!user) {
+		const status = error?.status;
+		const isServerSideFailure = !status || status >= 500;
+
+		if (isServerSideFailure) {
+			return NextResponse.json(
+				{ error: 'Servicio de autenticación no disponible' },
+				{ status: 503 }
+			);
+		}
 		return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
 	}
 
@@ -34,11 +43,12 @@ export async function GET(req: Request) {
 		.from('users')
 		.select('username, role, name, last_name, uid_user')
 		.eq('uid_user', user.id)
-		.single();
+		.maybeSingle();
 
-	console.log({
-		profileError,
-	});
+	if (profileError) {
+		console.error('[API /me] profile lookup', profileError);
+		return NextResponse.json({ error: 'Error al buscar perfil' }, { status: 500 });
+	}
 
 	if (!profile) {
 		return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
