@@ -48,3 +48,16 @@ export const formatCreatedAtChat = (dateValue: unknown) => {
 		minute: '2-digit',
 	});
 };
+
+export function formatTime(timestamp: string | Date | null | undefined): string {
+	if (!timestamp) return '';
+
+	const date = new Date(timestamp);
+	if (isNaN(date.getTime())) return '';
+
+	return new Intl.DateTimeFormat('es-AR', {
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false,
+	}).format(date);
+}

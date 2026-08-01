@@ -30,7 +30,7 @@ export function CardCreationModal({ open, onOpenChange, onCreate }: CardCreation
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-md" aria-describedby={undefined}>
 				<DialogHeader>
 					<DialogTitle asChild>
 						<VisuallyHidden>Crear nueva tarjeta</VisuallyHidden>

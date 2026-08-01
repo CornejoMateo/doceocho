@@ -20,26 +20,14 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Plus, Trash2, Edit } from 'lucide-react';
-import {
-	BankAccount,
-	createBankAccount,
-	updateBankAccount,
-	deleteBankAccount,
-} from '@/lib/cash-flow/cash-flow';
+import { BankAccount, deleteBankAccount } from '@/lib/cash-flow/cash-flow';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
+import { getAccountTypeLabel } from '@/constants/cashflow/cashflow';
+import { BankAccountForm } from '@/components/business/cash-flow/bank-account-form';
 
 interface BankAccountsDialogProps {
 	open: boolean;
@@ -56,81 +44,30 @@ export function BankAccountsDialog({
 }: BankAccountsDialogProps) {
 	const { toast } = useToast();
 	const [isAdding, setIsAdding] = useState(false);
-	const [editingId, setEditingId] = useState<number | null>(null);
+	const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
 	const [deletingId, setDeletingId] = useState<number | null>(null);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const [name, setName] = useState('');
-	const [bank, setBank] = useState('');
-	const [accountNumber, setAccountNumber] = useState('');
-	const [accountType, setAccountType] = useState('');
 	const [loading, setLoading] = useState(false);
 
-	const resetForm = () => {
-		setName('');
-		setBank('');
-		setAccountNumber('');
-		setAccountType('');
-		setEditingId(null);
-		setIsAdding(false);
-	};
-
 	const handleAdd = () => {
-		resetForm();
+		setEditingAccount(null);
 		setIsAdding(true);
 	};
 
 	const handleEdit = (account: BankAccount) => {
-		setName(account.name);
-		setBank(account.bank);
-		setAccountNumber(account.account_number);
-		setAccountType(account.account_type);
-		setEditingId(account.id);
+		setEditingAccount(account);
 		setIsAdding(true);
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!name || !bank || !accountNumber || !accountType) return;
+	const handleFormSave = async () => {
+		setIsAdding(false);
+		setEditingAccount(null);
+		await onBankAccountsUpdated();
+	};
 
-		setLoading(true);
-		try {
-			if (editingId) {
-				const { error } = await updateBankAccount(editingId, {
-					name,
-					bank,
-					account_number: accountNumber,
-					account_type: accountType,
-				});
-				if (error) throw error;
-				toast({
-					title: 'Cuenta actualizada',
-					description: 'La cuenta bancaria ha sido actualizada correctamente.',
-				});
-			} else {
-				const { error } = await createBankAccount({
-					name,
-					bank,
-					account_number: accountNumber,
-					account_type: accountType,
-					is_active: true,
-				});
-				if (error) throw error;
-				toast({
-					title: 'Cuenta creada',
-					description: 'La cuenta bancaria ha sido creada correctamente.',
-				});
-			}
-			resetForm();
-			onBankAccountsUpdated();
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo guardar la cuenta bancaria.',
-				variant: 'destructive',
-			});
-		} finally {
-			setLoading(false);
-		}
+	const handleFormCancel = () => {
+		setIsAdding(false);
+		setEditingAccount(null);
 	};
 
 	const handleDelete = async (id: number) => {
@@ -178,70 +115,16 @@ export function BankAccountsDialog({
 					{!isAdding && (
 						<Button onClick={handleAdd} className="w-full gap-2">
 							<Plus className="h-4 w-4" />
-							Agregar Nueva Cuenta
+							Agregar nueva cuenta
 						</Button>
 					)}
 
 					{isAdding && (
-						<Card className="p-4 bg-card border-border">
-							<form onSubmit={handleSubmit} className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="name">Nombre de la Cuenta</Label>
-									<Input
-										id="name"
-										placeholder="Ej: Cuenta Principal"
-										value={name}
-										onChange={(e) => setName(e.target.value)}
-										required
-									/>
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="bank">Banco</Label>
-									<Input
-										id="bank"
-										placeholder="Ej: Banco Galicia"
-										value={bank}
-										onChange={(e) => setBank(e.target.value)}
-										required
-									/>
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="accountNumber">Número de Cuenta</Label>
-									<Input
-										id="accountNumber"
-										placeholder="Ej: 1234-5678-9012"
-										value={accountNumber}
-										onChange={(e) => setAccountNumber(e.target.value)}
-										required
-									/>
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="accountType">Tipo de Cuenta</Label>
-									<Select value={accountType} onValueChange={setAccountType} required>
-										<SelectTrigger>
-											<SelectValue placeholder="Selecciona el tipo" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="checking">Cuenta Corriente</SelectItem>
-											<SelectItem value="savings">Caja de Ahorro</SelectItem>
-											<SelectItem value="other">Otro</SelectItem>
-										</SelectContent>
-									</Select>
-								</div>
-
-								<div className="flex gap-2">
-									<Button type="submit" disabled={loading} className="flex-1">
-										{loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear'}
-									</Button>
-									<Button type="button" variant="outline" onClick={resetForm}>
-										Cancelar
-									</Button>
-								</div>
-							</form>
-						</Card>
+						<BankAccountForm
+							account={editingAccount ?? undefined}
+							onSave={handleFormSave}
+							onCancel={handleFormCancel}
+						/>
 					)}
 
 					<div className="space-y-2">
@@ -253,9 +136,7 @@ export function BankAccountsDialog({
 										<p className="text-sm text-muted-foreground">{account.bank}</p>
 										<p className="text-sm text-muted-foreground">{account.account_number}</p>
 										<Badge variant="secondary" className="mt-2">
-											{account.account_type === 'checking' && 'Cuenta Corriente'}
-											{account.account_type === 'savings' && 'Caja de Ahorro'}
-											{account.account_type === 'other' && 'Otro'}
+											{getAccountTypeLabel(account.account_type)}
 										</Badge>
 									</div>
 									<div className="flex gap-2">

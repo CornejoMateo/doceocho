@@ -6,7 +6,10 @@ module.exports = {
 		'^@/(.*)$': '<rootDir>/$1',
 	},
 	transform: {
-		'^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+		'^.+\\.(js|jsx|ts|tsx)$': [
+			'babel-jest',
+			{ presets: [['next/babel', { 'preset-react': { runtime: 'automatic' } }]] },
+		],
 	},
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 	transformIgnorePatterns: ['/node_modules/(?!(your-module-to-transform|other-module)/)'],

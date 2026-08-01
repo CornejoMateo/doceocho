@@ -37,7 +37,7 @@ export function BoardEditModal({ board, open, onOpenChange, onSave }: BoardEditM
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-md" aria-describedby={undefined}>
 				<DialogHeader>
 					<DialogTitle asChild>
 						<VisuallyHidden>Editar nombre del tablero</VisuallyHidden>

@@ -7,11 +7,12 @@ import {
 	createTransaction,
 	deleteTransaction,
 	updateTransaction,
+	BalanceTransactionWithBankAccount,
 } from '@/lib/balances/balance_transactions';
 import { BalanceWithBudget, updateBalance } from '@/lib/balances/balances';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import { parseArsToNumber } from '@/utils/formats-money';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
 
@@ -23,7 +24,7 @@ export function useTransactionCrud(
 ) {
 	const { toast } = useToast();
 
-	const [transactions, setTransactions] = useState<BalanceTransaction[]>([]);
+	const [transactions, setTransactions] = useState<BalanceTransactionWithBankAccount[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [addingMode, setAddingMode] = useState<'transaction' | 'extra' | null>(null);
 	const [transactionToDelete, setTransactionToDelete] = useState<BalanceTransaction | null>(null);
@@ -40,6 +41,7 @@ export function useTransactionCrud(
 	const [notes, setNotes] = useState('');
 	const [quoteUsd, setQuoteUsd] = useState('');
 	const [usdAmount, setUsdAmount] = useState('');
+	const [bankAccountId, setBankAccountId] = useState<string>('');
 
 	useEffect(() => {
 		if (balance && isOpen) {
@@ -109,6 +111,7 @@ export function useTransactionCrud(
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
 				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
 				...(isExtra ? { is_extra_amount: true } : {}),
 			});
 
@@ -228,6 +231,7 @@ export function useTransactionCrud(
 		setNotes('');
 		setQuoteUsd('');
 		setUsdAmount('');
+		setBankAccountId('');
 		setTransactionFilesToUpload([]);
 		setAddingMode(null);
 	};
@@ -244,6 +248,7 @@ export function useTransactionCrud(
 				: ''
 		);
 		setPaymentMethod(transaction.payment_method || '');
+		setBankAccountId(transaction.bank_account_id ? String(transaction.bank_account_id) : '');
 		setNotes(transaction.notes || '');
 		setQuoteUsd(
 			transaction.quote_usd
@@ -271,6 +276,7 @@ export function useTransactionCrud(
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
 				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
 			});
 
 			if (error) {
@@ -352,6 +358,8 @@ export function useTransactionCrud(
 		setTransactionAmount,
 		paymentMethod,
 		setPaymentMethod,
+		setBankAccountId,
+		bankAccountId,
 		notes,
 		setNotes,
 		quoteUsd,

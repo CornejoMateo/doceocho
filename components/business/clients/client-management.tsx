@@ -282,117 +282,136 @@ export function ClientManagement() {
 
 					{/* Clients grid */}
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-						{currentItems.map((client) => (
-							<Card
-								key={client.id}
-								className="p-6 bg-card border-border hover:border-primary/50 transition-colors"
-							>
-								<div className="space-y-4">
-									<div className="flex items-center justify-between w-full">
-										<div className="flex items-center gap-3">
-											<div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-												<span className="font-semibold text-primary text-lg">
-													{client.last_name
-														?.split(' ')
-														.map((n) => n[0])
-														.join('')
-														.toUpperCase()
-														.slice(0, 2)}
-													{client.name
-														?.split(' ')
-														.map((n) => n[0])
-														.join('')
-														.toUpperCase()
-														.slice(0, 1)}
-												</span>
-											</div>
-											<div>
-												<h3 className="font-semibold text-foreground">
-													{client.last_name} {client.name}
-												</h3>
-											</div>
-										</div>
-										{!notIsAuthorized && (
-											<button
-												onClick={() => handleDeleteClick(client)}
-												className="text-muted-foreground hover:text-destructive transition-colors p-0.1 -mt-13 -mr-3"
-												title="Eliminar cliente"
-											>
-												<Trash2 className="h-4 w-4" />
-											</button>
-										)}
-									</div>
-
-									<div className="space-y-2 text-sm pt-2">
-										{client.email && (
-											<div className="flex items-center gap-2 text-muted-foreground">
-												<Mail className="h-4 w-4" />
-												<span className="truncate">{client.email}</span>
-											</div>
-										)}
-										{client.phone_number && (
-											<div className="flex items-center gap-2 text-muted-foreground">
-												<Phone className="h-4 w-4" />
-												<span>{client.phone_number}</span>
-											</div>
-										)}
-										{client.locality && (
-											<div className="flex items-center gap-2 text-muted-foreground">
-												<MapPin className="h-4 w-4" />
-												<span>{client.locality}</span>
-											</div>
-										)}
-									</div>
-
-									{/* Budget information */}
-									{!notIsAuthorized && (
-										<div className="border-t pt-3 mt-3">
-											<div className="flex items-center justify-between text-xs">
-												<div className="flex items-center gap-1">
-													<FileText className="h-3.5 w-3.5 text-muted-foreground" />
-													<span className="text-muted-foreground">
-														{clientBudgetsInfo[client.id]?.total || 0} presupuesto(s)
+						{currentItems.length === 0 && !loading && !error && (
+							<p className="text-center text-muted-foreground py-8 col-span-3">
+								{searchTerm
+									? `No se encontraron clientes con el término de búsqueda "${searchTerm}"`
+									: 'No hay clientes registrados.'}
+							</p>
+						)}
+						{loading && (
+							<p className="text-center text-muted-foreground py-8 col-span-3">
+								Cargando clientes...
+							</p>
+						)}
+						{error && (
+							<p className="text-center text-destructive py-8 col-span-3">
+								Error al cargar clientes: {translateError(error)}
+							</p>
+						)}
+						{!loading &&
+							!error &&
+							currentItems.map((client) => (
+								<Card
+									key={client.id}
+									className="p-6 bg-card border-border hover:border-primary/50 transition-colors"
+								>
+									<div className="space-y-4">
+										<div className="flex items-center justify-between w-full">
+											<div className="flex items-center gap-3">
+												<div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+													<span className="font-semibold text-primary text-lg">
+														{client.last_name
+															?.split(' ')
+															.map((n) => n[0])
+															.join('')
+															.toUpperCase()
+															.slice(0, 2)}
+														{client.name
+															?.split(' ')
+															.map((n) => n[0])
+															.join('')
+															.toUpperCase()
+															.slice(0, 1)}
 													</span>
 												</div>
-												{clientBudgetsInfo[client.id]?.chosen > 0 ? (
-													<Badge variant="default" className="gap-1 text-xs h-5">
-														<CheckCircle className="h-3 w-3" />
-														{clientBudgetsInfo[client.id].chosen} elegido(s)
-													</Badge>
-												) : (
-													<Badge variant="secondary" className="text-xs h-5">
-														Sin elegidos
-													</Badge>
-												)}
+												<div>
+													<h3 className="font-semibold text-foreground">
+														{client.last_name} {client.name}
+													</h3>
+												</div>
 											</div>
+											{!notIsAuthorized && (
+												<button
+													onClick={() => handleDeleteClick(client)}
+													className="text-muted-foreground hover:text-destructive transition-colors p-0.1 -mt-13 -mr-3"
+													title="Eliminar cliente"
+												>
+													<Trash2 className="h-4 w-4" />
+												</button>
+											)}
 										</div>
-									)}
 
-									<div className="flex gap-2 pt-2">
-										<Button
-											variant="outline"
-											size="sm"
-											className="flex-1 gap-2 bg-transparent"
-											onClick={() => handleViewClient(client)}
-										>
-											<Eye className="h-4 w-4" />
-											Ver
-										</Button>
+										<div className="space-y-2 text-sm pt-2">
+											{client.email && (
+												<div className="flex items-center gap-2 text-muted-foreground">
+													<Mail className="h-4 w-4" />
+													<span className="truncate">{client.email}</span>
+												</div>
+											)}
+											{client.phone_number && (
+												<div className="flex items-center gap-2 text-muted-foreground">
+													<Phone className="h-4 w-4" />
+													<span>{client.phone_number}</span>
+												</div>
+											)}
+											{client.locality && (
+												<div className="flex items-center gap-2 text-muted-foreground">
+													<MapPin className="h-4 w-4" />
+													<span>{client.locality}</span>
+												</div>
+											)}
+										</div>
+
+										{/* Budget information */}
 										{!notIsAuthorized && (
+											<div className="border-t pt-3 mt-3">
+												<div className="flex items-center justify-between text-xs">
+													<div className="flex items-center gap-1">
+														<FileText className="h-3.5 w-3.5 text-muted-foreground" />
+														<span className="text-muted-foreground">
+															{clientBudgetsInfo[client.id]?.total || 0} presupuesto(s)
+														</span>
+													</div>
+													{clientBudgetsInfo[client.id]?.chosen > 0 ? (
+														<Badge variant="default" className="gap-1 text-xs h-5">
+															<CheckCircle className="h-3 w-3" />
+															{clientBudgetsInfo[client.id].chosen} elegido(s)
+														</Badge>
+													) : (
+														<Badge variant="secondary" className="text-xs h-5">
+															Sin elegidos
+														</Badge>
+													)}
+												</div>
+											</div>
+										)}
+
+										<div className="flex gap-2 pt-2">
 											<Button
 												variant="outline"
 												size="sm"
 												className="flex-1 gap-2 bg-transparent"
-												onClick={() => handleEditClient(client)}
+												onClick={() => handleViewClient(client)}
 											>
-												<Edit className="h-4 w-4" />
-												Editar
+												<Eye className="h-4 w-4" />
+												Ver
 											</Button>
-										)}
+											{!notIsAuthorized && (
+												<Button
+													variant="outline"
+													size="sm"
+													className="flex-1 gap-2 bg-transparent"
+													onClick={() => handleEditClient(client)}
+												>
+													<Edit className="h-4 w-4" />
+													Editar
+												</Button>
+											)}
+										</div>
 									</div>
-								</div>
-							</Card>
-						))}
+								</Card>
+							))}
 					</div>
 
 					{/* Pagination controls */}

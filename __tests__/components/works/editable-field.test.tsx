@@ -103,6 +103,21 @@ describe('EditableField', () => {
 		expect(onSave).not.toHaveBeenCalled();
 	});
 
+	it('pencil button is visible on mobile (opacity-100 by default)', () => {
+		render(<EditableField value="Test" onSave={onSave} />);
+
+		const pencil = screen.getByRole('button');
+		expect(pencil.className).toContain('opacity-100');
+		expect(pencil.className).toContain('sm:opacity-0');
+	});
+
+	it('pencil button has shrink-0 to prevent being compressed', () => {
+		render(<EditableField value="Test" onSave={onSave} />);
+
+		const pencil = screen.getByRole('button');
+		expect(pencil.className).toContain('shrink-0');
+	});
+
 	it('shows error toast when save fails', async () => {
 		onSave.mockRejectedValue(new Error('Network error'));
 

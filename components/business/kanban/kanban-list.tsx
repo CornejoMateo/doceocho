@@ -285,7 +285,7 @@ export function KanbanList({
 
 			{/* Create Card Modal */}
 			<Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-				<DialogContent>
+				<DialogContent aria-describedby={undefined}>
 					<DialogHeader>
 						<DialogTitle>Crear tarjeta</DialogTitle>
 					</DialogHeader>

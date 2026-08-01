@@ -13,7 +13,6 @@ export type BankAccount = {
 export type CashBox = {
 	id: number;
 	created_at?: string;
-	date: string;
 	opening_balance: number;
 	closing_balance?: number | null;
 	is_closed: boolean;
@@ -30,7 +29,6 @@ export type Transaction = {
 	category: string;
 	description: string | null;
 	bank_account_id: number | null;
-	reference: string | null;
 };
 
 export type TransactionWithBankAccount = Transaction & {
@@ -43,7 +41,6 @@ export type CashBoxWithTransactions = CashBox & {
 
 export type CashBoxSummary = {
 	id: number;
-	date: string;
 	opening_balance: number;
 	total_income: number;
 	total_expense: number;
@@ -52,18 +49,6 @@ export type CashBoxSummary = {
 	is_closed: boolean;
 	transaction_count: number;
 };
-
-export function translateCategory(category: string): string {
-	const translations: Record<string, string> = {
-		cash: 'Efectivo',
-		transfer: 'Transferencia',
-		salary: 'Pago de Sueldo',
-		suppliers: 'Pago a Proveedores',
-		services: 'Servicios',
-		other: 'Otros Gastos',
-	};
-	return translations[category] || category;
-}
 
 const BANK_ACCOUNTS_TABLE = 'bank_accounts';
 const CASH_BOXES_TABLE = 'cash_boxes';
@@ -142,7 +127,7 @@ export async function listCashBoxes(): Promise<{ data: CashBox[] | null; error: 
 	const { data, error } = await supabase
 		.from(CASH_BOXES_TABLE)
 		.select('*')
-		.order('date', { ascending: false });
+		.order('created_at', { ascending: false });
 	return { data, error };
 }
 
@@ -152,7 +137,7 @@ export async function getOpenCashBox(): Promise<{ data: CashBox | null; error: a
 		.from(CASH_BOXES_TABLE)
 		.select('*')
 		.eq('is_closed', false)
-		.order('date', { ascending: false })
+		.order('created_at', { ascending: false })
 		.limit(1)
 		.single();
 	return { data, error };
@@ -173,6 +158,12 @@ export async function getCashBoxWithTransactions(
 		.select('*, transactions:transactions_box(*, bank_account:bank_accounts(*))')
 		.eq('id', id)
 		.single();
+
+	if (data?.transactions) {
+		data.transactions.sort(
+			(a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+		);
+	}
 	return { data, error };
 }
 
@@ -258,7 +249,6 @@ export async function getCashBoxSummary(
 
 	const summary: CashBoxSummary = {
 		id: cashBox.id,
-		date: cashBox.date,
 		opening_balance: Number(cashBox.opening_balance),
 		total_income: totalIncome,
 		total_expense: totalExpense,

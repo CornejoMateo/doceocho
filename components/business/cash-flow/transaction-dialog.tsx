@@ -23,6 +23,9 @@ import { BankAccount } from '@/lib/cash-flow/cash-flow';
 import { translateError } from '@/lib/error-translator';
 import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 import { createTransaction } from '@/lib/cash-flow/cash-flow';
+import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
+import { EXPENSES_CATEGORIES } from '@/constants/cashflow/cashflow';
+import { toast } from '@/components/ui/use-toast';
 
 interface TransactionDialogProps {
 	open: boolean;
@@ -32,22 +35,6 @@ interface TransactionDialogProps {
 	bankAccounts: BankAccount[];
 	onTransactionCreated: () => void;
 }
-
-interface CategoryOption {
-	value: string;
-	label: string;
-}
-
-const INCOME_CATEGORIES: CategoryOption[] = [
-	{ value: 'cash', label: 'Efectivo' },
-	{ value: 'transfer', label: 'Transferencia' },
-];
-const EXPENSE_CATEGORIES: CategoryOption[] = [
-	{ value: 'salary', label: 'Pago de Sueldo' },
-	{ value: 'suppliers', label: 'Pago a Proveedores' },
-	{ value: 'services', label: 'Servicios' },
-	{ value: 'other', label: 'Otros Gastos' },
-];
 
 export function TransactionDialog({
 	open,
@@ -61,12 +48,18 @@ export function TransactionDialog({
 	const [category, setCategory] = useState('');
 	const [description, setDescription] = useState('');
 	const [bankAccountId, setBankAccountId] = useState<string>('');
-	const [reference, setReference] = useState('');
 	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!amount || !category) return;
+		if (!amount || !category) {
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: 'Por favor completa todos los campos requeridos.',
+			});
+			return;
+		}
 		const parsedAmount = parseArsToNumber(amount);
 		if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
 
@@ -78,17 +71,25 @@ export function TransactionDialog({
 				amount: parsedAmount,
 				category,
 				description: description || null,
-				bank_account_id: category === 'transfer' && bankAccountId ? parseInt(bankAccountId) : null,
-				reference: reference || null,
+				bank_account_id:
+					category === 'bank_transfer' && bankAccountId ? Number(bankAccountId) : null,
 			};
 
 			const { error } = await createTransaction(transactionData);
 			if (error) throw error;
 
+			toast({
+				title: type === 'income' ? 'Ingreso registrado' : 'Egreso registrado',
+				description: `La transacción fue registrada correctamente en la caja.`,
+			});
 			onTransactionCreated();
 			resetForm();
 		} catch (error) {
-			translateError(error);
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: translateError(error) || 'No se pudo registrar la transacción.',
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -99,14 +100,13 @@ export function TransactionDialog({
 		setCategory('');
 		setDescription('');
 		setBankAccountId('');
-		setReference('');
 	};
 
-	const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+	const categories = type === 'income' ? PAYMENT_METHODS : EXPENSES_CATEGORIES;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[500px]">
+			<DialogContent className="sm:max-w-[500px] w-full">
 				<DialogHeader>
 					<DialogTitle>{type === 'income' ? 'Registrar Ingreso' : 'Registrar Egreso'}</DialogTitle>
 					<DialogDescription>
@@ -115,8 +115,8 @@ export function TransactionDialog({
 							: 'Registra un nuevo egreso de la caja actual'}
 					</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={handleSubmit}>
-					<div className="space-y-4 py-4">
+				<form onSubmit={handleSubmit} className="min-w-0">
+					<div className="space-y-4 py-4 min-w-0">
 						<div className="space-y-2">
 							<Label htmlFor="amount">Monto</Label>
 							<Input
@@ -132,10 +132,16 @@ export function TransactionDialog({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="category">Categoría</Label>
+							<Label htmlFor="category">{type === 'income' ? 'Método de pago' : 'Categoría'}</Label>
 							<Select value={category} onValueChange={setCategory} required>
 								<SelectTrigger>
-									<SelectValue placeholder="Selecciona una categoría" />
+									<SelectValue
+										placeholder={
+											type === 'income'
+												? 'Selecciona un método de pago'
+												: 'Selecciona una categoría'
+										}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{categories.map((cat) => (
@@ -147,11 +153,11 @@ export function TransactionDialog({
 							</Select>
 						</div>
 
-						{category === 'transfer' && (
-							<div className="space-y-2">
+						{category === 'bank_transfer' && (
+							<div className="space-y-2 min-w-0">
 								<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 								<Select value={bankAccountId} onValueChange={setBankAccountId}>
-									<SelectTrigger>
+									<SelectTrigger className="w-full">
 										<SelectValue placeholder="Selecciona una cuenta" />
 									</SelectTrigger>
 									<SelectContent>
@@ -174,22 +180,17 @@ export function TransactionDialog({
 								onChange={(e) => setDescription(e.target.value)}
 							/>
 						</div>
-
-						{category === 'transfer' && (
-							<div className="space-y-2">
-								<Label htmlFor="reference">Referencia (opcional)</Label>
-								<Input
-									id="reference"
-									placeholder="Número de referencia o comprobante"
-									value={reference}
-									onChange={(e) => setReference(e.target.value)}
-								/>
-							</div>
-						)}
 					</div>
 
 					<DialogFooter>
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => {
+								onOpenChange(false);
+								resetForm();
+							}}
+						>
 							Cancelar
 						</Button>
 						<Button type="submit" disabled={loading}>
