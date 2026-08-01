@@ -129,6 +129,10 @@
 	},
 	"overrides": {
 		"micromatch": "4.0.8",
-		"yaml": "2.8.3"
+		"yaml": "2.8.3",
+		"next": {
+			"postcss": "8.5.23",
+			"sharp": "0.35.3"
+  		}
 	}
 }
