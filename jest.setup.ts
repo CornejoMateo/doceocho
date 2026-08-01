@@ -43,10 +43,6 @@ if (typeof window !== 'undefined') {
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-key';
 
-// Silencia warnings de act() de React Testing Library (son ruido, no afectan resultados)
-const originalError = console.error;
-console.error = (...args) => {
-	if (typeof args[0] === 'string' && args[0].includes('inside a test was not wrapped in act'))
-		return;
-	originalError.call(console, ...args);
-};
+// Silencia todos los logs y errores de consola durante los tests (son ruido, no afectan resultados)
+console.log = () => {};
+console.error = () => {};
