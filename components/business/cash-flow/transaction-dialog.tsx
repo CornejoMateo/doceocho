@@ -85,7 +85,11 @@ export function TransactionDialog({
 			onTransactionCreated();
 			resetForm();
 		} catch (error) {
-			translateError(error);
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: translateError(error) || 'No se pudo registrar la transacción.',
+			});
 		} finally {
 			setLoading(false);
 		}

@@ -51,17 +51,6 @@ export async function getAttendanceForToday(userId: string) {
 	return data;
 }
 
-export async function getAttendanceSettings(): Promise<{
-	data: AttendanceSettings | null;
-	error: any;
-}> {
-	const supabase = await getServerSupabaseClient();
-
-	const { data, error } = await supabase.from('attendance_settings').select('*').single();
-
-	return { data, error };
-}
-
 export async function getAttendanceByDate(
 	date: string,
 	userId: string

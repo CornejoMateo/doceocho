@@ -176,7 +176,12 @@ export async function createAdminAttendanceEntry(
 	const supabase = getSupabaseClient();
 
 	// First, ensure attendance record exists for the date
-	const date = new Date(entryTime).toISOString().split('T')[0];
+	const entryDate = new Date(entryTime);
+	const date = [
+		entryDate.getFullYear(),
+		String(entryDate.getMonth() + 1).padStart(2, '0'),
+		String(entryDate.getDate()).padStart(2, '0'),
+	].join('-');
 	const { data: attendance, error: attendanceError } = await supabase
 		.from('attendance')
 		.select('id')

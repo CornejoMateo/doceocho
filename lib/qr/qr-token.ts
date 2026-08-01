@@ -1,6 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-const secret = new TextEncoder().encode(process.env.QR_SECRET_KEY!);
+const qrSecretKey = process.env.QR_SECRET_KEY;
+
+if (!qrSecretKey) {
+	throw new Error('QR_SECRET_KEY is not configured');
+}
+
+const secret = new TextEncoder().encode(qrSecretKey);
 
 export async function createQRToken() {
 	const window = Math.floor(Date.now() / 60000);

@@ -364,11 +364,10 @@ describe('WorkCard', () => {
 	});
 
 	it('falls back to work id when name is not provided', () => {
-		baseWork.name = null; // Remove name for this test
-
+		const workWithoutName = { ...baseWork, name: null };
 		render(
 			<WorkCard
-				work={baseWork}
+				work={workWithoutName}
 				user={{ role: 'Admin' }}
 				onOpenEmail={onOpenEmail}
 				onOpenWhatsApp={onOpenWhatsApp}
@@ -377,6 +376,6 @@ describe('WorkCard', () => {
 			/>
 		);
 
-		expect(screen.getByText(String(baseWork.id))).toBeInTheDocument();
+		expect(screen.getByText(String(workWithoutName.id))).toBeInTheDocument();
 	});
 });

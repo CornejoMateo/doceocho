@@ -282,9 +282,11 @@ export function ClientManagement() {
 
 					{/* Clients grid */}
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-						{currentItems.length === 0 && !loading && (
+						{currentItems.length === 0 && !loading && !error && (
 							<p className="text-center text-muted-foreground py-8 col-span-3">
-								No se encontraron clientes con el término de búsqueda "{searchTerm}"
+								{searchTerm
+									? `No se encontraron clientes con el término de búsqueda "${searchTerm}"`
+									: 'No hay clientes registrados.'}
 							</p>
 						)}
 						{loading && (

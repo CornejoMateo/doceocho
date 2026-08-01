@@ -3,7 +3,7 @@ export const PAYMENT_METHODS = [
 	{ value: 'credit_card', label: 'Tarjeta de Crédito' },
 	{ value: 'debit_card', label: 'Tarjeta de Débito' },
 	{ value: 'bank_transfer', label: 'Transferencia Bancaria' },
-	{ value: 'check', label: 'Cheque fisico' },
+	{ value: 'check', label: 'Cheque físico' },
 	{ value: 'echeck', label: 'Echeck' },
 	{ value: 'dollar', label: 'Dólar' },
 	{ value: 'other', label: 'Otro' },

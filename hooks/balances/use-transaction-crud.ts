@@ -231,6 +231,7 @@ export function useTransactionCrud(
 		setNotes('');
 		setQuoteUsd('');
 		setUsdAmount('');
+		setBankAccountId('');
 		setTransactionFilesToUpload([]);
 		setAddingMode(null);
 	};

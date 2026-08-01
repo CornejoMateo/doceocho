@@ -8,7 +8,12 @@ create table public.attendance (
   constraint attendance_user_id_fkey foreign KEY (user_id) references users (uid_user) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
 
+alter table public.attendance
+  add constraint attendance_user_id_date_key unique (user_id, date);
+
 --- VER INDICES
+
+CREATE UNIQUE INDEX IF NOT EXISTS attendance_user_id_date_key ON public.attendance (user_id, date);
 
 CREATE POLICY "Attendance select"
 ON public.attendance
@@ -29,7 +34,13 @@ ON public.attendance
 FOR INSERT
 TO authenticated
 WITH CHECK (
-    true
+    user_id = auth.uid()
+    OR EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
 );
 
 CREATE POLICY "Attendance update"

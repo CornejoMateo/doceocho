@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import QrScanner from 'qr-scanner';
 import { Button } from '@/components/ui/button';
 
@@ -13,17 +13,22 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const scannerRef = useRef<QrScanner | null>(null);
 
+	const onScanRef = useRef(onScan);
+	const [cameraError, setCameraError] = useState<string | null>(null);
+
+	useEffect(() => {
+		onScanRef.current = onScan;
+	}, [onScan]);
+
 	useEffect(() => {
 		if (!videoRef.current) return;
 
 		const scanner = new QrScanner(
 			videoRef.current,
 			(result) => {
-				console.log('QR detectado RAW:', JSON.stringify(result.data));
-
 				scanner.stop();
 
-				onScan(result.data);
+				onScanRef.current(result.data);
 			},
 			{
 				preferredCamera: 'environment',
@@ -33,6 +38,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 		scannerRef.current = scanner;
 
 		scanner.start().catch((error) => {
+			+setCameraError('No se pudo acceder a la cámara. Revisá los permisos.');
 			console.error('Error iniciando cámara:', error);
 		});
 
@@ -40,7 +46,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 			scanner.stop();
 			scanner.destroy();
 		};
-	}, [onScan]);
+	}, []);
 
 	return (
 		<div className="flex flex-col items-center justify-center space-y-4">

@@ -57,18 +57,23 @@ export function AdminAttendanceHistory() {
 	const loadHistory = async () => {
 		setLoading(true);
 		setError(null);
-		const { data, error } = await getAllAttendanceHistory();
-		if (error) {
-			setError(translateError(error) || 'Error al cargar el historial de empleados');
-		} else {
-			setAllEntries(data || []);
-			const today = new Date().toISOString().split('T')[0];
-			const periodEntries = getEntriesByPeriod(data || [], period, today);
-			setFilteredEntries(periodEntries);
-			setSummaries(getUserAttendanceSummaries(periodEntries));
-			setDateFilter(today);
+		try {
+			const { data, error } = await getAllAttendanceHistory();
+			if (error) {
+				setError(translateError(error) || 'Error al cargar el historial de empleados');
+			} else {
+				setAllEntries(data || []);
+				const today = new Date().toISOString().split('T')[0];
+				const periodEntries = getEntriesByPeriod(data || [], period, today);
+				setFilteredEntries(periodEntries);
+				setSummaries(getUserAttendanceSummaries(periodEntries));
+				setDateFilter(today);
+			}
+		} catch (err: any) {
+			setError(translateError(err) || 'Error al cargar el historial de empleados');
+		} finally {
+			setLoading(false);
 		}
-		setLoading(false);
 	};
 
 	const handleToggleHistory = () => {

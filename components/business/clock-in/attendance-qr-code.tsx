@@ -5,17 +5,23 @@ import { QRCodeSVG } from 'qrcode.react';
 
 export default function AttendanceQRCode() {
 	const [token, setToken] = useState('');
+	const [error, setError] = useState(false);
 
 	const loadQR = async () => {
-		const res = await fetch('/api/attendance/qr');
+		try {
+			const res = await fetch('/api/attendance/qr');
 
-		if (!res.ok) {
-			return;
+			if (!res.ok) {
+				throw new Error('No se pudo generar QR');
+			}
+
+			const data = await res.json();
+
+			setToken(data.token);
+			setError(false);
+		} catch {
+			setError(true);
 		}
-
-		const data = await res.json();
-
-		setToken(data.token);
 	};
 
 	useEffect(() => {

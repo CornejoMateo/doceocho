@@ -124,27 +124,30 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		}
 
 		setAdminLoading(true);
-		const { error } = await updateAttendanceSettings({
-			square_meters: radiusValue,
-			price_hour: priceHourValue,
-			price_hour_overtime: priceHourOvertimeValue,
-			target_latitude: latitudeValue,
-			target_longitude: longitudeValue,
-		});
-		setAdminLoading(false);
+		try {
+			const { error } = await updateAttendanceSettings({
+				square_meters: radiusValue,
+				price_hour: priceHourValue,
+				price_hour_overtime: priceHourOvertimeValue,
+				target_latitude: latitudeValue,
+				target_longitude: longitudeValue,
+			});
 
-		if (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo guardar la configuración',
-				variant: 'destructive',
-			});
-		} else {
-			toast({
-				title: 'Configuración guardada',
-				description: 'La configuración se actualizó correctamente',
-			});
-			onOpenChange(false);
+			if (error) {
+				toast({
+					title: 'Error',
+					description: translateError(error) || 'No se pudo guardar la configuración',
+					variant: 'destructive',
+				});
+			} else {
+				toast({
+					title: 'Configuración guardada',
+					description: 'La configuración se actualizó correctamente',
+				});
+				onOpenChange(false);
+			}
+		} finally {
+			setAdminLoading(false);
 		}
 	};
 

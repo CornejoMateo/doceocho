@@ -36,14 +36,21 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 		const trimmedName = name.trim();
 		const trimmedBank = bank.trim();
 		const trimmedAccountNumber = accountNumber.trim();
-		if (!trimmedName || !trimmedBank || !trimmedAccountNumber || !accountType) return;
+		if (!trimmedName || !trimmedBank || !trimmedAccountNumber || !accountType) {
+			toast({
+				title: 'Datos incompletos',
+				description: 'Completa el nombre, el banco, el número y el tipo de cuenta.',
+				variant: 'destructive',
+			});
+			return;
+		}
 		setIsSubmitting(true);
 		try {
 			if (account) {
 				const { error } = await updateBankAccount(account.id, {
-					name,
-					bank,
-					account_number: accountNumber,
+					name: trimmedName,
+					bank: trimmedBank,
+					account_number: trimmedAccountNumber,
 					account_type: accountType,
 				});
 				if (error) throw error;
@@ -53,9 +60,9 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 				});
 			} else {
 				const { error } = await createBankAccount({
-					name,
-					bank,
-					account_number: accountNumber,
+					name: trimmedName,
+					bank: trimmedBank,
+					account_number: trimmedAccountNumber,
 					account_type: accountType,
 					is_active: true,
 				});
