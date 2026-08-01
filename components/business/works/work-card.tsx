@@ -84,19 +84,13 @@ export function WorkCard({
 						</div>
 
 						<div className="flex-1 min-w-0">
-							<div className="flex items-center gap-2 flex-wrap">
-								<Badge variant="outline" className={`gap-1 ${statusColor}`}>
-									<StatusIcon className="h-3 w-3" />
-									{statusLabel}
-								</Badge>
-							</div>
 							<p className="text-sm text-foreground mt-1">
 								{[work.client_last_name, work.client_name].filter(Boolean).join(' ') ||
 									'Cliente no especificado'}
 							</p>
 						</div>
 						<div className="grid gap-2 md:grid-cols-4 text-sm">
-							<div className="flex items-center text-muted-foreground">
+							<div className="flex items-center text-muted-foreground col-span-2 gap-2">
 								<AddressLink
 									address={work.address || null}
 									locality={work.locality}
@@ -115,10 +109,6 @@ export function WorkCard({
 									<span>Barrio: {work.hood}</span>
 								</div>
 							)}
-							<div className="flex items-center gap-2 text-muted-foreground">
-								<Calendar className="h-4 w-4 flex-shrink-0" />
-								<span>{formatCreatedAt(work.created_at)}</span>
-							</div>
 						</div>
 
 						<div className="space-y-2">
@@ -134,6 +124,17 @@ export function WorkCard({
 								<PostItNote note={work.general_note} />
 							</div>
 						)}
+
+						<div className="flex items-center gap-3 flex-wrap">
+							<Badge variant="outline" className={`gap-1 ${statusColor}`}>
+								<StatusIcon className="h-3 w-3" />
+								{statusLabel}
+							</Badge>
+							<div className="flex items-center gap-2 text-sm text-muted-foreground">
+								<Calendar className="h-4 w-4 flex-shrink-0" />
+								<span>{formatCreatedAt(work.created_at)}</span>
+							</div>
+						</div>
 					</div>
 
 					<div className="flex flex-col gap-2 w-full lg:w-auto">
