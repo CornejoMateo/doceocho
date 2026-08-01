@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Eye, EyeOff } from 'lucide-react';
 import { User } from '@/lib/users/users';
+import { roles } from '@/constants/users/user-role';
 
 interface FormData {
 	username: string;
@@ -125,8 +126,11 @@ export function UsersDialogForm({
 						<SelectValue placeholder="Seleccionar rol" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="Admin">Admin</SelectItem>
-						<SelectItem value="Taller">Taller</SelectItem>
+						{roles.map((role) => (
+							<SelectItem key={role} value={role}>
+								{role}
+							</SelectItem>
+						))}
 					</SelectContent>
 				</Select>
 			</div>
