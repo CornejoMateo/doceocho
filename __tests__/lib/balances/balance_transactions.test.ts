@@ -45,7 +45,7 @@ describe('balance_transactions lib', () => {
 			const result = await listTransactions();
 
 			expect(supabase.from).toHaveBeenCalledWith('balance_transactions');
-			expect(chain.select).toHaveBeenCalledWith('*');
+			expect(chain.select).toHaveBeenCalledWith('*, bank_account:bank_accounts(*)');
 			expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false });
 			expect(result.data).toEqual([{ id: 1 }]);
 		});
