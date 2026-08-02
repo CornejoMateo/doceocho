@@ -61,7 +61,14 @@ export function TransactionDialog({
 			return;
 		}
 		const parsedAmount = parseArsToNumber(amount);
-		if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
+		if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: 'Por favor ingresa un monto válido.',
+			});
+			return;
+		}
 
 		setLoading(true);
 		try {
