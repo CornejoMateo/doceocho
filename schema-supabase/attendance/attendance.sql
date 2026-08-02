@@ -11,9 +11,7 @@ create table public.attendance (
 alter table public.attendance
   add constraint attendance_user_id_date_key unique (user_id, date);
 
---- VER INDICES
-
-CREATE UNIQUE INDEX IF NOT EXISTS attendance_user_id_date_key ON public.attendance (user_id, date);
+--- RLS ---
 
 CREATE POLICY "Attendance select"
 ON public.attendance
