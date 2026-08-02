@@ -1,5 +1,34 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AddTransactionSection } from '@/components/business/balances/transactions/add-transaction';
+import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+
+jest.mock('@/hooks/use-optimized-realtime', () => ({
+	useOptimizedRealtime: jest.fn(),
+}));
+
+jest.mock('@/lib/cash-flow/cash-flow', () => ({
+	listActiveBankAccounts: jest.fn(),
+}));
+
+const mockBankAccounts = [
+	{
+		id: 1,
+		name: 'Cuenta Principal',
+		bank: 'Santander',
+		account_number: '123456',
+		account_type: 'Checking',
+		is_active: true,
+	},
+	{
+		id: 2,
+		name: 'Cuenta Secundaria',
+		bank: 'BBVA',
+		account_number: '789012',
+		account_type: 'Savings',
+		is_active: true,
+	},
+];
 
 const defaultProps = {
 	addingMode: null as 'transaction' | 'extra' | null,
@@ -15,6 +44,8 @@ const defaultProps = {
 	onNotesChange: jest.fn(),
 	paymentMethod: '',
 	onPaymentMethodChange: jest.fn(),
+	bankAccountId: '',
+	onBankAccountIdChange: jest.fn(),
 	onCancel: jest.fn(),
 	onSave: jest.fn(),
 	onStartAddTransaction: jest.fn(),
@@ -29,6 +60,12 @@ const defaultProps = {
 describe('AddTransactionSection', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		(listActiveBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(useOptimizedRealtime as jest.Mock).mockReturnValue({
+			data: [],
+			loading: false,
+			refresh: jest.fn(),
+		});
 	});
 
 	it('renders add buttons when no mode is active', () => {
@@ -91,6 +128,21 @@ describe('AddTransactionSection', () => {
 		expect(onSave).toHaveBeenCalled();
 	});
 
+	it('does not call onSave when disabled and clicked', () => {
+		const onSave = jest.fn();
+		render(
+			<AddTransactionSection
+				{...defaultProps}
+				addingMode="transaction"
+				saveDisabled
+				onSave={onSave}
+			/>
+		);
+
+		fireEvent.click(screen.getByText('Guardar'));
+		expect(onSave).not.toHaveBeenCalled();
+	});
+
 	it('calls onCancel when cancel button is clicked', () => {
 		const onCancel = jest.fn();
 		render(
@@ -148,6 +200,24 @@ describe('AddTransactionSection', () => {
 		expect(onRemoveFile).toHaveBeenCalledWith(0);
 	});
 
+	it('calls onFilesSelect when files are chosen via the file input', () => {
+		const onFilesSelect = jest.fn();
+		render(
+			<AddTransactionSection
+				{...defaultProps}
+				addingMode="transaction"
+				onFilesSelect={onFilesSelect}
+			/>
+		);
+
+		const file = new File(['contenido'], 'nuevo.pdf', { type: 'application/pdf' });
+		const input = document.getElementById('transaction-file') as HTMLInputElement;
+
+		fireEvent.change(input, { target: { files: [file] } });
+
+		expect(onFilesSelect).toHaveBeenCalledWith([file]);
+	});
+
 	it('calls onTransactionAmountChange when amount input changes', () => {
 		const onTransactionAmountChange = jest.fn();
 		render(
@@ -161,5 +231,130 @@ describe('AddTransactionSection', () => {
 		const amountInput = screen.getByLabelText('Monto en pesos');
 		fireEvent.change(amountInput, { target: { value: '500' } });
 		expect(onTransactionAmountChange).toHaveBeenCalledWith('500');
+	});
+
+	it('calls onUsdAmountChange when usd input changes', () => {
+		const onUsdAmountChange = jest.fn();
+		render(
+			<AddTransactionSection
+				{...defaultProps}
+				addingMode="transaction"
+				onUsdAmountChange={onUsdAmountChange}
+			/>
+		);
+
+		const usdInput = screen.getByLabelText('Monto en USD');
+		fireEvent.change(usdInput, { target: { value: '100' } });
+		expect(onUsdAmountChange).toHaveBeenCalledWith('100');
+	});
+
+	it('calls onQuoteUsdChange when quote input changes', () => {
+		const onQuoteUsdChange = jest.fn();
+		render(
+			<AddTransactionSection
+				{...defaultProps}
+				addingMode="transaction"
+				onQuoteUsdChange={onQuoteUsdChange}
+			/>
+		);
+
+		const quoteInput = screen.getByLabelText('Cotización USD');
+		fireEvent.change(quoteInput, { target: { value: '1000' } });
+		expect(onQuoteUsdChange).toHaveBeenCalledWith('1.000');
+	});
+
+	it('calls onNotesChange when notes input changes', () => {
+		const onNotesChange = jest.fn();
+		render(
+			<AddTransactionSection
+				{...defaultProps}
+				addingMode="transaction"
+				onNotesChange={onNotesChange}
+			/>
+		);
+
+		const notesInput = screen.getByLabelText('Observaciones');
+		fireEvent.change(notesInput, { target: { value: 'Pago de proveedor' } });
+		expect(onNotesChange).toHaveBeenCalledWith('Pago de proveedor');
+	});
+
+	describe('bank account selection', () => {
+		it('does not show bank account select when payment method is not bank_transfer', () => {
+			render(
+				<AddTransactionSection {...defaultProps} addingMode="transaction" paymentMethod="cash" />
+			);
+
+			expect(screen.queryByText('Cuenta Bancaria')).not.toBeInTheDocument();
+		});
+
+		it('shows bank account select when payment method is bank_transfer', () => {
+			(useOptimizedRealtime as jest.Mock).mockReturnValue({
+				data: mockBankAccounts,
+				loading: false,
+				refresh: jest.fn(),
+			});
+
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					paymentMethod="bank_transfer"
+				/>
+			);
+
+			expect(screen.getByText('Cuenta Bancaria')).toBeInTheDocument();
+		});
+
+		it('does not show bank account select in extra mode even with bank_transfer', () => {
+			render(
+				<AddTransactionSection {...defaultProps} addingMode="extra" paymentMethod="bank_transfer" />
+			);
+
+			expect(screen.queryByText('Cuenta Bancaria')).not.toBeInTheDocument();
+		});
+
+		it('renders bank account options from the realtime hook data', () => {
+			(useOptimizedRealtime as jest.Mock).mockReturnValue({
+				data: mockBankAccounts,
+				loading: false,
+				refresh: jest.fn(),
+			});
+
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					paymentMethod="bank_transfer"
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Selecciona una cuenta'));
+
+			expect(screen.getByText('Santander - Cuenta Principal (123456)')).toBeInTheDocument();
+			expect(screen.getByText('BBVA - Cuenta Secundaria (789012)')).toBeInTheDocument();
+		});
+
+		it('calls onBankAccountIdChange when a bank account is selected', () => {
+			const onBankAccountIdChange = jest.fn();
+			(useOptimizedRealtime as jest.Mock).mockReturnValue({
+				data: mockBankAccounts,
+				loading: false,
+				refresh: jest.fn(),
+			});
+
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					paymentMethod="bank_transfer"
+					onBankAccountIdChange={onBankAccountIdChange}
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Selecciona una cuenta'));
+			fireEvent.click(screen.getByText('Santander - Cuenta Principal (123456)'));
+
+			expect(onBankAccountIdChange).toHaveBeenCalledWith('1');
+		});
 	});
 });
