@@ -161,6 +161,12 @@ create table public.transactions_box (
   constraint chk_amount_non_negative check ((amount >= (0)::numeric))
 ) TABLESPACE pg_default;
 
+create index if not exists idx_transactions_box_cashbox_created
+  on public.transactions_box using btree (cash_box_id, created_at desc);
+
+create index if not exists idx_transactions_box_bank_account
+  on public.transactions_box using btree (bank_account_id);
+
 ALTER TABLE public.transactions_box ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public select transactions_box"

@@ -9,7 +9,15 @@ create table public.attendance_entries (
   constraint attendance_entries_attendance_id_fkey foreign KEY (attendance_id) references attendance (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
 
---- VER INDICES 
+--- INDEXES ---
+
+  create index if not exists idx_attendance_entries_attendance_id
+  on public.attendance_entries using btree (attendance_id);
+
+  create index if not exists idx_attendance_entries_attendance_time
+  on public.attendance_entries using btree (attendance_id, entry_time desc);
+
+--- POLICIES ---
 
 CREATE POLICY "Attendance entries select"
 ON public.attendance_entries
