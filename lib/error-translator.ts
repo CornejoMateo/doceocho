@@ -127,6 +127,14 @@ export const translateError = (error: any): string => {
 		return 'No tienes permisos para realizar esta acción.';
 	}
 
+	// Date
+	if (
+		errorMessage.includes('out of range') ||
+		errorMessage.includes('invalid input syntax for type date')
+	) {
+		return 'La fecha proporcionada no es válida.';
+	}
+
 	// Return original message if no translation found
 	return errorMessage || 'Ocurrió un error inesperado.';
 };
