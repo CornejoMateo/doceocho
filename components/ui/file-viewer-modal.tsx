@@ -10,6 +10,7 @@ import {
 } from '@/utils/file-upload-utils';
 import { FileViewerItem } from '@/utils/file-upload-utils';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
+import { useEffect } from 'react';
 
 interface FileViewerModalProps {
 	files: FileViewerItem[];
@@ -23,7 +24,7 @@ function resolveMimeType(file: FileViewerItem): string {
 	}
 
 	const extension = getFileExtension(file.name).toLowerCase();
-	if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+	if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'].includes(extension)) {
 		return 'image/jpeg';
 	}
 
@@ -39,6 +40,16 @@ export function FileViewerModal({
 	selectedIndex,
 	onSelectedIndexChange,
 }: FileViewerModalProps) {
+	useEffect(() => {
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'ArrowLeft') handlePrevious();
+			if (e.key === 'ArrowRight') handleNext();
+			if (e.key === 'Escape') onSelectedIndexChange(null);
+		}
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [selectedIndex]);
+
 	if (selectedIndex === null || !files[selectedIndex]) {
 		return null;
 	}
@@ -71,11 +82,14 @@ export function FileViewerModal({
 					Visualiza el archivo seleccionado. Usa las flechas izquierda y derecha para navegar entre
 					los archivos, o el botón de descarga para abrirlo en una nueva pestaña.
 				</DialogDescription>
-
 				<Button
 					size="icon"
 					variant="ghost"
-					className="absolute top-4 right-4 text-white hover:bg-white/20"
+					className="fixed z-50 text-white hover:bg-white/20"
+					style={{
+						top: 'max(1rem, env(safe-area-inset-top))',
+						right: 'max(1rem, env(safe-area-inset-right))',
+					}}
 					onClick={() => onSelectedIndexChange(null)}
 				>
 					<X className="h-6 w-6" />
@@ -85,7 +99,8 @@ export function FileViewerModal({
 					<Button
 						size="icon"
 						variant="ghost"
-						className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+						className="fixed top-1/2 -translate-y-1/2 z-50 text-white hover:bg-white/20"
+						style={{ left: 'max(1rem, env(safe-area-inset-left))' }}
 						onClick={handlePrevious}
 					>
 						<ChevronLeft className="h-8 w-8" />
@@ -96,13 +111,13 @@ export function FileViewerModal({
 					<Button
 						size="icon"
 						variant="ghost"
-						className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+						className="fixed top-1/2 -translate-y-1/2 z-50 text-white hover:bg-white/20"
+						style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
 						onClick={handleNext}
 					>
 						<ChevronRight className="h-8 w-8" />
 					</Button>
 				)}
-
 				<div className="max-w-[80vw] max-h-[80vh] flex flex-col items-center">
 					{canPreviewVideo ? (
 						<video
