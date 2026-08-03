@@ -88,13 +88,23 @@ export function EventFormModal({
 				remember: event.remember ?? true,
 			});
 
+			let isStale = false;
+
 			if (event.client_id) {
 				setLoadingWorks(true);
 				getWorksByClientId(event.client_id).then(({ data, error }) => {
+					if (isStale) return;
 					if (!error) setClientWorks(data || []);
 					setLoadingWorks(false);
 				});
+			} else {
+				setClientWorks([]);
+				setLoadingWorks(false);
 			}
+
+			return () => {
+				isStale = true;
+			};
 		}
 	}, [isOpen, mode, event, defaultEventType]);
 
@@ -169,7 +179,7 @@ export function EventFormModal({
 		}));
 	};
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
 		const dateError = validateDate(formData.date);
@@ -181,11 +191,13 @@ export function EventFormModal({
 			});
 			return;
 		}
-		onSave({
+		const success = await onSave({
 			...(mode === 'edit' && event ? { id: event.id } : {}),
 			...formData,
 			date: format(formData.date!, 'dd-MM-yyyy'),
 		});
+
+		if (!success) return;
 
 		setIsOpen(false);
 		if (mode === 'create') {
@@ -272,7 +284,7 @@ export function EventFormModal({
 								<Button
 									variant="outline"
 									className={cn(
-										isMobile ? 'w-37' : 'w-full',
+										isMobile ? 'w-full' : 'w-full',
 										'text-left font-normal',
 										!formData.date && 'text-muted-foreground'
 									)}
@@ -352,7 +364,7 @@ export function EventFormModal({
 									}
 								}}
 							>
-								<SelectTrigger className="w-full">
+								<SelectTrigger className="w-full min-w-0">
 									<SelectValue
 										placeholder={loadingWorks ? 'Cargando obras...' : 'Seleccionar obra...'}
 									/>

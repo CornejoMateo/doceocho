@@ -59,7 +59,7 @@ export const translateError = (error: any): string => {
 	}
 
 	if (errorMessage.includes('column') && errorMessage.includes('schema cache')) {
-		return 'Error en la base de datos. Hay una columna que esta queriendo ser accedida y no existe. Contacta al administrador.';
+		return 'Error en la base de datos. No se encontró una columna en la base de datos. Contacta al administrador.';
 	}
 
 	// Geolocation errors
@@ -129,8 +129,10 @@ export const translateError = (error: any): string => {
 
 	// Date
 	if (
-		errorMessage.includes('out of range') ||
-		errorMessage.includes('invalid input syntax for type date')
+		errorMessage.includes('invalid input syntax for type date') ||
+		errorMessage.includes('date/time field value out of range') ||
+		errorMessage.includes('date field value out of range') ||
+		errorMessage.includes('timestamp out of range')
 	) {
 		return 'La fecha proporcionada no es válida.';
 	}

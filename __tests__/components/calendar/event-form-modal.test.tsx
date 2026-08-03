@@ -261,6 +261,12 @@ describe('Mode: create - EventFormModal', () => {
 describe('edit mode', () => {
 	const toast = jest.fn();
 
+	beforeEach(() => {
+		(useToast as jest.Mock).mockReturnValue({
+			toast,
+		});
+	});
+
 	const event = {
 		id: 25,
 		title: 'Evento existente',

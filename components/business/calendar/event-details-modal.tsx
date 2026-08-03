@@ -22,6 +22,7 @@ import { getWorkById, Work } from '@/lib/works/works';
 import { formatCreatedAt } from '@/utils/format-date';
 import { Pencil } from 'lucide-react';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
+import { format, parse } from 'date-fns';
 
 interface EventDetailsModalProps {
 	isOpen: boolean;
@@ -133,8 +134,8 @@ export function EventDetailsModal({
 			};
 			const dateToFormat = updateData.date;
 
-			const [day, month, year] = dateToFormat.split('-').map(Number);
-			const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+			const parsedDate = parse(dateToFormat, 'dd-MM-yyyy', new Date());
+			const formattedDate = format(parsedDate, 'yyyy-MM-dd');
 			updateData.date = formattedDate;
 			const { error } = await updateEvent(event.id, updateData);
 			if (error) throw error;
@@ -271,9 +272,9 @@ export function EventDetailsModal({
 					</div>
 				</div>
 
-				<div className="flex items-right gap-2 mb-4">
+				<div className="flex gap-2 mb-4">
 					<Badge
-						className="px-2 py-1 text-sm flex items-right gap-1"
+						className="px-2 py-1 text-sm flex gap-1"
 						style={{ backgroundColor: typeInfo.color }}
 					>
 						{typeInfo.label}
@@ -286,7 +287,7 @@ export function EventDetailsModal({
 				</div>
 
 				<div className="flex items-center justify-end gap-2 mb-4">
-					<div className="flex items-center gap-2 justify-left flex-1">
+					<div className="flex items-center gap-2 flex-1">
 						{isAuthorized && (
 							<Button
 								type="button"
