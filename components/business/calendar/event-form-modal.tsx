@@ -184,7 +184,7 @@ export function EventFormModal({
 		onSave({
 			...(mode === 'edit' && event ? { id: event.id } : {}),
 			...formData,
-			date: mode === 'create' ? format(formData.date!, 'dd-MM-yyyy') : formData.date,
+			date: format(formData.date!, 'dd-MM-yyyy'),
 		});
 
 		setIsOpen(false);

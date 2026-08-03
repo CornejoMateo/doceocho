@@ -131,6 +131,12 @@ export function EventDetailsModal({
 				...rest,
 				type_id: selectedEventType?.id || null,
 			};
+			const dateToFormat = updateData.date;
+
+			const [day, month, year] = dateToFormat.split('-').map(Number);
+			const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+			updateData.date = formattedDate;
+			console.log('Update data:', updateData);
 			const { error } = await updateEvent(event.id, updateData);
 			if (error) throw error;
 			onEventUpdated?.();
@@ -285,6 +291,7 @@ export function EventDetailsModal({
 						{isAuthorized && (
 							<Button
 								type="button"
+								aria-label="Toggle Remember"
 								variant="outline"
 								onClick={handleRememberChange}
 								className={`justify-start ${currentRemember ? 'bg-yellow-200' : ''}`}
