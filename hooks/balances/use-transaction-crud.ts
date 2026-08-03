@@ -88,6 +88,7 @@ export function useTransactionCrud(
 			setIsLoading(false);
 		}
 	};
+
 	const handleAddTransaction = async (isExtra?: boolean) => {
 		if (!balance || isSavingTransaction) return;
 
@@ -116,7 +117,6 @@ export function useTransactionCrud(
 			});
 
 			if (error) {
-				setIsSavingTransaction(false);
 				toast({
 					variant: 'destructive',
 					title: isExtra ? 'Error al crear monto extra' : 'Error al crear transacción',
@@ -129,15 +129,23 @@ export function useTransactionCrud(
 				return;
 			}
 
+			let fileUploadError: unknown = null;
 			if (data && transactionFilesToUpload.length > 0) {
-				await uploadFilesForTransaction?.(data.id, transactionFilesToUpload);
+				try {
+					await uploadFilesForTransaction?.(data.id, transactionFilesToUpload);
+				} catch (uploadError) {
+					fileUploadError = uploadError;
+				}
 			}
 
 			toast({
 				title: isExtra ? 'Monto extra creado' : 'Transacción creada',
-				description: isExtra
-					? 'El monto extra se ha creado exitosamente.'
-					: 'La transacción se ha creado exitosamente.',
+				description: fileUploadError
+					? 'Se creó, pero hubo un problema al subir los archivos adjuntos.'
+					: isExtra
+						? 'El monto extra se ha creado exitosamente.'
+						: 'La transacción se ha creado exitosamente.',
+				variant: fileUploadError ? 'destructive' : undefined,
 			});
 
 			resetTransactionForm();
@@ -280,7 +288,6 @@ export function useTransactionCrud(
 			});
 
 			if (error) {
-				setIsSavingTransaction(false);
 				toast({
 					variant: 'destructive',
 					title: 'Error al actualizar transacción',
@@ -291,13 +298,21 @@ export function useTransactionCrud(
 				return;
 			}
 
+			let fileUploadError: unknown = null;
 			if (transactionFilesToUpload.length > 0) {
-				await uploadFilesForTransaction?.(editingTransaction.id, transactionFilesToUpload);
+				try {
+					await uploadFilesForTransaction?.(editingTransaction.id, transactionFilesToUpload);
+				} catch (uploadError) {
+					fileUploadError = uploadError;
+				}
 			}
 
 			toast({
 				title: 'Transacción actualizada',
-				description: 'La transacción se ha actualizado exitosamente.',
+				description: fileUploadError
+					? 'Se actualizó, pero hubo un problema al subir los archivos adjuntos.'
+					: 'La transacción se ha actualizado exitosamente.',
+				variant: fileUploadError ? 'destructive' : undefined,
 			});
 
 			resetTransactionForm();
