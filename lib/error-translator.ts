@@ -58,6 +58,10 @@ export const translateError = (error: any): string => {
 		return 'Error en la base de datos. Contacta al administrador.';
 	}
 
+	if (errorMessage.includes('column') && errorMessage.includes('schema cache')) {
+		return 'Error en la base de datos. Hay una columna que esta queriendo ser accedida y no existe. Contacta al administrador.';
+	}
+
 	// Geolocation errors
 	if (
 		errorMessage.includes('PERMISSION_DENIED') ||
