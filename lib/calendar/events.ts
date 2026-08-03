@@ -132,7 +132,6 @@ export async function updateEvent(
 		.select()
 		.single();
 
-	console.log('error', error);
 	return { data, error };
 }
 
