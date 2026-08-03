@@ -138,7 +138,7 @@ export function useFileUpload({
 	};
 
 	const openUploadDialogForFile = (file: File) => {
-		prepareFileForUpload(file);
+		return prepareFileForUpload(file);
 	};
 
 	return {

@@ -154,8 +154,11 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	});
 
 	const handleImageReady = (imageFile: File) => {
-		openUploadDialogForFile(imageFile);
-		setIsCameraEditorOpen(false);
+		const shouldContinue = openUploadDialogForFile(imageFile);
+		if (shouldContinue) {
+			setIsCameraEditorOpen(false);
+		}
+		return shouldContinue;
 	};
 
 	const handleDeleteFile = async () => {

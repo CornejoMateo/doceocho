@@ -10,12 +10,14 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
 import { Camera, X, Undo, Download } from 'lucide-react';
 
 interface ImageEditorDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onImageReady: (imageFile: File) => void;
+	onImageReady: (imageFile: File) => boolean;
 }
 
 export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEditorDialogProps) {
@@ -27,28 +29,44 @@ export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEdi
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const streamRef = useRef<MediaStream | null>(null);
+	const cameraRequestIdRef = useRef(0);
 
 	const startCamera = async () => {
+		const requestId = ++cameraRequestIdRef.current;
+
 		try {
 			setIsCameraReady(false);
 			const stream = await navigator.mediaDevices.getUserMedia({
 				video: { facingMode: 'environment' },
 			});
+
+			if (requestId !== cameraRequestIdRef.current) {
+				stream.getTracks().forEach((track) => track.stop());
+				return;
+			}
+
 			streamRef.current = stream;
 			if (videoRef.current) {
 				videoRef.current.srcObject = stream;
 				videoRef.current.onloadedmetadata = () => {
+					if (requestId !== cameraRequestIdRef.current) return;
 					setIsCameraReady(true);
 				};
 			}
 		} catch (error) {
+			if (requestId !== cameraRequestIdRef.current) return;
 			console.error('Error accessing camera:', error);
-			alert('No se pudo acceder a la cámara. Verifica los permisos.');
+			toast({
+				variant: 'destructive',
+				title: 'No se pudo acceder a la cámara',
+				description: translateError(error),
+			});
 			setIsCameraReady(false);
 		}
 	};
 
 	const stopCamera = () => {
+		cameraRequestIdRef.current += 1;
 		if (streamRef.current) {
 			streamRef.current.getTracks().forEach((track) => track.stop());
 			streamRef.current = null;
@@ -66,13 +84,21 @@ export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEdi
 
 		if (video.readyState !== 4) {
 			console.error('Video not ready', video.readyState);
-			alert('El video no está listo. Por favor espera un momento.');
+			toast({
+				variant: 'destructive',
+				title: 'La cámara aún no está lista',
+				description: 'Espera un momento e intenta nuevamente.',
+			});
 			return;
 		}
 
 		if (video.videoWidth === 0 || video.videoHeight === 0) {
 			console.error('Video has no dimensions', video.videoWidth, video.videoHeight);
-			alert('No se pudo obtener la imagen de la cámara. Intenta nuevamente.');
+			toast({
+				variant: 'destructive',
+				title: 'No se pudo obtener la imagen',
+				description: 'Intenta nuevamente.',
+			});
 			return;
 		}
 
@@ -93,7 +119,11 @@ export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEdi
 			stopCamera();
 		} catch (error) {
 			console.error('Error capturing image:', error);
-			alert('Error al capturar la imagen. Intenta nuevamente.');
+			toast({
+				variant: 'destructive',
+				title: 'Error al capturar la imagen',
+				description: translateError(error),
+			});
 		}
 	};
 
@@ -172,9 +202,11 @@ export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEdi
 				(blob) => {
 					if (blob) {
 						const file = new File([blob], 'camara-editada.jpg', { type: 'image/jpeg' });
-						onImageReady(file);
-						onOpenChange(false);
-						resetEditor();
+						const shouldCloseAndReset = onImageReady(file);
+						if (shouldCloseAndReset) {
+							onOpenChange(false);
+							resetEditor();
+						}
 					}
 				},
 				'image/jpeg',
