@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Client } from '@/lib/clients/clients';
 import { deleteClientFile, ClientFileRecord, listClientFiles } from '@/lib/clients/files';
 import { Button } from '@/components/ui/button';
-import { Upload, Trash2, Loader2, FileText } from 'lucide-react';
+import { Upload, Trash2, Loader2, FileText, Camera } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { translateError } from '@/lib/error-translator';
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
+import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
 import { formatFileSize, isVideo, isImage, getFileExtension } from '@/utils/file-upload-utils';
 import { useAuth } from '@/components/provider/auth-provider';
 
@@ -41,6 +42,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
 	const [fileToDelete, setFileToDelete] = useState<FileWithUrl | null>(null);
+	const [isCameraEditorOpen, setIsCameraEditorOpen] = useState(false);
 
 	const { user } = useAuth();
 	const isAuthorized = user?.role === 'Admin';
@@ -144,11 +146,20 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 		handleFileSelect,
 		handleUploadSubmit,
 		handleCloseUploadDialog,
+		openUploadDialogForFile,
 		acceptedFileTypes,
 	} = useFileUpload({
 		clientId: client.id,
 		onUploadSuccess: loadFiles,
 	});
+
+	const handleImageReady = (imageFile: File) => {
+		const shouldContinue = openUploadDialogForFile(imageFile);
+		if (shouldContinue) {
+			setIsCameraEditorOpen(false);
+		}
+		return shouldContinue;
+	};
 
 	const handleDeleteFile = async () => {
 		if (!fileToDelete) return;
@@ -206,7 +217,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 		<div className="h-full flex flex-col">
 			<div className="flex items-center justify-between mb-4">
 				<h4 className="text-sm font-medium">Archivos ({files.length})</h4>
-				<div>
+				<div className="flex items-center gap-2">
 					<input
 						ref={fileInputRef}
 						type="file"
@@ -215,6 +226,15 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 						onChange={handleFileSelect}
 						disabled={isUploading}
 					/>
+					<Button
+						size="sm"
+						variant="outline"
+						onClick={() => setIsCameraEditorOpen(true)}
+						disabled={isUploading}
+					>
+						<Camera className="h-4 w-4 mr-2" />
+						Tomar foto
+					</Button>
 					<Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
 						{isUploading ? (
 							<>
@@ -352,6 +372,12 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 				title="Subir archivo"
 				descriptionText="Completa la información del archivo que deseas subir."
 				submitText="Subir archivo"
+			/>
+
+			<ImageEditorDialog
+				open={isCameraEditorOpen}
+				onOpenChange={setIsCameraEditorOpen}
+				onImageReady={handleImageReady}
 			/>
 		</div>
 	);
