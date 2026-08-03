@@ -3,12 +3,9 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-	getUserAttendanceHistory,
-	AttendanceEntryWithDate,
-	getEntryTypeLabel,
-	getEntryTypeColor,
-} from '@/lib/attendance/attendance';
+import { getUserAttendanceHistory } from '@/lib/attendance/attendance';
+import { getEntryTypeLabel, getEntryTypeColor } from '@/helpers/attendance/attendance';
+import { AttendanceEntryWithDate } from '@/lib/attendance/attendance-entries';
 import { useAuth } from '@/components/provider/auth-provider';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

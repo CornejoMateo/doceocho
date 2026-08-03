@@ -38,7 +38,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 		scannerRef.current = scanner;
 
 		scanner.start().catch((error) => {
-			+setCameraError('No se pudo acceder a la cámara. Revisá los permisos.');
+			setCameraError('No se pudo acceder a la cámara. Revisá los permisos.');
 			console.error('Error iniciando cámara:', error);
 		});
 

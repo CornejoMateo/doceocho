@@ -19,7 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { createAdminAttendanceEntry, getEntryTypeLabel } from '@/lib/attendance/attendance';
+import { createAdminAttendanceEntry } from '@/lib/attendance/attendance-entries';
 import { ENTRY_TYPES } from '@/constants/attendance/attendance';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
