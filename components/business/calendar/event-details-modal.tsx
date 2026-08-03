@@ -136,7 +136,6 @@ export function EventDetailsModal({
 			const [day, month, year] = dateToFormat.split('-').map(Number);
 			const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 			updateData.date = formattedDate;
-			console.log('Update data:', updateData);
 			const { error } = await updateEvent(event.id, updateData);
 			if (error) throw error;
 			onEventUpdated?.();
