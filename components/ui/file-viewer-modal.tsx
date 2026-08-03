@@ -73,11 +73,10 @@ export function FileViewerModal({
 
 	return (
 		<Dialog open onOpenChange={() => onSelectedIndexChange(null)}>
-			<DialogContent className="w-screen h-screen max-w-none p-0 border-0 bg-black/90 flex items-center justify-center overflow-y-auto">
+			<DialogContent className="w-screen h-dvh max-w-none p-0 border-0 bg-black/90 flex items-center justify-center overflow-y-auto">
 				<VisuallyHidden.Root asChild>
 					<DialogTitle>Visor de archivos</DialogTitle>
 				</VisuallyHidden.Root>
-
 				<DialogDescription className="sr-only">
 					Visualiza el archivo seleccionado. Usa las flechas izquierda y derecha para navegar entre
 					los archivos, o el botón de descarga para abrirlo en una nueva pestaña.
@@ -85,34 +84,26 @@ export function FileViewerModal({
 				<Button
 					size="icon"
 					variant="ghost"
-					className="fixed z-50 text-white hover:bg-white/20"
-					style={{
-						top: 'max(1rem, env(safe-area-inset-top))',
-						right: 'max(1rem, env(safe-area-inset-right))',
-					}}
+					className="fixed top-4 right-4 z-50 text-white hover:bg-white/20"
 					onClick={() => onSelectedIndexChange(null)}
 				>
 					<X className="h-6 w-6" />
 				</Button>
-
 				{selectedIndex > 0 && (
 					<Button
 						size="icon"
 						variant="ghost"
-						className="fixed top-1/2 -translate-y-1/2 z-50 text-white hover:bg-white/20"
-						style={{ left: 'max(1rem, env(safe-area-inset-left))' }}
+						className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
 						onClick={handlePrevious}
 					>
 						<ChevronLeft className="h-8 w-8" />
 					</Button>
 				)}
-
 				{selectedIndex < files.length - 1 && (
 					<Button
 						size="icon"
 						variant="ghost"
-						className="fixed top-1/2 -translate-y-1/2 z-50 text-white hover:bg-white/20"
-						style={{ right: 'max(1rem, env(safe-area-inset-right))' }}
+						className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
 						onClick={handleNext}
 					>
 						<ChevronRight className="h-8 w-8" />
