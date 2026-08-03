@@ -266,19 +266,19 @@ export function BudgetsReport() {
 										</div>
 									</TableHead>
 									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('amountArs')}
 									>
-										<div className="flex w-full items-center justify-end gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.amountArs}
 											{getSortIcon('amountArs')}
 										</div>
 									</TableHead>
 									<TableHead
-										className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
+										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
 										onClick={() => handleSort('amountUsd')}
 									>
-										<div className="flex w-full items-center justify-end gap-1">
+										<div className="flex w-full items-center justify-center gap-1">
 											{BUDGETS_REPORT_COLUMNS.amountUsd}
 											{getSortIcon('amountUsd')}
 										</div>
@@ -311,18 +311,20 @@ export function BudgetsReport() {
 								) : (
 									filteredRows.map((r) => (
 										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap">{r.date}</TableCell>
-											<TableCell className="font-medium whitespace-nowrap">{r.client}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.number}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.type}</TableCell>
-											<TableCell className="whitespace-nowrap">{r.work}</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="text-center whitespace-nowrap">{r.date}</TableCell>
+											<TableCell className="text-center font-medium whitespace-nowrap">
+												{r.client}
+											</TableCell>
+											<TableCell className="text-center whitespace-nowrap">{r.number}</TableCell>
+											<TableCell className="text-center whitespace-nowrap">{r.type}</TableCell>
+											<TableCell className="text-center whitespace-nowrap">{r.work}</TableCell>
+											<TableCell className="text-center whitespace-nowrap">
 												{formatCurrency(r.amountArs)}
 											</TableCell>
-											<TableCell className="text-right whitespace-nowrap">
+											<TableCell className="text-center whitespace-nowrap">
 												{r.amountUsd ? formatCurrencyUSD(r.amountUsd) : ' - '}
 											</TableCell>
-											<TableCell className="whitespace-nowrap">{r.status}</TableCell>
+											<TableCell className="text-center whitespace-nowrap">{r.status}</TableCell>
 										</TableRow>
 									))
 								)}
