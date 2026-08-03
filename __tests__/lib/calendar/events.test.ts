@@ -44,36 +44,81 @@ describe('lib/calendar/events', () => {
 		expect(eq).toHaveBeenCalledWith('id', 5);
 	});
 
-	test('createEvent inserts and fetches created event, formatting date from dates.date', async () => {
-		const insertSingle = jest.fn().mockResolvedValue({ data: { id: 10 }, error: null });
-		const insertSelect = jest.fn().mockReturnValue({ single: insertSingle });
-		const insert = jest.fn().mockReturnValue({ select: insertSelect });
-
-		const fetchSingle = jest.fn().mockResolvedValue({
-			data: { id: 10, dates: { date: '2024-03-03' }, title: 'evt' },
+	test('createEvent inserts and returns created event', async () => {
+		const single = jest.fn().mockResolvedValue({
+			data: {
+				id: 10,
+				title: 'evt',
+				date: '2024-03-03',
+				status: 'pending',
+			},
 			error: null,
 		});
-		const fetchEq = jest.fn().mockReturnValue({ single: fetchSingle });
-		const fetchSelect = jest.fn().mockReturnValue({ eq: fetchEq });
 
-		const mockFrom = {
-			insert,
-			select: fetchSelect,
+		const select = jest.fn().mockReturnValue({
+			single,
+		});
+
+		const insert = jest.fn().mockReturnValue({
+			select,
+		});
+
+		const mockSupabase = {
+			from: jest.fn().mockReturnValue({
+				insert,
+			}),
 		};
 
-		const mockSupabase = { from: jest.fn().mockReturnValue(mockFrom) };
-		jest.doMock('@/lib/supabase-client', () => ({ getSupabaseClient: () => mockSupabase }));
+		jest.doMock('@/lib/supabase-client', () => ({
+			getSupabaseClient: () => mockSupabase,
+		}));
 
 		const { createEvent } = require('@/lib/calendar/events');
 
-		const payload = { date: '2024-03-03', title: 'evt', type: null };
+		const payload = {
+			title: 'evt',
+			type_id: 1,
+			description: null,
+			client_id: null,
+			client_name: 'Cliente',
+			date: '2024-03-03',
+			remember: true,
+			work_id: null,
+			work_location: '',
+		};
+
 		const res = await createEvent(payload);
 
 		expect(res.error).toBeNull();
-		expect(res.data).toMatchObject({ id: 10, date: '2024-03-03', title: 'evt' });
-		expect(insert).toHaveBeenCalled();
-		expect(fetchSelect).toHaveBeenCalledWith('*');
-		expect(fetchEq).toHaveBeenCalledWith('id', 10);
+
+		expect(res.data).toEqual(
+			expect.objectContaining({
+				id: 10,
+				title: 'evt',
+				date: '2024-03-03',
+				status: 'pending',
+			})
+		);
+
+		expect(insert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				title: 'evt',
+				type_id: 1,
+				description: null,
+				client_id: null,
+				client_name: 'Cliente',
+				date: '2024-03-03',
+				status: 'pending',
+				is_overdue: false,
+				remember: true,
+				work_id: null,
+				work_location: '',
+				created_at: expect.any(String),
+			})
+		);
+
+		expect(select).toHaveBeenCalled();
+		expect(single).toHaveBeenCalled();
 	});
 
 	test('updateEvent sets is_overdue based on current event date when status pending', async () => {
