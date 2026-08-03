@@ -41,12 +41,7 @@ export function useFileUpload({
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const maxUploadSize = maxFileSize ?? (claimId ? MAX_FILE_SIZE_CLAIM : MAX_FILE_SIZE_CLIENT);
 
-	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const selectedFiles = e.target.files;
-		if (!selectedFiles || selectedFiles.length === 0) return;
-
-		const file = selectedFiles[0];
-
+	const prepareFileForUpload = (file: File) => {
 		const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
 		if (!validation.isValid) {
 			toast({
@@ -57,13 +52,21 @@ export function useFileUpload({
 			if (fileInputRef.current) {
 				fileInputRef.current.value = '';
 			}
-			return;
+			return false;
 		}
 
 		setSelectedFile(file);
 		setDisplayName(getDefaultDisplayName?.(file) || file.name.replace(/\.[^/.]+$/, ''));
 		setDescription(getDefaultDescription?.(file) || '');
 		setIsUploadDialogOpen(true);
+		return true;
+	};
+
+	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const selectedFiles = e.target.files;
+		if (!selectedFiles || selectedFiles.length === 0) return;
+
+		prepareFileForUpload(selectedFiles[0]);
 	};
 
 	const handleUploadSubmit = async () => {
@@ -134,6 +137,10 @@ export function useFileUpload({
 		fileInputRef.current?.click();
 	};
 
+	const openUploadDialogForFile = (file: File) => {
+		prepareFileForUpload(file);
+	};
+
 	return {
 		isUploadDialogOpen,
 		selectedFile,
@@ -147,6 +154,7 @@ export function useFileUpload({
 		handleUploadSubmit,
 		handleCloseUploadDialog,
 		triggerFileUpload,
+		openUploadDialogForFile,
 		acceptedFileTypes: allowedFileTypes,
 	};
 }
