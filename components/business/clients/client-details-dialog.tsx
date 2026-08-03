@@ -315,7 +315,6 @@ export function ClientDetailsDialog({
 												onKeyDown={handleKeyDown}
 												placeholder="Escribe aquí..."
 												className="min-h-[200px] bg-background"
-												disabled={isSaving}
 											/>
 										</div>
 									</div>
