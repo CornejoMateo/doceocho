@@ -19,9 +19,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { AttendanceEntryWithDate, getEntryTypeLabel } from '@/lib/attendance/attendance';
+import {
+	AttendanceEntryWithDate,
+	updateAttendanceEntry,
+} from '@/lib/attendance/attendance-entries';
+import { getEntryTypeLabel } from '@/helpers/attendance/attendance';
 import { translateError } from '@/lib/error-translator';
-import { updateAttendanceEntry, deleteAttendanceEntry } from '@/lib/attendance/attendance';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

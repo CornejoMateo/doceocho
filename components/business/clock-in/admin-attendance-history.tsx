@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
 	getAllAttendanceHistory,
-	getEntriesByPeriod,
 	getUserAttendanceSummaries,
 	UserAttendanceSummary,
-	AttendanceEntryWithDate,
-	getEntryTypeLabel,
-	getEntryTypeColor,
-	formatHours,
-	deleteAttendanceEntry,
 	hasMatchingPair,
 } from '@/lib/attendance/attendance';
+import {
+	getEntriesByPeriod,
+	AttendanceEntryWithDate,
+	deleteAttendanceEntry,
+} from '@/lib/attendance/attendance-entries';
+import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';

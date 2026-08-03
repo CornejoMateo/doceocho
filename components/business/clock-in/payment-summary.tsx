@@ -8,7 +8,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { calculatePaymentSummary, PaymentSummary } from '@/lib/attendance/attendance';
 import { format } from 'date-fns';
@@ -17,7 +16,7 @@ import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt } from '@/utils/format-date';
-import { DollarSign, Calendar, Clock } from 'lucide-react';
+import { DollarSign, Calendar } from 'lucide-react';
 
 interface PaymentSummaryProps {
 	userId: string | null;

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
-import { getAttendanceSettings, getAttendanceStatus } from '@/lib/attendance/attendance';
+import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
+import { getAttendanceStatus } from '@/lib/attendance/attendance-entries';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
@@ -225,7 +226,7 @@ export function ClockIn() {
 				{isTaller && (
 					<>
 						{loading ? (
-							<p className="text-muted-foreground text-sm">Cargando...</p>
+							<p className="text-muted-foreground text-sm text-center">Cargando...</p>
 						) : (
 							<div className="flex flex-col items-center gap-4 w-full">
 								<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
