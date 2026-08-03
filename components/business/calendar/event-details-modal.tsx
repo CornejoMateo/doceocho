@@ -20,6 +20,9 @@ import { EventType, resolveEventType } from '@/lib/calendar/event-types';
 import { useAuth } from '@/components/provider/auth-provider';
 import { getWorkById, Work } from '@/lib/works/works';
 import { formatCreatedAt } from '@/utils/format-date';
+import { Pencil } from 'lucide-react';
+import { EventFormModal } from '@/components/business/calendar/event-form-modal';
+import { format, parse } from 'date-fns';
 
 interface EventDetailsModalProps {
 	isOpen: boolean;
@@ -38,12 +41,13 @@ export function EventDetailsModal({
 }: EventDetailsModalProps) {
 	const typeInfo = resolveEventType(event.type, eventTypes);
 	const { toast } = useToast();
-	const [currentStatus, setCurrentStatus] = useState(event.status || 'Pendiente');
+	const [currentStatus, setCurrentStatus] = useState(event.status || 'pending');
 
 	const [currentRemember, setCurrentRemember] = useState(event.remember || false);
 
 	const [workData, setWorkData] = useState<Work | null>(null);
 	const [isLoadingWork, setIsLoadingWork] = useState(false);
+	const [isEditOpen, setIsEditOpen] = useState(false);
 
 	useEffect(() => {
 		if (event.work_id) {
@@ -110,12 +114,46 @@ export function EventDetailsModal({
 				description: `El evento ha sido marcado como ${statusLabel}`,
 			});
 		} catch (error) {
-			setCurrentStatus(event.status || 'Pendiente');
+			setCurrentStatus(event.status || 'pending');
 			toast({
 				title: 'Error',
 				description: translateError(error) || 'No se pudo actualizar el estado del evento',
 				variant: 'destructive',
 			});
+		}
+	};
+
+	const handleEditSave = async (data: any) => {
+		try {
+			const { id, isManualClient, isManualWork, type, ...rest } = data;
+
+			const selectedEventType = eventTypes.find((eventType) => eventType.name === type);
+			const updateData = {
+				...rest,
+				type_id: selectedEventType?.id || null,
+			};
+			const dateToFormat = updateData.date;
+
+			const parsedDate = parse(dateToFormat, 'dd-MM-yyyy', new Date());
+			const formattedDate = format(parsedDate, 'yyyy-MM-dd');
+			updateData.date = formattedDate;
+			const { error } = await updateEvent(event.id, updateData);
+			if (error) throw error;
+			onEventUpdated?.();
+			setIsEditOpen(false);
+			onClose();
+			toast({
+				title: 'Evento actualizado',
+				description: 'El evento ha sido actualizado correctamente',
+			});
+			return true;
+		} catch (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'No se pudo actualizar el evento',
+				variant: 'destructive',
+			});
+			return false;
 		}
 	};
 
@@ -234,24 +272,26 @@ export function EventDetailsModal({
 					</div>
 				</div>
 
-				<div className="flex items-center justify-between gap-2 mb-4">
+				<div className="flex gap-2 mb-4">
 					<Badge
-						className="px-2 py-1 text-sm flex items-center gap-1"
+						className="px-2 py-1 text-sm flex gap-1"
 						style={{ backgroundColor: typeInfo.color }}
 					>
 						{typeInfo.label}
 					</Badge>
-					{event.is_overdue && (
-						<span className="text-xs font-semibold text-red-600 mx-2">Evento vencido</span>
-					)}
-					<div className="flex items-center gap-2">
-						<Button variant="outline" onClick={onClose}>
-							Cerrar
-						</Button>
+					<div className="flex items-center gap-2 justify-end flex-1">
+						{event.is_overdue && (
+							<span className="text-xs font-semibold text-red-600 mx-2">Evento vencido</span>
+						)}
+					</div>
+				</div>
 
+				<div className="flex items-center justify-end gap-2 mb-4">
+					<div className="flex items-center gap-2 flex-1">
 						{isAuthorized && (
 							<Button
 								type="button"
+								aria-label="Toggle Remember"
 								variant="outline"
 								onClick={handleRememberChange}
 								className={`justify-start ${currentRemember ? 'bg-yellow-200' : ''}`}
@@ -260,8 +300,28 @@ export function EventDetailsModal({
 							</Button>
 						)}
 					</div>
+					<div className="flex items-center gap-2">
+						{isAuthorized && (
+							<Button variant="outline" onClick={() => setIsEditOpen(true)}>
+								<Pencil className="h-4 w-4 mr-1" />
+								Editar
+							</Button>
+						)}
+						<Button variant="outline" onClick={onClose}>
+							Cerrar
+						</Button>
+					</div>
 				</div>
 			</DialogContent>
+
+			<EventFormModal
+				mode="edit"
+				event={event}
+				eventTypes={eventTypes}
+				open={isEditOpen}
+				onOpenChange={setIsEditOpen}
+				onSave={handleEditSave}
+			/>
 		</Dialog>
 	);
 }

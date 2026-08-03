@@ -89,23 +89,7 @@ export async function createEvent(
 			return { data: null, error };
 		}
 
-		const { data: createdEvent, error: fetchError } = await supabase
-			.from(TABLE)
-			.select('*')
-			.eq('id', data.id)
-			.single();
-
-		if (fetchError) {
-			console.error('Error al obtener el evento creado:', fetchError);
-			return { data: null, error: fetchError };
-		}
-
-		const formattedEvent: Event = {
-			...createdEvent,
-			date: createdEvent.dates?.date,
-		};
-
-		return { data: formattedEvent, error: null };
+		return { data: data as Event, error: null };
 	} catch (error) {
 		console.error('Error inesperado al crear el evento:', error);
 		return { data: null, error };
@@ -147,6 +131,7 @@ export async function updateEvent(
 		.eq('id', id)
 		.select()
 		.single();
+
 	return { data, error };
 }
 

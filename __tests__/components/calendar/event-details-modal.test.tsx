@@ -30,6 +30,37 @@ jest.mock('@/lib/calendar/events', () => ({
 	updateEvent: jest.fn().mockResolvedValue({ error: null }),
 }));
 
+jest.mock('@/lib/works/works', () => ({
+	getWorkById: jest.fn().mockResolvedValue({
+		data: null,
+		error: null,
+	}),
+}));
+
+jest.mock('@/components/business/calendar/event-form-modal', () => ({
+	EventFormModal: ({ open, onSave }: any) =>
+		open ? (
+			<div data-testid="edit-modal">
+				<button
+					onClick={() =>
+						onSave({
+							id: 33,
+							title: 'Evento editado',
+							date: '06-05-2025',
+							type: 'reuniones',
+							description: 'Nueva descripción',
+							client_name: 'ACME',
+							location: 'Ciudad',
+							address: 'Calle 1',
+						})
+					}
+				>
+					Guardar edición
+				</button>
+			</div>
+		) : null,
+}));
+
 describe('EventDetailsModal', () => {
 	const toast = jest.fn();
 
@@ -39,7 +70,7 @@ describe('EventDetailsModal', () => {
 		(useToast as jest.Mock).mockReturnValue({ toast });
 	});
 
-	test('renders event details and toggles remember', async () => {
+	it('renders event details and toggles remember', async () => {
 		const onClose = jest.fn();
 		const onEventUpdated = jest.fn();
 
@@ -79,14 +110,9 @@ describe('EventDetailsModal', () => {
 		expect(screen.getByText('05/05/2025')).toBeInTheDocument();
 		expect(screen.getByText('ACME')).toBeInTheDocument();
 
-		// Badge del tipo
 		expect(screen.getAllByText('reuniones').length).toBeGreaterThan(0);
 
-		const buttons = screen.getAllByRole('button');
-
-		// Botón del recordatorio
-		fireEvent.click(buttons[1]);
-
+		fireEvent.click(screen.getByLabelText('Toggle Remember'));
 		await waitFor(() => {
 			const { updateEvent } = require('@/lib/calendar/events');
 
@@ -103,7 +129,8 @@ describe('EventDetailsModal', () => {
 			expect(onEventUpdated).toHaveBeenCalled();
 		});
 	});
-	test('updates event status', async () => {
+
+	it('updates event status', async () => {
 		const onEventUpdated = jest.fn();
 
 		const event = {
@@ -146,6 +173,72 @@ describe('EventDetailsModal', () => {
 			});
 
 			expect(onEventUpdated).toHaveBeenCalled();
+		});
+	});
+
+	it('opens edit modal and updates event', async () => {
+		const onClose = jest.fn();
+		const onEventUpdated = jest.fn();
+
+		const event = {
+			id: 33,
+			title: 'Prueba evento',
+			date: '2025-05-05',
+			client_name: 'ACME',
+			location: 'Ciudad',
+			address: 'Calle 1',
+			description: 'Desc',
+			type: 'reuniones',
+			type_id: 1,
+			status: 'pending',
+			remember: false,
+		} as any;
+
+		const eventTypes = [
+			{
+				id: 1,
+				name: 'reuniones',
+				color: '#7c3aed',
+			},
+		];
+
+		render(
+			<EventDetailsModal
+				isOpen
+				onClose={onClose}
+				event={event}
+				onEventUpdated={onEventUpdated}
+				eventTypes={eventTypes}
+			/>
+		);
+
+		fireEvent.click(screen.getByText('Editar'));
+
+		expect(screen.getByTestId('edit-modal')).toBeInTheDocument();
+
+		fireEvent.click(screen.getByText('Guardar edición'));
+
+		await waitFor(() => {
+			const { updateEvent } = require('@/lib/calendar/events');
+
+			expect(updateEvent).toHaveBeenCalledWith(
+				33,
+				expect.objectContaining({
+					title: 'Evento editado',
+					description: 'Nueva descripción',
+					date: '2025-05-06',
+					type_id: 1,
+				})
+			);
+
+			expect(onEventUpdated).toHaveBeenCalled();
+			expect(onClose).toHaveBeenCalled();
+
+			expect(toast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					title: 'Evento actualizado',
+				})
+			);
 		});
 	});
 });
