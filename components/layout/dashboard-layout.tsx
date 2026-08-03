@@ -82,7 +82,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Calendario',
 				'Flujo de Fondos',
 				'Obras',
-        'Chat',
+				'Chat',
 				'Reportes',
 				'Fichar',
 			],

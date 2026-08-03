@@ -98,7 +98,7 @@ export function DashboardHome() {
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-3">
-				<Card className="p-4">
+				<Card className="p-4 min-w-0">
 					<div className="flex items-center justify-between mb-4">
 						<h3 className="text-sm font-medium text-muted-foreground">Eventos vencidos</h3>
 						<span className="text-xs rounded-full bg-red-500/10 text-red-600 px-2 py-0.5">
@@ -161,7 +161,8 @@ export function DashboardHome() {
 					</div>
 				</Card>
 
-				<div className="lg:col-span-2 grid grid-cols-2 gap-4">
+				<div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+					{' '}
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<div>
@@ -170,7 +171,6 @@ export function DashboardHome() {
 							</div>
 						</div>
 					</Card>
-
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<div>
@@ -179,7 +179,6 @@ export function DashboardHome() {
 							</div>
 						</div>
 					</Card>
-
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<div>
