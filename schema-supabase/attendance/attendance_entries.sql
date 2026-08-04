@@ -24,7 +24,20 @@ ON public.attendance_entries
 FOR SELECT
 TO authenticated
 USING (
-    true
+    EXISTS (
+        SELECT 1
+        FROM public.attendance a
+        WHERE a.id = attendance_entries.attendance_id
+          AND (
+                a.user_id = auth.uid()
+                OR EXISTS (
+                    SELECT 1
+                    FROM public.users u
+                    WHERE u.uid_user = auth.uid()
+                      AND u.role = 'Admin'
+                )
+          )
+    )
 );
 
 CREATE POLICY "Attendance entries insert"
@@ -32,7 +45,20 @@ ON public.attendance_entries
 FOR INSERT
 TO authenticated
 WITH CHECK (
-    true
+    EXISTS (
+        SELECT 1
+        FROM public.attendance a
+        WHERE a.id = attendance_entries.attendance_id
+          AND (
+                a.user_id = auth.uid()
+                OR EXISTS (
+                    SELECT 1
+                    FROM public.users u
+                    WHERE u.uid_user = auth.uid()
+                      AND u.role = 'Admin'
+                )
+          )
+    )
 );
 
 CREATE POLICY "Attendance entries update"
