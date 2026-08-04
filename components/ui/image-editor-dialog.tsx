@@ -388,29 +388,33 @@ export function ImageEditorDialog({
 			const scaleX = canvas.width / rect.width;
 			const scaleY = canvas.height / rect.height;
 
+			const tempCanvas = document.createElement('canvas');
+			tempCanvas.width = canvas.width;
+			tempCanvas.height = canvas.height;
+			const tempContext = tempCanvas.getContext('2d');
+			if (!tempContext) return;
+
+			tempContext.drawImage(canvas, 0, 0);
+
 			texts.forEach((text) => {
-				context.save();
+				tempContext.save();
 				const scaledX = text.x * scaleX;
 				const scaledY = text.y * scaleY;
-				const scaledSize = Math.max(10, Math.min(200, text.size * scaleX));
+				const scaledSize = text.size * scaleX;
 
-				context.font = `${scaledSize}px Arial`;
-				context.fillStyle = text.color;
-				context.textBaseline = 'top';
-				context.textAlign = 'left';
+				tempContext.font = `bold ${scaledSize}px Arial`;
+				tempContext.fillStyle = text.color;
+				tempContext.textBaseline = 'top';
+				tempContext.textAlign = 'left';
 
-				const metrics = context.measureText(text.content);
-				const textWidth = metrics.width;
-				const textHeight = scaledSize;
+				tempContext.translate(scaledX, scaledY);
+				tempContext.rotate((text.rotation * Math.PI) / 180);
 
-				context.translate(scaledX, scaledY);
-				context.rotate((text.rotation * Math.PI) / 180);
-
-				context.fillText(text.content, 0, 0);
-				context.restore();
+				tempContext.fillText(text.content, 0, 0);
+				tempContext.restore();
 			});
 
-			canvas.toBlob(
+			tempCanvas.toBlob(
 				(blob) => {
 					if (blob) {
 						const file = new File([blob], 'camara-editada.jpg', { type: 'image/jpeg' });
