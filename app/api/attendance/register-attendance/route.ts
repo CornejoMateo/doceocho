@@ -7,59 +7,51 @@ import {
 } from '@/lib/attendance/attendance-server';
 import { getCurrentUser } from '@/lib/auth';
 import { isWithinRadius } from '@/helpers/attendance/distance';
-import { TARGET_LOCATION } from '@/constants/attendance/attendance';
+import { verifyQRToken } from '@/lib/qr/qr-token';
 
 export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
-		const { isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
+		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
 		const userId = user?.id;
 
 		if (!userId) {
+			return NextResponse.json({ success: false, message: 'Usuario inválido' }, { status: 400 });
+		}
+
+		if (!token || typeof token !== 'string') {
+			return NextResponse.json({ success: false, message: 'Token inválido' }, { status: 400 });
+		}
+
+		try {
+			await verifyQRToken(token);
+		} catch (qrError) {
+			console.error(qrError);
 			return NextResponse.json(
-				{
-					success: false,
-					message: 'Usuario inválido',
-				},
-				{
-					status: 400,
-				}
+				{ success: false, message: 'QR inválido o expirado' },
+				{ status: 401 }
 			);
 		}
 
 		if (typeof latitude !== 'number' || typeof longitude !== 'number') {
-			return NextResponse.json(
-				{
-					success: false,
-					message: 'Ubicación inválida',
-				},
-				{
-					status: 400,
-				}
-			);
+			return NextResponse.json({ success: false, message: 'Ubicación inválida' }, { status: 400 });
 		}
 
 		if (typeof radiusMeters !== 'number') {
+			return NextResponse.json({ success: false, message: 'Radio inválido' }, { status: 400 });
+		}
+
+		if (typeof lat !== 'number' || typeof long !== 'number') {
 			return NextResponse.json(
-				{
-					success: false,
-					message: 'Radio inválido',
-				},
-				{
-					status: 400,
-				}
+				{ success: false, message: 'Ubicación de referencia inválida' },
+				{ status: 400 }
 			);
 		}
 
 		if (!isWithinRadius(latitude, longitude, lat, long, radiusMeters)) {
 			return NextResponse.json(
-				{
-					success: false,
-					message: 'Ubicación fuera del rango permitido',
-				},
-				{
-					status: 400,
-				}
+				{ success: false, message: 'Ubicación fuera del rango permitido' },
+				{ status: 400 }
 			);
 		}
 
@@ -88,6 +80,7 @@ export async function POST(req: NextRequest) {
 		if (!attendance) {
 			throw new Error('No se pudo crear la asistencia');
 		}
+
 		const { data: lastEntry, error: lastEntryError } = await getLastAttendanceEntry(
 			attendance.id,
 			isOvertime
@@ -125,13 +118,8 @@ export async function POST(req: NextRequest) {
 		console.error(error);
 
 		return NextResponse.json(
-			{
-				success: false,
-				message: 'No se pudo registrar el fichaje',
-			},
-			{
-				status: 500,
-			}
+			{ success: false, message: 'No se pudo registrar el fichaje' },
+			{ status: 500 }
 		);
 	}
 }

@@ -111,39 +111,29 @@ export function ClockIn() {
 	};
 
 	const finishClockAction = async (token: string) => {
-		validateLocation().catch((error) => {
+		try {
+			await validateLocation();
+		} catch (error) {
 			toast({
 				title: 'Error',
 				description: translateError(error),
 				variant: 'destructive',
 			});
 			throw error;
-		});
+		}
 		const loadingToast = toast({
 			title: 'Registrando fichaje...',
 			description: 'Validando datos y guardando en la base de datos.',
 		});
 
 		try {
-			const validateResponse = await fetch('/api/attendance/check-in', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({ token }),
-			});
-
-			if (!validateResponse.ok) {
-				const data = await validateResponse.json();
-				throw new Error(data.message);
-			}
-
 			const registerResponse = await fetch('/api/attendance/register-attendance', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
+					token,
 					isOvertime: pendingClockAction?.isOvertime,
 					latitude: pendingClockAction?.location.latitude,
 					longitude: pendingClockAction?.location.longitude,
