@@ -12,13 +12,142 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { Camera, X, Undo, Download } from 'lucide-react';
+import { Camera, X, Undo, Download, Type, Pencil, RotateCw, Trash2, Move } from 'lucide-react';
 
 interface ImageEditorDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onImageReady: (imageFile: File) => boolean;
 	initialFile?: File | null;
+}
+
+interface DraggableTextProps {
+	text: {
+		id: string;
+		content: string;
+		x: number;
+		y: number;
+		color: string;
+		size: number;
+		rotation: number;
+	};
+	onUpdate: (updates: Partial<DraggableTextProps['text']>) => void;
+	onDelete: () => void;
+	onRotate: () => void;
+}
+
+function DraggableText({ text, onUpdate, onDelete, onRotate }: DraggableTextProps) {
+	const [isDragging, setIsDragging] = useState(false);
+	const [isPinching, setIsPinching] = useState(false);
+	const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+	const [initialPinchDistance, setInitialPinchDistance] = useState(0);
+	const [initialSize, setInitialSize] = useState(text.size);
+	const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+
+	const handlePointerDown = (e: React.PointerEvent) => {
+		e.stopPropagation();
+		pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+		if (pointersRef.current.size === 2) {
+			setIsPinching(true);
+			setIsDragging(false);
+			const pointers = Array.from(pointersRef.current.values());
+			const distance = Math.hypot(pointers[1].x - pointers[0].x, pointers[1].y - pointers[0].y);
+			setInitialPinchDistance(distance);
+			setInitialSize(text.size);
+		} else if (pointersRef.current.size === 1) {
+			setIsDragging(true);
+			setDragOffset({
+				x: e.clientX - text.x,
+				y: e.clientY - text.y,
+			});
+		}
+	};
+
+	const handlePointerMove = (e: React.PointerEvent) => {
+		e.stopPropagation();
+		pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+		if (isPinching && pointersRef.current.size === 2) {
+			const pointers = Array.from(pointersRef.current.values());
+			const distance = Math.hypot(pointers[1].x - pointers[0].x, pointers[1].y - pointers[0].y);
+			const scale = distance / initialPinchDistance;
+			const newSize = Math.max(10, Math.min(100, initialSize * scale));
+			onUpdate({ size: newSize });
+		} else if (isDragging && pointersRef.current.size === 1) {
+			onUpdate({
+				x: e.clientX - dragOffset.x,
+				y: e.clientY - dragOffset.y,
+			});
+		}
+	};
+
+	const handlePointerUp = (e: React.PointerEvent) => {
+		e.stopPropagation();
+		pointersRef.current.delete(e.pointerId);
+
+		if (pointersRef.current.size === 0) {
+			setIsDragging(false);
+			setIsPinching(false);
+		} else if (pointersRef.current.size === 1) {
+			setIsPinching(false);
+			const remainingPointer = Array.from(pointersRef.current.values())[0];
+			setIsDragging(true);
+			setDragOffset({
+				x: remainingPointer.x - text.x,
+				y: remainingPointer.y - text.y,
+			});
+		}
+	};
+
+	return (
+		<div
+			className="absolute cursor-move select-none touch-none"
+			style={{
+				left: 0,
+				top: 0,
+				transform: `translate(${text.x}px, ${text.y}px) rotate(${text.rotation}deg)`,
+				transformOrigin: 'top left',
+				color: text.color,
+				fontSize: `${text.size}px`,
+				fontFamily: 'Arial',
+				userSelect: 'none',
+			}}
+			onPointerDown={handlePointerDown}
+			onPointerMove={handlePointerMove}
+			onPointerUp={handlePointerUp}
+			onPointerLeave={handlePointerUp}
+			onPointerCancel={handlePointerUp}
+		>
+			<div className="flex items-center gap-2">
+				<span className="font-bold">{text.content}</span>
+				<div className="flex items-center gap-1">
+					<Button
+						size="icon"
+						variant="ghost"
+						className="h-8 w-8 md:h-6 md:w-6"
+						onClick={(e) => {
+							e.stopPropagation();
+							onRotate();
+						}}
+					>
+						<RotateCw className="h-4 w-4 md:h-3 md:w-3" />
+					</Button>
+					<Button
+						size="icon"
+						variant="ghost"
+						className="h-8 w-8 md:h-6 md:w-6"
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete();
+						}}
+					>
+						<Trash2 className="h-4 w-4 md:h-3 md:w-3" />
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
 }
 
 export function ImageEditorDialog({
@@ -32,6 +161,19 @@ export function ImageEditorDialog({
 	const [brushColor, setBrushColor] = useState('#ff0000');
 	const [brushSize, setBrushSize] = useState(3);
 	const [isCameraReady, setIsCameraReady] = useState(false);
+	const [mode, setMode] = useState<'draw' | 'text'>('draw');
+	const [textToInsert, setTextToInsert] = useState('');
+	const [texts, setTexts] = useState<
+		Array<{
+			id: string;
+			content: string;
+			x: number;
+			y: number;
+			color: string;
+			size: number;
+			rotation: number;
+		}>
+	>([]);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const streamRef = useRef<MediaStream | null>(null);
@@ -187,7 +329,41 @@ export function ImageEditorDialog({
 		context.moveTo(point.x, point.y);
 	};
 
+	const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+		if (mode !== 'text' || !textToInsert || !canvasRef.current) return;
+
+		const rect = canvasRef.current.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+
+		const newText = {
+			id: Date.now().toString(),
+			content: textToInsert,
+			x,
+			y,
+			color: brushColor,
+			size: brushSize * 10,
+			rotation: 0,
+		};
+
+		setTexts([...texts, newText]);
+		setTextToInsert('');
+	};
+
+	const updateText = (id: string, updates: Partial<(typeof texts)[0]>) => {
+		setTexts(texts.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+	};
+
+	const deleteText = (id: string) => {
+		setTexts(texts.filter((t) => t.id !== id));
+	};
+
+	const rotateText = (id: string) => {
+		setTexts(texts.map((t) => (t.id === id ? { ...t, rotation: (t.rotation + 90) % 360 } : t)));
+	};
+
 	const clearCanvas = () => {
+		setTexts([]);
 		if (canvasRef.current && imageSrc) {
 			const canvas = canvasRef.current;
 			const context = canvas.getContext('2d');
@@ -204,7 +380,37 @@ export function ImageEditorDialog({
 
 	const saveImage = () => {
 		if (canvasRef.current) {
-			canvasRef.current.toBlob(
+			const canvas = canvasRef.current;
+			const context = canvas.getContext('2d');
+			if (!context) return;
+
+			const rect = canvas.getBoundingClientRect();
+			const scaleX = canvas.width / rect.width;
+			const scaleY = canvas.height / rect.height;
+
+			texts.forEach((text) => {
+				context.save();
+				const scaledX = text.x * scaleX;
+				const scaledY = text.y * scaleY;
+				const scaledSize = Math.max(10, Math.min(200, text.size * scaleX));
+
+				context.font = `${scaledSize}px Arial`;
+				context.fillStyle = text.color;
+				context.textBaseline = 'top';
+				context.textAlign = 'left';
+
+				const metrics = context.measureText(text.content);
+				const textWidth = metrics.width;
+				const textHeight = scaledSize;
+
+				context.translate(scaledX, scaledY);
+				context.rotate((text.rotation * Math.PI) / 180);
+
+				context.fillText(text.content, 0, 0);
+				context.restore();
+			});
+
+			canvas.toBlob(
 				(blob) => {
 					if (blob) {
 						const file = new File([blob], 'camara-editada.jpg', { type: 'image/jpeg' });
@@ -223,6 +429,7 @@ export function ImageEditorDialog({
 
 	const resetEditor = () => {
 		setImageSrc(null);
+		setTexts([]);
 		setIsCameraReady(false);
 		stopCamera();
 		if (canvasRef.current) {
@@ -273,10 +480,12 @@ export function ImageEditorDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-auto">
+			<DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-auto p-4 md:p-6">
 				<DialogHeader>
-					<DialogTitle>{initialFile ? 'Editar imagen' : 'Tomar foto y editar'}</DialogTitle>
-					<DialogDescription>
+					<DialogTitle className="text-lg md:text-xl">
+						{initialFile ? 'Editar imagen' : 'Tomar foto y editar'}
+					</DialogTitle>
+					<DialogDescription className="text-sm md:text-base">
 						{initialFile
 							? 'Dibuja sobre la imagen para marcar detalles importantes.'
 							: 'Toma una foto y dibuja sobre ella para marcar detalles importantes.'}
@@ -312,59 +521,126 @@ export function ImageEditorDialog({
 						<div className="space-y-4">
 							<div className="flex items-center gap-2 flex-wrap">
 								<div className="flex items-center gap-2">
-									<label className="text-sm">Color:</label>
+									<label className="text-xs md:text-sm">Color:</label>
 									<input
 										type="color"
 										value={brushColor}
 										onChange={(e) => setBrushColor(e.target.value)}
-										className="w-8 h-8 rounded cursor-pointer"
+										className="w-8 h-8 md:w-8 md:h-8 rounded cursor-pointer"
 									/>
 								</div>
 								<div className="flex items-center gap-2">
-									<label className="text-sm">Grosor:</label>
+									<label className="text-xs md:text-sm">Grosor:</label>
 									<input
 										type="range"
 										min="1"
 										max="10"
 										value={brushSize}
 										onChange={(e) => setBrushSize(Number(e.target.value))}
-										className="w-24"
+										className="w-20 md:w-24"
 									/>
-									<span className="text-sm">{brushSize}px</span>
+									<span className="text-xs md:text-sm">{brushSize}px</span>
 								</div>
-								<Button onClick={clearCanvas} variant="outline" size="sm">
-									<Undo className="h-4 w-4 mr-2" />
-									Deshacer dibujos
+								<Button
+									onClick={() => setMode('draw')}
+									variant={mode === 'draw' ? 'default' : 'outline'}
+									size="sm"
+									className="text-xs md:text-sm"
+								>
+									<Pencil className="h-4 w-4 mr-1 md:mr-2" />
+									<span className="hidden md:inline">Dibujar</span>
+								</Button>
+								<Button
+									onClick={() => setMode('text')}
+									variant={mode === 'text' ? 'default' : 'outline'}
+									size="sm"
+									className="text-xs md:text-sm"
+								>
+									<Type className="h-4 w-4 mr-1 md:mr-2" />
+									<span className="hidden md:inline">Texto</span>
+								</Button>
+								<Button
+									onClick={clearCanvas}
+									variant="outline"
+									size="sm"
+									className="text-xs md:text-sm"
+								>
+									<Undo className="h-4 w-4 mr-1 md:mr-2" />
+									<span className="hidden md:inline">Deshacer</span>
 								</Button>
 							</div>
 
-							<div className="rounded-lg overflow-hidden border">
+							{mode === 'text' && (
+								<div className="flex items-center gap-2">
+									<input
+										type="text"
+										value={textToInsert}
+										onChange={(e) => setTextToInsert(e.target.value)}
+										placeholder="Escribe el texto (ej: 2.5m, 10cm)"
+										className="flex-1 px-3 py-2 border rounded-md text-sm"
+										onKeyDown={(e) => {
+											if (e.key === 'Escape') {
+												setTextToInsert('');
+											}
+										}}
+									/>
+									{textToInsert && (
+										<Button
+											onClick={() => setTextToInsert('')}
+											variant="outline"
+											size="sm"
+											className="h-10 w-10"
+										>
+											<X className="h-4 w-4" />
+										</Button>
+									)}
+								</div>
+							)}
+
+							<div className="rounded-lg overflow-hidden border relative">
 								<canvas
 									ref={canvasRef}
-									onPointerDown={startDrawing}
-									onPointerMove={draw}
-									onPointerUp={stopDrawing}
-									onPointerLeave={stopDrawing}
-									className="w-full cursor-crosshair touch-none"
+									onPointerDown={mode === 'draw' ? startDrawing : undefined}
+									onPointerMove={mode === 'draw' ? draw : undefined}
+									onPointerUp={mode === 'draw' ? stopDrawing : undefined}
+									onPointerLeave={mode === 'draw' ? stopDrawing : undefined}
+									onClick={mode === 'text' ? handleCanvasClick : undefined}
+									className={`w-full touch-none ${
+										mode === 'text' && textToInsert
+											? 'cursor-text'
+											: mode === 'text'
+												? 'cursor-default'
+												: 'cursor-crosshair'
+									}`}
 								/>
+								{texts.map((text) => (
+									<DraggableText
+										key={text.id}
+										text={text}
+										onUpdate={(updates) => updateText(text.id, updates)}
+										onDelete={() => deleteText(text.id)}
+										onRotate={() => rotateText(text.id)}
+									/>
+								))}
 							</div>
 						</div>
 					)}
 				</div>
 
-				<DialogFooter>
+				<DialogFooter className="flex-col sm:flex-row gap-2">
 					<Button
 						variant="outline"
 						onClick={() => {
 							onOpenChange(false);
 							resetEditor();
 						}}
+						className="w-full sm:w-auto"
 					>
 						<X className="h-4 w-4 mr-2" />
 						Cancelar
 					</Button>
 					{imageSrc && (
-						<Button onClick={saveImage}>
+						<Button onClick={saveImage} className="w-full sm:w-auto">
 							<Download className="h-4 w-4 mr-2" />
 							Guardar y subir
 						</Button>
