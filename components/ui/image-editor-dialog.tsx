@@ -18,9 +18,15 @@ interface ImageEditorDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onImageReady: (imageFile: File) => boolean;
+	initialFile?: File | null;
 }
 
-export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEditorDialogProps) {
+export function ImageEditorDialog({
+	open,
+	onOpenChange,
+	onImageReady,
+	initialFile,
+}: ImageEditorDialogProps) {
 	const [imageSrc, setImageSrc] = useState<string | null>(null);
 	const [isDrawing, setIsDrawing] = useState(false);
 	const [brushColor, setBrushColor] = useState('#ff0000');
@@ -227,6 +233,14 @@ export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEdi
 		}
 	};
 
+	const loadInitialFile = (file: File) => {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			setImageSrc(e.target?.result as string);
+		};
+		reader.readAsDataURL(file);
+	};
+
 	useEffect(() => {
 		if (imageSrc && canvasRef.current) {
 			const canvas = canvasRef.current;
@@ -246,20 +260,26 @@ export function ImageEditorDialog({ open, onOpenChange, onImageReady }: ImageEdi
 
 	useEffect(() => {
 		if (open && !imageSrc) {
-			startCamera();
+			if (initialFile) {
+				loadInitialFile(initialFile);
+			} else {
+				startCamera();
+			}
 		}
 		return () => {
 			stopCamera();
 		};
-	}, [open, imageSrc]);
+	}, [open, imageSrc, initialFile]);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-auto">
 				<DialogHeader>
-					<DialogTitle>Tomar foto y editar</DialogTitle>
+					<DialogTitle>{initialFile ? 'Editar imagen' : 'Tomar foto y editar'}</DialogTitle>
 					<DialogDescription>
-						Toma una foto y dibuja sobre ella para marcar detalles importantes.
+						{initialFile
+							? 'Dibuja sobre la imagen para marcar detalles importantes.'
+							: 'Toma una foto y dibuja sobre ella para marcar detalles importantes.'}
 					</DialogDescription>
 				</DialogHeader>
 

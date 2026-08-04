@@ -20,6 +20,7 @@ interface UseFileUploadOptions {
 	getDefaultDescription?: (file: File) => string;
 	beforeUpload?: () => string | null;
 	onUploadSuccess?: () => void;
+	onImageFileSelect?: (file: File) => void;
 }
 
 export function useFileUpload({
@@ -32,6 +33,7 @@ export function useFileUpload({
 	getDefaultDescription,
 	beforeUpload,
 	onUploadSuccess,
+	onImageFileSelect,
 }: UseFileUploadOptions) {
 	const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -66,7 +68,13 @@ export function useFileUpload({
 		const selectedFiles = e.target.files;
 		if (!selectedFiles || selectedFiles.length === 0) return;
 
-		prepareFileForUpload(selectedFiles[0]);
+		const file = selectedFiles[0];
+
+		if (file.type.startsWith('image/') && onImageFileSelect) {
+			onImageFileSelect(file);
+		} else {
+			prepareFileForUpload(file);
+		}
 	};
 
 	const handleUploadSubmit = async () => {
