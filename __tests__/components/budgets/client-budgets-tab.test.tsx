@@ -400,7 +400,7 @@ describe('ClientBudgetsTab', () => {
 			/>
 		);
 
-		expect(screen.getByText('Nuevo presupuesto')).toBeDisabled();
+		expect(screen.getByRole('button', { name: /nuevo presupuesto/i })).toBeDisabled();
 	});
 
 	it('handles assign work through FolderCard', () => {

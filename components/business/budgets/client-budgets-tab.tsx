@@ -177,30 +177,24 @@ export function ClientBudgetsTab({
 	return (
 		<>
 			<div className="space-y-4">
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<div className="min-w-0">
-						{chosenBudgetIds.length > 0 ? (
-							<div className="mt-1">
-								<Badge variant="secondary">
-									{chosenBudgetIds.length} presupuesto(s) elegido(s)
-								</Badge>
-							</div>
-						) : (
-							<div className="mt-1"></div>
+						{chosenBudgetIds.length > 0 && (
+							<Badge variant="secondary" className="max-w-full">
+								{chosenBudgetIds.length} presupuesto(s) elegido(s)
+							</Badge>
 						)}
 					</div>
 
-					<div className="flex gap-2">
-						<Button
-							size="sm"
-							className="gap-2"
-							disabled={isLoading}
-							onClick={() => setIsCreateOpen(true)}
-						>
-							<Plus className="h-4 w-4" />
-							Nuevo presupuesto
-						</Button>
-					</div>
+					<Button
+						size="sm"
+						className="w-full sm:w-auto gap-2"
+						disabled={isLoading}
+						onClick={() => setIsCreateOpen(true)}
+					>
+						<Plus className="h-4 w-4 shrink-0" />
+						<span>Nuevo presupuesto</span>
+					</Button>
 				</div>
 
 				{(loadingFolders || loadingBudgets) && folderBudgets.length === 0 ? (
