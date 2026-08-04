@@ -30,14 +30,20 @@ export function AttendanceHistory() {
 
 		setLoading(true);
 		setError(null);
-		const { data, error } = await getUserAttendanceHistory(userId as string);
-		if (error) {
-			setError(translateError(error) || 'Error al cargar el historial');
-		} else {
-			setEntries(data || []);
-			setFilteredEntries(data || []);
+		try {
+			const { data, error } = await getUserAttendanceHistory(userId as string);
+			if (error) {
+				setError(translateError(error) || 'Error al cargar el historial');
+			} else {
+				setEntries(data || []);
+				setFilteredEntries(data || []);
+			}
+		} catch (err) {
+			setError('Error al cargar el historial');
+			console.error(err);
+		} finally {
+			setLoading(false);
 		}
-		setLoading(false);
 	};
 
 	const handleToggleHistory = () => {

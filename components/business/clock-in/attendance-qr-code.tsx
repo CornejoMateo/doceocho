@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { Button } from '@/components/ui/button';
 
 export default function AttendanceQRCode() {
 	const [token, setToken] = useState('');
@@ -55,6 +56,17 @@ export default function AttendanceQRCode() {
 			}
 		};
 	}, []);
+
+	if (error) {
+		return (
+			<div className="flex flex-col items-center justify-center h-[320px] space-y-3">
+				<p className="text-sm text-destructive">No se pudo generar el código QR.</p>
+				<Button variant="outline" onClick={loadQR}>
+					Reintentar
+				</Button>
+			</div>
+		);
+	}
 
 	if (!token) {
 		return <div className="flex items-center justify-center h-[320px]">Cargando QR...</div>;

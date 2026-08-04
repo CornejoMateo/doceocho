@@ -105,6 +105,7 @@ export function CreateEntryModal({
 	// Reset form when modal opens
 	useEffect(() => {
 		if (open) {
+			setEntryType(ENTRY_TYPES[0].value);
 			setEntryDate(new Date().toISOString().split('T')[0]);
 			setEntryTime(format(new Date(), 'HH:mm', { locale: es }));
 		}

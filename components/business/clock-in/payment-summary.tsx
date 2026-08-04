@@ -49,9 +49,42 @@ export function PaymentSummaryModal({ userId, userName, open, onOpenChange }: Pa
 	};
 
 	useEffect(() => {
-		if (open) {
-			loadSummary();
-		}
+		if (!open || !userId || !userName) return;
+
+		let cancelled = false;
+
+		const loadSummary = async () => {
+			setLoading(true);
+			try {
+				const { data, error } = await calculatePaymentSummary(userId, userName);
+				if (cancelled) return;
+
+				if (error) {
+					toast({
+						title: 'Error',
+						description: translateError(error) || 'No se pudo cargar el resumen de pagos',
+						variant: 'destructive',
+					});
+				} else {
+					setSummary(data);
+				}
+			} catch (err) {
+				if (!cancelled) {
+					toast({
+						title: 'Error',
+						description: translateError(err) || 'No se pudo cargar el resumen de pagos',
+						variant: 'destructive',
+					});
+				}
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		};
+
+		loadSummary();
+		return () => {
+			cancelled = true;
+		};
 	}, [open, userId, userName]);
 
 	if (!userId || !userName) {
