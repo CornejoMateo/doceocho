@@ -11,6 +11,7 @@ export type Client = {
 	cover?: string | null;
 	contact_method?: string | null;
 	referred_to?: string | null;
+	identity_number?: string | null;
 };
 
 const TABLE = 'clients';
@@ -25,7 +26,9 @@ export async function listClients(): Promise<{ data: Client[] | null; error: any
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase
 		.from(TABLE)
-		.select('name, last_name, id, phone_number, locality, email, contact_method, referred_to')
+		.select(
+			'name, last_name, id, phone_number, locality, email, contact_method, referred_to, identity_number'
+		)
 		.order('created_at', { ascending: false });
 	return { data, error };
 }
