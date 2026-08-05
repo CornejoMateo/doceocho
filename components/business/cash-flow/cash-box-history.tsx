@@ -109,7 +109,11 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 		const end = endDate ? new Date(endDate) : null;
 
 		if (start && boxDate < start) return false;
-		if (end && boxDate > end) return false;
+		if (end) {
+			const endNextDay = new Date(end);
+			endNextDay.setDate(endNextDay.getDate() + 1);
+			if (boxDate >= endNextDay) return false;
+		}
 
 		return true;
 	});
@@ -132,7 +136,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [filteredBoxes.length]);
+	}, [filteredBoxes.length, startDate, endDate]);
 
 	const clearFilters = () => {
 		setStartDate('');
@@ -160,6 +164,67 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 					</div>
 				</div>
 			</Card>
+		);
+	}
+
+	if (filteredBoxes.length === 0 && (startDate || endDate)) {
+		return (
+			<div className="space-y-4 overflow-y-auto max-h-[500px] pr-2">
+				<div className="flex flex-col gap-4">
+					<div className="flex items-center justify-between">
+						<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
+						<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
+							<History className="h-4 w-4" />
+							Actualizar
+						</Button>
+					</div>
+
+					<div className="flex flex-col sm:flex-row gap-3">
+						<div className="flex-1">
+							<Input
+								type="date"
+								placeholder="Fecha inicio"
+								value={startDate}
+								onChange={(e) => setStartDate(e.target.value)}
+								className="w-full"
+							/>
+						</div>
+						<div className="flex-1">
+							<Input
+								type="date"
+								placeholder="Fecha fin"
+								value={endDate}
+								onChange={(e) => setEndDate(e.target.value)}
+								className="w-full"
+							/>
+						</div>
+						{(startDate || endDate) && (
+							<Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
+								<X className="h-4 w-4" />
+								Limpiar filtros
+							</Button>
+						)}
+					</div>
+				</div>
+
+				<Card className="p-12 bg-card border-border text-center">
+					<div className="flex flex-col items-center gap-4">
+						<div className="rounded-full bg-secondary p-4">
+							<History className="h-8 w-8 text-muted-foreground" />
+						</div>
+						<div>
+							<h3 className="text-lg font-semibold text-foreground">Sin resultados</h3>
+							<p className="text-muted-foreground mt-1">
+								No hay cajas que coincidan con los filtros de fecha seleccionados
+							</p>
+						</div>
+						<Button variant="outline" onClick={clearFilters} className="gap-2">
+							<X className="h-4 w-4" />
+							Limpiar filtros
+						</Button>
+					</div>
+				</Card>
+			</div>
 		);
 	}
 

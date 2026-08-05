@@ -28,10 +28,11 @@ export function CashBoxTransactions({
 		const searchLower = searchTerm.toLowerCase();
 		const description = transaction.description?.toLowerCase() || '';
 		const category = transaction.category?.toLowerCase() || '';
-		const paymentMethod =
-			transaction.type === 'income'
+		const paymentMethod = transaction.category
+			? transaction.type === 'income'
 				? getPaymentMethodLabel(transaction.category).toLowerCase()
-				: getExpenseCategoryLabel(transaction.category).toLowerCase();
+				: getExpenseCategoryLabel(transaction.category).toLowerCase()
+			: '';
 
 		return (
 			description.includes(searchLower) ||
