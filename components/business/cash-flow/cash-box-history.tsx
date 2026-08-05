@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { History, Eye, ChevronUp, X } from 'lucide-react';
+import { History, Eye, ChevronUp, X, Search } from 'lucide-react';
 import { CashBox, getCashBoxWithTransactions } from '@/lib/cash-flow/cash-flow';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt, formatTime } from '@/utils/format-date';
@@ -37,6 +37,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	const [currentPage, setCurrentPage] = useState(1);
 	const [startDate, setStartDate] = useState<string>('');
 	const [endDate, setEndDate] = useState<string>('');
+	const [boxSearchTerms, setBoxSearchTerms] = useState<Record<number, string>>({});
 	const loadTransactions = async (boxId: number) => {
 		setLoadingBoxId(boxId);
 		try {
@@ -278,57 +279,96 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 							</div>
 
 							{isExpanded && loadedBox?.transactions && !isLoadingTransactions && (
-								<div className="mt-4 pt-4 border-t space-y-2">
-									{loadedBox.transactions.length === 0 && (
-										<p className="text-center text-muted-foreground py-8">
-											No hay movimientos registrados en esta caja
-										</p>
-									)}
+								<div className="mt-4 pt-4 border-t space-y-3">
+									<div className="relative">
+										<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											type="text"
+											placeholder="Buscar movimientos..."
+											value={boxSearchTerms[box.id] || ''}
+											onChange={(e) =>
+												setBoxSearchTerms((prev) => ({ ...prev, [box.id]: e.target.value }))
+											}
+											className="w-full pl-10"
+										/>
+									</div>
 
-									{loadedBox.transactions.map((transaction: any) => (
-										<div
-											key={transaction.id}
-											className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 text-sm"
-										>
-											<div className="flex items-center gap-3">
-												<span
-													className={
-														transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
-													}
-												>
-													{transaction.type === 'income' ? '+' : '-'}
-												</span>
+									{(() => {
+										const searchTerm = boxSearchTerms[box.id] || '';
+										const transactions = loadedBox.transactions || [];
+										const filteredTransactions = transactions.filter((transaction: any) => {
+											if (!searchTerm) return true;
 
-												<div className="flex flex-col">
-													{transaction.description && (
-														<span className="text-foreground">{transaction.description}</span>
-													)}
+											const searchLower = searchTerm.toLowerCase();
+											const description = transaction.description?.toLowerCase() || '';
+											const category = transaction.category?.toLowerCase() || '';
+											const paymentMethod =
+												transaction.type === 'income'
+													? getPaymentMethodLabel(transaction.category).toLowerCase()
+													: getExpenseCategoryLabel(transaction.category).toLowerCase();
 
-													<span className="text-muted-foreground">
-														{transaction.type === 'income'
-															? getPaymentMethodLabel(transaction.category)
-															: getExpenseCategoryLabel(transaction.category)}
-														{transaction.category === 'bank_transfer' &&
-															transaction.bank_account && (
-																<>
-																	{' '}
-																	({transaction.bank_account.bank} - {transaction.bank_account.name}
-																	){' '}
-																</>
-															)}
+											return (
+												description.includes(searchLower) ||
+												category.includes(searchLower) ||
+												paymentMethod.includes(searchLower)
+											);
+										});
+
+										if (filteredTransactions.length === 0) {
+											return (
+												<p className="text-center text-muted-foreground py-8">
+													{searchTerm
+														? 'No se encontraron movimientos que coincidan con la búsqueda'
+														: 'No hay movimientos registrados en esta caja'}
+												</p>
+											);
+										}
+
+										return filteredTransactions.map((transaction: any) => (
+											<div
+												key={transaction.id}
+												className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 text-sm"
+											>
+												<div className="flex items-center gap-3">
+													<span
+														className={
+															transaction.type === 'income' ? 'text-green-500' : 'text-red-500'
+														}
+													>
+														{transaction.type === 'income' ? '+' : '-'}
 													</span>
 
-													<span className="text-xs text-muted-foreground">
-														{formatCreatedAt(transaction.created_at)} •{' '}
-														{formatTime(transaction.created_at)}
-													</span>
+													<div className="flex flex-col">
+														{transaction.description && (
+															<span className="text-foreground">{transaction.description}</span>
+														)}
+
+														<span className="text-muted-foreground">
+															{transaction.type === 'income'
+																? getPaymentMethodLabel(transaction.category)
+																: getExpenseCategoryLabel(transaction.category)}
+															{transaction.category === 'bank_transfer' &&
+																transaction.bank_account && (
+																	<>
+																		{' '}
+																		({transaction.bank_account.bank} -{' '}
+																		{transaction.bank_account.name}){' '}
+																	</>
+																)}
+														</span>
+
+														<span className="text-xs text-muted-foreground">
+															{formatCreatedAt(transaction.created_at)} •{' '}
+															{formatTime(transaction.created_at)}
+														</span>
+													</div>
 												</div>
+												<span className="font-medium text-foreground">
+													{formatCurrency(Number(transaction.amount))}
+												</span>
 											</div>
-											<span className="font-medium text-foreground">
-												{formatCurrency(Number(transaction.amount))}
-											</span>
-										</div>
-									))}
+										));
+									})()}
 								</div>
 							)}
 						</div>
