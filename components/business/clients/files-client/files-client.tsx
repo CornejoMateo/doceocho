@@ -43,6 +43,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
 	const [fileToDelete, setFileToDelete] = useState<FileWithUrl | null>(null);
 	const [isCameraEditorOpen, setIsCameraEditorOpen] = useState(false);
+	const [fileForEditor, setFileForEditor] = useState<File | null>(null);
 
 	const { user } = useAuth();
 	const isAuthorized = user?.role === 'Admin';
@@ -151,12 +152,17 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	} = useFileUpload({
 		clientId: client.id,
 		onUploadSuccess: loadFiles,
+		onImageFileSelect: (file) => {
+			setFileForEditor(file);
+			setIsCameraEditorOpen(true);
+		},
 	});
 
 	const handleImageReady = (imageFile: File) => {
 		const shouldContinue = openUploadDialogForFile(imageFile);
 		if (shouldContinue) {
 			setIsCameraEditorOpen(false);
+			setFileForEditor(null);
 		}
 		return shouldContinue;
 	};
@@ -378,6 +384,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 				open={isCameraEditorOpen}
 				onOpenChange={setIsCameraEditorOpen}
 				onImageReady={handleImageReady}
+				initialFile={fileForEditor}
 			/>
 		</div>
 	);
