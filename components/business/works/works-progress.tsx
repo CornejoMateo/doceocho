@@ -426,10 +426,6 @@ export function WorksOpenings() {
 						}
 
 						if (newEvent) {
-							toast({
-								title: 'Evento creado',
-								description: 'El evento se ha creado correctamente',
-							});
 							return true;
 						}
 

@@ -145,7 +145,7 @@ export function EventFormModal({
 				isStale = true;
 			};
 		}
-	}, [isOpen, mode, initialWork, defaultEventType]);
+	}, [isOpen, mode, initialWork]);
 
 	useEffect(() => {
 		setFormData((previous) => {
