@@ -581,7 +581,7 @@ export function ImageEditorDialog({
 										value={textToInsert}
 										onChange={(e) => setTextToInsert(e.target.value)}
 										placeholder="Escribe el texto (ej: 2.5m, 10cm)"
-										className="flex-1 px-3 py-2 border rounded-md text-sm"
+										className="flex-1 px-3 py-2 border rounded-md text-[16px]"
 										onKeyDown={(e) => {
 											if (e.key === 'Escape') {
 												setTextToInsert('');
