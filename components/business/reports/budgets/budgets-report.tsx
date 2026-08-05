@@ -62,7 +62,9 @@ export function BudgetsReport() {
 				const workLocality = b.folder_budget?.work?.locality ?? '';
 				const workAddress = b.folder_budget?.work?.address ?? '';
 				const work =
-					`${workLocality}${workLocality && workAddress ? ' - ' : ''}${workAddress}`.trim() || '-';
+					b.folder_budget.work?.name ||
+					`${workLocality}${workLocality && workAddress ? ' - ' : ''}${workAddress}`.trim() ||
+					'-';
 
 				const dateRaw = new Date(b.created_at);
 
