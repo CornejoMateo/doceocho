@@ -66,7 +66,8 @@ export function BudgetFormModal({
 		formData.workId === 'none'
 			? 'Sin obra'
 			: selectedWork
-				? [selectedWork.address, selectedWork.locality].filter(Boolean).join(' - ') ||
+				? selectedWork.name ||
+					[selectedWork.address, selectedWork.locality].filter(Boolean).join(' - ') ||
 					`Obra ${selectedWork.id}`
 				: undefined;
 
@@ -213,7 +214,9 @@ export function BudgetFormModal({
 								<SelectItem value="none">Sin obra</SelectItem>
 								{works.map((w) => (
 									<SelectItem key={w.id} value={String(w.id)}>
-										{[w.address, w.locality].filter(Boolean).join(' - ') || `Obra ${w.id}`}
+										{w.name ||
+											[w.address, w.locality].filter(Boolean).join(' - ') ||
+											`Obra ${w.id}`}
 									</SelectItem>
 								))}
 							</SelectContent>

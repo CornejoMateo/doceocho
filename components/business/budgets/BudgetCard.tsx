@@ -45,11 +45,27 @@ export function BudgetCard({
 			onClick={() => onOpenDetail(budget)}
 		>
 			<div className="flex justify-between items-start gap-2 mb-4">
-				{isChosen ? (
-					<Badge className="gap-1 mt-2" variant="secondary">
-						<CheckCircle className="h-3.5 w-3.5" /> Elegido
-					</Badge>
-				) : null}
+				<div className="space-y-2">
+					{isChosen ? (
+						<Badge className="gap-1 mt-2 mb-4" variant="secondary">
+							<CheckCircle className="h-3.5 w-3.5" /> Elegido
+						</Badge>
+					) : null}
+
+					<div className="space-y-1 pr-2">
+						{budget.number ? <Badge variant="outline">#{budget.number}</Badge> : null}
+
+						<p className="text-sm font-semibold text-foreground">
+							{formatCurrency(budget.amount_ars)}
+						</p>
+						<p className="text-sm font-semibold text-foreground">
+							{formatCurrencyUSD(budget.amount_usd)}
+						</p>
+					</div>
+					{budget.created_at && (
+						<p className="text-xs text-muted-foreground">{formatCreatedAt(budget.created_at)}</p>
+					)}
+				</div>
 				<Button
 					variant="ghost"
 					size="sm"
@@ -58,25 +74,10 @@ export function BudgetCard({
 						onDeleteBudget(budget.id);
 					}}
 					disabled={isLoading}
-					className="self-start text-destructive hover:text-destructive hover:bg-destructive/10 h-9 w-9 sm:h-8 sm:w-8 p-0"
+					className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 w-9 sm:h-8 sm:w-8 p-0"
 				>
 					<Trash2 className="h-4 w-4" />
 				</Button>
-			</div>
-
-			<div className="sm:mt-3 space-y-2">
-				<div className="space-y-1 pr-2">
-					<p className="text-sm font-semibold text-foreground">
-						{formatCurrency(budget.amount_ars)}
-					</p>
-					<p className="text-sm font-semibold text-foreground">
-						{formatCurrencyUSD(budget.amount_usd)}
-					</p>
-				</div>
-				{budget.number ? <Badge variant="outline">#{budget.number}</Badge> : null}
-				{budget.created_at && (
-					<p className="text-xs text-muted-foreground">{formatCreatedAt(budget.created_at)}</p>
-				)}
 			</div>
 
 			<div className="mt-auto flex flex-col gap-2 pt-4">
