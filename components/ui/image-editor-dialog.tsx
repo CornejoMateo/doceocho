@@ -484,7 +484,7 @@ export function ImageEditorDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-auto p-4 md:p-6">
+			<DialogContent className="w-[95vw] max-w-2xl h-[95dvh] overflow-hidden p-4 md:p-6">
 				<DialogHeader>
 					<DialogTitle className="text-lg md:text-xl">
 						{initialFile ? 'Editar imagen' : 'Tomar foto y editar'}
@@ -495,7 +495,6 @@ export function ImageEditorDialog({
 							: 'Toma una foto y dibuja sobre ella para marcar detalles importantes.'}
 					</DialogDescription>
 				</DialogHeader>
-
 				<div className="space-y-4">
 					{!imageSrc ? (
 						<div className="relative rounded-lg overflow-hidden bg-black aspect-video">
@@ -630,7 +629,6 @@ export function ImageEditorDialog({
 						</div>
 					)}
 				</div>
-
 				<DialogFooter className="flex-col sm:flex-row gap-2">
 					<Button
 						variant="outline"
