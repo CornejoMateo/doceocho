@@ -270,11 +270,13 @@ export function ClientDetailsDialog({
 										<span className="text-sm">{clientData.identity_number}</span>
 									</div>
 								)}
+								{clientData.locality && (
+									<div className="flex items-center justify-center gap-1 text-sm">
+										<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+										<span className="text-sm">{clientData.locality}</span>
+									</div>
+								)}
 							</>
-							<div className="flex items-center justify-center gap-1 text-sm">
-								<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-								<span className="text-sm">{clientData.locality}</span>
-							</div>
 						</div>
 					</div>
 

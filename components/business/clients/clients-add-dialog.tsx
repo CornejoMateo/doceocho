@@ -202,7 +202,7 @@ export function ClientsAddDialog({
 								DNI/CUIT
 							</Label>
 							<Input
-								id="identity_number"
+								id="identityNumber"
 								value={formData.identity_number}
 								onChange={handleInputChange}
 								className="bg-background"

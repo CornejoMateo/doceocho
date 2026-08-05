@@ -80,6 +80,7 @@ describe('ClientsAddDialog', () => {
 
 		fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Juan' } });
 		fireEvent.change(screen.getByLabelText('Apellido'), { target: { value: 'Pérez' } });
+		fireEvent.change(screen.getByLabelText('DNI/CUIT'), { target: { value: '12345678' } });
 		fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'juan@example.com' } });
 		fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '123456' } });
 		fireEvent.change(screen.getByLabelText('Localidad'), { target: { value: 'Rosario' } });
@@ -90,6 +91,7 @@ describe('ClientsAddDialog', () => {
 			expect(createClient).toHaveBeenCalledWith({
 				name: 'Juan',
 				last_name: 'Pérez',
+				identity_number: '12345678',
 				email: 'juan@example.com',
 				phone_number: '123456',
 				locality: 'Rosario',
@@ -124,6 +126,7 @@ describe('ClientsAddDialog', () => {
 					phone_number: '999',
 					locality: 'Córdoba',
 					contact_method: 'WhatsApp',
+					identity_number: '12345678',
 				}}
 				onUpdateClient={onUpdateClient}
 			/>
@@ -142,6 +145,7 @@ describe('ClientsAddDialog', () => {
 					phone_number: '999',
 					locality: 'Córdoba',
 					contact_method: 'WhatsApp',
+					identity_number: '12345678',
 				})
 			);
 		});
@@ -172,6 +176,7 @@ describe('ClientsAddDialog', () => {
 					locality: 'Córdoba',
 					contact_method: 'REFERIDO',
 					referred_to: 'Pedro García',
+					identity_number: '12345678',
 				}}
 				onUpdateClient={onUpdateClient}
 			/>
