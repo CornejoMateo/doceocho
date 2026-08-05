@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { History, Eye, ChevronUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { History, Eye, ChevronUp, X } from 'lucide-react';
 import { CashBox, getCashBoxWithTransactions } from '@/lib/cash-flow/cash-flow';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt, formatTime } from '@/utils/format-date';
@@ -34,6 +35,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	const ITEMS_PER_PAGE = 6;
 
 	const [currentPage, setCurrentPage] = useState(1);
+	const [startDate, setStartDate] = useState<string>('');
+	const [endDate, setEndDate] = useState<string>('');
 	const loadTransactions = async (boxId: number) => {
 		setLoadingBoxId(boxId);
 		try {
@@ -95,9 +98,24 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 
 	const closedBoxes = cashBoxes.filter((box) => box.is_closed);
 
-	const totalPages = Math.ceil(closedBoxes.length / ITEMS_PER_PAGE);
+	const filteredBoxes = closedBoxes.filter((box) => {
+		if (!startDate && !endDate) return true;
 
-	const paginatedBoxes = closedBoxes.slice(
+		if (!box.created_at) return true;
+
+		const boxDate = new Date(box.created_at);
+		const start = startDate ? new Date(startDate) : null;
+		const end = endDate ? new Date(endDate) : null;
+
+		if (start && boxDate < start) return false;
+		if (end && boxDate > end) return false;
+
+		return true;
+	});
+
+	const totalPages = Math.ceil(filteredBoxes.length / ITEMS_PER_PAGE);
+
+	const paginatedBoxes = filteredBoxes.slice(
 		(currentPage - 1) * ITEMS_PER_PAGE,
 		currentPage * ITEMS_PER_PAGE
 	);
@@ -113,7 +131,12 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [closedBoxes.length]);
+	}, [filteredBoxes.length]);
+
+	const clearFilters = () => {
+		setStartDate('');
+		setEndDate('');
+	};
 
 	if (loading) {
 		return (
@@ -141,12 +164,41 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 
 	return (
 		<div className="space-y-4 overflow-y-auto max-h-[500px] pr-2">
-			<div className="flex items-center justify-between">
-				<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
-				<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
-					<History className="h-4 w-4" />
-					Actualizar
-				</Button>
+			<div className="flex flex-col gap-4">
+				<div className="flex items-center justify-between">
+					<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
+					<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
+						<History className="h-4 w-4" />
+						Actualizar
+					</Button>
+				</div>
+
+				<div className="flex flex-col sm:flex-row gap-3">
+					<div className="flex-1">
+						<Input
+							type="date"
+							placeholder="Fecha inicio"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="w-full"
+						/>
+					</div>
+					<div className="flex-1">
+						<Input
+							type="date"
+							placeholder="Fecha fin"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="w-full"
+						/>
+					</div>
+					{(startDate || endDate) && (
+						<Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
+							<X className="h-4 w-4" />
+							Limpiar filtros
+						</Button>
+					)}
+				</div>
 			</div>
 
 			{paginatedBoxes.map((box) => {
