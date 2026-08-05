@@ -100,3 +100,9 @@ USING (
 -- Para que nos deje insertar un archivo en el bucket primero tenemos que generar el storage_path y 
 -- luego insertar el registro en la tabla modules_files, de esta manera podemos controlar 
 -- que el usuario que sube el archivo sea el mismo que creó el módulo.
+
+-- Cuando se quiera eliminar un archivo, primero se debe eliminar el archivo en el bucket,
+-- si no hay errores recien ahi debemos eliminar el registro en la tabla modules_files,
+-- lo que sirve para no dejar archivos huérfanos en el bucket
+-- En el caso que luego de eliminar el archivo en el bucket haya un error al eliminar el registro en la tabla modules_files, 
+-- se deberia hacer un rollback insertando nuevamente el archivo en el bucket, para no dejar archivos huérfanos.
