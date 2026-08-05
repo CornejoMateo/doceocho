@@ -484,7 +484,7 @@ export function ImageEditorDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] overflow-auto p-4 md:p-6">
+			<DialogContent className="w-[95vw] max-w-2xl max-h-[95dvh] overflow-auto p-4 md:p-6">
 				<DialogHeader>
 					<DialogTitle className="text-lg md:text-xl">
 						{initialFile ? 'Editar imagen' : 'Tomar foto y editar'}
@@ -581,7 +581,7 @@ export function ImageEditorDialog({
 										value={textToInsert}
 										onChange={(e) => setTextToInsert(e.target.value)}
 										placeholder="Escribe el texto (ej: 2.5m, 10cm)"
-										className="flex-1 px-3 py-2 border rounded-md text-sm"
+										className="flex-1 px-3 py-2 border rounded-md text-[16px]"
 										onKeyDown={(e) => {
 											if (e.key === 'Escape') {
 												setTextToInsert('');
