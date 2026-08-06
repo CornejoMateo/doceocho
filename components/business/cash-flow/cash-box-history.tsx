@@ -13,6 +13,7 @@ import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
+import { Label } from '@/components/ui/label';
 
 interface CashBoxHistoryProps {
 	cashBoxes: CashBox[];
@@ -180,7 +181,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 					</div>
 
 					<div className="flex flex-col sm:flex-row gap-3">
-						<div className="flex-1">
+						<div className="flex-1 space-y-2">
+							<Label>Desde:</Label>
 							<Input
 								type="date"
 								placeholder="Fecha inicio"
@@ -189,7 +191,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 								className="w-full"
 							/>
 						</div>
-						<div className="flex-1">
+						<div className="flex-1 space-y-2">
+							<Label>Hasta:</Label>
 							<Input
 								type="date"
 								placeholder="Fecha fin"
@@ -240,7 +243,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 				</div>
 
 				<div className="flex flex-col sm:flex-row gap-3">
-					<div className="flex-1">
+					<div className="flex-1 space-y-2">
+						<Label>Desde:</Label>
 						<Input
 							type="date"
 							placeholder="Fecha inicio"
@@ -249,7 +253,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 							className="w-full"
 						/>
 					</div>
-					<div className="flex-1">
+					<div className="flex-1 space-y-2">
+						<Label>Hasta:</Label>
 						<Input
 							type="date"
 							placeholder="Fecha fin"
