@@ -30,6 +30,12 @@ export async function listFolderBudgets(): Promise<{ data: FolderBudget[] | null
 	return { data, error };
 }
 
+export async function getFolderBudgetWorkIds(): Promise<{ data: number[]; error: any }> {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase.from(TABLE).select('work_id').not('work_id', 'is', null);
+	return { data: data?.map((f) => f.work_id as number) ?? [], error };
+}
+
 export async function getFolderBudgetById(
 	id: number
 ): Promise<{ data: FolderBudget | null; error: any }> {
