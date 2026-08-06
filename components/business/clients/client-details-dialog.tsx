@@ -72,9 +72,9 @@ export function ClientDetailsDialog({
 				setClientData(data);
 
 				// Notify parent component to refresh its data
-				if (onClientUpdated) {
-					onClientUpdated();
-				}
+				/* 	if (onClientUpdated) {
+					onClientUpdated();ß
+				} */
 			}
 
 			return { data, error };
