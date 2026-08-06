@@ -4,8 +4,10 @@ import { getClientsThisWeek } from '@/lib/clients/clients';
 import { Client } from '@/lib/clients/clients';
 import { UserPlus } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
+import { useRouter } from 'next/navigation';
 
 export function WeeklyClients() {
+	const router = useRouter();
 	const { data: clients, loading } = useOptimizedRealtime<Client>(
 		'clients',
 		async () => {
@@ -14,6 +16,10 @@ export function WeeklyClients() {
 		},
 		'weekly_clients_cache'
 	);
+
+	const handleClientClick = (client: Client) => {
+		router.push(`/clients?clientId=${client.id}`);
+	};
 
 	return (
 		<Card className="p-4 min-w-0">
@@ -31,7 +37,8 @@ export function WeeklyClients() {
 					clients.map((client) => (
 						<div
 							key={client.id}
-							className="group flex gap-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 transition hover:bg-blue-500/10"
+							className="group flex gap-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 transition hover:bg-blue-500/10 cursor-pointer"
+							onClick={() => handleClientClick(client)}
 						>
 							<div className="flex items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
 								<UserPlus className="h-5 w-5" />
