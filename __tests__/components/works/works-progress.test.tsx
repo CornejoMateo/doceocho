@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { WorksOpenings } from '@/components/business/works/works-progress';
 import { WorkWithProgress } from '@/lib/works/works';
 
@@ -27,6 +27,7 @@ const mockWorks: WorkWithProgress[] = Array.from({ length: 12 }, (_, i) => ({
 	architect: '',
 	furniture: '',
 	hasNotes: false,
+	hasBudget: i >= 3,
 	general_note: null,
 	tasks: [],
 }));
@@ -148,7 +149,8 @@ describe('WorksOpenings (works-progress)', () => {
 		render(<WorksOpenings />);
 
 		expect(screen.getByText('12')).toBeInTheDocument();
-		expect(screen.getByText('3')).toBeInTheDocument();
+		const pendingCard = screen.getByText('Pendientes').closest('[data-slot="card"]') as HTMLElement;
+		expect(within(pendingCard).getByText('3')).toBeInTheDocument();
 	});
 
 	it('renders work cards', () => {
@@ -179,6 +181,24 @@ describe('WorksOpenings (works-progress)', () => {
 
 		const cards = screen.getAllByTestId('work-card');
 		expect(cards.length).toBe(3);
+	});
+
+	it('shows "sin presupuesto" toggle with count', () => {
+		render(<WorksOpenings />);
+
+		const toggle = screen.getByText('Mostrar obras sin presupuesto');
+		expect(toggle).toBeInTheDocument();
+		const label = toggle.closest('label')!;
+		expect(within(label).getByText('3')).toBeInTheDocument();
+	});
+
+	it('filters works without budget when toggle is enabled', () => {
+		render(<WorksOpenings />);
+
+		fireEvent.click(screen.getByRole('switch'));
+
+		const cards = screen.getAllByTestId('work-card');
+		expect(cards).toHaveLength(3);
 	});
 
 	it('renders pagination when there are many works', () => {

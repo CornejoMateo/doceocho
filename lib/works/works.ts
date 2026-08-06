@@ -28,6 +28,7 @@ export type WorkWithProgress = Work & {
 	tasks: ChecklistItem[];
 	progress: number;
 	hasNotes: boolean;
+	hasBudget: boolean;
 };
 
 const TABLE = 'works';

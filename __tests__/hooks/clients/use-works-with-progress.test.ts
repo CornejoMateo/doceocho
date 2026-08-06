@@ -17,6 +17,10 @@ jest.mock('@/lib/checklists/checklists', () => ({
 	getItemsByChecklistIds: jest.fn().mockResolvedValue({ data: [], error: null }),
 }));
 
+jest.mock('@/lib/budgets/folder_budgets', () => ({
+	getFolderBudgetWorkIds: jest.fn(),
+}));
+
 import { useWorksWithProgress } from '@/hooks/clients/use-works-with-progress';
 
 const mockWork = (overrides: Record<string, unknown> = {}) => ({
@@ -32,10 +36,12 @@ const mockWork = (overrides: Record<string, unknown> = {}) => ({
 
 let worksMock: { listWorks: jest.Mock; updateWork: jest.Mock };
 let checklistsMock: { getChecklistsByWorkIds: jest.Mock; getItemsByChecklistIds: jest.Mock };
+let folderBudgetsMock: { getFolderBudgetWorkIds: jest.Mock };
 
 beforeAll(() => {
 	worksMock = jest.requireMock('@/lib/works/works') as never;
 	checklistsMock = jest.requireMock('@/lib/checklists/checklists') as never;
+	folderBudgetsMock = jest.requireMock('@/lib/budgets/folder_budgets') as never;
 });
 
 describe('useWorksWithProgress', () => {
@@ -44,6 +50,7 @@ describe('useWorksWithProgress', () => {
 		worksMock.listWorks.mockResolvedValue({ data: [], error: null });
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({ data: [], error: null });
 		checklistsMock.getItemsByChecklistIds.mockResolvedValue({ data: [], error: null });
+		folderBudgetsMock.getFolderBudgetWorkIds.mockResolvedValue({ data: [], error: null });
 		worksMock.updateWork.mockResolvedValue({ error: null });
 	});
 
@@ -83,6 +90,20 @@ describe('useWorksWithProgress', () => {
 		expect(result.current.works[0].progress).toBe(50);
 		expect(result.current.works[0].tasks).toHaveLength(2);
 		expect(result.current.works[0].hasNotes).toBe(false);
+	});
+
+	it('sets hasBudget based on folder budgets work ids', async () => {
+		const works = [mockWork({ id: 1 }), mockWork({ id: 2 })];
+		worksMock.listWorks.mockResolvedValue({ data: works, error: null });
+		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({ data: [], error: null });
+		folderBudgetsMock.getFolderBudgetWorkIds.mockResolvedValue({ data: [2], error: null });
+
+		const { result } = renderHook(() => useWorksWithProgress());
+
+		await waitFor(() => expect(result.current.loading).toBe(false));
+
+		expect(result.current.works[0].hasBudget).toBe(false);
+		expect(result.current.works[1].hasBudget).toBe(true);
 	});
 
 	it('handles empty works response', async () => {

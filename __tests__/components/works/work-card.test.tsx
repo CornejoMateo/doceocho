@@ -46,6 +46,7 @@ const baseWork: WorkWithProgress = {
 	architect: 'Arq. Gómez',
 	furniture: 'Mesa y sillas',
 	hasNotes: false,
+	hasBudget: true,
 	general_note: null,
 	tasks: [],
 	name: 'Obra Central',

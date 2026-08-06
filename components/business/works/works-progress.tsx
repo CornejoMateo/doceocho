@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, Settings2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
 import { ItemsPredefinedDialog } from '@/components/business/works/checklists/items-predefined-dialog';
 import {
@@ -45,6 +47,7 @@ import { WorkWithProgress } from '@/lib/works/works';
 export function WorksOpenings() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+	const [onlyWithoutBudget, setOnlyWithoutBudget] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
 
@@ -67,6 +70,8 @@ export function WorksOpenings() {
 		(item, search) => {
 			const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
 
+			const matchesBudget = !onlyWithoutBudget || !item.hasBudget;
+
 			const matchesSearch =
 				!search ||
 				item.address?.toLowerCase().includes(search) ||
@@ -74,7 +79,7 @@ export function WorksOpenings() {
 				item.client_last_name?.toLowerCase().includes(search) ||
 				false;
 
-			return matchesStatus && matchesSearch;
+			return matchesStatus && matchesSearch && matchesBudget;
 		}
 	);
 
@@ -84,13 +89,14 @@ export function WorksOpenings() {
 			inProgressCount: works.filter((w) => w.status === 'in_progress').length,
 			completedCount: works.filter((w) => w.status === 'completed').length,
 			totalCount: works.length,
+			withoutBudgetCount: works.filter((w) => !w.hasBudget).length,
 		};
 	}, [works]);
 
 	// Reset to page 1 when filters change
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [searchQuery, statusFilter]);
+	}, [searchQuery, statusFilter, onlyWithoutBudget]);
 
 	const handleStatusFilter = (status: StatusFilter) => {
 		setStatusFilter(status);
@@ -250,6 +256,14 @@ export function WorksOpenings() {
 				statusFilter={statusFilter}
 				onStatusFilterChange={handleStatusFilter}
 			/>
+
+			<div className="flex items-center justify-between gap-2">
+				<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+					<Switch checked={onlyWithoutBudget} onCheckedChange={setOnlyWithoutBudget} />
+					<span>Mostrar obras sin presupuesto</span>
+					<Badge variant="secondary">{stats.withoutBudgetCount}</Badge>
+				</label>
+			</div>
 
 			{/* Installations list */}
 			{loading ? (

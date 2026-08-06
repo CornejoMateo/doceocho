@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getChecklistsByWorkIds, getItemsByChecklistIds } from '@/lib/checklists/checklists';
+import { getFolderBudgetWorkIds } from '@/lib/budgets/folder_budgets';
 import { listWorks } from '@/lib/works/works';
 import { WorkWithProgress } from '@/lib/works/works';
 import { updateWork } from '@/lib/works/works';
@@ -22,6 +23,9 @@ export function useWorksWithProgress() {
 
 			const workIds = worksData.map((w) => w.id);
 			const { data: allChecklists } = await getChecklistsByWorkIds(workIds);
+
+			const { data: folderBudgetWorkIds } = await getFolderBudgetWorkIds();
+			const workIdsWithBudget = new Set<number>(folderBudgetWorkIds ?? []);
 
 			const checklistIds = (allChecklists ?? []).map((c) => c.id);
 			const { data: allItems, error: itemsError } = await getItemsByChecklistIds(checklistIds);
@@ -79,6 +83,7 @@ export function useWorksWithProgress() {
 					status: newStatus,
 					tasks,
 					hasNotes: hasNotes,
+					hasBudget: workIdsWithBudget.has(work.id),
 					progress,
 				};
 			});
