@@ -102,7 +102,6 @@ export async function createClientFolder(clientId: number, supabaseClient?: Supa
 
 		return { data, error };
 	} catch (err) {
-		console.error('Unexpected error creating folder:', err);
 		return { data: null, error: err };
 	}
 }

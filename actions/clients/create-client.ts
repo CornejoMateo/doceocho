@@ -36,26 +36,11 @@ export async function createClientAction(clientData: {
 			console.error('Error creating client folder:', folderResult.error);
 		}
 
-		console.log('[push] createClientAction completed, scheduling after() push', {
-			clientId: client.id,
-			name: clientData.name,
-			last_name: clientData.last_name,
-		});
-
 		after(async () => {
-			console.log('[push] after() callback started', {
-				clientId: client.id,
-				name: clientData.name,
-				last_name: clientData.last_name,
-			});
-
 			try {
 				await sendClientCreatedNotification(supabase, clientData.name, clientData.last_name);
 			} catch (error: any) {
-				console.error('[push] Failed to send client notification:', {
-					clientId: client.id,
-					error: error.message,
-				});
+				console.error('Failed to send client notification:', error.message);
 			}
 		});
 

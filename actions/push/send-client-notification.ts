@@ -3,7 +3,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { configureWebPush, sendPushNotification } from '@/lib/push/vapid';
 import { getAdminPushSubscriptions } from '@/lib/push/subscriptions';
-import { after } from 'next/server';
 
 export async function sendClientCreatedNotification(
 	supabase: SupabaseClient,
@@ -19,7 +18,6 @@ export async function sendClientCreatedNotification(
 		const { data: subscriptions, error } = await getAdminPushSubscriptions(supabase);
 
 		if (error) {
-			console.error('[push] Failed to get admin subscriptions:', error);
 			return { success: false, error, sentCount: 0 };
 		}
 
@@ -51,12 +49,6 @@ export async function sendClientCreatedNotification(
 			}
 		}
 
-		console.log('[push] Push notification sent for new client:', {
-			clientId: 0,
-			name: clientName,
-			last_name: clientLastName,
-		});
-
 		return {
 			success: failedCount === 0,
 			sentCount,
@@ -64,7 +56,6 @@ export async function sendClientCreatedNotification(
 			error: failedCount ? `${failedCount} push notifications failed` : undefined,
 		};
 	} catch (error: any) {
-		console.error('[push] Error sending client notifications:', error);
 		return { success: false, error: error.message };
 	}
 }

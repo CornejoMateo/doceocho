@@ -128,9 +128,7 @@ export function ClientsAddDialog({
 				onOpenChange(false);
 			} else {
 				// Create new client
-				console.log('Creating client with payload:', payload);
 				const { data: client, error } = await createClientAction(payload);
-				console.log('Create client result:', { client, error });
 				if (error) throw error;
 
 				if (client) {
@@ -143,7 +141,6 @@ export function ClientsAddDialog({
 				}
 			}
 		} catch (error) {
-			console.error('Error al procesar el cliente:', error);
 			const message = translateError(error);
 			toast({
 				title: 'Error',
