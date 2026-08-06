@@ -159,7 +159,7 @@ export function ClientsAddDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="bg-card max-w-2xl w-full">
+			<DialogContent className="bg-card sm:max-w-2xl w-full overflow-y-auto max-h-[90dvh]">
 				<DialogHeader>
 					<DialogTitle className="text-foreground">
 						{clientToEdit ? 'Editar cliente' : 'Registrar nuevo cliente'}
@@ -264,22 +264,22 @@ export function ClientsAddDialog({
 								</SelectContent>
 							</Select>
 						</div>
-						{formData.contact_method === 'REFERIDO' && (
-							<div className="grid gap-2 col-span-2">
-								<Label htmlFor="referred_to" className="text-foreground">
-									Cliente que lo refirió
-								</Label>
-
-								<Input
-									id="referred_to"
-									value={formData.referred_to}
-									onChange={handleInputChange}
-									placeholder="Nombre del cliente que dio la referencia"
-									className="bg-background"
-								/>
-							</div>
-						)}
 					</div>
+					{formData.contact_method === 'REFERIDO' && (
+						<div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+							<Label htmlFor="referred_to" className="text-foreground">
+								Cliente que lo refirió
+							</Label>
+
+							<Input
+								id="referred_to"
+								value={formData.referred_to}
+								onChange={handleInputChange}
+								placeholder="Nombre del cliente que dio la referencia"
+								className="bg-background"
+							/>
+						</div>
+					)}
 
 					<DialogFooter>
 						<Button
