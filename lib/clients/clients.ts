@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Client = {
 	id: number;
@@ -40,9 +41,10 @@ export async function getClientById(id: number): Promise<{ data: Client | null; 
 }
 
 export async function createClient(
-	client: Omit<Client, 'id' | 'created_at'>
+	client: Omit<Client, 'id' | 'created_at'>,
+	supabaseClient?: SupabaseClient
 ): Promise<{ data: Client | null; error: any }> {
-	const supabase = getSupabaseClient();
+	const supabase = supabaseClient ?? getSupabaseClient();
 	const payload = {
 		...client,
 		created_at: new Date().toISOString(),
@@ -82,8 +84,8 @@ export async function deleteClient(id: number): Promise<{ data: null; error: any
 	return { data: null, error };
 }
 
-export async function createClientFolder(clientId: number) {
-	const supabase = getSupabaseClient();
+export async function createClientFolder(clientId: number, supabaseClient?: SupabaseClient) {
+	const supabase = supabaseClient ?? getSupabaseClient();
 
 	const filePath = `${String(clientId)}/.keep.txt`;
 

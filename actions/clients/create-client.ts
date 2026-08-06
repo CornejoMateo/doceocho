@@ -20,7 +20,7 @@ export async function createClientAction(clientData: {
 		const supabase = await getServerSupabaseClient();
 		const user = await getCurrentUser();
 
-		const { data: client, error } = await createClientDb(clientData);
+		const { data: client, error } = await createClientDb(clientData, supabase);
 
 		if (error) {
 			return { success: false, error: error.message };
@@ -31,7 +31,7 @@ export async function createClientAction(clientData: {
 		}
 
 		// Create folder in Storage
-		const folderResult = await createClientFolder(client.id);
+		const folderResult = await createClientFolder(client.id, supabase);
 		if (folderResult.error) {
 			console.error('Error creating client folder:', folderResult.error);
 		}
