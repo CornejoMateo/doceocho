@@ -16,6 +16,7 @@ jest.mock('@/components/business/works/work-card', () => ({
 
 const mockWorks: WorkWithProgress[] = Array.from({ length: 12 }, (_, i) => ({
 	id: i + 1,
+	name: `Obra ${i + 1}`,
 	address: `Calle ${i + 1}`,
 	locality: 'CABA',
 	client_name: `Cliente${i + 1}`,
@@ -97,6 +98,22 @@ jest.mock('@/components/business/works/checklists/items-predefined-dialog', () =
 
 jest.mock('@/components/ui/use-toast', () => ({
 	toast: jest.fn(),
+}));
+
+jest.mock('@/hooks/calendar/use-load-event-types', () => ({
+	useLoadEventTypes: () => ({
+		eventTypes: [],
+	}),
+}));
+
+jest.mock('@/components/business/calendar/event-form-modal', () => ({
+	EventFormModal: ({ open, onOpenChange, onSave }: any) =>
+		open ? (
+			<div data-testid="event-form-modal">
+				<button onClick={() => onOpenChange(false)}>Close</button>
+				<button onClick={() => onSave({})}>Save</button>
+			</div>
+		) : null,
 }));
 
 describe('WorksOpenings (works-progress)', () => {
