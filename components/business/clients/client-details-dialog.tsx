@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Client } from '@/lib/clients/clients';
-import { MapPin, X, Plus } from 'lucide-react';
+import { MapPin, X, Plus, IdCard } from 'lucide-react';
 import { EmailLink } from '@/components/ui/email-link';
 import { WhatsAppLink } from '@/components/ui/whatsapp-link';
 import { useState, useEffect } from 'react';
@@ -264,11 +264,19 @@ export function ClientDetailsDialog({
 										</WhatsAppLink>
 									</div>
 								)}
+								{clientData.identity_number && (
+									<div className="flex items-center justify-center gap-1 text-sm">
+										<IdCard className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+										<span className="text-sm">{clientData.identity_number}</span>
+									</div>
+								)}
+								{clientData.locality && (
+									<div className="flex items-center justify-center gap-1 text-sm">
+										<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+										<span className="text-sm">{clientData.locality}</span>
+									</div>
+								)}
 							</>
-							<div className="flex items-center justify-center gap-1 text-sm">
-								<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-								<span className="text-xs">{clientData.locality}</span>
-							</div>
 						</div>
 					</div>
 

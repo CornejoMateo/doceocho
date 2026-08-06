@@ -22,7 +22,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-
 interface ClientsAddDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -36,6 +35,7 @@ interface ClientsAddDialogProps {
 		locality?: string | null;
 		contact_method?: string | null;
 		referred_to?: string | null;
+		identity_number?: string | null;
 	};
 	onUpdateClient?: (client: any) => Promise<void>;
 }
@@ -57,6 +57,7 @@ export function ClientsAddDialog({
 		locality: clientToEdit?.locality || '',
 		contact_method: clientToEdit?.contact_method || '',
 		referred_to: clientToEdit?.referred_to || '',
+		identity_number: clientToEdit?.identity_number || '',
 	});
 
 	useEffect(() => {
@@ -69,6 +70,7 @@ export function ClientsAddDialog({
 				locality: clientToEdit?.locality || '',
 				contact_method: clientToEdit?.contact_method || '',
 				referred_to: clientToEdit?.referred_to || '',
+				identity_number: clientToEdit?.identity_number || '',
 			});
 		}
 	}, [open]);
@@ -83,7 +85,9 @@ export function ClientsAddDialog({
 					? 'last_name'
 					: id === 'phone'
 						? 'phone_number'
-						: id]: value,
+						: id === 'identityNumber'
+							? 'identity_number'
+							: id]: value,
 		}));
 	};
 
@@ -106,6 +110,7 @@ export function ClientsAddDialog({
 				locality: formData.locality || null,
 				contact_method: formData.contact_method || null,
 				referred_to: formData.contact_method === 'REFERIDO' ? formData.referred_to || null : null,
+				identity_number: formData.identity_number || null,
 			};
 
 			if (clientToEdit && onUpdateClient) {
@@ -154,7 +159,7 @@ export function ClientsAddDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="bg-card max-w-2xl">
+			<DialogContent className="bg-card sm:max-w-2xl w-full overflow-y-auto max-h-[90dvh]">
 				<DialogHeader>
 					<DialogTitle className="text-foreground">
 						{clientToEdit ? 'Editar cliente' : 'Registrar nuevo cliente'}
@@ -167,29 +172,44 @@ export function ClientsAddDialog({
 				</DialogHeader>
 
 				<form onSubmit={handleSubmit} className="grid gap-4 py-4">
-					<div className="grid gap-2">
-						<Label htmlFor="clientLastName" className="text-foreground">
-							Apellido
-						</Label>
-						<Input
-							id="clientLastName"
-							value={formData.last_name}
-							onChange={handleInputChange}
-							className="bg-background"
-						/>
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="clientLastName" className="text-foreground">
+								Apellido
+							</Label>
+							<Input
+								id="clientLastName"
+								value={formData.last_name}
+								onChange={handleInputChange}
+								className="bg-background"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="clientName" className="text-foreground">
+								Nombre
+							</Label>
+							<Input
+								id="clientName"
+								value={formData.name}
+								onChange={handleInputChange}
+								className="bg-background"
+							/>
+						</div>
 					</div>
-					<div className="grid gap-2">
-						<Label htmlFor="clientName" className="text-foreground">
-							Nombre
-						</Label>
-						<Input
-							id="clientName"
-							value={formData.name}
-							onChange={handleInputChange}
-							className="bg-background"
-						/>
+					<div className="grid grid-cols-1 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="identityNumber" className="text-foreground">
+								DNI/CUIT
+							</Label>
+							<Input
+								id="identityNumber"
+								value={formData.identity_number}
+								onChange={handleInputChange}
+								className="bg-background"
+							/>
+						</div>
 					</div>
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div className="grid gap-2">
 							<Label htmlFor="email" className="text-foreground">
 								Email
@@ -215,7 +235,7 @@ export function ClientsAddDialog({
 							/>
 						</div>
 					</div>
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div className="grid gap-2">
 							<Label htmlFor="locality" className="text-foreground">
 								Localidad
@@ -244,22 +264,22 @@ export function ClientsAddDialog({
 								</SelectContent>
 							</Select>
 						</div>
-						{formData.contact_method === 'REFERIDO' && (
-							<div className="grid gap-2 col-span-2">
-								<Label htmlFor="referred_to" className="text-foreground">
-									Cliente que lo refirió
-								</Label>
-
-								<Input
-									id="referred_to"
-									value={formData.referred_to}
-									onChange={handleInputChange}
-									placeholder="Nombre del cliente que dio la referencia"
-									className="bg-background"
-								/>
-							</div>
-						)}
 					</div>
+					{formData.contact_method === 'REFERIDO' && (
+						<div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+							<Label htmlFor="referred_to" className="text-foreground">
+								Cliente que lo refirió
+							</Label>
+
+							<Input
+								id="referred_to"
+								value={formData.referred_to}
+								onChange={handleInputChange}
+								placeholder="Nombre del cliente que dio la referencia"
+								className="bg-background"
+							/>
+						</div>
+					)}
 
 					<DialogFooter>
 						<Button

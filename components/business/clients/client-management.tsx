@@ -23,6 +23,7 @@ import {
 	Edit,
 	Trash2,
 	AlertTriangle,
+	IdCard,
 } from 'lucide-react';
 import { updateClient } from '@/lib/clients/clients';
 import {
@@ -242,6 +243,7 @@ export function ClientManagement() {
 										locality: selectedClient.locality || '',
 										contact_method: selectedClient.contact_method || '',
 										referred_to: selectedClient.referred_to || '',
+										identity_number: selectedClient.identity_number || '',
 									}
 								: undefined
 						}
@@ -359,6 +361,12 @@ export function ClientManagement() {
 												<div className="flex items-center gap-2 text-muted-foreground">
 													<MapPin className="h-4 w-4" />
 													<span>{client.locality}</span>
+												</div>
+											)}
+											{client.identity_number && (
+												<div className="flex items-center gap-2 text-muted-foreground">
+													<IdCard className="h-4 w-4" />
+													<span>{client.identity_number}</span>
 												</div>
 											)}
 										</div>

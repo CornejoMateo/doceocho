@@ -9,6 +9,7 @@ create table public.clients (
   cover text null,
   contact_method text null,
   referred_to text null,
+  identity_number text null,
   constraint clients_pkey primary key (id)
 ) TABLESPACE pg_default;
 
