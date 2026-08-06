@@ -4,6 +4,7 @@ import { createClient as createClientDb, createClientFolder } from '@/lib/client
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { sendClientCreatedNotification } from '@/actions/push/send-client-notification';
 import { after } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function createClientAction(clientData: {
 	name: string;
@@ -17,6 +18,7 @@ export async function createClientAction(clientData: {
 }) {
 	try {
 		const supabase = await getServerSupabaseClient();
+		const user = await getCurrentUser();
 
 		const { data: client, error } = await createClientDb(clientData);
 
