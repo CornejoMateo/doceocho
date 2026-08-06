@@ -42,6 +42,7 @@ interface EventFormModalProps {
 	event?: Event;
 	open?: boolean;
 	onOpenChange?: (open: boolean) => void;
+	initialWork?: Work | null;
 }
 
 export function EventFormModal({
@@ -52,6 +53,7 @@ export function EventFormModal({
 	event,
 	open: controlledOpen,
 	onOpenChange: setControlledOpen,
+	initialWork,
 }: EventFormModalProps) {
 	const [internalOpen, setInternalOpen] = useState(false);
 	const isControlled = controlledOpen !== undefined;
@@ -107,6 +109,43 @@ export function EventFormModal({
 			};
 		}
 	}, [isOpen, mode, event, defaultEventType]);
+
+	useEffect(() => {
+		if (isOpen && mode === 'create' && initialWork) {
+			setFormData({
+				title: initialWork.name || '',
+				type: defaultEventType,
+				date: undefined,
+				client_id: initialWork.client_id ?? null,
+				client_name:
+					[initialWork.client_last_name, initialWork.client_name].filter(Boolean).join(' ') || '',
+				isManualClient: false,
+				work_id: initialWork.id ?? null,
+				work_location: initialWork.address || '',
+				isManualWork: false,
+				description: '',
+				remember: true,
+			});
+
+			let isStale = false;
+
+			if (initialWork.client_id) {
+				setLoadingWorks(true);
+				getWorksByClientId(initialWork.client_id).then(({ data, error }) => {
+					if (isStale) return;
+					if (!error) setClientWorks(data || []);
+					setLoadingWorks(false);
+				});
+			} else {
+				setClientWorks([]);
+				setLoadingWorks(false);
+			}
+
+			return () => {
+				isStale = true;
+			};
+		}
+	}, [isOpen, mode, initialWork]);
 
 	useEffect(() => {
 		setFormData((previous) => {
