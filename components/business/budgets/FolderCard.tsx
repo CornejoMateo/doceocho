@@ -190,7 +190,9 @@ export function FolderCard({
 							<SelectContent>
 								{works.map((w) => (
 									<SelectItem key={w.id} value={String(w.id)}>
-										{[w.address, w.locality].filter(Boolean).join(' - ') || `Obra ${w.id}`}
+										{w.name ||
+											[w.address, w.locality].filter(Boolean).join(' - ') ||
+											`Obra ${w.id}`}
 									</SelectItem>
 								))}
 							</SelectContent>

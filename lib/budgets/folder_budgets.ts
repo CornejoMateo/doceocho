@@ -10,6 +10,7 @@ export type FolderBudget = {
 		locality: string | null;
 		address: string | null;
 		status: string | null;
+		name?: string | null;
 	} | null;
 };
 
@@ -23,7 +24,7 @@ export async function listFolderBudgets(): Promise<{ data: FolderBudget[] | null
 		.select(
 			`
 			*,
-			works:work_id (locality, address, status)
+			works:work_id (locality, address, status, name)
 		`
 		)
 		.order('created_at', { ascending: false });
@@ -39,7 +40,7 @@ export async function getFolderBudgetById(
 		.select(
 			`
 			*,
-			works:work_id (locality, address, status)
+			works:work_id (locality, address, status, name)
 		`
 		) // La informaciòn de works no deberia hacer falta a menos que la mostremos en el modal
 		.eq('id', id)
@@ -57,7 +58,7 @@ export async function getFolderBudgetsByWorkId(
 		.select(
 			`
 			*,
-			works:work_id (locality, address, status)		`
+			works:work_id (locality, address, status, name)		`
 		)
 		.eq('work_id', workId)
 		.order('created_at', { ascending: false });
@@ -73,7 +74,7 @@ export async function getFolderBudgetsByClientId(
 		.select(
 			`
             *,
-            works:work_id (locality, address, status)		`
+            works:work_id (locality, address, status, name)`
 		)
 		.eq('client_id', clientId)
 		.order('created_at', { ascending: false });
@@ -90,7 +91,7 @@ export async function getFolderBudgetsByClientIds(
 		.select(
 			`
 			*,
-			works:work_id (locality, address, status)		`
+			works:work_id (locality, address, status, name)`
 		)
 		.in('client_id', clientIds)
 		.order('created_at', { ascending: false });

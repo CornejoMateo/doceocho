@@ -154,8 +154,10 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 								const address = work?.address || 'Sin dirección';
 								const budgetNumber = budget.number || 'Sin número';
 								const budgetType = budget.type || 'Sin tipo';
+								const workName = work?.name || '';
 								return (
 									<SelectItem key={budget.id} value={String(budget.id)}>
+										{workName && `${workName} - `}
 										{locality} - {address} - {budgetNumber} - {budgetType} ($
 										{budget.amount_ars.toLocaleString('es-AR')})
 									</SelectItem>

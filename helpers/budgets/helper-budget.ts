@@ -10,7 +10,7 @@ export function normalizeType(type: string | null | undefined): string {
 export function workLabel(folder: FolderBudget): string {
 	const w = folder.works;
 	if (!w) return 'Sin obra';
-	const parts = [w.address, w.locality].filter(Boolean);
+	const parts = w.name ? [w.name] : [w.address, w.locality].filter(Boolean);
 	return parts.length > 0 ? parts.join(' - ') : 'Obra';
 }
 

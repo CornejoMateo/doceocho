@@ -90,7 +90,8 @@ export async function getBudgetsByFolderBudgetIds(
 					work_id,
 					work:works (
 						address,
-						locality
+						locality,
+						name
 					)
 				)
 			`
@@ -129,6 +130,7 @@ export async function getBudgetsByFolderBudgetIds(
 						? {
 								address: work.address,
 								locality: work.locality,
+								name: work.name,
 							}
 						: null,
 				},

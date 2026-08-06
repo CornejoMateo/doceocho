@@ -26,6 +26,7 @@ export type BalanceWithBudget = Balance & {
 			work: {
 				address: string;
 				locality: string;
+				name?: string | null;
 			};
 		};
 	} | null;
@@ -59,6 +60,7 @@ export type BudgetWithWork = {
 		work: {
 			address: string | null;
 			locality: string | null;
+			name?: string | null;
 		} | null;
 	};
 };
@@ -70,7 +72,7 @@ export async function listBalances(): Promise<{ data: BalanceWithBudget[] | null
 	const { data, error } = await supabase
 		.from(TABLE)
 		.select(
-			'*, budget:budgets(id, amount_ars, amount_usd, number, type, date_of_sale, usd_quote, folder_budget:folder_budgets(work:works(address, locality)))'
+			'*, budget:budgets(id, amount_ars, amount_usd, number, type, date_of_sale, usd_quote, folder_budget:folder_budgets(work:works(address, locality, name)))'
 		)
 		.order('created_at', { ascending: false });
 	return { data, error };
@@ -86,7 +88,7 @@ export async function listBalancesForReport(): Promise<{
 		.select(
 			`*,
 			client:clients(id, name, last_name),
-			budget:budgets(id, amount_ars, amount_usd, number, type, date_of_sale, usd_quote, folder_budget:folder_budgets(work:works(address, locality)))`
+			budget:budgets(id, amount_ars, amount_usd, number, type, date_of_sale, usd_quote, folder_budget:folder_budgets(work:works(address, locality, name)))`
 		)
 		.order('created_at', { ascending: false });
 	return { data, error };
@@ -99,7 +101,7 @@ export async function getBalanceById(
 	const { data, error } = await supabase
 		.from(TABLE)
 		.select(
-			'*, budget:budgets(id, amount_ars, amount_usd, number, type, date_of_sale, usd_quote, folder_budget:folder_budgets(work:works(address, locality)))'
+			'*, budget:budgets(id, amount_ars, amount_usd, number, type, date_of_sale, usd_quote, folder_budget:folder_budgets(work:works(address, locality, name)))'
 		)
 		.eq('id', id)
 		.single();
@@ -125,7 +127,8 @@ export async function getBalancesByClientId(
 				folder_budget:folder_budgets (
 					work:works (
 						address,
-						locality
+						locality,
+						name
 					)
 				)
 			)
@@ -158,6 +161,7 @@ export async function getBudgetsByClientId(
 					work:works!inner (
 					address,
 					locality,
+					name,
 					client_id
 					)
 				)
