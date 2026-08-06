@@ -1,11 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { useEffect, useMemo, useState } from 'react';
-import { getClientsCount } from '@/lib/clients/clients';
 import { getWorksInProgressCount, Work } from '@/lib/works/works';
 import { getSoldBudgetsCount } from '@/lib/reports/budgets/methods';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { formatCreatedAt } from '@/utils/format-date';
+import { WeeklyClients } from '@/components/dashboard/weekly-clients';
 
 export function DashboardHome() {
 	const { events, isLoading } = useLoadEvents();
@@ -13,7 +13,6 @@ export function DashboardHome() {
 		() => events.filter((event) => event.is_overdue === true),
 		[events]
 	);
-	const [totalClients, setTotalClients] = useState(0);
 	const [worksInProgress, setWorksInProgress] = useState(0);
 	const [soldBudgets, setSoldBudgets] = useState(0);
 
@@ -21,17 +20,13 @@ export function DashboardHome() {
 		let isMounted = true;
 
 		const fetchCounts = async () => {
-			const [clientsResult, worksResult, budgetsSoldResult] = await Promise.all([
-				getClientsCount(),
+			const [worksResult, budgetsSoldResult] = await Promise.all([
 				getWorksInProgressCount(),
 				getSoldBudgetsCount(),
 			]);
 
 			if (!isMounted) return;
 
-			if (!clientsResult.error && clientsResult.data !== null) {
-				setTotalClients(clientsResult.data);
-			}
 			if (!worksResult.error && worksResult.data !== null) {
 				setWorksInProgress(worksResult.data);
 			}
@@ -163,14 +158,7 @@ export function DashboardHome() {
 
 				<div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
 					{' '}
-					<Card className="p-6">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">Clientes activos</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{totalClients}</p>
-							</div>
-						</div>
-					</Card>
+					<WeeklyClients />
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<div>

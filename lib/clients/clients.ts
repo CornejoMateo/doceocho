@@ -104,3 +104,22 @@ export async function createClientFolder(clientId: number) {
 		return { data: null, error: err };
 	}
 }
+
+export async function getClientsThisWeek(): Promise<{ data: Client[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const now = new Date();
+	const startOfWeek = new Date(now);
+	startOfWeek.setDate(now.getDate() - now.getDay());
+	startOfWeek.setHours(0, 0, 0, 0);
+
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select(
+			'name, last_name, id, phone_number, locality, email, contact_method, referred_to, identity_number, created_at'
+		)
+		.gte('created_at', startOfWeek.toISOString())
+		.order('created_at', { ascending: false });
+
+	return { data, error };
+}

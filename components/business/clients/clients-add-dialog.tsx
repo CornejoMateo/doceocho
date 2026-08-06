@@ -22,6 +22,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import { sendClientCreatedNotification } from '@/actions/push/send-client-notification';
 interface ClientsAddDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -136,6 +137,10 @@ export function ClientsAddDialog({
 					console.log('Creating folder for client ID:', client.id);
 					const folderResult = await createClientFolder(client.id);
 					console.log('Create folder result:', folderResult);
+
+					// Send push notification to admins
+					await sendClientCreatedNotification(payload.name, payload.last_name);
+
 					toast({
 						title: 'Cliente creado',
 						description: `${payload.name} ${payload.last_name} ha sido agregado correctamente.`,
