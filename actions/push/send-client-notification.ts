@@ -1,16 +1,22 @@
 'use server';
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { configureWebPush, sendPushNotification } from '@/lib/push/vapid';
 import { getAdminPushSubscriptions } from '@/lib/push/subscriptions';
+import { after } from 'next/server';
 
-export async function sendClientCreatedNotification(clientName: string, clientLastName: string) {
+export async function sendClientCreatedNotification(
+	supabase: SupabaseClient,
+	clientName: string,
+	clientLastName: string
+) {
 	try {
 		const configured = configureWebPush();
 		if (!configured) {
 			return { success: false, error: 'VAPID keys are not configured', sentCount: 0 };
 		}
 
-		const { data: subscriptions, error } = await getAdminPushSubscriptions();
+		const { data: subscriptions, error } = await getAdminPushSubscriptions(supabase);
 
 		if (error) {
 			console.error('[push] Failed to get admin subscriptions:', error);
