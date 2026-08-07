@@ -39,17 +39,33 @@ export function BudgetCard({
 	return (
 		<Card
 			className={cn(
-				'min-w-[260px] max-w-[260px] p-4 border-border relative cursor-pointer hover:shadow-md transition-shadow',
+				'w-full sm:w-fit sm:min-w-[340px] max-w-full p-4 pb-10 border-border relative cursor-pointer hover:shadow-md transition-shadow',
 				isChosen && 'border-primary bg-primary/5'
 			)}
 			onClick={() => onOpenDetail(budget)}
 		>
-			<div className="absolute top-2 right-2 flex items-center gap-2">
-				{isChosen ? (
-					<Badge className="gap-1 shrink-0">
-						<CheckCircle className="h-3.5 w-3.5" /> Elegido
-					</Badge>
-				) : null}
+			<div className="flex justify-between items-start gap-2 mb-4">
+				<div className="space-y-2">
+					{isChosen ? (
+						<Badge className="gap-1 mt-2 mb-4" variant="secondary">
+							<CheckCircle className="h-3.5 w-3.5" /> Elegido
+						</Badge>
+					) : null}
+
+					<div className="space-y-1 pr-2">
+						{budget.number ? <Badge variant="outline">#{budget.number}</Badge> : null}
+
+						<p className="text-sm font-semibold text-foreground">
+							{formatCurrency(budget.amount_ars)}
+						</p>
+						<p className="text-sm font-semibold text-foreground">
+							{formatCurrencyUSD(budget.amount_usd)}
+						</p>
+					</div>
+					{budget.created_at && (
+						<p className="text-xs text-muted-foreground">{formatCreatedAt(budget.created_at)}</p>
+					)}
+				</div>
 				<Button
 					variant="ghost"
 					size="sm"
@@ -58,28 +74,13 @@ export function BudgetCard({
 						onDeleteBudget(budget.id);
 					}}
 					disabled={isLoading}
-					className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
+					className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 w-9 sm:h-8 sm:w-8 p-0"
 				>
 					<Trash2 className="h-4 w-4" />
 				</Button>
 			</div>
 
-			<div className="mt-3 space-y-2">
-				<div className="space-y-1">
-					<p className="text-sm font-semibold text-foreground">
-						{formatCurrency(budget.amount_ars)}
-					</p>
-					<p className="text-sm font-semibold text-foreground">
-						{formatCurrencyUSD(budget.amount_usd)}
-					</p>
-				</div>
-				{budget.number ? <Badge variant="outline">#{budget.number}</Badge> : null}
-				{budget.created_at && (
-					<p className="text-xs text-muted-foreground">{formatCreatedAt(budget.created_at)}</p>
-				)}
-			</div>
-
-			<div className="flex flex-wrap gap-2 mb-3">
+			<div className="mt-auto flex flex-col gap-2 pt-4">
 				{budget.pdf_path ? (
 					<Button
 						variant="outline"
@@ -88,12 +89,15 @@ export function BudgetCard({
 							e.stopPropagation();
 							onViewPdf(budget);
 						}}
-						className="gap-2"
+						className="w-full gap-2"
 					>
-						<FileText className="h-4 w-4" /> Ver PDF
+						<FileText className="h-4 w-4" />
+						Ver PDF
 					</Button>
 				) : (
-					<Badge variant="secondary">Sin PDF</Badge>
+					<div className="flex h-9 w-full items-center justify-center rounded-md border bg-muted text-sm text-muted-foreground">
+						Sin PDF
+					</div>
 				)}
 
 				<Button
@@ -104,12 +108,13 @@ export function BudgetCard({
 						e.stopPropagation();
 						onChooseBudget(budget.id);
 					}}
-					className="gap-2"
+					className="w-full gap-2"
 				>
 					<CheckCircle className="h-4 w-4" />
 					{isChosen ? 'Elegido' : 'Elegir'}
 				</Button>
 			</div>
+
 			{(() => {
 				const currentStatus = getBudgetStatus(budget);
 

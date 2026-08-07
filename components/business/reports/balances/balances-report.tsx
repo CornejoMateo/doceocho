@@ -12,7 +12,7 @@ import {
 	TableRow,
 } from '@/components/ui/table';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
+import { formatCurrency } from '@/utils/formats-money';
 import { formatShortDate } from '@/utils/format-date';
 import { calculateBalanceStats } from '@/helpers/balances/stats';
 import {
@@ -24,13 +24,6 @@ import { StatsCardsBalances } from '@/components/business/balances/stats-cards-b
 import { BalanceWithBudgetAndClient, listBalancesForReport } from '@/lib/balances/balances';
 import { getLastTransactionUSD } from '@/lib/balances/balance_transactions';
 import { getTotalsByBalanceIds } from '@/lib/balances/balance_transactions';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Filter, Download } from 'lucide-react';
 import { normalizeMoney } from '@/utils/formats-money';
@@ -43,8 +36,9 @@ import {
 	generateBalancesPDF,
 	getFiltersDescription,
 } from '@/helpers/balances/generate-balance-pdf';
+import { BalanceMobileCard } from './balance-mobile-card';
 
-type BalanceReportRow = {
+export type BalanceReportRow = {
 	id: number;
 	contractDate: string;
 	contractDateRaw: Date;
@@ -115,6 +109,7 @@ export function BalancesReport() {
 					const workLocality = b.budget?.folder_budget?.work?.locality ?? '';
 					const workAddress = b.budget?.folder_budget?.work?.address ?? '';
 					const work =
+						b.budget?.folder_budget?.work?.name ||
 						`${workLocality}${workLocality && workAddress ? ' - ' : ''}${workAddress}`.trim() ||
 						DEFAULT_FALLBACK;
 
@@ -268,8 +263,8 @@ export function BalancesReport() {
 						</div>
 					</div>
 
-					<Card className="p-0 bg-card border-border overflow-x-auto">
-						<div className="p-4 border-b flex items-center justify-between min-w-[800px]">
+					<Card className="p-0 bg-card border-border">
+						<div className="p-4 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 							<div className="text-sm text-muted-foreground">
 								{loading ? 'Cargando...' : `${filteredRows.length} fila(s)`}
 							</div>
@@ -285,125 +280,143 @@ export function BalancesReport() {
 							</div>
 						</div>
 
-						<Table className="mx-auto">
-							<TableHeader>
-								<TableRow>
-									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('contractDate')}
-									>
-										<div className="flex w-full items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.contractDate}
-											{getSortIcon('contractDate')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
-										onClick={() => handleSort('client')}
-									>
-										<div className="flex w-full items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.client}
-											{getSortIcon('client')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('work')}
-									>
-										<div className="flex w-full items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.work}
-											{getSortIcon('work')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
-										onClick={() => handleSort('concept')}
-									>
-										<div className="flex w-full items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.concept}
-											{getSortIcon('concept')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('purchaseArs')}
-									>
-										<div className="flex items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.purchase}
-											{getSortIcon('purchaseArs')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('deliveriesArs')}
-									>
-										<div className="flex items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.deliveries}
-											{getSortIcon('deliveriesArs')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('balanceType')}
-									>
-										<div className="flex items-center gap-1">
-											{BALANCES_REPORT_COLUMNS.balanceType}
-											{getSortIcon('balanceType')}
-										</div>
-									</TableHead>
-									<TableHead
-										className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
-										onClick={() => handleSort('balanceAmountArs')}
-									>
-										<div className="flex items-center justify-center gap-1">
-											{BALANCES_REPORT_COLUMNS.balanceAmount}
-											{getSortIcon('balanceAmountArs')}
-										</div>
-									</TableHead>
-								</TableRow>
-							</TableHeader>
+						{/* Mobile Card View */}
+						<div className="p-4 md:hidden space-y-3">
+							{loading ? (
+								<p className="text-center text-muted-foreground py-6">Cargando saldos...</p>
+							) : filteredRows.length === 0 ? (
+								<p className="text-center text-muted-foreground py-6">No hay resultados</p>
+							) : (
+								filteredRows.map((r) => <BalanceMobileCard key={r.id} row={r} />)
+							)}
+						</div>
 
-							<TableBody>
-								{loading ? (
-									<TableRow>
-										<TableCell colSpan={8} className="text-center text-muted-foreground">
-											Cargando saldos...
-										</TableCell>
-									</TableRow>
-								) : filteredRows.length === 0 ? (
-									<TableRow>
-										<TableCell colSpan={8} className="text-center text-muted-foreground">
-											No hay resultados
-										</TableCell>
-									</TableRow>
-								) : (
-									filteredRows.map((r) => (
-										<TableRow key={r.id}>
-											<TableCell className="whitespace-nowrap text-center">
-												{r.contractDate}
-											</TableCell>
-											<TableCell className="font-medium whitespace-nowrap text-center">
-												{r.client}
-											</TableCell>
-											<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
-											<TableCell className="whitespace-nowrap text-center">{r.concept}</TableCell>
-											<TableCell className="text-center whitespace-nowrap">
-												{formatCurrency(r.purchaseArs)}
-											</TableCell>
-											<TableCell className="text-center whitespace-nowrap">
-												{formatCurrency(r.deliveriesArs)}
-											</TableCell>
-											<TableCell className="whitespace-nowrap text-center">
-												{r.balanceType}
-											</TableCell>
-											<TableCell className="text-center whitespace-nowrap">
-												{formatCurrency(r.balanceAmountArs)}
-											</TableCell>
+						{/* Desktop Table View */}
+						<div className="hidden md:block overflow-x-auto">
+							<div className="min-w-[1000px]">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead
+												className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+												onClick={() => handleSort('contractDate')}
+											>
+												<div className="flex w-full items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.contractDate}
+													{getSortIcon('contractDate')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
+												onClick={() => handleSort('client')}
+											>
+												<div className="flex w-full items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.client}
+													{getSortIcon('client')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+												onClick={() => handleSort('work')}
+											>
+												<div className="flex w-full items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.work}
+													{getSortIcon('work')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="whitespace-nowrap cursor-pointer hover:bg-muted/50 text-center"
+												onClick={() => handleSort('concept')}
+											>
+												<div className="flex w-full items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.concept}
+													{getSortIcon('concept')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
+												onClick={() => handleSort('purchaseArs')}
+											>
+												<div className="flex items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.purchase}
+													{getSortIcon('purchaseArs')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
+												onClick={() => handleSort('deliveriesArs')}
+											>
+												<div className="flex items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.deliveries}
+													{getSortIcon('deliveriesArs')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
+												onClick={() => handleSort('balanceType')}
+											>
+												<div className="flex items-center gap-1">
+													{BALANCES_REPORT_COLUMNS.balanceType}
+													{getSortIcon('balanceType')}
+												</div>
+											</TableHead>
+											<TableHead
+												className="text-center whitespace-nowrap cursor-pointer hover:bg-muted/50"
+												onClick={() => handleSort('balanceAmountArs')}
+											>
+												<div className="flex items-center justify-center gap-1">
+													{BALANCES_REPORT_COLUMNS.balanceAmount}
+													{getSortIcon('balanceAmountArs')}
+												</div>
+											</TableHead>
 										</TableRow>
-									))
-								)}
-							</TableBody>
-						</Table>
+									</TableHeader>
+
+									<TableBody>
+										{loading ? (
+											<TableRow>
+												<TableCell colSpan={8} className="text-center text-muted-foreground">
+													Cargando saldos...
+												</TableCell>
+											</TableRow>
+										) : filteredRows.length === 0 ? (
+											<TableRow>
+												<TableCell colSpan={8} className="text-center text-muted-foreground">
+													No hay resultados
+												</TableCell>
+											</TableRow>
+										) : (
+											filteredRows.map((r) => (
+												<TableRow key={r.id}>
+													<TableCell className="whitespace-nowrap text-center">
+														{r.contractDate}
+													</TableCell>
+													<TableCell className="font-medium whitespace-nowrap text-center">
+														{r.client}
+													</TableCell>
+													<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
+													<TableCell className="whitespace-nowrap text-center">
+														{r.concept}
+													</TableCell>
+													<TableCell className="text-center whitespace-nowrap">
+														{formatCurrency(r.purchaseArs)}
+													</TableCell>
+													<TableCell className="text-center whitespace-nowrap">
+														{formatCurrency(r.deliveriesArs)}
+													</TableCell>
+													<TableCell className="whitespace-nowrap text-center">
+														{r.balanceType}
+													</TableCell>
+													<TableCell className="text-center whitespace-nowrap">
+														{formatCurrency(r.balanceAmountArs)}
+													</TableCell>
+												</TableRow>
+											))
+										)}
+									</TableBody>
+								</Table>
+							</div>
+						</div>
 					</Card>
 
 					<BalanceFilterDialog

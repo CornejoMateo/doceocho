@@ -10,6 +10,7 @@ import {
 } from '@/utils/file-upload-utils';
 import { FileViewerItem } from '@/utils/file-upload-utils';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
+import { useEffect } from 'react';
 
 interface FileViewerModalProps {
 	files: FileViewerItem[];
@@ -23,7 +24,7 @@ function resolveMimeType(file: FileViewerItem): string {
 	}
 
 	const extension = getFileExtension(file.name).toLowerCase();
-	if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+	if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg'].includes(extension)) {
 		return 'image/jpeg';
 	}
 
@@ -39,6 +40,22 @@ export function FileViewerModal({
 	selectedIndex,
 	onSelectedIndexChange,
 }: FileViewerModalProps) {
+	useEffect(() => {
+		function handleKeyDown(e: KeyboardEvent) {
+			if (e.key === 'ArrowLeft' && selectedIndex > 0) {
+				onSelectedIndexChange(selectedIndex - 1);
+			}
+			if (e.key === 'ArrowRight' && selectedIndex < files.length - 1) {
+				onSelectedIndexChange(selectedIndex + 1);
+			}
+			if (e.key === 'Escape') {
+				onSelectedIndexChange(null);
+			}
+		}
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [files, selectedIndex, onSelectedIndexChange]);
+
 	if (selectedIndex === null || !files[selectedIndex]) {
 		return null;
 	}
@@ -62,25 +79,22 @@ export function FileViewerModal({
 
 	return (
 		<Dialog open onOpenChange={() => onSelectedIndexChange(null)}>
-			<DialogContent className="w-screen h-screen max-w-none p-0 border-0 bg-black/90 flex items-center justify-center overflow-y-auto">
+			<DialogContent className="w-screen h-dvh max-w-none p-0 border-0 bg-black/90 flex items-center justify-center overflow-y-auto">
 				<VisuallyHidden.Root asChild>
 					<DialogTitle>Visor de archivos</DialogTitle>
 				</VisuallyHidden.Root>
-
 				<DialogDescription className="sr-only">
 					Visualiza el archivo seleccionado. Usa las flechas izquierda y derecha para navegar entre
 					los archivos, o el botón de descarga para abrirlo en una nueva pestaña.
 				</DialogDescription>
-
 				<Button
 					size="icon"
 					variant="ghost"
-					className="absolute top-4 right-4 text-white hover:bg-white/20"
+					className="fixed top-4 right-4 z-50 text-white hover:bg-white/20"
 					onClick={() => onSelectedIndexChange(null)}
 				>
 					<X className="h-6 w-6" />
 				</Button>
-
 				{selectedIndex > 0 && (
 					<Button
 						size="icon"
@@ -91,7 +105,6 @@ export function FileViewerModal({
 						<ChevronLeft className="h-8 w-8" />
 					</Button>
 				)}
-
 				{selectedIndex < files.length - 1 && (
 					<Button
 						size="icon"
@@ -102,7 +115,6 @@ export function FileViewerModal({
 						<ChevronRight className="h-8 w-8" />
 					</Button>
 				)}
-
 				<div className="max-w-[80vw] max-h-[80vh] flex flex-col items-center">
 					{canPreviewVideo ? (
 						<video

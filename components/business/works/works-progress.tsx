@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, Settings2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
 import { ItemsPredefinedDialog } from '@/components/business/works/checklists/items-predefined-dialog';
 import {
@@ -38,15 +40,23 @@ import { useChecklistModal } from '@/hooks/clients/use-checklist-modal';
 import { WorkCard } from '@/components/business/works/work-card';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
+import { EventFormModal } from '@/components/business/calendar/event-form-modal';
+import { useLoadEventTypes } from '@/hooks/calendar/use-load-event-types';
+import { WorkWithProgress } from '@/lib/works/works';
 
 export function WorksOpenings() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+	const [onlyWithoutBudget, setOnlyWithoutBudget] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
 
 	const { user } = useAuth();
 	const { works, loading, reload } = useWorksWithProgress();
+	const { eventTypes } = useLoadEventTypes();
+
+	const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+	const [selectedWorkForEvent, setSelectedWorkForEvent] = useState<WorkWithProgress | null>(null);
 
 	const isAdmin = useMemo(() => {
 		return user?.role === 'Admin';
@@ -60,6 +70,8 @@ export function WorksOpenings() {
 		(item, search) => {
 			const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
 
+			const matchesBudget = !onlyWithoutBudget || !item.hasBudget;
+
 			const matchesSearch =
 				!search ||
 				item.address?.toLowerCase().includes(search) ||
@@ -67,7 +79,7 @@ export function WorksOpenings() {
 				item.client_last_name?.toLowerCase().includes(search) ||
 				false;
 
-			return matchesStatus && matchesSearch;
+			return matchesStatus && matchesSearch && matchesBudget;
 		}
 	);
 
@@ -77,13 +89,14 @@ export function WorksOpenings() {
 			inProgressCount: works.filter((w) => w.status === 'in_progress').length,
 			completedCount: works.filter((w) => w.status === 'completed').length,
 			totalCount: works.length,
+			withoutBudgetCount: works.filter((w) => !w.hasBudget).length,
 		};
 	}, [works]);
 
 	// Reset to page 1 when filters change
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [searchQuery, statusFilter]);
+	}, [searchQuery, statusFilter, onlyWithoutBudget]);
 
 	const handleStatusFilter = (status: StatusFilter) => {
 		setStatusFilter(status);
@@ -203,6 +216,11 @@ export function WorksOpenings() {
 		reload();
 	};
 
+	const handleAddToCalendar = (work: WorkWithProgress) => {
+		setSelectedWorkForEvent(work);
+		setIsEventModalOpen(true);
+	};
+
 	return (
 		<div className="space-y-6">
 			{/* Header */}
@@ -239,6 +257,14 @@ export function WorksOpenings() {
 				onStatusFilterChange={handleStatusFilter}
 			/>
 
+			<div className="flex items-center justify-between gap-2">
+				<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+					<Switch checked={onlyWithoutBudget} onCheckedChange={setOnlyWithoutBudget} />
+					<span>Mostrar obras sin presupuesto</span>
+					<Badge variant="secondary">{stats.withoutBudgetCount}</Badge>
+				</label>
+			</div>
+
 			{/* Installations list */}
 			{loading ? (
 				<div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
@@ -259,6 +285,7 @@ export function WorksOpenings() {
 								onOpenWhatsApp={openWhatsApp}
 								onOpenChecklist={openChecklist}
 								onUpdateGeneralNote={handleUpdateGeneralNote}
+								onAddToCalendar={handleAddToCalendar}
 							/>
 						);
 					})}
@@ -366,6 +393,67 @@ export function WorksOpenings() {
 				refreshMaterials={refreshMaterials}
 				refreshItemsPredefined={refreshItemsPredefined}
 				isLoading={itemsPredefinedLoading}
+			/>
+
+			<EventFormModal
+				open={isEventModalOpen}
+				onOpenChange={setIsEventModalOpen}
+				eventTypes={eventTypes}
+				mode="create"
+				initialWork={selectedWorkForEvent}
+				onSave={async (eventData) => {
+					try {
+						const selectedEventType = eventTypes.find(
+							(eventType) => eventType.name === eventData.type
+						);
+						const dateStr =
+							typeof eventData.date === 'string'
+								? eventData.date
+								: eventData.date instanceof Date
+									? `${eventData.date.getDate()}-${eventData.date.getMonth() + 1}-${eventData.date.getFullYear()}`
+									: '';
+
+						const [day, month, year] = dateStr.split('-').map(Number);
+						const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+						const { createEvent } = await import('@/lib/calendar/events');
+						const { data: newEvent, error } = await createEvent({
+							title: eventData.title || 'Sin título',
+							type_id: selectedEventType?.id ?? null,
+							description: eventData.description,
+							client_id: eventData.client_id,
+							client_name: eventData.client_name,
+							date: formattedDate,
+							remember: eventData.remember,
+							work_id: eventData.work_id,
+							work_location: eventData.work_location,
+						});
+
+						if (error) {
+							console.error('Error al crear el evento:', error);
+							toast({
+								title: 'Error',
+								description: translateError(error) || 'No se pudo crear el evento.',
+								variant: 'destructive',
+							});
+							return false;
+						}
+
+						if (newEvent) {
+							return true;
+						}
+
+						return false;
+					} catch (error) {
+						console.error('Error inesperado al crear el evento:', error);
+						toast({
+							title: 'Error',
+							description: translateError(error) || 'No se pudo crear el evento.',
+							variant: 'destructive',
+						});
+						return false;
+					}
+				}}
 			/>
 		</div>
 	);

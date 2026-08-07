@@ -39,7 +39,7 @@ jest.mock('@/components/ui/dialog', () => ({
 	DialogFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-describe('EventFormModal', () => {
+describe('Mode: create - EventFormModal', () => {
 	const toast = jest.fn();
 
 	beforeEach(() => {
@@ -255,5 +255,168 @@ describe('EventFormModal', () => {
 				);
 			});
 		});
+	});
+});
+
+describe('edit mode', () => {
+	const toast = jest.fn();
+
+	beforeEach(() => {
+		(useToast as jest.Mock).mockReturnValue({
+			toast,
+		});
+	});
+
+	const event = {
+		id: 25,
+		title: 'Evento existente',
+		type: 'reuniones',
+		date: '2025-05-05',
+		client_id: 1,
+		client_name: 'Cliente Test',
+		work_id: 10,
+		work_location: '',
+		description: 'Descripción vieja',
+		remember: false,
+	} as any;
+
+	it('loads event data when opening in edit mode', async () => {
+		mockGetWorksByClientId.mockResolvedValue({
+			data: [],
+			error: null,
+		});
+
+		render(
+			<EventFormModal
+				mode="edit"
+				open
+				event={event}
+				onOpenChange={jest.fn()}
+				onSave={jest.fn()}
+				eventTypes={[
+					{
+						id: 1,
+						name: 'reuniones',
+						color: '#7c3aed',
+					},
+				]}
+			/>
+		);
+
+		expect(screen.getByText('Editar evento')).toBeInTheDocument();
+
+		expect(screen.getByDisplayValue('Evento existente')).toBeInTheDocument();
+
+		expect(screen.getByDisplayValue('Descripción vieja')).toBeInTheDocument();
+
+		expect(mockGetWorksByClientId).toHaveBeenCalledWith(1);
+	});
+
+	it('sends the event id when saving', async () => {
+		mockGetWorksByClientId.mockResolvedValue({
+			data: [],
+			error: null,
+		});
+
+		const user = userEvent.setup();
+		const onSave = jest.fn().mockResolvedValue(true);
+
+		render(
+			<EventFormModal
+				mode="edit"
+				open
+				event={event}
+				onOpenChange={jest.fn()}
+				onSave={onSave}
+				eventTypes={[
+					{
+						id: 1,
+						name: 'reuniones',
+						color: '#7c3aed',
+					},
+				]}
+			/>
+		);
+
+		await user.clear(screen.getByDisplayValue('Evento existente'));
+		await user.type(screen.getByPlaceholderText('Título del evento'), 'Evento actualizado');
+
+		await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
+
+		await waitFor(() => {
+			expect(onSave).toHaveBeenCalledWith(
+				expect.objectContaining({
+					id: 25,
+					title: 'Evento actualizado',
+				})
+			);
+		});
+	});
+
+	it('does not show "Evento creado" toast in edit mode', async () => {
+		mockGetWorksByClientId.mockResolvedValue({
+			data: [],
+			error: null,
+		});
+
+		const user = userEvent.setup();
+
+		render(
+			<EventFormModal
+				mode="edit"
+				open
+				event={event}
+				onOpenChange={jest.fn()}
+				onSave={jest.fn().mockResolvedValue(true)}
+				eventTypes={[
+					{
+						id: 1,
+						name: 'reuniones',
+						color: '#7c3aed',
+					},
+				]}
+			/>
+		);
+
+		await user.click(
+			screen.getByRole('button', {
+				name: /guardar cambios/i,
+			})
+		);
+
+		await waitFor(() => {
+			expect(toast).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					title: 'Evento creado',
+				})
+			);
+		});
+	});
+
+	it('calls onOpenChange(false) when cancelling in controlled mode', async () => {
+		const user = userEvent.setup();
+
+		const onOpenChange = jest.fn();
+
+		render(
+			<EventFormModal
+				mode="edit"
+				open
+				event={event}
+				onOpenChange={onOpenChange}
+				onSave={jest.fn()}
+				eventTypes={[
+					{
+						id: 1,
+						name: 'reuniones',
+						color: '#7c3aed',
+					},
+				]}
+			/>
+		);
+
+		await user.click(screen.getByRole('button', { name: /cancelar/i }));
+
+		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 });

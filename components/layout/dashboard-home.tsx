@@ -1,11 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { useEffect, useMemo, useState } from 'react';
-import { getClientsCount } from '@/lib/clients/clients';
-import { getWorksInProgressCount, Work } from '@/lib/works/works';
-import { getSoldBudgetsCount } from '@/lib/reports/budgets/methods';
+import { Work } from '@/lib/works/works';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { formatCreatedAt } from '@/utils/format-date';
+import { WeeklyClients } from '@/components/dashboard/weekly-clients';
+import { WeeklyWorks } from '@/components/dashboard/weekly-works';
 
 export function DashboardHome() {
 	const { events, isLoading } = useLoadEvents();
@@ -13,39 +13,6 @@ export function DashboardHome() {
 		() => events.filter((event) => event.is_overdue === true),
 		[events]
 	);
-	const [totalClients, setTotalClients] = useState(0);
-	const [worksInProgress, setWorksInProgress] = useState(0);
-	const [soldBudgets, setSoldBudgets] = useState(0);
-
-	useEffect(() => {
-		let isMounted = true;
-
-		const fetchCounts = async () => {
-			const [clientsResult, worksResult, budgetsSoldResult] = await Promise.all([
-				getClientsCount(),
-				getWorksInProgressCount(),
-				getSoldBudgetsCount(),
-			]);
-
-			if (!isMounted) return;
-
-			if (!clientsResult.error && clientsResult.data !== null) {
-				setTotalClients(clientsResult.data);
-			}
-			if (!worksResult.error && worksResult.data !== null) {
-				setWorksInProgress(worksResult.data);
-			}
-			if (!budgetsSoldResult.error && budgetsSoldResult.data !== null) {
-				setSoldBudgets(budgetsSoldResult.data);
-			}
-		};
-
-		fetchCounts();
-
-		return () => {
-			isMounted = false;
-		};
-	}, []);
 
 	const [workDataMap, setWorkDataMap] = useState<Record<number, Work>>({});
 	const [clientDataMap, setClientDataMap] = useState<Record<number, any>>({});
@@ -98,7 +65,7 @@ export function DashboardHome() {
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-3">
-				<Card className="p-4">
+				<Card className="p-4 min-w-0">
 					<div className="flex items-center justify-between mb-4">
 						<h3 className="text-sm font-medium text-muted-foreground">Eventos vencidos</h3>
 						<span className="text-xs rounded-full bg-red-500/10 text-red-600 px-2 py-0.5">
@@ -161,33 +128,10 @@ export function DashboardHome() {
 					</div>
 				</Card>
 
-				<div className="lg:col-span-2 grid grid-cols-2 gap-4">
-					<Card className="p-6">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">Clientes activos</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{totalClients}</p>
-							</div>
-						</div>
-					</Card>
-
-					<Card className="p-6">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">Presupuestos vendidos</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{soldBudgets}</p>
-							</div>
-						</div>
-					</Card>
-
-					<Card className="p-6">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">Obras en curso</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{worksInProgress}</p>
-							</div>
-						</div>
-					</Card>
+				<div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+					{' '}
+					<WeeklyClients />
+					<WeeklyWorks />
 				</div>
 			</div>
 		</div>

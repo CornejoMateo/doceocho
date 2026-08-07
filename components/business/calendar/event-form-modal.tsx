@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { format, isBefore, startOfDay } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -32,15 +32,33 @@ import { validateDate } from '@/helpers/calendar/validateDate';
 import { EventType, getEventTypeOptions } from '@/lib/calendar/event-types';
 import { ClientSelect } from '@/components/ui/client-select';
 import { getWorksByClientId, Work } from '@/lib/works/works';
+import { Event } from '@/lib/calendar/events';
 
 interface EventFormModalProps {
 	onSave: (data: any) => Promise<boolean>;
-	children: React.ReactNode;
+	children?: React.ReactNode;
 	eventTypes?: EventType[];
+	mode?: 'create' | 'edit';
+	event?: Event;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+	initialWork?: Work | null;
 }
 
-export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormModalProps) {
-	const [isOpen, setIsOpen] = useState(false);
+export function EventFormModal({
+	onSave,
+	children,
+	eventTypes = [],
+	mode = 'create',
+	event,
+	open: controlledOpen,
+	onOpenChange: setControlledOpen,
+	initialWork,
+}: EventFormModalProps) {
+	const [internalOpen, setInternalOpen] = useState(false);
+	const isControlled = controlledOpen !== undefined;
+	const isOpen = isControlled ? controlledOpen : internalOpen;
+	const setIsOpen = isControlled ? (setControlledOpen ?? (() => {})) : setInternalOpen;
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 	const [isMobile, setIsMobile] = useState(false);
 	const { toast } = useToast();
@@ -55,6 +73,93 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 		window.addEventListener('resize', checkMobile);
 		return () => window.removeEventListener('resize', checkMobile);
 	}, []);
+
+	useEffect(() => {
+		if (isOpen && mode === 'edit' && event) {
+			setFormData({
+				title: event.title || '',
+				type: event.type || defaultEventType,
+				date: event.date ? parse(event.date, 'yyyy-MM-dd', new Date()) : undefined,
+				client_id: event.client_id ?? null,
+				client_name: event.client_name || '',
+				isManualClient: !event.client_id && !!event.client_name,
+				work_id: event.work_id ?? null,
+				work_location: event.work_location || '',
+				isManualWork: !event.work_id && !!event.work_location,
+				description: event.description || '',
+				remember: event.remember ?? true,
+			});
+
+			let isStale = false;
+
+			if (event.client_id) {
+				setLoadingWorks(true);
+				getWorksByClientId(event.client_id)
+					.then(({ data, error }) => {
+						if (isStale) return;
+						if (!error) setClientWorks(data || []);
+					})
+					.catch((err) => {
+						if (isStale) return;
+						console.error('Error fetching works:', err);
+					})
+					.finally(() => {
+						if (!isStale) setLoadingWorks(false);
+					});
+			} else {
+				setClientWorks([]);
+				setLoadingWorks(false);
+			}
+
+			return () => {
+				isStale = true;
+			};
+		}
+	}, [isOpen, mode, event, defaultEventType]);
+
+	useEffect(() => {
+		if (isOpen && mode === 'create' && initialWork) {
+			setFormData({
+				title: initialWork.name || '',
+				type: defaultEventType,
+				date: undefined,
+				client_id: initialWork.client_id ?? null,
+				client_name:
+					[initialWork.client_last_name, initialWork.client_name].filter(Boolean).join(' ') || '',
+				isManualClient: false,
+				work_id: initialWork.id ?? null,
+				work_location: initialWork.address || '',
+				isManualWork: false,
+				description: '',
+				remember: true,
+			});
+
+			let isStale = false;
+
+			if (initialWork.client_id) {
+				setLoadingWorks(true);
+				getWorksByClientId(initialWork.client_id)
+					.then(({ data, error }) => {
+						if (isStale) return;
+						if (!error) setClientWorks(data || []);
+					})
+					.catch((err) => {
+						if (isStale) return;
+						console.error('Error fetching works:', err);
+					})
+					.finally(() => {
+						if (!isStale) setLoadingWorks(false);
+					});
+			} else {
+				setClientWorks([]);
+				setLoadingWorks(false);
+			}
+
+			return () => {
+				isStale = true;
+			};
+		}
+	}, [isOpen, mode, initialWork]);
 
 	useEffect(() => {
 		setFormData((previous) => {
@@ -127,7 +232,7 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 		}));
 	};
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
 		const dateError = validateDate(formData.date);
@@ -139,19 +244,22 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 			});
 			return;
 		}
-
-		onSave({
+		const success = await onSave({
+			...(mode === 'edit' && event ? { id: event.id } : {}),
 			...formData,
 			date: format(formData.date!, 'dd-MM-yyyy'),
 		});
 
-		setIsOpen(false);
-		resetForm();
+		if (!success) return;
 
-		toast({
-			title: 'Evento creado',
-			description: 'El evento se ha creado correctamente',
-		});
+		setIsOpen(false);
+		if (mode === 'create') {
+			resetForm();
+			toast({
+				title: 'Evento creado',
+				description: 'El evento se ha creado correctamente',
+			});
+		}
 	};
 
 	const resetForm = () => {
@@ -174,12 +282,14 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>{children}</DialogTrigger>
+			{children && <DialogTrigger asChild>{children}</DialogTrigger>}{' '}
 			<DialogContent className="sm:max-w-[600px]">
 				<DialogHeader>
-					<DialogTitle>Nuevo evento</DialogTitle>
+					<DialogTitle>{mode === 'edit' ? 'Editar evento' : 'Nuevo evento'}</DialogTitle>
 					<DialogDescription>
-						Completa los detalles del nuevo evento. Haz clic en guardar cuando hayas terminado.
+						{mode === 'edit'
+							? 'Modifica los detalles del evento. Haz clic en guardar cuando hayas terminado.'
+							: 'Completa los detalles del nuevo evento. Haz clic en guardar cuando hayas terminado.'}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -227,7 +337,7 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 								<Button
 									variant="outline"
 									className={cn(
-										isMobile ? 'w-37' : 'w-full',
+										isMobile ? 'w-full' : 'w-full',
 										'text-left font-normal',
 										!formData.date && 'text-muted-foreground'
 									)}
@@ -248,8 +358,7 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 										setFormData((prev) => ({ ...prev, date }));
 										setIsCalendarOpen(false);
 									}}
-									disabled={(date) => isBefore(date, startOfDay(new Date()))}
-									initialFocus
+									autoFocus
 									locale={es}
 								/>
 							</PopoverContent>
@@ -308,7 +417,7 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 									}
 								}}
 							>
-								<SelectTrigger className="w-full">
+								<SelectTrigger className="w-full min-w-0">
 									<SelectValue
 										placeholder={loadingWorks ? 'Cargando obras...' : 'Seleccionar obra...'}
 									/>
@@ -383,7 +492,7 @@ export function EventFormModal({ onSave, children, eventTypes = [] }: EventFormM
 						>
 							Cancelar
 						</Button>
-						<Button type="submit">Guardar</Button>
+						<Button type="submit">{mode === 'edit' ? 'Guardar cambios' : 'Guardar'}</Button>
 					</DialogFooter>
 				</form>
 			</DialogContent>

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { WorksOpenings } from '@/components/business/works/works-progress';
 import { WorkWithProgress } from '@/lib/works/works';
 
@@ -16,6 +16,7 @@ jest.mock('@/components/business/works/work-card', () => ({
 
 const mockWorks: WorkWithProgress[] = Array.from({ length: 12 }, (_, i) => ({
 	id: i + 1,
+	name: `Obra ${i + 1}`,
 	address: `Calle ${i + 1}`,
 	locality: 'CABA',
 	client_name: `Cliente${i + 1}`,
@@ -26,6 +27,7 @@ const mockWorks: WorkWithProgress[] = Array.from({ length: 12 }, (_, i) => ({
 	architect: '',
 	furniture: '',
 	hasNotes: false,
+	hasBudget: i >= 3,
 	general_note: null,
 	tasks: [],
 }));
@@ -99,6 +101,22 @@ jest.mock('@/components/ui/use-toast', () => ({
 	toast: jest.fn(),
 }));
 
+jest.mock('@/hooks/calendar/use-load-event-types', () => ({
+	useLoadEventTypes: () => ({
+		eventTypes: [],
+	}),
+}));
+
+jest.mock('@/components/business/calendar/event-form-modal', () => ({
+	EventFormModal: ({ open, onOpenChange, onSave }: any) =>
+		open ? (
+			<div data-testid="event-form-modal">
+				<button onClick={() => onOpenChange(false)}>Close</button>
+				<button onClick={() => onSave({})}>Save</button>
+			</div>
+		) : null,
+}));
+
 describe('WorksOpenings (works-progress)', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -131,7 +149,8 @@ describe('WorksOpenings (works-progress)', () => {
 		render(<WorksOpenings />);
 
 		expect(screen.getByText('12')).toBeInTheDocument();
-		expect(screen.getByText('3')).toBeInTheDocument();
+		const pendingCard = screen.getByText('Pendientes').closest('[data-slot="card"]') as HTMLElement;
+		expect(within(pendingCard).getByText('3')).toBeInTheDocument();
 	});
 
 	it('renders work cards', () => {
@@ -162,6 +181,24 @@ describe('WorksOpenings (works-progress)', () => {
 
 		const cards = screen.getAllByTestId('work-card');
 		expect(cards.length).toBe(3);
+	});
+
+	it('shows "sin presupuesto" toggle with count', () => {
+		render(<WorksOpenings />);
+
+		const toggle = screen.getByText('Mostrar obras sin presupuesto');
+		expect(toggle).toBeInTheDocument();
+		const label = toggle.closest('label')!;
+		expect(within(label).getByText('3')).toBeInTheDocument();
+	});
+
+	it('filters works without budget when toggle is enabled', () => {
+		render(<WorksOpenings />);
+
+		fireEvent.click(screen.getByRole('switch'));
+
+		const cards = screen.getAllByTestId('work-card');
+		expect(cards).toHaveLength(3);
 	});
 
 	it('renders pagination when there are many works', () => {

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Client } from '@/lib/clients/clients';
-import { MapPin, X, Plus } from 'lucide-react';
+import { MapPin, X, Plus, IdCard } from 'lucide-react';
 import { EmailLink } from '@/components/ui/email-link';
 import { WhatsAppLink } from '@/components/ui/whatsapp-link';
 import { useState, useEffect } from 'react';
@@ -21,7 +21,8 @@ import { WorksList } from '@/components/business/works/works-list';
 import { getClientById, updateClient } from '@/lib/clients/clients';
 import { ClientBalances } from '@/components/business/balances/client-balances';
 import { BalanceForm } from '@/components/business/balances/balance-form';
-import { createBalance } from '@/lib/balances/balances';
+import { BalanceDetailsModal } from '@/components/business/balances/balance-details-modal';
+import { createBalance, BalanceWithBudget } from '@/lib/balances/balances';
 import { toast } from '@/components/ui/use-toast';
 import { ClientBudgetsTab } from '@/components/business/budgets/client-budgets-tab';
 import { ClientImagesGallery } from '@/components/business/clients/files-client/files-client';
@@ -30,6 +31,7 @@ import { useAutoSave } from '@/hooks/clients/use-auto-save';
 import { translateError } from '@/lib/error-translator';
 import { useClientWorks } from '@/hooks/clients/use-client-works';
 import { useClientBudgets } from '@/hooks/clients/use-client-budgets';
+import { useClientBalances } from '@/hooks/clients/use-client-balances';
 
 interface ClientDetailsDialogProps {
 	client: Client | null;
@@ -48,8 +50,9 @@ export function ClientDetailsDialog({
 }: ClientDetailsDialogProps) {
 	const [isWorkFormOpen, setIsWorkFormOpen] = useState(false);
 	const [isBalanceFormOpen, setIsBalanceFormOpen] = useState(false);
+	const [selectedBalance, setSelectedBalance] = useState<BalanceWithBudget | null>(null);
+	const [isBalanceDetailsOpen, setIsBalanceDetailsOpen] = useState(false);
 	const [clientData, setClientData] = useState<Client | null>(null);
-	const [balancesKey, setBalancesKey] = useState(0);
 	const { user } = useAuth();
 
 	const isAuthorized = user?.role === 'Admin';
@@ -70,11 +73,6 @@ export function ClientDetailsDialog({
 
 			if (!error && data) {
 				setClientData(data);
-
-				// Notify parent component to refresh its data
-				if (onClientUpdated) {
-					onClientUpdated();
-				}
 			}
 
 			return { data, error };
@@ -83,9 +81,34 @@ export function ClientDetailsDialog({
 		errorMessage: 'Error al guardar información',
 	});
 
-	const { works, isLoading, loadWorks, create, remove, update } = useClientWorks(client?.id);
+	const {
+		works,
+		isLoading: isLoadingWorks,
+		loadWorks,
+		create,
+		remove,
+		update,
+	} = useClientWorks(client?.id);
 
 	const { budgets, loadBudgets } = useClientBudgets(client?.id);
+
+	const { balances, isLoading: isLoadingBalances, refresh } = useClientBalances(client?.id);
+
+	const handleOpenWorkBalance = (_workId: number, balanceId: number) => {
+		const balance = balances.find((b) => b.id === balanceId);
+
+		if (!balance) {
+			toast({
+				variant: 'destructive',
+				title: 'Sin saldo',
+				description: 'Esta obra no tiene un saldo asociado.',
+			});
+			return;
+		}
+
+		setSelectedBalance(balance);
+		setIsBalanceDetailsOpen(true);
+	};
 
 	const handleTabChange = (value: string) => {
 		if (value === 'works') {
@@ -164,6 +187,7 @@ export function ClientDetailsDialog({
 
 			setIsBalanceFormOpen(false);
 			await loadBudgets();
+			await refresh();
 		} catch (error) {
 			const errorMessage = translateError(error);
 			toast({
@@ -216,7 +240,8 @@ export function ClientDetailsDialog({
 		setCover('');
 		setIsWorkFormOpen(false);
 		setIsBalanceFormOpen(false);
-		setBalancesKey(0);
+		setSelectedBalance(null);
+		setIsBalanceDetailsOpen(false);
 	};
 
 	if (!clientData) return null;
@@ -224,7 +249,7 @@ export function ClientDetailsDialog({
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
-				className="w-[95vw] max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[60vw] h-[90vh] sm:h-[85vh] flex flex-col p-0 sm:p-1"
+				className="w-[95vw] max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[60vw] h-[90dvh] sm:h-[85dvh] flex flex-col p-0 sm:p-1"
 				showCloseButton={false}
 			>
 				<DialogHeader>
@@ -264,11 +289,19 @@ export function ClientDetailsDialog({
 										</WhatsAppLink>
 									</div>
 								)}
+								{clientData.identity_number && (
+									<div className="flex items-center justify-center gap-1 text-sm">
+										<IdCard className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+										<span className="text-sm">{clientData.identity_number}</span>
+									</div>
+								)}
+								{clientData.locality && (
+									<div className="flex items-center justify-center gap-1 text-sm">
+										<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+										<span className="text-sm">{clientData.locality}</span>
+									</div>
+								)}
 							</>
-							<div className="flex items-center justify-center gap-1 text-sm">
-								<MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-								<span className="text-xs">{clientData.locality}</span>
-							</div>
 						</div>
 					</div>
 
@@ -321,16 +354,18 @@ export function ClientDetailsDialog({
 								</TabsContent>
 								<TabsContent value="works" className="space-y-4">
 									<div>
-										{isLoading ? (
+										{isLoadingWorks ? (
 											<p className="text-sm text-muted-foreground text-center py-4">
 												Cargando obras...
 											</p>
 										) : works.length > 0 ? (
 											<WorksList
 												works={works}
+												balances={balances}
 												onDelete={handleWorkDelete}
 												onCreateWork={() => setIsWorkFormOpen(true)}
 												onUpdate={handleWorkUpdate}
+												onOpenBalance={handleOpenWorkBalance}
 											/>
 										) : (
 											<div className="text-center py-8">
@@ -358,8 +393,10 @@ export function ClientDetailsDialog({
 								</TabsContent>
 								<TabsContent value="balances" className="space-y-4">
 									<ClientBalances
-										key={balancesKey}
 										clientId={clientData.id}
+										balances={balances}
+										isLoading={isLoadingBalances}
+										onRefresh={refresh}
 										onCreateBalance={async () => {
 											await loadBudgets();
 											setIsBalanceFormOpen(true);
@@ -400,6 +437,14 @@ export function ClientDetailsDialog({
 					/>
 				</DialogContent>
 			</Dialog>
+
+			<BalanceDetailsModal
+				key={selectedBalance?.id ?? 0}
+				balance={selectedBalance}
+				isOpen={isBalanceDetailsOpen}
+				onOpenChange={setIsBalanceDetailsOpen}
+				onTransactionCreated={refresh}
+			/>
 		</Dialog>
 	);
 }

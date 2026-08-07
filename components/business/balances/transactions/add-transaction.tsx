@@ -94,7 +94,7 @@ export function AddTransactionSection({
 
 	if (!addingMode) {
 		return (
-			<div className="flex flex-col sm:flex-row gap-2 justify-center">
+			<div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
 				<Button
 					variant="outline"
 					size="sm"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,12 @@ export function FolderCard({
 	const [assignModalOpen, setAssignModalOpen] = useState(false);
 	const [selectedWorkId, setSelectedWorkId] = useState<string>('');
 
+	useEffect(() => {
+		if (!assignModalOpen) {
+			setSelectedWorkId('');
+		}
+	}, [assignModalOpen]);
+
 	const folderBudgetsList = folder.budgets;
 	const chosenCountInFolder = folderBudgetsList.filter((b) => !!b.accepted).length;
 
@@ -73,23 +79,27 @@ export function FolderCard({
 		<>
 			<Collapsible open={isOpen} onOpenChange={onToggle}>
 				<Card className="border-border">
-					<div className="flex items-center justify-between gap-2 p-4">
+					<div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
 						<CollapsibleTrigger asChild>
-							<button className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
-								<div className="min-w-0">
-									<p className="font-semibold text-foreground truncate">{workLabel(folder)}</p>
-									<p className="text-xs text-muted-foreground">
+							<button className="flex w-full items-start justify-between gap-3 text-left sm:flex-1 sm:items-center">
+								<div className="min-w-0 flex-1">
+									<p className="font-semibold text-foreground break-words">{workLabel(folder)}</p>
+
+									<p className="mt-1 text-xs text-muted-foreground">
 										{folderBudgetsList.length} presupuesto(s)
 									</p>
 								</div>
-								<div className="flex items-center gap-2">
+
+								<div className="flex shrink-0 items-center gap-2">
 									{chosenCountInFolder > 0 ? (
 										<Badge className="gap-1">
-											<CheckCircle className="h-3 w-3" /> {chosenCountInFolder} elegido(s)
+											<CheckCircle className="h-3 w-3" />
+											{chosenCountInFolder} elegido(s)
 										</Badge>
 									) : (
 										<Badge variant="secondary">Opciones</Badge>
 									)}
+
 									<ChevronDown
 										className={cn(
 											'h-4 w-4 text-muted-foreground transition-transform',
@@ -99,7 +109,8 @@ export function FolderCard({
 								</div>
 							</button>
 						</CollapsibleTrigger>
-						<div className="flex items-center gap-1">
+
+						<div className="flex w-full gap-2 sm:w-auto">
 							{!folder.work_id && (
 								<Button
 									variant="outline"
@@ -109,12 +120,13 @@ export function FolderCard({
 										setAssignModalOpen(true);
 									}}
 									disabled={isLoading || works.length === 0}
-									className="gap-1.5"
+									className="flex-1 sm:flex-none"
 								>
 									<Link2 className="h-3.5 w-3.5" />
-									Asignar obra
+									<span className="ml-1">Asignar obra</span>
 								</Button>
 							)}
+
 							<Button
 								variant="ghost"
 								size="sm"
@@ -129,7 +141,6 @@ export function FolderCard({
 							</Button>
 						</div>
 					</div>
-
 					<CollapsibleContent>
 						<div className="px-4 pb-4 space-y-4">
 							{orderedTypeKeys.map((typeKey) => {
@@ -170,28 +181,36 @@ export function FolderCard({
 			</Collapsible>
 
 			<Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
-				<DialogContent>
+				<DialogContent className="min-w-0">
 					<DialogHeader>
 						<DialogTitle>Asignar obra</DialogTitle>
 						<DialogDescription>
 							Seleccioná la obra que querés asignar a esta carpeta de presupuestos.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="space-y-4">
+					<div className="space-y-4 min-w-0">
 						<Select value={selectedWorkId} onValueChange={setSelectedWorkId}>
-							<SelectTrigger>
+							<SelectTrigger className="w-full">
 								<SelectValue placeholder="Seleccionar obra" />
 							</SelectTrigger>
 							<SelectContent>
 								{works.map((w) => (
 									<SelectItem key={w.id} value={String(w.id)}>
-										{[w.address, w.locality].filter(Boolean).join(' - ') || `Obra ${w.id}`}
+										{w.name ||
+											[w.address, w.locality].filter(Boolean).join(' - ') ||
+											`Obra ${w.id}`}
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
 						<div className="flex justify-end gap-2">
-							<Button variant="outline" onClick={() => setAssignModalOpen(false)}>
+							<Button
+								variant="outline"
+								onClick={() => {
+									setAssignModalOpen(false);
+									setSelectedWorkId('');
+								}}
+							>
 								Cancelar
 							</Button>
 							<Button onClick={handleConfirmAssign} disabled={!selectedWorkId}>

@@ -58,6 +58,10 @@ export const translateError = (error: any): string => {
 		return 'Error en la base de datos. Contacta al administrador.';
 	}
 
+	if (errorMessage.includes('column') && errorMessage.includes('schema cache')) {
+		return 'Error en la base de datos. No se encontró una columna en la base de datos. Contacta al administrador.';
+	}
+
 	// Geolocation errors
 	if (
 		errorMessage.includes('PERMISSION_DENIED') ||
@@ -121,6 +125,16 @@ export const translateError = (error: any): string => {
 	// RLS errors
 	if (errorMessage.includes('RLS policy') || errorMessage.includes('row-level security')) {
 		return 'No tienes permisos para realizar esta acción.';
+	}
+
+	// Date
+	if (
+		errorMessage.includes('invalid input syntax for type date') ||
+		errorMessage.includes('date/time field value out of range') ||
+		errorMessage.includes('date field value out of range') ||
+		errorMessage.includes('timestamp out of range')
+	) {
+		return 'La fecha proporcionada no es válida.';
 	}
 
 	// Return original message if no translation found
