@@ -18,6 +18,7 @@ import {
 	Search,
 	CheckSquare,
 	BrickWall,
+	Wallet,
 } from 'lucide-react';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
 import { format } from 'date-fns';
@@ -35,24 +36,31 @@ import {
 } from '@/components/ui/pagination';
 import { DeleteWorkDialog } from '@/components/business/works/delete-work-dialog';
 import { EditableField } from '@/components/business/works/editable-field';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { paginateAndFilter } from '@/utils/pagination';
 import { useWorkChecklists } from '@/hooks/clients/use-works-checklists';
 import { statusConfig } from '@/constants/type-config';
+import { BalanceWithBudget } from '@/lib/balances/balances';
+import { formatCurrency } from '@/utils/formats-money';
 
 interface WorksListProps {
 	works: Work[];
+	balances?: BalanceWithBudget[];
 	onDelete?: (workId: number) => Promise<void>;
 	onWorkUpdated?: (updatedWork: Work) => void;
 	onCreateWork?: () => void;
 	onUpdate?: (workId: number, updates: Partial<Work>) => Promise<Work>;
+	onOpenBalance?: (workId: number, balanceId: number) => void;
 }
 
 export function WorksList({
 	works: initialWorks,
+	balances = [],
 	onDelete,
 	onWorkUpdated,
 	onCreateWork,
 	onUpdate,
+	onOpenBalance,
 }: WorksListProps) {
 	const [workToDelete, setWorkToDelete] = useState<{ id: number; address: string } | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -60,9 +68,21 @@ export function WorksList({
 	const [searchTerm, setSearchTerm] = useState('');
 	const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
 	const [selectedWorkId, setSelectedWorkId] = useState<number | null>(null);
+	const [balancePopoverWorkId, setBalancePopoverWorkId] = useState<number | null>(null);
 	const itemsPerPage = 6;
 
 	const { workChecklists, loadingChecklists } = useWorkChecklists(initialWorks);
+
+	const balancesByWork = useMemo(() => {
+		const map: Record<number, BalanceWithBudget[]> = {};
+		for (const balance of balances) {
+			const workId = balance.budget?.folder_budget?.work_id;
+			if (workId) {
+				map[workId] = [...(map[workId] ?? []), balance];
+			}
+		}
+		return map;
+	}, [balances]);
 
 	const handleDeleteConfirm = async () => {
 		if (workToDelete) {
@@ -152,7 +172,7 @@ export function WorksList({
 										onSave={async (newValue) => {
 											await handleUpdateWork(work.id, { name: newValue });
 										}}
-										className="text-base sm:text-lg font-semibold truncate"
+										className="text-base mt-2 sm:text-lg font-semibold truncate"
 									/>
 									<EditableField
 										value={work.address || ''}
@@ -160,7 +180,7 @@ export function WorksList({
 											await handleUpdateWork(work.id, { address: newValue });
 										}}
 										label="Dirección"
-										className="text-xs sm:text-sm text-muted-foreground truncate"
+										className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
 									/>
 									<EditableField
 										value={work.locality || ''}
@@ -168,7 +188,7 @@ export function WorksList({
 											await handleUpdateWork(work.id, { locality: newValue });
 										}}
 										label="Localidad"
-										className="text-xs sm:text-sm text-muted-foreground truncate"
+										className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
 									/>
 									<EditableField
 										value={work.zone || ''}
@@ -177,7 +197,7 @@ export function WorksList({
 										}}
 										formatDisplay={(value) => value || 'Zona no especificada'}
 										label="Zona"
-										className="text-xs sm:text-sm text-muted-foreground truncate"
+										className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
 									/>
 									<EditableField
 										value={work.hood || ''}
@@ -186,7 +206,7 @@ export function WorksList({
 										}}
 										formatDisplay={(value) => value || 'Barrio no especificado'}
 										label="Barrio"
-										className="text-xs sm:text-sm text-muted-foreground truncate"
+										className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
 									/>
 								</div>
 								<div className="flex flex-row sm:flex-row gap-2 sm:gap-3 items-center justify-between sm:justify-end">
@@ -282,7 +302,7 @@ export function WorksList({
 										: 'Sin fecha'}
 								</span>
 							</div>
-							<div className="flex items-end justify-start sm:justify-between w-full sm:-mx-3 sm:px-3 pb-1 sm:col-span-2">
+							<div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-start sm:justify-between w-full sm:-mx-3 sm:px-3 pb-1 sm:col-span-2 gap-2">
 								<Button
 									variant="outline"
 									size="sm"
@@ -295,6 +315,54 @@ export function WorksList({
 									<ListChecks className="h-4 w-4 mr-2" />
 									{workChecklists[work.id] ? 'Agregar Checklists' : 'Crear Checklists'}
 								</Button>
+								{onOpenBalance && (
+									<Popover
+										open={balancePopoverWorkId === work.id}
+										onOpenChange={(open) => setBalancePopoverWorkId(open ? work.id : null)}
+									>
+										<PopoverTrigger asChild>
+											<Button variant="outline" size="sm" className="w-full sm:w-auto">
+												<Wallet className="h-4 w-4 mr-2" />
+												Saldos
+											</Button>
+										</PopoverTrigger>
+										<PopoverContent align="end" className="p-1 w-72">
+											<div className="px-2 py-2 text-xs font-medium text-muted-foreground">
+												Saldos de la obra
+											</div>
+											{(balancesByWork[work.id] ?? []).length === 0 ? (
+												<div className="px-2 py-3 text-sm text-muted-foreground text-center">
+													No hay saldos asociados
+												</div>
+											) : (
+												<div className="max-h-64 overflow-y-auto">
+													{(balancesByWork[work.id] ?? []).map((balance) => {
+														const budget = balance.budget;
+														const label = budget
+															? [budget.number, budget.type].filter(Boolean).join(' · ')
+															: 'Saldo sin presupuesto';
+														return (
+															<button
+																key={balance.id}
+																type="button"
+																onClick={() => {
+																	onOpenBalance(work.id, balance.id);
+																	setBalancePopoverWorkId(null);
+																}}
+																className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-md text-left text-sm hover:bg-muted cursor-pointer"
+															>
+																<span className="truncate">{label}</span>
+																<span className="text-xs text-muted-foreground whitespace-nowrap">
+																	{formatCurrency(budget?.amount_ars ?? 0)}
+																</span>
+															</button>
+														);
+													})}
+												</div>
+											)}
+										</PopoverContent>
+									</Popover>
+								)}
 							</div>
 						</div>
 					</CardContent>

@@ -22,8 +22,7 @@ import {
 	PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Plus, Search } from 'lucide-react';
-import { BalanceWithBudget, getBalancesByClientId } from '@/lib/balances/balances';
-import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { BalanceWithBudget } from '@/lib/balances/balances';
 import { getTotalByBalanceId } from '@/lib/balances/balance_transactions';
 import { BalanceDetailsModal } from './balance-details-modal';
 import { DollarUpdateModal } from '@/components/ui/dollar-update-modal';
@@ -33,6 +32,9 @@ import { useBalanceHandlers } from '@/hooks/balances/use-balance-handlers';
 
 interface ClientBalancesProps {
 	clientId: number;
+	balances: BalanceWithBudget[];
+	isLoading?: boolean;
+	onRefresh: () => void;
 	onCreateBalance?: () => void;
 	onBalanceDeleted?: () => void;
 }
@@ -46,6 +48,9 @@ export interface BalanceWithTotals extends BalanceWithBudget {
 
 export function ClientBalances({
 	clientId,
+	balances,
+	isLoading = false,
+	onRefresh,
 	onCreateBalance,
 	onBalanceDeleted,
 }: ClientBalancesProps) {
@@ -53,19 +58,6 @@ export function ClientBalances({
 	const [currentPage, setCurrentPage] = useState(1);
 	const [balancesWithTotals, setBalancesWithTotals] = useState<BalanceWithTotals[]>([]);
 	const itemsPerPage = 2;
-
-	const {
-		data: rawBalances,
-		loading: isLoading,
-		refresh,
-	} = useOptimizedRealtime<BalanceWithBudget>(
-		'balances',
-		async () => {
-			const { data } = await getBalancesByClientId(clientId);
-			return data ?? [];
-		},
-		`balances_${clientId}`
-	);
 
 	const {
 		selectedBalance,
@@ -85,19 +77,19 @@ export function ClientBalances({
 		handleBalanceUpdate,
 	} = useBalanceHandlers({
 		onBalanceDeleted,
-		onRefresh: refresh,
+		onRefresh,
 	});
 
-	// Calculate totals whenever rawBalances change
+	// Calculate totals whenever balances change
 	useEffect(() => {
 		const fetchTotals = async () => {
-			if (!rawBalances || rawBalances.length === 0) {
+			if (!balances || balances.length === 0) {
 				setBalancesWithTotals([]);
 				return;
 			}
 
 			const balancesWithTotals = await Promise.all(
-				rawBalances.map(async (balance) => {
+				balances.map(async (balance) => {
 					const { data: totals } = await getTotalByBalanceId(balance.id);
 					const totalPaid = totals?.totalAmount || 0;
 					const totalPaidUSD = totals?.totalAmountUSD || 0;
@@ -128,7 +120,7 @@ export function ClientBalances({
 		};
 
 		fetchTotals();
-	}, [rawBalances]);
+	}, [balances]);
 
 	// Filter balances based on search term
 	const filteredBalances = useMemo(() => {
@@ -284,6 +276,7 @@ export function ClientBalances({
 			)}
 
 			<BalanceDetailsModal
+				key={selectedBalance?.id ?? 0}
 				balance={selectedBalance}
 				isOpen={isDetailsModalOpen}
 				onOpenChange={setIsDetailsModalOpen}

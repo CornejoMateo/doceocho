@@ -64,7 +64,7 @@ describe('BalanceInformation', () => {
 
 	const defaultProps = {
 		balanceId: 1,
-		work: { locality: 'Springfield', address: 'Calle 123' },
+		work: { locality: 'Springfield', address: 'Calle 123', name: 'Obra Springfield' },
 		budget: { number: 'BGT-001', type: 'COCINA' },
 		startDate: '2024-06-01',
 		contractDateUsd: 1000,
@@ -85,8 +85,7 @@ describe('BalanceInformation', () => {
 	it('renders work information', () => {
 		render(<BalanceInformation {...defaultProps} />);
 
-		expect(screen.getByText('Springfield')).toBeInTheDocument();
-		expect(screen.getByText('Calle 123')).toBeInTheDocument();
+		expect(screen.getByText('Obra Springfield')).toBeInTheDocument();
 	});
 
 	it('renders "Sin obra asignada" when no work', () => {

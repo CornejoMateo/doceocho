@@ -157,9 +157,9 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 								const workName = work?.name || '';
 								return (
 									<SelectItem key={budget.id} value={String(budget.id)}>
-										{workName && `${workName} - `}
-										{locality} - {address} - {budgetNumber} - {budgetType} ($
-										{budget.amount_ars.toLocaleString('es-AR')})
+										{workName
+											? `${workName} ($${budget.amount_ars.toLocaleString('es-AR')})`
+											: `${locality} - ${address} - ${budgetNumber} - ${budgetType} ($${budget.amount_ars.toLocaleString('es-AR')})`}
 									</SelectItem>
 								);
 							})}
