@@ -72,7 +72,7 @@ export function EditableTextarea({
 	if (isModalOpen) {
 		return (
 			<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-				<DialogContent className="max-w-2xl">
+				<DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
 					<DialogHeader>
 						<DialogTitle>Detalles de la obra</DialogTitle>
 						<DialogDescription>
@@ -81,23 +81,23 @@ export function EditableTextarea({
 								: 'Visualiza los detalles completos de la obra'}
 						</DialogDescription>
 					</DialogHeader>
-					<div className="py-4">
+					<div className="flex-1 overflow-y-auto py-4 min-h-0">
 						{isEditing ? (
 							<Textarea
 								value={editedValue}
 								onChange={(e) => setEditedValue(e.target.value)}
 								disabled={isSaving}
 								rows={6}
-								className="resize-none"
+								className="resize-none w-full break-words"
 								placeholder="Describe los detalles importantes de la obra"
 							/>
 						) : (
-							<div className="whitespace-pre-wrap [overflow-wrap:anywhere] text-sm bg-muted p-4 rounded-md">
+							<div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm bg-muted p-4 rounded-md">
 								{displayValue}
 							</div>
 						)}
 					</div>
-					<DialogFooter>
+					<DialogFooter className="flex-shrink-0">
 						{isEditing ? (
 							<>
 								<Button variant="outline" onClick={handleCancel} disabled={isSaving}>
