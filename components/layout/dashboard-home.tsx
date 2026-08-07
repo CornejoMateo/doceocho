@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { useEffect, useMemo, useState } from 'react';
-import { getWorksInProgressCount, Work } from '@/lib/works/works';
+import { Work } from '@/lib/works/works';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { formatCreatedAt } from '@/utils/format-date';
 import { WeeklyClients } from '@/components/dashboard/weekly-clients';
@@ -13,27 +13,6 @@ export function DashboardHome() {
 		() => events.filter((event) => event.is_overdue === true),
 		[events]
 	);
-	const [worksInProgress, setWorksInProgress] = useState(0);
-
-	useEffect(() => {
-		let isMounted = true;
-
-		const fetchCounts = async () => {
-			const [worksResult] = await Promise.all([getWorksInProgressCount()]);
-
-			if (!isMounted) return;
-
-			if (!worksResult.error && worksResult.data !== null) {
-				setWorksInProgress(worksResult.data);
-			}
-		};
-
-		fetchCounts();
-
-		return () => {
-			isMounted = false;
-		};
-	}, []);
 
 	const [workDataMap, setWorkDataMap] = useState<Record<number, Work>>({});
 	const [clientDataMap, setClientDataMap] = useState<Record<number, any>>({});
@@ -153,14 +132,6 @@ export function DashboardHome() {
 					{' '}
 					<WeeklyClients />
 					<WeeklyWorks />
-					<Card className="p-6">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">Obras en curso</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{worksInProgress}</p>
-							</div>
-						</div>
-					</Card>
 				</div>
 			</div>
 		</div>
