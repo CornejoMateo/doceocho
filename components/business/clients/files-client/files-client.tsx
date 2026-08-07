@@ -153,6 +153,9 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 		clientId: client.id,
 		onUploadSuccess: loadFiles,
 		onImageFileSelect: (file) => {
+			if (fileInputRef.current) {
+				fileInputRef.current.value = '';
+			}
 			setFileForEditor(file);
 			setIsCameraEditorOpen(true);
 		},
@@ -235,7 +238,9 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 					<Button
 						size="sm"
 						variant="outline"
-						onClick={() => setIsCameraEditorOpen(true)}
+						onClick={() => {
+							(setIsCameraEditorOpen(true), setFileForEditor(null));
+						}}
 						disabled={isUploading}
 					>
 						<Camera className="h-4 w-4 mr-2" />
@@ -382,7 +387,10 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 
 			<ImageEditorDialog
 				open={isCameraEditorOpen}
-				onOpenChange={setIsCameraEditorOpen}
+				onOpenChange={(open) => {
+					setIsCameraEditorOpen(open);
+					if (!open) setFileForEditor(null);
+				}}
 				onImageReady={handleImageReady}
 				initialFile={fileForEditor}
 			/>

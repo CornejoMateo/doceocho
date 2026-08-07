@@ -18,13 +18,7 @@ interface BalanceCardProps {
 	onDeleteClick: () => void;
 }
 
-export function BalanceCard({
-	balance,
-	summary,
-	onCardClick,
-	onDollarUpdate,
-	onDeleteClick,
-}: BalanceCardProps) {
+export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: BalanceCardProps) {
 	return (
 		<Card
 			className="hover:shadow-md transition-shadow cursor-pointer relative"
@@ -56,7 +50,10 @@ export function BalanceCard({
 						<div className="text-sm">
 							{balance.budget?.folder_budget?.work ? (
 								<div>
-									<p className="font-medium">{balance.budget.folder_budget.work.name}</p>
+									<p className="font-medium">
+										{balance.budget.folder_budget.work.name ||
+											`${balance.budget.folder_budget.work.locality} - ${balance.budget.folder_budget.work.address}`}
+									</p>
 								</div>
 							) : balance.budget ? (
 								<div>

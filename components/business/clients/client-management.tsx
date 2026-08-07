@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
 	Pagination,
@@ -75,15 +75,17 @@ export function ClientManagement() {
 	const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 	const [viewingClient, setViewingClient] = useState<Client | null>(null);
 	const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+	const handledClientIdRef = useRef<string | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 6;
 
 	// Check for clientId in URL to open details dialog
 	useEffect(() => {
 		const clientIdParam = searchParams.get('clientId');
-		if (clientIdParam && clients.length > 0) {
+		if (clientIdParam && clientIdParam !== handledClientIdRef.current && clients.length > 0) {
 			const client = clients.find((c) => c.id === Number(clientIdParam));
 			if (client) {
+				handledClientIdRef.current = clientIdParam;
 				setViewingClient(client);
 				setIsViewDialogOpen(true);
 			}

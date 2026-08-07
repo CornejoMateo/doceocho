@@ -79,7 +79,7 @@ describe('useFileUpload', () => {
 		);
 	});
 
-	it('use predefined values when no custom values are provided', () => {
+	it('uses the custom display name and description when provided', () => {
 		const { result } = renderHook(() =>
 			useFileUpload({
 				clientId: 1,
@@ -266,5 +266,119 @@ describe('useFileUpload', () => {
 				variant: 'destructive',
 			})
 		);
+	});
+
+	it('routes an image file to onImageFileSelect when the callback is set', () => {
+		const onImageFileSelect = jest.fn();
+
+		const { result } = renderHook(() =>
+			useFileUpload({
+				clientId: 1,
+				onImageFileSelect,
+			})
+		);
+
+		const file = new File(['foto'], 'foto.jpg', {
+			type: 'image/jpeg',
+		});
+		const event = {
+			target: { files: [file] },
+		} as unknown as React.ChangeEvent<HTMLInputElement>;
+
+		act(() => {
+			result.current.handleFileSelect(event);
+		});
+
+		expect(onImageFileSelect).toHaveBeenCalledWith(file);
+		expect(validateFileForUpload).toHaveBeenCalledWith(file, expect.anything(), expect.anything());
+		expect(result.current.isUploadDialogOpen).toBe(false);
+		expect(result.current.selectedFile).toBeNull();
+	});
+
+	it('rejects an invalid image before handing it to onImageFileSelect', () => {
+		(validateFileForUpload as jest.Mock).mockReturnValue({
+			isValid: false,
+			error: 'El archivo supera el tamaño máximo permitido',
+		});
+
+		const onImageFileSelect = jest.fn();
+
+		const { result } = renderHook(() =>
+			useFileUpload({
+				clientId: 1,
+				onImageFileSelect,
+			})
+		);
+
+		const file = new File(['foto'], 'foto.jpg', {
+			type: 'image/jpeg',
+		});
+		const event = {
+			target: { files: [file] },
+		} as unknown as React.ChangeEvent<HTMLInputElement>;
+
+		act(() => {
+			result.current.handleFileSelect(event);
+		});
+
+		expect(onImageFileSelect).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith(
+			expect.objectContaining({
+				title: 'Archivo no válido',
+				variant: 'destructive',
+			})
+		);
+		expect(result.current.isUploadDialogOpen).toBe(false);
+		expect(result.current.selectedFile).toBeNull();
+	});
+
+	it('routes a non-image file to prepareFileForUpload', () => {
+		const onImageFileSelect = jest.fn();
+
+		const { result } = renderHook(() =>
+			useFileUpload({
+				clientId: 1,
+				onImageFileSelect,
+			})
+		);
+
+		const file = new File(['abc'], 'documento.pdf', {
+			type: 'application/pdf',
+		});
+		const event = {
+			target: { files: [file] },
+		} as unknown as React.ChangeEvent<HTMLInputElement>;
+
+		act(() => {
+			result.current.handleFileSelect(event);
+		});
+
+		expect(onImageFileSelect).not.toHaveBeenCalled();
+		expect(validateFileForUpload).toHaveBeenCalledWith(file, expect.anything(), expect.anything());
+		expect(result.current.isUploadDialogOpen).toBe(true);
+		expect(result.current.selectedFile).toBe(file);
+	});
+
+	it('does nothing when no file is selected', () => {
+		const onImageFileSelect = jest.fn();
+
+		const { result } = renderHook(() =>
+			useFileUpload({
+				clientId: 1,
+				onImageFileSelect,
+			})
+		);
+
+		const event = {
+			target: { files: [] },
+		} as unknown as React.ChangeEvent<HTMLInputElement>;
+
+		act(() => {
+			result.current.handleFileSelect(event);
+		});
+
+		expect(onImageFileSelect).not.toHaveBeenCalled();
+		expect(validateFileForUpload).not.toHaveBeenCalled();
+		expect(result.current.isUploadDialogOpen).toBe(false);
 	});
 });

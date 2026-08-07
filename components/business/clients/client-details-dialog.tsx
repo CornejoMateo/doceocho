@@ -187,6 +187,7 @@ export function ClientDetailsDialog({
 
 			setIsBalanceFormOpen(false);
 			await loadBudgets();
+			await refresh();
 		} catch (error) {
 			const errorMessage = translateError(error);
 			toast({

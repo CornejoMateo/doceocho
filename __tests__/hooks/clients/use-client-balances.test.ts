@@ -33,23 +33,36 @@ describe('useClientBalances', () => {
 		expect(getBalancesByClientId).not.toHaveBeenCalled();
 	});
 
-	it('fetches balances for the client and exposes them', () => {
+	it('fetches balances for the client and exposes them', async () => {
 		const balances = [
 			{ id: 1, budget: { folder_budget: { work_id: 1 } } },
 			{ id: 2, budget: { folder_budget: { work_id: 1 } } },
 		];
-		mockRealtime.mockImplementation((_table, fetchFromDb) => ({
-			data: balances,
-			loading: false,
-			refresh: jest.fn(),
-			invalidateCache: jest.fn(),
-			fetch: fetchFromDb,
-		}));
+		(getBalancesByClientId as jest.Mock).mockResolvedValue({ data: balances, error: null });
+
+		let fetchFromDb: (() => Promise<unknown>) | undefined;
+		mockRealtime.mockImplementation((_table, callback) => {
+			fetchFromDb = callback;
+			return {
+				data: [],
+				loading: false,
+				refresh: jest.fn(),
+				invalidateCache: jest.fn(),
+				fetch: callback,
+			};
+		});
 
 		const { result } = renderHook(() => useClientBalances(5));
 
-		expect(result.current.balances).toEqual(balances);
-		expect(result.current.isLoading).toBe(false);
+		expect(fetchFromDb).toBeDefined();
+
+		await act(async () => {
+			const fetched = await fetchFromDb!();
+			expect(getBalancesByClientId).toHaveBeenCalledWith(5);
+			expect(fetched).toEqual(balances);
+		});
+
+		expect(result.current.balances).toEqual([]);
 	});
 
 	it('exposes the refresh function from useOptimizedRealtime', () => {

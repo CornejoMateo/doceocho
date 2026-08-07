@@ -130,6 +130,7 @@ export function EventDetailsModal({
 			const selectedEventType = eventTypes.find((eventType) => eventType.name === type);
 			const updateData = {
 				...rest,
+				client_name: rest.client_id ? null : rest.client_name,
 				type_id: selectedEventType?.id || null,
 			};
 			const dateToFormat = updateData.date;

@@ -10,6 +10,7 @@ import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt, formatCreatedAtChat } from '@/utils/format-date';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
+import { matchesTransactionSearch } from '@/constants/cashflow/transaction-search';
 
 export function CashBoxTransactions({
 	transactions,
@@ -22,24 +23,9 @@ export function CashBoxTransactions({
 }) {
 	const [searchTerm, setSearchTerm] = useState<string>('');
 
-	const filteredTransactions = transactions.filter((transaction) => {
-		if (!searchTerm) return true;
-
-		const searchLower = searchTerm.toLowerCase();
-		const description = transaction.description?.toLowerCase() || '';
-		const category = transaction.category?.toLowerCase() || '';
-		const paymentMethod = transaction.category
-			? transaction.type === 'income'
-				? getPaymentMethodLabel(transaction.category).toLowerCase()
-				: getExpenseCategoryLabel(transaction.category).toLowerCase()
-			: '';
-
-		return (
-			description.includes(searchLower) ||
-			category.includes(searchLower) ||
-			paymentMethod.includes(searchLower)
-		);
-	});
+	const filteredTransactions = transactions.filter((transaction) =>
+		matchesTransactionSearch(transaction, searchTerm)
+	);
 
 	return (
 		<Card className="bg-card border-border">
@@ -54,6 +40,7 @@ export function CashBoxTransactions({
 							<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
 								type="text"
+								aria-label="Buscar por descripción, método de pago"
 								placeholder="Buscar por descripción, método de pago..."
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}

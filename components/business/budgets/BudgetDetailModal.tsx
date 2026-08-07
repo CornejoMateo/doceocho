@@ -48,7 +48,7 @@ export function BudgetDetailModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl">
+			<DialogContent className="w-full sm:max-w-2xl min-w-0">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<FileText className="h-5 w-5" />
@@ -107,7 +107,7 @@ export function BudgetDetailModal({
 							<Label className="text-sm font-medium text-muted-foreground">Obra</Label>
 							<p className="text-sm font-semibold">
 								{budget.folder_budget?.work
-									? `${budget.folder_budget.work.address} - ${budget.folder_budget.work.locality}`
+									? `${budget.folder_budget.work.name}`
 									: 'Sin obra asignada'}
 							</p>
 						</div>

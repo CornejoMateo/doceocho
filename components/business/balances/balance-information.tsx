@@ -123,7 +123,7 @@ export function BalanceInformation({
 					<p className="text-sm font-medium">
 						{work ? (
 							<>
-								<span className="block">{work.name}</span>
+								<span className="block">{work.name || `${work.locality} - ${work.address}`}</span>
 							</>
 						) : (
 							'Sin obra asignada'

@@ -94,11 +94,18 @@ export function EventFormModal({
 
 			if (event.client_id) {
 				setLoadingWorks(true);
-				getWorksByClientId(event.client_id).then(({ data, error }) => {
-					if (isStale) return;
-					if (!error) setClientWorks(data || []);
-					setLoadingWorks(false);
-				});
+				getWorksByClientId(event.client_id)
+					.then(({ data, error }) => {
+						if (isStale) return;
+						if (!error) setClientWorks(data || []);
+					})
+					.catch((err) => {
+						if (isStale) return;
+						console.error('Error fetching works:', err);
+					})
+					.finally(() => {
+						if (!isStale) setLoadingWorks(false);
+					});
 			} else {
 				setClientWorks([]);
 				setLoadingWorks(false);
@@ -131,11 +138,18 @@ export function EventFormModal({
 
 			if (initialWork.client_id) {
 				setLoadingWorks(true);
-				getWorksByClientId(initialWork.client_id).then(({ data, error }) => {
-					if (isStale) return;
-					if (!error) setClientWorks(data || []);
-					setLoadingWorks(false);
-				});
+				getWorksByClientId(initialWork.client_id)
+					.then(({ data, error }) => {
+						if (isStale) return;
+						if (!error) setClientWorks(data || []);
+					})
+					.catch((err) => {
+						if (isStale) return;
+						console.error('Error fetching works:', err);
+					})
+					.finally(() => {
+						if (!isStale) setLoadingWorks(false);
+					});
 			} else {
 				setClientWorks([]);
 				setLoadingWorks(false);

@@ -60,6 +60,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 			<Button variant="outline" onClick={onClose} className="w-full max-w-md">
 				Cancelar
 			</Button>
+			{cameraError && <p className="text-red-500">{cameraError}</p>}
 		</div>
 	);
 }

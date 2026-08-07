@@ -82,9 +82,11 @@ export function ClientBalances({
 
 	// Calculate totals whenever balances change
 	useEffect(() => {
+		let cancelled = false;
+
 		const fetchTotals = async () => {
 			if (!balances || balances.length === 0) {
-				setBalancesWithTotals([]);
+				if (!cancelled) setBalancesWithTotals([]);
 				return;
 			}
 
@@ -116,10 +118,14 @@ export function ClientBalances({
 					};
 				})
 			);
-			setBalancesWithTotals(balancesWithTotals);
+			if (!cancelled) setBalancesWithTotals(balancesWithTotals);
 		};
 
 		fetchTotals();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [balances]);
 
 	// Filter balances based on search term

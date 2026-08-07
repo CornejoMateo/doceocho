@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +55,12 @@ export function FolderCard({
 }: FolderCardProps) {
 	const [assignModalOpen, setAssignModalOpen] = useState(false);
 	const [selectedWorkId, setSelectedWorkId] = useState<string>('');
+
+	useEffect(() => {
+		if (!assignModalOpen) {
+			setSelectedWorkId('');
+		}
+	}, [assignModalOpen]);
 
 	const folderBudgetsList = folder.budgets;
 	const chosenCountInFolder = folderBudgetsList.filter((b) => !!b.accepted).length;

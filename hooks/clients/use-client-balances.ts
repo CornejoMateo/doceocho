@@ -12,7 +12,8 @@ export function useClientBalances(clientId?: number) {
 		'balances',
 		async () => {
 			if (!clientId) return [];
-			const { data } = await getBalancesByClientId(clientId);
+			const { data, error } = await getBalancesByClientId(clientId);
+			if (error) throw error;
 			return data ?? [];
 		},
 		clientId ? `balances_${clientId}` : undefined

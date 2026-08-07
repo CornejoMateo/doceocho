@@ -64,13 +64,25 @@ export function useFileUpload({
 		return true;
 	};
 
-	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const selectedFiles = e.target.files;
 		if (!selectedFiles || selectedFiles.length === 0) return;
 
 		const file = selectedFiles[0];
 
 		if (file.type.startsWith('image/') && onImageFileSelect) {
+			const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
+			if (!validation.isValid) {
+				toast({
+					variant: 'destructive',
+					title: 'Archivo no válido',
+					description: validation.error,
+				});
+				if (fileInputRef.current) {
+					fileInputRef.current.value = '';
+				}
+				return;
+			}
 			onImageFileSelect(file);
 		} else {
 			prepareFileForUpload(file);

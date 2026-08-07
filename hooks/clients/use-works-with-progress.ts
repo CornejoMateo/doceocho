@@ -24,7 +24,11 @@ export function useWorksWithProgress() {
 			const workIds = worksData.map((w) => w.id);
 			const { data: allChecklists } = await getChecklistsByWorkIds(workIds);
 
-			const { data: folderBudgetWorkIds } = await getFolderBudgetWorkIds();
+			const { data: folderBudgetWorkIds, error: folderBudgetError } =
+				await getFolderBudgetWorkIds();
+			if (folderBudgetError) {
+				throw folderBudgetError;
+			}
 			const workIdsWithBudget = new Set<number>(folderBudgetWorkIds ?? []);
 
 			const checklistIds = (allChecklists ?? []).map((c) => c.id);

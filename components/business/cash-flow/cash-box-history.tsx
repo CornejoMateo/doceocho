@@ -13,6 +13,7 @@ import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
+import { matchesTransactionSearch } from '@/constants/cashflow/transaction-search';
 import { Label } from '@/components/ui/label';
 
 interface CashBoxHistoryProps {
@@ -144,6 +145,49 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 		setEndDate('');
 	};
 
+	const filtersSection = (
+		<div className="flex flex-col gap-4">
+			<div className="flex items-center justify-between">
+				<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
+				<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
+					<History className="h-4 w-4" />
+					Actualizar
+				</Button>
+			</div>
+
+			<div className="flex flex-col sm:flex-row gap-3">
+				<div className="flex-1 space-y-2">
+					<Label>Desde:</Label>
+					<Input
+						type="date"
+						placeholder="Fecha inicio"
+						value={startDate}
+						onChange={(e) => setStartDate(e.target.value)}
+						className="w-full"
+					/>
+				</div>
+				<div className="flex-1 space-y-2">
+					<Label>Hasta:</Label>
+					<Input
+						type="date"
+						placeholder="Fecha fin"
+						value={endDate}
+						onChange={(e) => setEndDate(e.target.value)}
+						className="w-full"
+					/>
+				</div>
+			</div>
+			{(startDate || endDate) && (
+				<div className="flex justify-end">
+					<Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
+						<X className="h-4 w-4" />
+						Limpiar filtros
+					</Button>
+				</div>
+			)}
+		</div>
+	);
+
 	if (loading) {
 		return (
 			<Card className="p-12 bg-card border-border text-center">
@@ -171,44 +215,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	if (filteredBoxes.length === 0 && (startDate || endDate)) {
 		return (
 			<div className="space-y-4 overflow-y-auto max-h-[500px] pr-2">
-				<div className="flex flex-col gap-4">
-					<div className="flex items-center justify-between">
-						<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
-						<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
-							<History className="h-4 w-4" />
-							Actualizar
-						</Button>
-					</div>
-
-					<div className="flex flex-col sm:flex-row gap-3">
-						<div className="flex-1 space-y-2">
-							<Label>Desde:</Label>
-							<Input
-								type="date"
-								placeholder="Fecha inicio"
-								value={startDate}
-								onChange={(e) => setStartDate(e.target.value)}
-								className="w-full"
-							/>
-						</div>
-						<div className="flex-1 space-y-2">
-							<Label>Hasta:</Label>
-							<Input
-								type="date"
-								placeholder="Fecha fin"
-								value={endDate}
-								onChange={(e) => setEndDate(e.target.value)}
-								className="w-full"
-							/>
-						</div>
-						{(startDate || endDate) && (
-							<Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
-								<X className="h-4 w-4" />
-								Limpiar filtros
-							</Button>
-						)}
-					</div>
-				</div>
+				{filtersSection}
 
 				<Card className="p-12 bg-card border-border text-center">
 					<div className="flex flex-col items-center gap-4">
@@ -233,44 +240,7 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 
 	return (
 		<div className="space-y-4 overflow-y-auto max-h-[500px] pr-2">
-			<div className="flex flex-col gap-4">
-				<div className="flex items-center justify-between">
-					<h3 className="text-lg font-semibold text-foreground">Historial de Cajas</h3>
-					<Button variant="outline" size="sm" onClick={onRefresh} className="gap-2">
-						<History className="h-4 w-4" />
-						Actualizar
-					</Button>
-				</div>
-
-				<div className="flex flex-col sm:flex-row gap-3">
-					<div className="flex-1 space-y-2">
-						<Label>Desde:</Label>
-						<Input
-							type="date"
-							placeholder="Fecha inicio"
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
-							className="w-full"
-						/>
-					</div>
-					<div className="flex-1 space-y-2">
-						<Label>Hasta:</Label>
-						<Input
-							type="date"
-							placeholder="Fecha fin"
-							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
-							className="w-full"
-						/>
-					</div>
-					{(startDate || endDate) && (
-						<Button variant="outline" size="sm" onClick={clearFilters} className="gap-2">
-							<X className="h-4 w-4" />
-							Limpiar filtros
-						</Button>
-					)}
-				</div>
-			</div>
+			{filtersSection}
 
 			{paginatedBoxes.map((box) => {
 				const isLoadingTransactions = loadingBoxId === box.id;
@@ -366,23 +336,9 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 									{(() => {
 										const searchTerm = boxSearchTerms[box.id] || '';
 										const transactions = loadedBox.transactions || [];
-										const filteredTransactions = transactions.filter((transaction: any) => {
-											if (!searchTerm) return true;
-
-											const searchLower = searchTerm.toLowerCase();
-											const description = transaction.description?.toLowerCase() || '';
-											const category = transaction.category?.toLowerCase() || '';
-											const paymentMethod =
-												transaction.type === 'income'
-													? getPaymentMethodLabel(transaction.category).toLowerCase()
-													: getExpenseCategoryLabel(transaction.category).toLowerCase();
-
-											return (
-												description.includes(searchLower) ||
-												category.includes(searchLower) ||
-												paymentMethod.includes(searchLower)
-											);
-										});
+										const filteredTransactions = transactions.filter((transaction: any) =>
+											matchesTransactionSearch(transaction, searchTerm)
+										);
 
 										if (filteredTransactions.length === 0) {
 											return (

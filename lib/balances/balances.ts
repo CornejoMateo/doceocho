@@ -162,10 +162,10 @@ export async function getBudgetsByClientId(
 					id,
 					work_id,
 					work:works!inner (
-					address,
-					locality,
-					name,
-					client_id
+						address,
+						locality,
+						name,
+						client_id
 					)
 				)
 			`
@@ -197,6 +197,7 @@ export async function getBudgetsByClientId(
 					work: {
 						address: work.address,
 						locality: work.locality,
+						name: work.name,
 					},
 				},
 			} as BudgetWithWork;

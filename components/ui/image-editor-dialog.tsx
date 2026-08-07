@@ -46,6 +46,7 @@ function DraggableText({ text, onUpdate, onDelete, onRotate }: DraggableTextProp
 
 	const handlePointerDown = (e: React.PointerEvent) => {
 		e.stopPropagation();
+		(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
 		pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
 		if (pointersRef.current.size === 2) {
@@ -416,7 +417,14 @@ export function ImageEditorDialog({
 
 			tempCanvas.toBlob(
 				(blob) => {
-					if (blob) {
+					if (!blob) {
+						toast({
+							variant: 'destructive',
+							title: 'No se pudo generar la imagen',
+							description: 'Intenta nuevamente.',
+						});
+						return;
+					} else {
 						const file = new File([blob], 'camara-editada.jpg', { type: 'image/jpeg' });
 						const shouldCloseAndReset = onImageReady(file);
 						if (shouldCloseAndReset) {
@@ -570,7 +578,7 @@ export function ImageEditorDialog({
 									className="text-xs md:text-sm"
 								>
 									<Undo className="h-4 w-4 mr-1 md:mr-2" />
-									<span className="hidden md:inline">Deshacer</span>
+									<span className="hidden md:inline">Deshacer todo</span>
 								</Button>
 							</div>
 
