@@ -17,7 +17,6 @@ export async function createClientAction(clientData: {
 }) {
 	try {
 		const supabase = await getServerSupabaseClient();
-		const user = await getCurrentUser();
 
 		const { data: client, error } = await createClientDb(clientData, supabase);
 

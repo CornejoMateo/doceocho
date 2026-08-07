@@ -20,7 +20,6 @@ export async function createWorkAction(workData: {
 }) {
 	try {
 		const supabase = await getServerSupabaseClient();
-		const user = await getCurrentUser();
 
 		const { data: work, error } = await createWorkDb(workData, supabase);
 
