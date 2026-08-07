@@ -56,10 +56,7 @@ export function BalanceCard({
 						<div className="text-sm">
 							{balance.budget?.folder_budget?.work ? (
 								<div>
-									<p className="font-medium">{balance.budget.folder_budget.work.locality}</p>
-									<p className="text-muted-foreground text-xs">
-										{balance.budget.folder_budget.work.address}
-									</p>
+									<p className="font-medium">{balance.budget.folder_budget.work.name}</p>
 								</div>
 							) : balance.budget ? (
 								<div>
