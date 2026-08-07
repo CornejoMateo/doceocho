@@ -1,6 +1,7 @@
 import { deleteFolderBudgetWithBudgets } from '../budgets/folder_budgets';
 import { getSupabaseClient } from '../supabase-client';
 import { ChecklistItem, deleteChecklist } from '@/lib/checklists/checklists';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Work = {
 	id: number;
@@ -96,9 +97,10 @@ export async function getWorkById(id: number): Promise<{ data: Work | null; erro
 }
 
 export async function createWork(
-	work: Omit<Work, 'id' | 'created_at'>
+	work: Omit<Work, 'id' | 'created_at'>,
+	supabaseClient?: SupabaseClient
 ): Promise<{ data: Work | null; error: any }> {
-	const supabase = getSupabaseClient();
+	const supabase = supabaseClient ?? getSupabaseClient();
 	const payload = {
 		...work,
 	};
@@ -266,4 +268,36 @@ export async function updateWorkGeneralNote(
 			error: error instanceof Error ? error.message : 'Error desconocido',
 		};
 	}
+}
+
+export async function getWorksThisWeek(): Promise<{ data: Work[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const now = new Date();
+	const startOfWeek = new Date(now);
+	startOfWeek.setDate(now.getDate() - now.getDay());
+	startOfWeek.setHours(0, 0, 0, 0);
+
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select(
+			`
+			*,
+			clients:client_id (name, last_name)
+		`
+		)
+		.gte('created_at', startOfWeek.toISOString())
+		.order('created_at', { ascending: false });
+
+	if (error) {
+		return { data: null, error };
+	}
+
+	const worksWithClientNames = data.map((work) => ({
+		...work,
+		client_name: work.clients?.name || null,
+		client_last_name: work.clients?.last_name || null,
+	}));
+
+	return { data: worksWithClientNames, error: null };
 }

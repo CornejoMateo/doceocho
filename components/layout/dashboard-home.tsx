@@ -2,10 +2,10 @@ import { Card } from '@/components/ui/card';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { useEffect, useMemo, useState } from 'react';
 import { getWorksInProgressCount, Work } from '@/lib/works/works';
-import { getSoldBudgetsCount } from '@/lib/reports/budgets/methods';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { formatCreatedAt } from '@/utils/format-date';
 import { WeeklyClients } from '@/components/dashboard/weekly-clients';
+import { WeeklyWorks } from '@/components/dashboard/weekly-works';
 
 export function DashboardHome() {
 	const { events, isLoading } = useLoadEvents();
@@ -14,24 +14,17 @@ export function DashboardHome() {
 		[events]
 	);
 	const [worksInProgress, setWorksInProgress] = useState(0);
-	const [soldBudgets, setSoldBudgets] = useState(0);
 
 	useEffect(() => {
 		let isMounted = true;
 
 		const fetchCounts = async () => {
-			const [worksResult, budgetsSoldResult] = await Promise.all([
-				getWorksInProgressCount(),
-				getSoldBudgetsCount(),
-			]);
+			const [worksResult] = await Promise.all([getWorksInProgressCount()]);
 
 			if (!isMounted) return;
 
 			if (!worksResult.error && worksResult.data !== null) {
 				setWorksInProgress(worksResult.data);
-			}
-			if (!budgetsSoldResult.error && budgetsSoldResult.data !== null) {
-				setSoldBudgets(budgetsSoldResult.data);
 			}
 		};
 
@@ -159,14 +152,7 @@ export function DashboardHome() {
 				<div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
 					{' '}
 					<WeeklyClients />
-					<Card className="p-6">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">Presupuestos vendidos</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{soldBudgets}</p>
-							</div>
-						</div>
-					</Card>
+					<WeeklyWorks />
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<div>
