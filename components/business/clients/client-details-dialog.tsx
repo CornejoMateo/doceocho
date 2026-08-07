@@ -249,7 +249,7 @@ export function ClientDetailsDialog({
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
-				className="w-[95vw] max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[60vw] h-[90vh] sm:h-[85vh] flex flex-col p-0 sm:p-1"
+				className="w-[95vw] max-w-[95vw] sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[60vw] h-[90dvh] sm:h-[85dvh] flex flex-col p-0 sm:p-1"
 				showCloseButton={false}
 			>
 				<DialogHeader>
