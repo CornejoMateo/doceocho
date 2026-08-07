@@ -2,11 +2,16 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ClientsAddDialog } from '@/components/business/clients/clients-add-dialog';
 import { createClient, createClientFolder } from '@/lib/clients/clients';
+import { createClientAction } from '@/actions/clients/create-client';
 import { useToast } from '@/components/ui/use-toast';
 
 jest.mock('@/lib/clients/clients', () => ({
 	createClient: jest.fn(),
 	createClientFolder: jest.fn(),
+}));
+
+jest.mock('@/actions/clients/create-client', () => ({
+	createClientAction: jest.fn(),
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -68,7 +73,7 @@ describe('ClientsAddDialog', () => {
 	});
 
 	it('creates a client and its storage folder', async () => {
-		(createClient as jest.Mock).mockResolvedValue({
+		(createClientAction as jest.Mock).mockResolvedValue({
 			data: { id: 101 },
 			error: null,
 		});
@@ -85,10 +90,10 @@ describe('ClientsAddDialog', () => {
 		fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '123456' } });
 		fireEvent.change(screen.getByLabelText('Localidad'), { target: { value: 'Rosario' } });
 
-		fireEvent.click(screen.getByRole('button', { name: 'Guardar cliente' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
 		await waitFor(() => {
-			expect(createClient).toHaveBeenCalledWith({
+			expect(createClientAction).toHaveBeenCalledWith({
 				name: 'Juan',
 				last_name: 'Pérez',
 				identity_number: '12345678',
@@ -100,7 +105,6 @@ describe('ClientsAddDialog', () => {
 			});
 		});
 
-		expect(createClientFolder).toHaveBeenCalledWith(101);
 		expect(onClientAdded).toHaveBeenCalled();
 		expect(onOpenChange).toHaveBeenCalledWith(false);
 		expect(toast).toHaveBeenCalledWith(
@@ -133,7 +137,7 @@ describe('ClientsAddDialog', () => {
 		);
 
 		fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Ana María' } });
-		fireEvent.click(screen.getByRole('button', { name: 'Actualizar cliente' }));
+		fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
 
 		await waitFor(() => {
 			expect(onUpdateClient).toHaveBeenCalledWith(
@@ -184,13 +188,13 @@ describe('ClientsAddDialog', () => {
 
 		expect(screen.getByDisplayValue('Pedro García')).toBeInTheDocument();
 
-		fireEvent.change(screen.getByPlaceholderText('Nombre del cliente que dio la referencia'), {
+		fireEvent.change(screen.getByPlaceholderText('Nombre de quien lo refirió'), {
 			target: { value: 'Juan Pérez' },
 		});
 
 		fireEvent.click(
 			screen.getByRole('button', {
-				name: 'Actualizar cliente',
+				name: 'Actualizar',
 			})
 		);
 

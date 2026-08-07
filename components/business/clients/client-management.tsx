@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
 	Pagination,
 	PaginationContent,
@@ -48,6 +49,7 @@ import { useClientBudgetsInfo } from '@/hooks/clients/use-client-budgets-info';
 import { paginateAndFilter } from '@/utils/pagination';
 
 export function ClientManagement() {
+	const searchParams = useSearchParams();
 	const { toast } = useToast();
 	const { user } = useAuth();
 	const notIsAuthorized = user?.role === 'Taller';
@@ -75,6 +77,18 @@ export function ClientManagement() {
 	const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 6;
+
+	// Check for clientId in URL to open details dialog
+	useEffect(() => {
+		const clientIdParam = searchParams.get('clientId');
+		if (clientIdParam && clients.length > 0) {
+			const client = clients.find((c) => c.id === Number(clientIdParam));
+			if (client) {
+				setViewingClient(client);
+				setIsViewDialogOpen(true);
+			}
+		}
+	}, [searchParams, clients]);
 
 	const handleEditClient = (client: Client) => {
 		setSelectedClient(client);

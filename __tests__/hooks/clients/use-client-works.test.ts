@@ -1,12 +1,17 @@
 import { renderHook, act } from '@testing-library/react';
 import { useClientWorks } from '@/hooks/clients/use-client-works';
 import { getWorksByClientId, createWork, deleteWork, updateWork } from '@/lib/works/works';
+import { createWorkAction } from '@/actions/works/create-work';
 
 jest.mock('@/lib/works/works', () => ({
 	getWorksByClientId: jest.fn(),
 	createWork: jest.fn(),
 	deleteWork: jest.fn(),
 	updateWork: jest.fn(),
+}));
+
+jest.mock('@/actions/works/create-work', () => ({
+	createWorkAction: jest.fn(),
 }));
 
 describe('useClientWorks', () => {
@@ -64,7 +69,7 @@ describe('useClientWorks', () => {
 			data: [{ id: 1, address: 'Nueva' }],
 			error: null,
 		});
-		(createWork as jest.Mock).mockResolvedValue({ error: null });
+		(createWorkAction as jest.Mock).mockResolvedValue({ error: null });
 
 		const { result } = renderHook(() => useClientWorks(1));
 
@@ -72,7 +77,10 @@ describe('useClientWorks', () => {
 			await result.current.create({ address: 'Nueva' } as any);
 		});
 
-		expect(createWork).toHaveBeenCalled();
+		expect(createWorkAction).toHaveBeenCalledWith({
+			address: 'Nueva',
+			client_id: 1,
+		});
 		expect(result.current.works).toEqual([{ id: 1, address: 'Nueva' }]);
 	});
 
@@ -118,6 +126,6 @@ describe('useClientWorks', () => {
 			await result.current.create({ address: 'Test' } as any);
 		});
 
-		expect(createWork).not.toHaveBeenCalled();
+		expect(createWorkAction).not.toHaveBeenCalled();
 	});
 });

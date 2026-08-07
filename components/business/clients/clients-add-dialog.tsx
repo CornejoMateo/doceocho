@@ -22,6 +22,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
+import { createClientAction } from '@/actions/clients/create-client';
+
 interface ClientsAddDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -126,16 +128,10 @@ export function ClientsAddDialog({
 				onOpenChange(false);
 			} else {
 				// Create new client
-				console.log('Creating client with payload:', payload);
-				const { data: client, error } = await createClient(payload);
-				console.log('Create client result:', { client, error });
+				const { data: client, error } = await createClientAction(payload);
 				if (error) throw error;
 
 				if (client) {
-					// Create folder in Storage
-					console.log('Creating folder for client ID:', client.id);
-					const folderResult = await createClientFolder(client.id);
-					console.log('Create folder result:', folderResult);
 					toast({
 						title: 'Cliente creado',
 						description: `${payload.name} ${payload.last_name} ha sido agregado correctamente.`,
@@ -145,7 +141,6 @@ export function ClientsAddDialog({
 				}
 			}
 		} catch (error) {
-			console.error('Error al procesar el cliente:', error);
 			const message = translateError(error);
 			toast({
 				title: 'Error',
@@ -266,33 +261,30 @@ export function ClientsAddDialog({
 						</div>
 					</div>
 					{formData.contact_method === 'REFERIDO' && (
-						<div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+						<div className="space-y-2">
 							<Label htmlFor="referred_to" className="text-foreground">
-								Cliente que lo refirió
+								Referido por
 							</Label>
-
 							<Input
 								id="referred_to"
 								value={formData.referred_to}
 								onChange={handleInputChange}
-								placeholder="Nombre del cliente que dio la referencia"
 								className="bg-background"
+								placeholder="Nombre de quien lo refirió"
 							/>
 						</div>
 					)}
-
 					<DialogFooter>
 						<Button
-							variant="outline"
 							type="button"
-							onClick={() => {
-								onOpenChange(false);
-							}}
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							disabled={isLoading}
 						>
 							Cancelar
 						</Button>
 						<Button type="submit" disabled={isLoading}>
-							{isLoading ? 'Guardando...' : clientToEdit ? 'Actualizar cliente' : 'Guardar cliente'}
+							{isLoading ? 'Guardando...' : clientToEdit ? 'Actualizar' : 'Crear'}
 						</Button>
 					</DialogFooter>
 				</form>

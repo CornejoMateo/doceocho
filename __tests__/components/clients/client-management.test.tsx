@@ -17,6 +17,10 @@ jest.mock('@/hooks/clients/use-client-budgets-info', () => ({
 	useClientBudgetsInfo: jest.fn(),
 }));
 
+jest.mock('next/navigation', () => ({
+	useSearchParams: () => new URLSearchParams(),
+}));
+
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: jest.fn() }),
 }));
