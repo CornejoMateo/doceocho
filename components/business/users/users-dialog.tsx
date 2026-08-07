@@ -240,7 +240,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="bg-card !max-w-3xl max-h-[80vh] overflow-y-auto">
+			<DialogContent className="bg-card !max-w-3xl max-h-[90vh] w-full md:w-auto overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="text-foreground">
 						{showForm ? (editingUser ? 'Editar usuario' : 'Nuevo usuario') : 'Configurar usuarios'}

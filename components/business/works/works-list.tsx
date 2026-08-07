@@ -19,6 +19,7 @@ import {
 	CheckSquare,
 	BrickWall,
 	Wallet,
+	FileText,
 } from 'lucide-react';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
 import { format } from 'date-fns';
@@ -36,6 +37,7 @@ import {
 } from '@/components/ui/pagination';
 import { DeleteWorkDialog } from '@/components/business/works/delete-work-dialog';
 import { EditableField } from '@/components/business/works/editable-field';
+import { EditableTextarea } from '@/components/business/works/editable-textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { paginateAndFilter } from '@/utils/pagination';
 import { useWorkChecklists } from '@/hooks/clients/use-works-checklists';
@@ -301,6 +303,21 @@ export function WorksList({
 										? format(new Date(work.created_at), 'PPP', { locale: es })
 										: 'Sin fecha'}
 								</span>
+							</div>
+							<div className="flex items-start gap-2 w-full sm:col-span-2">
+								<FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+								<div className="flex-1 min-w-0">
+									<EditableTextarea
+										value={work.general_note || ''}
+										onSave={async (newValue) => {
+											if (!onUpdate) {
+												throw new Error('update_not_available');
+											}
+											await handleUpdateWork(work.id, { general_note: newValue });
+										}}
+										formatDisplay={(value) => value || 'Sin detalles'}
+									/>
+								</div>
 							</div>
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-start sm:justify-between w-full sm:-mx-3 sm:px-3 pb-1 sm:col-span-2 gap-2">
 								<Button
