@@ -302,7 +302,7 @@ export function WorksList({
 										: 'Sin fecha'}
 								</span>
 							</div>
-							<div className="flex items-end justify-start sm:justify-between w-full sm:-mx-3 sm:px-3 pb-1 sm:col-span-2 gap-2">
+							<div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-start sm:justify-between w-full sm:-mx-3 sm:px-3 pb-1 sm:col-span-2 gap-2">
 								<Button
 									variant="outline"
 									size="sm"
