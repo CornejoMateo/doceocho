@@ -40,7 +40,7 @@ export function WeeklyWorks() {
 							className="group flex gap-4 rounded-xl border border-green-500/20 bg-green-500/5 p-4 transition hover:bg-green-500/10 cursor-pointer"
 							onClick={() => handleWorkClick(work)}
 						>
-							<div className="flex items-center justify-center rounded-full bg-green-500/10 text-green-600">
+							<div className="flex h-10 w-10 shrink-0 self-center items-center justify-center rounded-full bg-green-500/10 text-green-600">
 								<Building2 className="h-5 w-5" />
 							</div>
 

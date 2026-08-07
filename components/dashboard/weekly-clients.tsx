@@ -40,7 +40,7 @@ export function WeeklyClients() {
 							className="group flex gap-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 transition hover:bg-blue-500/10 cursor-pointer"
 							onClick={() => handleClientClick(client)}
 						>
-							<div className="flex items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
+							<div className="flex h-10 w-10 shrink-0 self-center items-center justify-center rounded-full bg-blue-500/10 text-blue-600">
 								<UserPlus className="h-5 w-5" />
 							</div>
 
