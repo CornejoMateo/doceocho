@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { createWork, deleteWork, getWorksByClientId, updateWork } from '@/lib/works/works';
 import { Work } from '@/lib/works/works';
-import { createWorkAction } from '@/actions/works/create-work';
 
 export function useClientWorks(clientId?: number) {
 	const [works, setWorks] = useState<Work[]>([]);
@@ -26,6 +25,8 @@ export function useClientWorks(clientId?: number) {
 	const create = async (workData: Omit<Work, 'id' | 'created_at' | 'client_id'>) => {
 		if (!clientId) return;
 
+		// Dynamically import to avoid server-only dependencies in client components
+		const { createWorkAction } = await import('@/actions/works/create-work');
 		const { error } = await createWorkAction({
 			...workData,
 			client_id: clientId,

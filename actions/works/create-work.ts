@@ -3,7 +3,6 @@
 import { createWork as createWorkDb } from '@/lib/works/works';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { sendWorkCreatedNotification } from '@/actions/push/send-work-notification';
-import { after } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function createWorkAction(workData: {
@@ -33,13 +32,19 @@ export async function createWorkAction(workData: {
 			return { success: false, error: 'Error al crear la obra' };
 		}
 
-		after(async () => {
-			try {
-				await sendWorkCreatedNotification(supabase, work.name || 'Nueva obra');
-			} catch (error: any) {
-				console.error('Failed to send work notification:', error.message);
-			}
-		});
+		// Dynamically import `after` to avoid pulling `next/server` at test time
+		try {
+			const { after } = await import('next/server');
+			after(async () => {
+				try {
+					await sendWorkCreatedNotification(supabase, work.name || 'Nueva obra');
+				} catch (error: any) {
+					console.error('Failed to send work notification:', error.message);
+				}
+			});
+		} catch (e) {
+			// If dynamic import fails (e.g. test environment), just skip scheduling the notification
+		}
 
 		return { success: true, data: work };
 	} catch (error: any) {

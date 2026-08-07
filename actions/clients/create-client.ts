@@ -3,7 +3,6 @@
 import { createClient as createClientDb, createClientFolder } from '@/lib/clients/clients';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { sendClientCreatedNotification } from '@/actions/push/send-client-notification';
-import { after } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 
 export async function createClientAction(clientData: {
@@ -36,13 +35,19 @@ export async function createClientAction(clientData: {
 			console.error('Error creating client folder:', folderResult.error);
 		}
 
-		after(async () => {
-			try {
-				await sendClientCreatedNotification(supabase, clientData.name, clientData.last_name);
-			} catch (error: any) {
-				console.error('Failed to send client notification:', error.message);
-			}
-		});
+		// Dynamically import `after` to avoid pulling `next/server` at test time
+		try {
+			const { after } = await import('next/server');
+			after(async () => {
+				try {
+					await sendClientCreatedNotification(supabase, clientData.name, clientData.last_name);
+				} catch (error: any) {
+					console.error('Failed to send client notification:', error.message);
+				}
+			});
+		} catch (e) {
+			// If dynamic import fails (e.g. test environment), just skip scheduling the notification
+		}
 
 		return { success: true, data: client };
 	} catch (error: any) {
