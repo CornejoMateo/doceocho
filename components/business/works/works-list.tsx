@@ -310,6 +310,9 @@ export function WorksList({
 									<EditableTextarea
 										value={work.general_note || ''}
 										onSave={async (newValue) => {
+											if (!onUpdate) {
+												throw new Error('update_not_available');
+											}
 											await handleUpdateWork(work.id, { general_note: newValue });
 										}}
 										formatDisplay={(value) => value || 'Sin detalles'}

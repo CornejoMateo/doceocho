@@ -65,13 +65,24 @@ export function EditableTextarea({
 		setIsModalOpen(false);
 	};
 
+	const handleOpenChange = (open: boolean) => {
+		if (!open && isSaving) {
+			return;
+		}
+		if (!open) {
+			setEditedValue(value);
+			setIsEditing(false);
+		}
+		setIsModalOpen(open);
+	};
+
 	const displayValue = formatDisplay ? formatDisplay(value) : value || 'Sin especificar';
 	const isLongText = displayValue.length > MAX_PREVIEW_LENGTH;
 	const previewText = isLongText ? displayValue.slice(0, MAX_PREVIEW_LENGTH) + '...' : displayValue;
 
 	if (isModalOpen) {
 		return (
-			<Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+			<Dialog open={isModalOpen} onOpenChange={handleOpenChange}>
 				<DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
 					<DialogHeader>
 						<DialogTitle>Detalles de la obra</DialogTitle>
