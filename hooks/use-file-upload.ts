@@ -11,13 +11,18 @@ import {
 import { optimizeFile } from '@/utils/optimization-images';
 
 interface UseFileUploadOptions {
-	clientId: number;
+	clientId?: number;
 	checklistId?: number | null;
 	claimId?: number | null;
 	allowedFileTypes?: readonly string[];
 	maxFileSize?: number;
 	getDefaultDisplayName?: (file: File) => string;
 	getDefaultDescription?: (file: File) => string;
+	uploadFile?: (
+		file: File,
+		title: string | null,
+		description: string | null
+	) => Promise<{ error: any }>;
 	beforeUpload?: () => string | null;
 	onUploadSuccess?: () => void;
 	onImageFileSelect?: (file: File) => void;
@@ -31,6 +36,7 @@ export function useFileUpload({
 	maxFileSize,
 	getDefaultDisplayName,
 	getDefaultDescription,
+	uploadFile,
 	beforeUpload,
 	onUploadSuccess,
 	onImageFileSelect,
@@ -108,14 +114,16 @@ export function useFileUpload({
 		try {
 			const optimizedFile = await optimizeFile(selectedFile);
 
-			const { error } = await uploadClientFile(
-				clientId,
-				optimizedFile,
-				displayName.trim() || null,
-				description.trim() || null,
-				checklistId || null,
-				claimId || null
-			);
+			const { error } = uploadFile
+				? await uploadFile(optimizedFile, displayName.trim() || null, description.trim() || null)
+				: await uploadClientFile(
+						clientId!,
+						optimizedFile,
+						displayName.trim() || null,
+						description.trim() || null,
+						checklistId || null,
+						claimId || null
+					);
 
 			if (error) {
 				toast({
