@@ -16,14 +16,14 @@ interface DeleteWorkDialogProps {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => Promise<void>;
-	workAddress: string;
+	workName: string;
 }
 
 export function DeleteWorkDialog({
 	isOpen,
 	onOpenChange,
 	onConfirm,
-	workAddress,
+	workName,
 }: DeleteWorkDialogProps) {
 	const [isDeleting, setIsDeleting] = useState(false);
 
@@ -45,7 +45,7 @@ export function DeleteWorkDialog({
 						Eliminar obra
 					</DialogTitle>
 					<DialogDescription>
-						¿Estás seguro de que deseas eliminar la obra en {workAddress}?
+						¿Estás seguro de que deseas eliminar la obra {workName}?
 					</DialogDescription>
 					<div className="text-sm text-muted-foreground">
 						<p>Esta acción eliminará permanentemente todo lo asociado a esta obra:</p>
@@ -53,6 +53,7 @@ export function DeleteWorkDialog({
 							<li>Checklists y sus archivos</li>
 							<li>Presupuestos</li>
 							<li>Saldos y transacciones</li>
+							<li>Archivos</li>
 						</ul>
 						<p className="mt-2 font-medium text-destructive">Esta acción no se puede deshacer.</p>
 					</div>
