@@ -307,7 +307,7 @@ export function ClientDetailsDialog({
 
 					<div className="border-t pt-2">
 						<Tabs
-							defaultValue={user?.role === 'Admin' ? 'info' : 'images'}
+							defaultValue={isAuthorized ? 'info' : 'images'}
 							className="w-full "
 							onValueChange={handleTabChange}
 						>

@@ -424,7 +424,7 @@ export function ImageEditorDialog({
 						});
 						return;
 					} else {
-						const defaultName = initialFile?.name || 'image.jpg';
+						const defaultName = (initialFile?.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
 						const file = new File([blob], defaultName, { type: 'image/jpeg' });
 						const shouldCloseAndReset = onImageReady(file);
 						if (shouldCloseAndReset) {

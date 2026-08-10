@@ -98,6 +98,15 @@ export function useFileUpload({
 	const handleUploadSubmit = async () => {
 		if (!selectedFile) return;
 
+		if (!uploadFile && !clientId) {
+			toast({
+				variant: 'destructive',
+				title: 'No se puede subir archivo',
+				description: 'No se ha especificado un cliente para la subida del archivo .',
+			});
+			return;
+		}
+
 		const preUploadError = beforeUpload?.();
 		if (preUploadError) {
 			const error = translateError(preUploadError);

@@ -54,6 +54,7 @@ export function WorkCardList({
 	const { user } = useAuth();
 
 	const isAuthorized = user?.role === 'Admin';
+	const canEdit = isAuthorized && !!onUpdate;
 
 	const handleUpdateWork = async (workId: number, updates: Partial<Work>) => {
 		await onUpdate?.(workId, updates);
@@ -218,7 +219,7 @@ export function WorkCardList({
 									await handleUpdateWork(work.id, { general_note: newValue });
 								}}
 								formatDisplay={(value) => value || 'Sin detalles'}
-								showEditButton={isAuthorized}
+								showEditButton={canEdit}
 							/>
 						</div>
 					</div>

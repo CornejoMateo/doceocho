@@ -45,7 +45,7 @@ export function DeleteWorkDialog({
 						Eliminar obra
 					</DialogTitle>
 					<DialogDescription>
-						¿Estás seguro de que deseas eliminar la obra {workName}?
+						¿Estás seguro de que deseas eliminar la obra {workName || 'sin nombre'}?
 					</DialogDescription>
 					<div className="text-sm text-muted-foreground">
 						<p>Esta acción eliminará permanentemente todo lo asociado a esta obra:</p>

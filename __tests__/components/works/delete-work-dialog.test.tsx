@@ -22,7 +22,7 @@ describe('DeleteWorkDialog', () => {
 		expect(container.textContent).toBe('');
 	});
 
-	it('shows work address in description', () => {
+	it('shows work name in description', () => {
 		render(
 			<DeleteWorkDialog
 				isOpen={true}

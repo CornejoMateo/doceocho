@@ -103,6 +103,7 @@ export function WorksList({
 			paginateAndFilter(initialWorks, searchTerm, currentPage, itemsPerPage, (work, search) => {
 				// Filter by search term
 				const matchesSearch =
+					work.name?.toLowerCase().includes(search) ||
 					work.address?.toLowerCase().includes(search) ||
 					work.architect?.toLowerCase().includes(search) ||
 					work.status?.toLowerCase().includes(search) ||
@@ -127,7 +128,7 @@ export function WorksList({
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 					<Input
 						type="search"
-						placeholder="Buscar por dirección, arquitecto, zona, barrio o estado..."
+						placeholder="Buscar por nombre, dirección, arquitecto, zona, barrio o estado..."
 						className="pl-9 w-full"
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}

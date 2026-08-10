@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
 	Work,
 	WorkFileItem,
@@ -62,32 +62,40 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 	const { user } = useAuth();
 	const isAuthorized = user?.role === 'Admin';
 
+	const loadRequestRef = useRef(0);
+	const objectUrlsRef = useRef<Set<string>>(new Set());
+
+	const revokeObjectUrls = (urls: Set<string>) => {
+		urls.forEach((url) => {
+			if (url) {
+				URL.revokeObjectURL(url);
+			}
+		});
+		urls.clear();
+	};
+
 	useEffect(() => {
 		if (open) {
 			loadFiles();
 		}
 
-		// Cleanup object URLs on unmount
+		// Invalidate in-flight loads and revoke object URLs on close/unmount
 		return () => {
-			files.forEach((file) => {
-				if (file.url) {
-					URL.revokeObjectURL(file.url);
-				}
-			});
+			loadRequestRef.current += 1;
+			revokeObjectUrls(objectUrlsRef.current);
 		};
 	}, [open, work.id]);
 
 	const loadFiles = async () => {
+		const requestId = ++loadRequestRef.current;
 		setIsLoading(true);
 		try {
 			// Cleanup old URLs
-			files.forEach((file) => {
-				if (file.url) {
-					URL.revokeObjectURL(file.url);
-				}
-			});
+			revokeObjectUrls(objectUrlsRef.current);
 
 			const { data, error } = await getFileByWorkId(work.id);
+
+			if (requestId !== loadRequestRef.current) return;
 
 			if (error) {
 				console.error('Error loading files:', error);
@@ -142,12 +150,22 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 			);
 
 			const validFiles = filesWithUrls.filter((f): f is FileWithUrl => f !== null);
+
+			if (requestId !== loadRequestRef.current) {
+				validFiles.forEach((file) => URL.revokeObjectURL(file.url));
+				return;
+			}
+
+			validFiles.forEach((file) => objectUrlsRef.current.add(file.url));
 			setFiles(validFiles);
 		} catch (error) {
+			if (requestId !== loadRequestRef.current) return;
 			console.error('Unexpected error loading files:', error);
 			setFiles([]);
 		} finally {
-			setIsLoading(false);
+			if (requestId === loadRequestRef.current) {
+				setIsLoading(false);
+			}
 		}
 	};
 

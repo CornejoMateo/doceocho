@@ -7,7 +7,6 @@ create table public.works (
   status character varying null,
   architect character varying null,
   general_note character varying null,
-  balance_id bigint null,
   furniture text null,
   zone character varying null,
   hood character varying null,
