@@ -24,6 +24,10 @@ jest.mock('@/utils/formats-money', () => ({
 	formatCurrency: (v: number | null | undefined) => `$${v || 0}`,
 }));
 
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: 'Admin' } }),
+}));
+
 const mockWorks: Work[] = Array.from({ length: 8 }, (_, i) => ({
 	id: i + 1,
 	name: `Obra pepito ${i + 1}`,

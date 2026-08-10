@@ -15,7 +15,7 @@ describe('DeleteWorkDialog', () => {
 				isOpen={false}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Calle 123"
+				workName="Nombre de obra"
 			/>
 		);
 
@@ -28,11 +28,11 @@ describe('DeleteWorkDialog', () => {
 				isOpen={true}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Av. Siempre Viva 123"
+				workName="Nombre de obra"
 			/>
 		);
 
-		expect(screen.getByText(/Av. Siempre Viva 123/)).toBeInTheDocument();
+		expect(screen.getByText(/Nombre de obra/)).toBeInTheDocument();
 	});
 
 	it('renders title and cancel button', () => {
@@ -41,7 +41,7 @@ describe('DeleteWorkDialog', () => {
 				isOpen={true}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Calle 456"
+				workName="Nombre de obra"
 			/>
 		);
 
@@ -56,7 +56,7 @@ describe('DeleteWorkDialog', () => {
 				isOpen={true}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Test"
+				workName="Nombre de obra"
 			/>
 		);
 
@@ -75,7 +75,7 @@ describe('DeleteWorkDialog', () => {
 				isOpen={true}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Test"
+				workName="Nombre de obra"
 			/>
 		);
 
@@ -92,7 +92,7 @@ describe('DeleteWorkDialog', () => {
 				isOpen={true}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Test"
+				workName="Nombre de obra"
 			/>
 		);
 
@@ -108,7 +108,7 @@ describe('DeleteWorkDialog', () => {
 				isOpen={true}
 				onOpenChange={onOpenChange}
 				onConfirm={onConfirm}
-				workAddress="Test"
+				workName="Nombre de obra"
 			/>
 		);
 
