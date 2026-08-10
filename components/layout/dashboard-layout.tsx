@@ -41,6 +41,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/provider/auth-provider';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import {
+	DropdownMenu,
+	DropdownMenuTrigger,
+	DropdownMenuContent,
+	DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { usePushNotifications } from '@/hooks/push/use-push-notifications';
+import { PushNotificationSettings } from '@/components/business/chat/push-notification-settings';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
@@ -71,6 +79,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const router = useRouter();
 	const { user, loading, signOutUser } = useAuth();
 	const { totalUnreadCount } = useChatUnread();
+
+	const {
+		isSupported: pushSupported,
+		permission: pushPermission,
+		subscription: pushSubscription,
+		requestPermission,
+		subscribe,
+		unsubscribe,
+	} = usePushNotifications();
 
 	const allowedByRole = useMemo(() => {
 		return {
@@ -312,40 +329,71 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						<h1 className="text-lg font-semibold text-foreground">Sistema de Gestión</h1>
 					</div>
 					<div className="flex items-center gap-2">
-						<AlertDialog open={cacheDialogOpen} onOpenChange={setCacheDialogOpen}>
-							<AlertDialogTrigger asChild>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
 								<Button variant="ghost" size="sm" className="opacity-30 hover:opacity-100">
-									<Trash2 className="h-4 w-4" />
-									Eliminar caché
+									<Settings className="h-4 w-4" />
 								</Button>
-							</AlertDialogTrigger>
-							<AlertDialogContent>
-								<AlertDialogHeader>
-									<AlertDialogTitle>Eliminar caché</AlertDialogTitle>
-								</AlertDialogHeader>
-								<div className="text-sm text-muted-foreground space-y-2">
-									<p>
-										Al eliminar la caché se borrarán datos temporales almacenados en tu navegador,
-										como imágenes, scripts y otros archivos estáticos. Esto puede ayudar a mejorar
-										el rendimiento y solucionar problemas de visualización.
-									</p>
-									<p className="font-medium text-foreground">
-										NINGUNO de tus datos guardados (clientes, insumos, obras, etc.) se eliminarán.
-									</p>
-									<p>Beneficios de eliminar la caché:</p>
-									<ul className="list-disc pl-5 space-y-1">
-										<li>Liberar espacio de almacenamiento</li>
-										<li>Resolver problemas visuales o de carga</li>
-									</ul>
-									<p>Tené en cuenta que cuando eliminas la caché, se te cerrará la sesión.</p>
+							</DropdownMenuTrigger>
+
+							<DropdownMenuContent align="end" className="w-72 sm:w-80 md:w-96">
+								<div className="p-2 [&_button]:whitespace-nowrap">
+									{/* Theme toggle (keeps its internal dropdown) */}
+									<div className="mb-2">
+										<ThemeToggle />
+									</div>
+									{/* Push notification settings copied from chat */}
+									<PushNotificationSettings
+										isSupported={pushSupported}
+										permission={pushPermission}
+										subscription={pushSubscription}
+										onRequestPermission={requestPermission}
+										onSubscribe={subscribe}
+										onUnsubscribe={unsubscribe}
+									/>
+									<DropdownMenuSeparator className="my-2" />
+									{/* Cache dialog kept intact */}
+									<AlertDialog open={cacheDialogOpen} onOpenChange={setCacheDialogOpen}>
+										<AlertDialogTrigger asChild>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="w-full justify-start gap-2 text-left"
+											>
+												<Trash2 className="h-4 w-4" />
+												Eliminar caché
+											</Button>
+										</AlertDialogTrigger>
+										<AlertDialogContent>
+											<AlertDialogHeader>
+												<AlertDialogTitle>Eliminar caché</AlertDialogTitle>
+											</AlertDialogHeader>
+											<div className="text-sm text-muted-foreground space-y-2">
+												<p>
+													Al eliminar la caché se borrarán datos temporales almacenados en tu
+													navegador, como imágenes, scripts y otros archivos estáticos. Esto puede
+													ayudar a mejorar el rendimiento y solucionar problemas de visualización.
+												</p>
+												<p className="font-medium text-foreground">
+													NINGUNO de tus datos guardados (clientes, insumos, obras, etc.) se
+													eliminarán.
+												</p>
+												<p>Beneficios de eliminar la caché:</p>
+												<ul className="list-disc pl-5 space-y-1">
+													<li>Liberar espacio de almacenamiento</li>
+													<li>Resolver problemas visuales o de carga</li>
+												</ul>
+												<p>Tené en cuenta que cuando eliminas la caché, se te cerrará la sesión.</p>
+											</div>
+											<AlertDialogFooter>
+												<AlertDialogCancel>Cancelar</AlertDialogCancel>
+												<AlertDialogAction onClick={clearCache}>Aceptar</AlertDialogAction>
+											</AlertDialogFooter>
+										</AlertDialogContent>
+									</AlertDialog>
 								</div>
-								<AlertDialogFooter>
-									<AlertDialogCancel>Cancelar</AlertDialogCancel>
-									<AlertDialogAction onClick={clearCache}>Aceptar</AlertDialogAction>
-								</AlertDialogFooter>
-							</AlertDialogContent>
-						</AlertDialog>
-						<ThemeToggle />
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</header>
 				<main className="flex-1 min-h-0 p-4 lg:p-6">{children}</main>
