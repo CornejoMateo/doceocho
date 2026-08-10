@@ -223,15 +223,17 @@ export function WorkCardList({
 						</div>
 					</div>
 					<div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => onOpenChecklist(work.id)}
-							className="w-full sm:w-auto"
-						>
-							<ListChecks className="h-4 w-4 mr-2" />
-							{hasChecklist ? 'Agregar Checklists' : 'Crear Checklists'}
-						</Button>
+						{isAuthorized && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => onOpenChecklist(work.id)}
+								className="w-full sm:w-auto"
+							>
+								<ListChecks className="h-4 w-4 mr-2" />
+								{hasChecklist ? 'Agregar Checklists' : 'Crear Checklists'}
+							</Button>
+						)}
 						{onOpenBalance && isAuthorized && (
 							<Popover open={balancePopoverOpen} onOpenChange={setBalancePopoverOpen}>
 								<PopoverTrigger asChild>
