@@ -313,10 +313,10 @@ export function ClientDetailsDialog({
 						>
 							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">
 								<>
+									{isAuthorized && <TabsTrigger value="info">Información</TabsTrigger>}
+									<TabsTrigger value="works">Obras</TabsTrigger>
 									{isAuthorized && (
 										<>
-											<TabsTrigger value="info">Información</TabsTrigger>
-											<TabsTrigger value="works">Obras</TabsTrigger>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
 											<TabsTrigger value="balances">Saldos</TabsTrigger>
 										</>
@@ -372,10 +372,12 @@ export function ClientDetailsDialog({
 												<p className="text-sm text-muted-foreground mb-4">
 													No hay obras registradas para este cliente.
 												</p>
-												<Button onClick={() => setIsWorkFormOpen(true)} size="sm">
-													<Plus className="h-4 w-4 mr-1" />
-													Crear primera obra
-												</Button>
+												{isAuthorized && (
+													<Button onClick={() => setIsWorkFormOpen(true)} size="sm">
+														<Plus className="h-4 w-4 mr-1" />
+														Crear primera obra
+													</Button>
+												)}
 											</div>
 										)}
 									</div>
