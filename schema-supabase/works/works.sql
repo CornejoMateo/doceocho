@@ -53,7 +53,14 @@ CREATE POLICY "Public update works"
 ON public.works
 FOR UPDATE
 TO authenticated
-USING (true);
+USING (
+  EXISTS (
+      SELECT 1
+      FROM public.users u
+      WHERE u.uid_user = auth.uid()
+        AND u.role = 'Admin'
+  )
+);
 
 ------ BUCKET POLICIES ------
 
