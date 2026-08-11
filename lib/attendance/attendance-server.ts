@@ -1,5 +1,6 @@
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
-import { AttendanceEntry, Attendance, AttendanceSettings } from './attendance';
+import { Attendance } from './attendance';
+import { AttendanceEntry } from '@/lib/attendance/attendance-entries';
 
 export async function createAttendanceEntry(
 	entry: AttendanceEntry
