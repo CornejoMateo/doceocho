@@ -13,6 +13,7 @@ import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/a
 import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -212,89 +213,112 @@ export function ClockIn() {
 	return (
 		<div className="container mx-auto p-4 md:p-8">
 			<div className="grid gap-4 md:gap-6">
-				{isAuthorized && (
-					<>
-						<div className="flex justify-end">
-							<Button variant="outline" onClick={() => setSettingsOpen(true)}>
-								<Settings className="h-4 w-4 mr-2" />
-								Configuración
-							</Button>
-						</div>
-						<AdminAttendanceHistory />
-					</>
-				)}
-				{isTaller && (
-					<>
-						{loading ? (
-							<p className="text-muted-foreground text-sm text-center">Cargando...</p>
-						) : (
-							<div className="flex flex-col items-center gap-4 w-full">
-								<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
-									{!isClockedIn && !isClockedInOvertime && (
-										<>
-											<Button onClick={() => handleClockAction(false)} className="flex-1">
-												Registrar entrada
-											</Button>
+				<Tabs defaultValue="hour">
+					<TabsList>
+						<TabsTrigger value="hour">Por hora</TabsTrigger>
+						<TabsTrigger value="module">Por módulo</TabsTrigger>
+					</TabsList>
 
-											<Button onClick={() => handleClockAction(true)} className="flex-1">
-												Registrar entrada (horas extras)
-											</Button>
-										</>
-									)}
-
-									{isClockedIn && (
-										<Button onClick={() => handleClockAction(false)} className="w-full">
-											Registrar salida
-										</Button>
-									)}
-
-									{isClockedInOvertime && (
-										<Button onClick={() => handleClockAction(true)} className="w-full">
-											Registrar salida (horas extras)
-										</Button>
-									)}
+					<TabsContent value="hour">
+						{isAuthorized && (
+							<>
+								<div className="flex justify-end mb-4">
+									<Button variant="outline" onClick={() => setSettingsOpen(true)}>
+										<Settings className="h-4 w-4 mr-2" />
+										Configuración
+									</Button>
 								</div>
-
-								<div className="w-full max-w-2xl">
-									<AttendanceHistory />
-								</div>
-							</div>
+								<AdminAttendanceHistory />
+							</>
 						)}
-					</>
-				)}
-				{isQR && (
-					<Card className="w-full max-w-md mx-auto">
-						<CardHeader>
-							<CardTitle>QR de fichaje</CardTitle>
-							<CardDescription>
-								Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
-								minuto.
-							</CardDescription>
-						</CardHeader>
+						{isTaller && (
+							<>
+								{loading ? (
+									<p className="text-muted-foreground text-sm text-center">Cargando...</p>
+								) : (
+									<div className="flex flex-col items-center gap-4 w-full">
+										<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
+											{!isClockedIn && !isClockedInOvertime && (
+												<>
+													<Button onClick={() => handleClockAction(false)} className="flex-1">
+														Registrar entrada
+													</Button>
 
-						<CardContent className="flex justify-center overflow-hidden">
-							<AttendanceQRCode />
-						</CardContent>
-					</Card>
-				)}
-				{showScanner && isTaller && (
-					<QRScanner
-						onClose={() => {
-							setShowScanner(false);
-							setPendingClockAction(null);
-						}}
-						onScan={async (token) => {
-							setShowScanner(false);
+													<Button onClick={() => handleClockAction(true)} className="flex-1">
+														Registrar entrada (horas extras)
+													</Button>
+												</>
+											)}
 
-							try {
-								await finishClockAction(token);
-							} catch {
-							} finally {
-								setPendingClockAction(null);
-							}
-						}}
-					/>
-				)}
+											{isClockedIn && (
+												<Button onClick={() => handleClockAction(false)} className="w-full">
+													Registrar salida
+												</Button>
+											)}
+
+											{isClockedInOvertime && (
+												<Button onClick={() => handleClockAction(true)} className="w-full">
+													Registrar salida (horas extras)
+												</Button>
+											)}
+										</div>
+
+										<div className="w-full max-w-2xl">
+											<AttendanceHistory />
+										</div>
+									</div>
+								)}
+							</>
+						)}
+						{isQR && (
+							<Card className="w-full max-w-md mx-auto">
+								<CardHeader>
+									<CardTitle>QR de fichaje</CardTitle>
+									<CardDescription>
+										Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
+										minuto.
+									</CardDescription>
+								</CardHeader>
+
+								<CardContent className="flex justify-center overflow-hidden">
+									<AttendanceQRCode />
+								</CardContent>
+							</Card>
+						)}
+						{showScanner && isTaller && (
+							<QRScanner
+								onClose={() => {
+									setShowScanner(false);
+									setPendingClockAction(null);
+								}}
+								onScan={async (token) => {
+									setShowScanner(false);
+
+									try {
+										await finishClockAction(token);
+									} catch {
+									} finally {
+										setPendingClockAction(null);
+									}
+								}}
+							/>
+						)}
+					</TabsContent>
+
+					<TabsContent value="module">
+						<Card className="w-full">
+							<CardHeader>
+								<CardTitle>Fichaje por módulo</CardTitle>
+								<CardDescription>
+									Sección en construcción. Aquí iremos agregando la funcionalidad por módulo.
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<p className="text-sm text-muted-foreground">Por ahora no hay nada para mostrar.</p>
+							</CardContent>
+						</Card>
+					</TabsContent>
+				</Tabs>
 			</div>
 			<AttendanceSettings
 				open={settingsOpen}
