@@ -20,7 +20,6 @@ import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
-import { CreateEntryModal } from './create-entry-modal';
 import { PaymentSummaryModal } from './payment-summary';
 import { toast } from '@/components/ui/use-toast';
 import { Pencil, Trash2, Plus, AlertTriangle, DollarSign } from 'lucide-react';
@@ -349,7 +348,8 @@ export function AdminAttendanceHistory() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-			<CreateEntryModal
+			<AttendanceEntryModal
+				entry={null}
 				userId={selectedUser}
 				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
 				open={createModalOpen}
