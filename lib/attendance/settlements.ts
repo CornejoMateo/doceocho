@@ -70,20 +70,20 @@ export async function getMonthlySettlementsByUser(
 	return { data, error };
 }
 
-/**
- *
- *
- */
-
 export async function getAllMonthlySettlements(): Promise<{
 	data: MonthlySettlementWithUser[] | null;
 	error: any;
 }> {
 	const supabase = getSupabaseClient();
 
-	const cutoff = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
-	const cutoffYear = cutoff.getFullYear();
-	const cutoffMonth = cutoff.getMonth() + 1;
+	const now = new Date();
+
+	const currentYear = now.getFullYear();
+	const currentMonth = now.getMonth() + 1;
+
+	const previousDate = new Date(currentYear, currentMonth - 2, 1);
+	const previousYear = previousDate.getFullYear();
+	const previousMonth = previousDate.getMonth() + 1;
 
 	const { data, error } = await supabase
 		.from('monthly_settlements')
@@ -97,21 +97,28 @@ export async function getAllMonthlySettlements(): Promise<{
 			)
 		`
 		)
-		.or(`year.gt.${cutoffYear},and(year.eq.${cutoffYear},month.gte.${cutoffMonth})`)
+		.or(
+			`and(year.eq.${currentYear},month.eq.${currentMonth}),and(year.eq.${previousYear},month.eq.${previousMonth})`
+		)
 		.order('year', { ascending: false })
 		.order('month', { ascending: false });
 
-	if (error) return { data: null, error };
+	if (error) {
+		return { data: null, error };
+	}
 
 	const settlements = data?.map((settlement: any) => ({
 		...settlement,
 		user_name:
-			`${settlement.users?.name || ''} ${settlement.users?.last_name || ''}`.trim() ||
 			settlement.users?.username ||
+			`${settlement.users?.name || ''} ${settlement.users?.last_name || ''}`.trim() ||
 			'Desconocido',
 	})) as MonthlySettlementWithUser[];
 
-	return { data: settlements || null, error: null };
+	return {
+		data: settlements || null,
+		error: null,
+	};
 }
 
 /**
