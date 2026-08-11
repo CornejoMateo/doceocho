@@ -30,6 +30,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
 import { ENTRY_TYPES } from '@/constants/attendance/attendance';
+import { listUsers, User } from '@/lib/users/users';
 
 interface AttendanceEntryModalProps {
 	entry: AttendanceEntryWithDate | null;
@@ -38,6 +39,7 @@ interface AttendanceEntryModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onUpdate: () => void;
+	showUserSelect?: boolean;
 }
 
 export function AttendanceEntryModal({
@@ -47,6 +49,7 @@ export function AttendanceEntryModal({
 	open,
 	onOpenChange,
 	onUpdate,
+	showUserSelect = false,
 }: AttendanceEntryModalProps) {
 	const isEditing = !!entry;
 
@@ -55,6 +58,40 @@ export function AttendanceEntryModal({
 	const [entryDate, setEntryDate] = useState<string>(new Date().toISOString().split('T')[0]);
 	const [entryTime, setEntryTime] = useState<string>(format(new Date(), 'HH:mm', { locale: es }));
 	const [description, setDescription] = useState<string>('');
+	const [users, setUsers] = useState<User[]>([]);
+	const [selectedUserId, setSelectedUserId] = useState<string>(userId || '');
+	const [loadingUsers, setLoadingUsers] = useState(false);
+
+	// Load users when modal opens with showUserSelect
+	useEffect(() => {
+		if (open && showUserSelect && !isEditing) {
+			loadUsers();
+		}
+	}, [open, showUserSelect, isEditing]);
+
+	const loadUsers = async () => {
+		setLoadingUsers(true);
+		try {
+			const { data, error } = await listUsers();
+			if (error) {
+				toast({
+					title: 'Error',
+					description: 'No se pudo cargar la lista de usuarios',
+					variant: 'destructive',
+				});
+			} else {
+				setUsers(data || []);
+			}
+		} catch (err) {
+			toast({
+				title: 'Error',
+				description: 'No se pudo cargar la lista de usuarios',
+				variant: 'destructive',
+			});
+		} finally {
+			setLoadingUsers(false);
+		}
+	};
 
 	// Reset form when the modal opens
 	useEffect(() => {
@@ -74,11 +111,20 @@ export function AttendanceEntryModal({
 	}, [open, entry]);
 
 	const handleSave = async () => {
-		const targetUserId = entry?.user_id || userId;
+		const targetUserId = showUserSelect ? selectedUserId : entry?.user_id || userId;
 		if (!targetUserId) {
 			toast({
 				title: 'Error',
 				description: translateError('Usuario no autenticado'),
+				variant: 'destructive',
+			});
+			return;
+		}
+
+		if (showUserSelect && !selectedUserId) {
+			toast({
+				title: 'Error',
+				description: 'Debes seleccionar un empleado',
 				variant: 'destructive',
 			});
 			return;
@@ -174,10 +220,34 @@ export function AttendanceEntryModal({
 					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4 py-4">
-					{(entry?.user_name || userName) && (
-						<div className="text-sm text-gray-500">
-							<p>Empleado: {entry?.user_name || userName}</p>
+					{showUserSelect && !isEditing ? (
+						<div className="space-y-2">
+							<Label htmlFor="user-select">Empleado</Label>
+							{loadingUsers ? (
+								<div className="text-sm text-gray-500">Cargando empleados...</div>
+							) : (
+								<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+									<SelectTrigger id="user-select">
+										<SelectValue placeholder="Selecciona un empleado" />
+									</SelectTrigger>
+									<SelectContent>
+										{users.map((user) => (
+											<SelectItem key={user.uid_user} value={user.uid_user}>
+												{user.name && user.last_name
+													? `${user.name} ${user.last_name}`
+													: user.username}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							)}
 						</div>
+					) : (
+						(entry?.user_name || userName) && (
+							<div className="text-sm text-gray-500">
+								<p>Empleado: {entry?.user_name || userName}</p>
+							</div>
+						)
 					)}
 					<div className="space-y-2">
 						<Label htmlFor="entry-type">Tipo de Registro</Label>

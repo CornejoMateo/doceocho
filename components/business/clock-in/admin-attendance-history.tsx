@@ -50,7 +50,6 @@ export function AdminAttendanceHistory() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
-	const [createModalOpen, setCreateModalOpen] = useState(false);
 	const [paymentSummaryOpen, setPaymentSummaryOpen] = useState(false);
 
 	const loadHistory = async () => {
@@ -230,26 +229,15 @@ export function AdminAttendanceHistory() {
 												<div className="p-4 bg-gray-50 border-t">
 													<div className="flex justify-between items-center mb-4 gap-2">
 														<h3 className="font-medium text-sm md:text-base">Registros</h3>
-														<div className="flex gap-2">
-															<Button
-																variant="outline"
-																size="sm"
-																onClick={() => setPaymentSummaryOpen(true)}
-																className="h-8 text-xs"
-															>
-																<DollarSign className="h-3 w-3 mr-1" />
-																Pagos
-															</Button>
-															<Button
-																variant="outline"
-																size="sm"
-																onClick={() => setCreateModalOpen(true)}
-																className="h-8 text-xs"
-															>
-																<Plus className="h-3 w-3 mr-1" />
-																Crear registro
-															</Button>
-														</div>
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => setPaymentSummaryOpen(true)}
+															className="h-8 text-xs"
+														>
+															<DollarSign className="h-3 w-3 mr-1" />
+															Pagos
+														</Button>
 													</div>
 													<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
 														{summary.entries.map((entry: AttendanceEntryWithDate) => (
@@ -348,14 +336,6 @@ export function AdminAttendanceHistory() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-			<AttendanceEntryModal
-				entry={null}
-				userId={selectedUser}
-				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
-				open={createModalOpen}
-				onOpenChange={setCreateModalOpen}
-				onUpdate={loadHistory}
-			/>
 			<PaymentSummaryModal
 				userId={selectedUser}
 				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}

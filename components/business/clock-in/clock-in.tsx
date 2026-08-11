@@ -13,6 +13,7 @@ import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/a
 import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
+import { AttendanceEntryModal } from './attendance-entry-modal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
@@ -26,6 +27,7 @@ export function ClockIn() {
 	const [latitude, setLatitude] = useState<number | null>(null);
 	const [longitude, setLongitude] = useState<number | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [createEntryModalOpen, setCreateEntryModalOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
 		location: {
@@ -222,7 +224,10 @@ export function ClockIn() {
 					<TabsContent value="hour">
 						{isAuthorized && (
 							<>
-								<div className="flex justify-end mb-4">
+								<div className="flex justify-end gap-2 mb-4">
+									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
+										Crear Registro
+									</Button>
 									<Button variant="outline" onClick={() => setSettingsOpen(true)}>
 										<Settings className="h-4 w-4 mr-2" />
 										Configuración
@@ -329,6 +334,15 @@ export function ClockIn() {
 						loadSettings();
 					}
 				}}
+			/>
+			<AttendanceEntryModal
+				entry={null}
+				open={createEntryModalOpen}
+				onOpenChange={setCreateEntryModalOpen}
+				onUpdate={() => {
+					// Reload attendance history if needed
+				}}
+				showUserSelect={true}
 			/>
 		</div>
 	);
