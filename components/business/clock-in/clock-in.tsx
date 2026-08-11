@@ -14,6 +14,7 @@ import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
 import { AttendanceEntryModal } from './attendance-entry-modal';
+import { SettlementsModal } from './settlements-modal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
@@ -28,6 +29,7 @@ export function ClockIn() {
 	const [longitude, setLongitude] = useState<number | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [createEntryModalOpen, setCreateEntryModalOpen] = useState(false);
+	const [settlementsModalOpen, setSettlementsModalOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
 		location: {
@@ -228,6 +230,9 @@ export function ClockIn() {
 									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
 										Crear Registro
 									</Button>
+									<Button variant="outline" onClick={() => setSettlementsModalOpen(true)}>
+										Liquidaciones
+									</Button>
 									<Button variant="outline" onClick={() => setSettingsOpen(true)}>
 										<Settings className="h-4 w-4 mr-2" />
 										Configuración
@@ -344,6 +349,7 @@ export function ClockIn() {
 				}}
 				showUserSelect={true}
 			/>
+			<SettlementsModal open={settlementsModalOpen} onOpenChange={setSettlementsModalOpen} />
 		</div>
 	);
 }

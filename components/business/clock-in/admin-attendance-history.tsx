@@ -20,9 +20,8 @@ import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
-import { PaymentSummaryModal } from './payment-summary';
 import { toast } from '@/components/ui/use-toast';
-import { Pencil, Trash2, Plus, AlertTriangle, DollarSign } from 'lucide-react';
+import { Pencil, Trash2, Plus, AlertTriangle } from 'lucide-react';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -50,7 +49,6 @@ export function AdminAttendanceHistory() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
-	const [paymentSummaryOpen, setPaymentSummaryOpen] = useState(false);
 
 	const loadHistory = async () => {
 		setLoading(true);
@@ -229,15 +227,6 @@ export function AdminAttendanceHistory() {
 												<div className="p-4 bg-gray-50 border-t">
 													<div className="flex justify-between items-center mb-4 gap-2">
 														<h3 className="font-medium text-sm md:text-base">Registros</h3>
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() => setPaymentSummaryOpen(true)}
-															className="h-8 text-xs"
-														>
-															<DollarSign className="h-3 w-3 mr-1" />
-															Pagos
-														</Button>
 													</div>
 													<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
 														{summary.entries.map((entry: AttendanceEntryWithDate) => (
@@ -336,12 +325,6 @@ export function AdminAttendanceHistory() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-			<PaymentSummaryModal
-				userId={selectedUser}
-				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
-				open={paymentSummaryOpen}
-				onOpenChange={setPaymentSummaryOpen}
-			/>
 		</>
 	);
 }
