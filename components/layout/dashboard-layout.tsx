@@ -332,7 +332,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button variant="ghost" size="sm" className="opacity-30 hover:opacity-100">
-									<Settings className="h-4 w-4" />
+									<Settings className="h-4 w-4" aria-label="Configuración" />
 								</Button>
 							</DropdownMenuTrigger>
 

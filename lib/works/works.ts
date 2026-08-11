@@ -38,6 +38,8 @@ export type WorkFileItem = {
 	path: string | null;
 	title: string | null;
 	description: string | null;
+	type?: string | null;
+	size?: number | null;
 };
 
 const TABLE = 'works';
@@ -340,7 +342,7 @@ export async function getFileByWorkId(
 
 	try {
 		if (!workId) {
-			return { data: [], error: 'Error getting work id' };
+			return { data: null, error: new Error('Invalid work id') };
 		}
 
 		const { data: files, error: listError } = await supabase
@@ -388,6 +390,8 @@ export async function uploadWorkFile(
 				work_id: workId,
 				title: title || null,
 				description: description || null,
+				type: file.type || null,
+				size: file.size,
 			})
 			.select()
 			.single();

@@ -6,6 +6,8 @@ create table public.files_client (
   path text null,
   title text null,
   description text null,
+  type text null,
+  size bigint null,
   claim_id bigint null,
   balance_transaction_id bigint null,
   constraint files_client_pkey primary key (id),
@@ -13,6 +15,16 @@ create table public.files_client (
   constraint files_client_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete CASCADE,
   constraint files_client_work_id_fkey foreign KEY (work_id) references works (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
+
+------ INDEXES ------
+
+create index if not exists files_client_work_id_idx
+  on public.files_client using btree (work_id) TABLESPACE pg_default;
+
+  create index if not exists files_client_balance_transaction_id_idx
+  on public.files_client using btree (balance_transaction_id) TABLESPACE pg_default;
+
+  ------ RLS ------
 
 ALTER TABLE public.files_client ENABLE ROW LEVEL SECURITY;
 

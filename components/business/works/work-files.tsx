@@ -34,7 +34,13 @@ import {
 import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
-import { formatFileSize, isVideo, isImage, getFileExtension } from '@/utils/file-upload-utils';
+import {
+	formatFileSize,
+	isVideo,
+	isImage,
+	getFileExtension,
+	getFileKind,
+} from '@/utils/file-upload-utils';
 import { useAuth } from '@/components/provider/auth-provider';
 
 interface WorkFilesDialogProps {
@@ -63,26 +69,15 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 	const isAuthorized = user?.role === 'Admin';
 
 	const loadRequestRef = useRef(0);
-	const objectUrlsRef = useRef<Set<string>>(new Set());
-
-	const revokeObjectUrls = (urls: Set<string>) => {
-		urls.forEach((url) => {
-			if (url) {
-				URL.revokeObjectURL(url);
-			}
-		});
-		urls.clear();
-	};
 
 	useEffect(() => {
 		if (open) {
 			loadFiles();
 		}
 
-		// Invalidate in-flight loads and revoke object URLs on close/unmount
+		// Invalidate in-flight loads on close/unmount
 		return () => {
 			loadRequestRef.current += 1;
-			revokeObjectUrls(objectUrlsRef.current);
 		};
 	}, [open, work.id]);
 
@@ -90,9 +85,6 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 		const requestId = ++loadRequestRef.current;
 		setIsLoading(true);
 		try {
-			// Cleanup old URLs
-			revokeObjectUrls(objectUrlsRef.current);
-
 			const { data, error } = await getFileByWorkId(work.id);
 
 			if (requestId !== loadRequestRef.current) return;
@@ -113,7 +105,7 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 				return;
 			}
 
-			// Download files from storage and create object URLs
+			// Generate signed URLs from file metadata without downloading the objects
 			const supabase = getSupabaseClient();
 			const filesWithUrls = await Promise.all(
 				data.map(async (file) => {
@@ -122,25 +114,31 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 							return null;
 						}
 
-						const { data: blob, error: downloadError } = await supabase.storage
+						const { data: urlData } = await supabase.storage
 							.from('works-files')
-							.download(file.path);
+							.createSignedUrl(file.path, 60 * 60);
 
-						if (downloadError || !blob) {
-							console.error('Error downloading file:', file.path, downloadError);
+						if (!urlData?.signedUrl) {
+							console.error('Error creating signed URL for file:', file.path);
 							return null;
 						}
 
 						const name = file.path.split('/').pop() || 'archivo';
-						const url = URL.createObjectURL(blob);
+						const kind = getFileKind(name);
 
 						return {
 							...file,
 							name,
 							display_name: file.title || undefined,
-							mimetype: blob.type || 'application/octet-stream',
-							size: blob.size,
-							url,
+							mimetype:
+								file.type ||
+								(kind === 'image'
+									? 'image/*'
+									: kind === 'video'
+										? 'video/*'
+										: 'application/octet-stream'),
+							size: file.size ?? 0,
+							url: urlData.signedUrl,
 						};
 					} catch (err) {
 						console.error('Error processing file:', file.path, err);
@@ -149,14 +147,9 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 				})
 			);
 
+			if (requestId !== loadRequestRef.current) return;
+
 			const validFiles = filesWithUrls.filter((f): f is FileWithUrl => f !== null);
-
-			if (requestId !== loadRequestRef.current) {
-				validFiles.forEach((file) => URL.revokeObjectURL(file.url));
-				return;
-			}
-
-			validFiles.forEach((file) => objectUrlsRef.current.add(file.url));
 			setFiles(validFiles);
 		} catch (error) {
 			if (requestId !== loadRequestRef.current) return;
@@ -365,7 +358,9 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 									{file.description && (
 										<p className="text-white/80 text-xs truncate">{file.description}</p>
 									)}
-									<p className="text-white/70 text-xs">{formatFileSize(file.size)}</p>
+									{file.size > 0 && (
+										<p className="text-white/70 text-xs">{formatFileSize(file.size)}</p>
+									)}
 								</div>
 							</div>
 						))}

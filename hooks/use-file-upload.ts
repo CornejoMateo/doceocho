@@ -12,7 +12,6 @@ import { optimizeFile } from '@/utils/optimization-images';
 
 interface UseFileUploadOptions {
 	clientId?: number;
-	checklistId?: number | null;
 	claimId?: number | null;
 	allowedFileTypes?: readonly string[];
 	maxFileSize?: number;
@@ -30,7 +29,6 @@ interface UseFileUploadOptions {
 
 export function useFileUpload({
 	clientId,
-	checklistId,
 	claimId,
 	allowedFileTypes = CLIENT_FILE_TYPES,
 	maxFileSize,
@@ -102,7 +100,7 @@ export function useFileUpload({
 			toast({
 				variant: 'destructive',
 				title: 'No se puede subir archivo',
-				description: 'No se ha especificado un cliente para la subida del archivo .',
+				description: 'No se ha especificado un destino para la subida del archivo.',
 			});
 			return;
 		}
@@ -125,14 +123,10 @@ export function useFileUpload({
 
 			const { error } = uploadFile
 				? await uploadFile(optimizedFile, displayName.trim() || null, description.trim() || null)
-				: await uploadClientFile(
-						clientId!,
-						optimizedFile,
-						displayName.trim() || null,
-						description.trim() || null,
-						checklistId || null,
-						claimId || null
-					);
+				: await uploadClientFile(clientId!, optimizedFile, {
+						title: displayName.trim() || null,
+						description: description.trim() || null,
+					});
 
 			if (error) {
 				toast({

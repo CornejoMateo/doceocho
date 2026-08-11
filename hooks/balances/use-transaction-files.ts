@@ -53,14 +53,9 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 			try {
 				const optimizedFile = await optimizeFile(file);
 
-				const { error } = await uploadClientFile(
-					clientId,
-					optimizedFile,
-					null,
-					null,
-					null,
-					transactionId
-				);
+				const { error } = await uploadClientFile(clientId, optimizedFile, {
+					transactionId,
+				});
 
 				if (error) {
 					const err = translateError(error);
@@ -210,14 +205,9 @@ export function useTransactionFiles(balance: BalanceWithBudget | null) {
 		for (const file of files) {
 			try {
 				const optimizedFile = await optimizeFile(file);
-				const { error } = await uploadClientFile(
-					clientId,
-					optimizedFile,
-					null,
-					null,
-					null,
-					transactionForFiles.id
-				);
+				const { error } = await uploadClientFile(clientId, optimizedFile, {
+					transactionId: transactionForFiles.id,
+				});
 				if (error) {
 					const err = translateError(error);
 					toast({

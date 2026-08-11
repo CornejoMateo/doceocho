@@ -72,7 +72,7 @@ export function WorkCardList({
 									await handleUpdateWork(work.id, { name: newValue });
 								}}
 								className="text-base mt-2 sm:text-lg font-semibold truncate"
-								showEditButton={isAuthorized}
+								showEditButton={canEdit}
 							/>
 							<EditableField
 								value={work.address || ''}
@@ -81,7 +81,7 @@ export function WorkCardList({
 								}}
 								label="Dirección"
 								className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
-								showEditButton={isAuthorized}
+								showEditButton={canEdit}
 							/>
 							<EditableField
 								value={work.locality || ''}
@@ -90,7 +90,7 @@ export function WorkCardList({
 								}}
 								label="Localidad"
 								className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
-								showEditButton={isAuthorized}
+								showEditButton={canEdit}
 							/>
 							<EditableField
 								value={work.zone || ''}
@@ -100,7 +100,7 @@ export function WorkCardList({
 								formatDisplay={(value) => value || 'Zona no especificada'}
 								label="Zona"
 								className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
-								showEditButton={isAuthorized}
+								showEditButton={canEdit}
 							/>
 							<EditableField
 								value={work.hood || ''}
@@ -110,7 +110,7 @@ export function WorkCardList({
 								formatDisplay={(value) => value || 'Barrio no especificado'}
 								label="Barrio"
 								className="text-xs mt-2 sm:text-sm text-muted-foreground truncate"
-								showEditButton={isAuthorized}
+								showEditButton={canEdit}
 							/>
 						</div>
 						<div className="flex flex-row sm:flex-row gap-2 sm:gap-3 items-center justify-between sm:justify-end">
@@ -176,7 +176,7 @@ export function WorkCardList({
 							onSave={async (newValue) => {
 								await handleUpdateWork(work.id, { architect: newValue });
 							}}
-							showEditButton={isAuthorized}
+							showEditButton={canEdit}
 						/>
 					</div>
 					<div className="flex items-center gap-2 w-full">
@@ -186,7 +186,7 @@ export function WorkCardList({
 							onSave={async (newValue) => {
 								await handleUpdateWork(work.id, { furniture: newValue });
 							}}
-							showEditButton={isAuthorized}
+							showEditButton={canEdit}
 						/>
 					</div>
 					<div className="flex items-center gap-2 w-full">
@@ -196,7 +196,7 @@ export function WorkCardList({
 							onSave={async (newValue) => {
 								await handleUpdateWork(work.id, { locality: newValue });
 							}}
-							showEditButton={isAuthorized}
+							showEditButton={canEdit}
 						/>
 					</div>
 					<div className="flex items-center gap-2 w-full">
