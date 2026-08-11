@@ -135,7 +135,7 @@ describe('works lib', () => {
 						}),
 					};
 				}
-				if (table === 'folder_budgets') {
+				if (table === 'folder_budgets' || table === 'files_client') {
 					return {
 						select: jest.fn().mockReturnValue({
 							eq: jest.fn().mockResolvedValue({ data: [], error: null }),

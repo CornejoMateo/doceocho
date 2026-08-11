@@ -7,7 +7,6 @@ create table public.works (
   status character varying null,
   architect character varying null,
   general_note character varying null,
-  balance_id bigint null,
   furniture text null,
   zone character varying null,
   hood character varying null,
@@ -55,3 +54,35 @@ ON public.works
 FOR UPDATE
 TO authenticated
 USING (true);
+
+------ BUCKET POLICIES ------
+
+CREATE POLICY "works files select"
+ON storage.objects
+FOR SELECT
+TO authenticated
+USING (
+    bucket_id = 'works-files'
+);
+
+CREATE POLICY "works files insert"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'works-files'
+);
+
+CREATE POLICY "works files delete"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (
+    bucket_id = 'works-files'
+    AND EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+          AND u.role = 'Admin'
+    )
+);

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WorksList } from '@/components/business/works/works-list';
 import { Work } from '@/lib/works/works';
+import { useAuth } from '@/components/provider/auth-provider';
 
 jest.mock('@/hooks/clients/use-works-checklists', () => ({
 	useWorkChecklists: () => ({
@@ -22,6 +23,12 @@ jest.mock('@/components/ui/popover', () => ({
 
 jest.mock('@/utils/formats-money', () => ({
 	formatCurrency: (v: number | null | undefined) => `$${v || 0}`,
+}));
+
+let mockRole = 'Admin';
+
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: mockRole } }),
 }));
 
 const mockWorks: Work[] = Array.from({ length: 8 }, (_, i) => ({
@@ -114,7 +121,9 @@ describe('WorksList', () => {
 		);
 
 		expect(
-			screen.getByPlaceholderText('Buscar por dirección, arquitecto, zona, barrio o estado...')
+			screen.getByPlaceholderText(
+				'Buscar por nombre, dirección, arquitecto, zona, barrio o estado...'
+			)
 		).toBeInTheDocument();
 	});
 
@@ -217,7 +226,7 @@ describe('WorksList', () => {
 		);
 
 		const searchInput = screen.getByPlaceholderText(
-			'Buscar por dirección, arquitecto, zona, barrio o estado...'
+			'Buscar por nombre, dirección, arquitecto, zona, barrio o estado...'
 		);
 		fireEvent.change(searchInput, { target: { value: 'Calle 1' } });
 

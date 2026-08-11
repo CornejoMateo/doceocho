@@ -13,6 +13,7 @@ interface EditableFieldProps {
 	label?: string;
 	className?: string;
 	formatDisplay?: (value: string) => string;
+	showEditButton?: boolean;
 }
 
 export function EditableField({
@@ -21,6 +22,7 @@ export function EditableField({
 	label,
 	className = '',
 	formatDisplay,
+	showEditButton = true,
 }: EditableFieldProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedValue, setEditedValue] = useState(value);
@@ -91,18 +93,20 @@ export function EditableField({
 			<span className="whitespace-pre-wrap [overflow-wrap:anywhere]">
 				{formatDisplay ? formatDisplay(value) : value || 'Sin especificar'}
 			</span>
-			<Button
-				variant="ghost"
-				size="sm"
-				className="h-4 w-4 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity"
-				onClick={(e) => {
-					e.stopPropagation();
-					setEditedValue(value);
-					setIsEditing(true);
-				}}
-			>
-				<Pencil className="h-3 w-3" />
-			</Button>
+			{showEditButton && (
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-4 w-4 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity"
+					onClick={(e) => {
+						e.stopPropagation();
+						setEditedValue(value);
+						setIsEditing(true);
+					}}
+				>
+					<Pencil className="h-3 w-3" />
+				</Button>
+			)}
 		</div>
 	);
 }
