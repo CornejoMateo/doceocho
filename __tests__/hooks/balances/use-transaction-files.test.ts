@@ -191,6 +191,6 @@ describe('useTransactionFiles', () => {
 			await result.current.handleUploadFilesFromGallery(5, [new File([''], 'photo.jpg')]);
 		});
 
-		expect(uploadClientFile).toHaveBeenCalledWith(5, expect.any(File), null, null, null, 10);
+		expect(uploadClientFile).toHaveBeenCalledWith(5, expect.any(File), { transactionId: 10 });
 	});
 });
