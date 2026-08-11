@@ -130,19 +130,42 @@ describe('settlements lib', () => {
 			}));
 		}
 
-		it('filters settlements to the last two months (previous and current)', async () => {
+		it('filters settlements to the current and previous month', async () => {
+			jest.useFakeTimers();
+			jest.setSystemTime(new Date(2026, 7, 11)); // August 11, 2026
+
 			const { supabase, chain } = createSupabaseMock();
-			const mockData = [{ id: 1, users: { name: 'Juan', last_name: 'Pérez' } }];
-			mockSettlementResponse(chain, { data: mockData, error: null });
+			const mockData = [
+				{
+					id: 1,
+					users: {
+						name: 'Juan',
+						last_name: 'Pérez',
+					},
+				},
+			];
+
+			mockSettlementResponse(chain, {
+				data: mockData,
+				error: null,
+			});
+
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			const result = await getAllMonthlySettlements();
 
 			expect(supabase.from).toHaveBeenCalledWith('monthly_settlements');
+
 			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('users'));
-			expect(chain.or).toHaveBeenCalledWith('year.gt.2026,and(year.eq.2026,month.gte.7)');
+
+			expect(chain.or).toHaveBeenCalledWith(
+				'and(year.eq.2026,month.eq.8),and(year.eq.2026,month.eq.7)'
+			);
+
 			expect(result.data?.[0].id).toBe(1);
 			expect(result.data?.[0].user_name).toBe('Juan Pérez');
+
+			jest.useRealTimers();
 		});
 
 		it('builds user_name from username when name and last_name are missing', async () => {
