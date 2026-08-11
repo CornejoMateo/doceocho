@@ -94,10 +94,31 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 		try {
 			const supabase = getSupabaseClient();
 
+			// Validate rates
+			if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
+				toast({
+					title: 'Error de validación',
+					description: 'El pago por hora debe ser un número válido y no negativo',
+					variant: 'destructive',
+				});
+				setLoading(false);
+				return;
+			}
+
+			if (!Number.isFinite(overtimeRate) || overtimeRate < 0) {
+				toast({
+					title: 'Error de validación',
+					description: 'El pago por hora extra debe ser un número válido y no negativo',
+					variant: 'destructive',
+				});
+				setLoading(false);
+				return;
+			}
+
 			// Get all attendance entries for the selected month
 			const [yearNum, monthNum] = [Number(year), Number(month)];
-			const startOfMonth = new Date(yearNum, monthNum, 1).toISOString().split('T')[0];
-			const endOfMonth = new Date(yearNum, monthNum + 1, 0).toISOString().split('T')[0];
+			const startOfMonth = `${yearNum}-${String(monthNum + 1).padStart(2, '0')}-01`;
+			const endOfMonth = `${yearNum}-${String(monthNum + 1).padStart(2, '0')}-${new Date(yearNum, monthNum + 1, 0).getDate()}`;
 
 			const { data: attendanceData, error: attendanceError } = await supabase
 				.from('attendance_entries')
@@ -319,6 +340,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 								<Input
 									id="hourly-rate"
 									type="number"
+									min="0"
 									value={hourlyRate}
 									onChange={(e) => setHourlyRate(Number(e.target.value))}
 								/>
@@ -328,6 +350,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 								<Input
 									id="overtime-rate"
 									type="number"
+									min="0"
 									value={overtimeRate}
 									onChange={(e) => setOvertimeRate(Number(e.target.value))}
 								/>
