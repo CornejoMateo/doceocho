@@ -256,9 +256,9 @@ export function AdminAttendanceHistory() {
 														{summary.entries.map((entry: AttendanceEntryWithDate) => (
 															<div
 																key={entry.id}
-																className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-2"
+																className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-3"
 															>
-																<div className="flex-1">
+																<div className="min-w-0 flex-1">
 																	<div className="flex items-center gap-2">
 																		<div
 																			className={`font-medium text-sm md:text-base ${getEntryTypeColor(
@@ -267,22 +267,32 @@ export function AdminAttendanceHistory() {
 																		>
 																			{getEntryTypeLabel(entry.type)}
 																		</div>
+
 																		{!hasMatchingPair(entry, summary.entries) && (
 																			<span title="Registro sin par correspondiente">
-																				<AlertTriangle className="h-4 w-4 text-orange-500" />
+																				<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
 																			</span>
 																		)}
 																	</div>
+
 																	<div className="text-xs md:text-sm text-gray-500">
 																		{formatCreatedAt(entry.attendance_date)}
 																	</div>
+
+																	{entry.description && (
+																		<div className="mt-1.5 text-sm text-gray-600 break-words">
+																			{entry.description}
+																		</div>
+																	)}
 																</div>
-																<div className="flex items-center gap-2">
+
+																<div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
 																	<div className="font-medium text-sm md:text-base">
 																		{format(new Date(entry.entry_time), 'HH:mm', {
 																			locale: es,
 																		})}
 																	</div>
+
 																	<div className="flex gap-1">
 																		<Button
 																			variant="ghost"
@@ -292,6 +302,7 @@ export function AdminAttendanceHistory() {
 																		>
 																			<Pencil className="h-4 w-4" />
 																		</Button>
+
 																		<Button
 																			variant="ghost"
 																			size="sm"

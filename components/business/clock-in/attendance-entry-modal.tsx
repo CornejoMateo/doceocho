@@ -23,12 +23,12 @@ import {
 	AttendanceEntryWithDate,
 	updateAttendanceEntry,
 } from '@/lib/attendance/attendance-entries';
-import { getEntryTypeLabel } from '@/helpers/attendance/attendance';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
+import { ENTRY_TYPES } from '@/constants/attendance/attendance';
 
 interface AttendanceEntryModalProps {
 	entry: AttendanceEntryWithDate | null;
@@ -44,6 +44,7 @@ export function AttendanceEntryModal({
 	onUpdate,
 }: AttendanceEntryModalProps) {
 	const [loading, setLoading] = useState(false);
+	const [description, setDescription] = useState<string>(entry?.description || '');
 	const [entryType, setEntryType] = useState<string>(entry?.type || 'regular_in');
 	const [entryTime, setEntryTime] = useState<string>(
 		entry?.entry_time ? format(new Date(entry.entry_time), 'HH:mm', { locale: es }) : ''
@@ -80,6 +81,7 @@ export function AttendanceEntryModal({
 			const { error } = await updateAttendanceEntry(entry.id, {
 				type: entryType,
 				entry_time: date.toISOString(),
+				description: description || null,
 			});
 
 			if (error) {
@@ -124,10 +126,11 @@ export function AttendanceEntryModal({
 								<SelectValue placeholder="Selecciona tipo" />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="regular_in">{getEntryTypeLabel('regular_in')}</SelectItem>
-								<SelectItem value="regular_out">{getEntryTypeLabel('regular_out')}</SelectItem>
-								<SelectItem value="overtime_in">{getEntryTypeLabel('overtime_in')}</SelectItem>
-								<SelectItem value="overtime_out">{getEntryTypeLabel('overtime_out')}</SelectItem>
+								{ENTRY_TYPES.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
 							</SelectContent>
 						</Select>
 					</div>

@@ -6,6 +6,7 @@ export interface AttendanceEntry {
 	entry_time: string;
 	latitude: number;
 	longitude: number;
+	description: string | null;
 }
 
 export interface AttendanceStatus {
@@ -54,7 +55,8 @@ export async function deleteAttendanceEntry(
 export async function createAdminAttendanceEntry(
 	userId: string,
 	type: 'regular_in' | 'regular_out' | 'overtime_in' | 'overtime_out',
-	entryTime: string
+	entryTime: string,
+	description: string | null
 ): Promise<{ data: AttendanceEntryWithDate | null; error: any }> {
 	const supabase = getSupabaseClient();
 
@@ -96,6 +98,7 @@ export async function createAdminAttendanceEntry(
 		entry_time: entryTime,
 		latitude: 0,
 		longitude: 0,
+		description: description || null,
 	};
 
 	const { data, error } = await supabase
@@ -183,6 +186,7 @@ export async function getAttendanceStatus(
 			`
 			type,
 			entry_time,
+			description,
 			attendance!inner (
 				date,
 				user_id

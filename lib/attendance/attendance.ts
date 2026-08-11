@@ -6,7 +6,6 @@ export interface Attendance {
 	id: number;
 	date: string;
 	user_id: string;
-	description: string | null;
 }
 
 export interface UserAttendanceSummary {

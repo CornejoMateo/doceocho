@@ -23,7 +23,7 @@ import { createAdminAttendanceEntry } from '@/lib/attendance/attendance-entries'
 import { ENTRY_TYPES } from '@/constants/attendance/attendance';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface CreateEntryModalProps {
@@ -45,6 +45,7 @@ export function CreateEntryModal({
 	const [entryType, setEntryType] = useState<string>(ENTRY_TYPES[0].value);
 	const [entryDate, setEntryDate] = useState<string>(new Date().toISOString().split('T')[0]);
 	const [entryTime, setEntryTime] = useState<string>(format(new Date(), 'HH:mm', { locale: es }));
+	const [description, setDescription] = useState<string>('');
 
 	const handleSave = async () => {
 		if (!userId) {
@@ -75,7 +76,8 @@ export function CreateEntryModal({
 			const { error } = await createAdminAttendanceEntry(
 				userId,
 				entryType as any,
-				date.toISOString()
+				date.toISOString(),
+				description || null
 			);
 
 			if (error) {
@@ -98,8 +100,13 @@ export function CreateEntryModal({
 				description: translateError(error) || 'Error al procesar la solicitud',
 				variant: 'destructive',
 			});
+		} finally {
+			setLoading(false);
+			setDescription('');
+			setEntryType(ENTRY_TYPES[0].value);
+			setEntryDate(new Date().toISOString().split('T')[0]);
+			setEntryTime(format(new Date(), 'HH:mm', { locale: es }));
 		}
-		setLoading(false);
 	};
 
 	// Reset form when modal opens
@@ -112,7 +119,7 @@ export function CreateEntryModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[500px]">
+			<DialogContent showCloseButton={false} className="sm:max-w-[500px]">
 				<DialogHeader>
 					<DialogTitle>Crear Registro de Asistencia</DialogTitle>
 					<DialogDescription>
@@ -160,11 +167,34 @@ export function CreateEntryModal({
 							onChange={(e) => setEntryTime(e.target.value)}
 						/>
 					</div>
+					<div className="space-y-2">
+						<Label htmlFor="entry-description">Descripción (opcional)</Label>
+						<Input
+							id="entry-description"
+							type="text"
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+						/>
+					</div>
 				</div>
 				<DialogFooter>
-					<Button onClick={handleSave} disabled={loading} className="w-full">
-						{loading ? 'Guardando...' : 'Crear'}
-					</Button>
+					<div className="flex gap-2 w-full justify-end">
+						<Button
+							onClick={() => {
+								onOpenChange(false);
+								setDescription('');
+								setEntryType(ENTRY_TYPES[0].value);
+								setEntryDate(new Date().toISOString().split('T')[0]);
+								setEntryTime(format(new Date(), 'HH:mm', { locale: es }));
+							}}
+							variant="outline"
+						>
+							Cancelar
+						</Button>
+						<Button onClick={handleSave} disabled={loading}>
+							{loading ? 'Guardando...' : 'Crear'}
+						</Button>
+					</div>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
