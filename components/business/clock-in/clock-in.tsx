@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import QRScanner from './attendance-qr-scanner';
 
 export function ClockIn() {
+	const adminHistoryRef = useRef<{ loadHistory: () => Promise<void> }>(null);
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
@@ -238,7 +239,7 @@ export function ClockIn() {
 										Configuración
 									</Button>
 								</div>
-								<AdminAttendanceHistory />
+								<AdminAttendanceHistory ref={adminHistoryRef} />
 							</>
 						)}
 						{isTaller && (
@@ -345,7 +346,7 @@ export function ClockIn() {
 				open={createEntryModalOpen}
 				onOpenChange={setCreateEntryModalOpen}
 				onUpdate={() => {
-					// Reload attendance history if needed
+					adminHistoryRef.current?.loadHistory();
 				}}
 				showUserSelect={true}
 			/>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,7 +35,7 @@ import {
 
 type PeriodFilter = 'day' | 'week' | 'month';
 
-export function AdminAttendanceHistory() {
+export const AdminAttendanceHistory = forwardRef((props, ref) => {
 	const [allEntries, setAllEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [filteredEntries, setFilteredEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [summaries, setSummaries] = useState<UserAttendanceSummary[]>([]);
@@ -49,6 +49,10 @@ export function AdminAttendanceHistory() {
 	const [modalOpen, setModalOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
+
+	useImperativeHandle(ref, () => ({
+		loadHistory,
+	}));
 
 	const loadHistory = async () => {
 		setLoading(true);
@@ -327,4 +331,4 @@ export function AdminAttendanceHistory() {
 			</AlertDialog>
 		</>
 	);
-}
+});
