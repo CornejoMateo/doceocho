@@ -55,6 +55,7 @@ export function AttendanceEntryModal({
 		if (entry) {
 			setEntryType(entry.type);
 			setEntryTime(format(new Date(entry.entry_time), 'HH:mm', { locale: es }));
+			setDescription(entry.description || '');
 		}
 	}, [entry]);
 
@@ -149,6 +150,18 @@ export function AttendanceEntryModal({
 						<div className="text-sm text-gray-500">
 							<p>Fecha: {formatCreatedAt(entry.attendance_date)}</p>
 							<p>Empleado: {entry.user_name || 'Desconocido'}</p>
+						</div>
+					)}
+
+					{entry && (
+						<div className="space-y-2">
+							<Label htmlFor="description">Descripción</Label>
+							<Input
+								id="description"
+								type="text"
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
+							/>
 						</div>
 					)}
 				</div>
