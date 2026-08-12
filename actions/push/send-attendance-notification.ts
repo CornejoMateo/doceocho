@@ -40,7 +40,7 @@ export async function sendAttendanceCreatedNotification(
 			const typeEntry = typeLabels[type] ?? 'fichaje';
 			const result = await sendPushNotification(subscription, {
 				title: 'Fichaje registrado',
-				body: `Ha registrado un fichaje de ${typeEntry} del usuario: ${username}`,
+				body: `Ha registrado una ${typeEntry} del usuario: ${username}`,
 				icon: '/icon-doceocho-192.png',
 				data: {
 					type: 'attendance_registered',
