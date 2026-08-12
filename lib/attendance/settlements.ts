@@ -176,3 +176,23 @@ export async function deleteMonthlySettlement(
 
 	return { data, error };
 }
+
+/**
+ * Upsert a monthly settlement (create or update)
+ */
+
+export async function upsertMonthlySettlement(
+	input: MonthlySettlementInput
+): Promise<{ data: MonthlySettlement | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('monthly_settlements')
+		.upsert(input, {
+			onConflict: 'user_id,year,month',
+		})
+		.select()
+		.single();
+
+	return { data, error };
+}

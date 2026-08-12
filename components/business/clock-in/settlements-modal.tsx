@@ -22,6 +22,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/use-toast';
 import { formatCurrencyWithoutSymbol } from '@/utils/formats-money';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
+import { getAttendanceEntriesForMonth } from '@/lib/attendance/attendance-entries';
+import { upsertMonthlySettlement } from '@/lib/attendance/settlements';
+import { translateError } from '@/lib/error-translator';
+import { MONTHS } from '@/constants/attendance/settlements';
 import { getSupabaseClient } from '@/lib/supabase-client';
 
 interface SettlementsModalProps {
@@ -56,21 +60,6 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 		(new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1).toString()
 	);
 
-	const months = [
-		{ value: '0', label: 'Enero' },
-		{ value: '1', label: 'Febrero' },
-		{ value: '2', label: 'Marzo' },
-		{ value: '3', label: 'Abril' },
-		{ value: '4', label: 'Mayo' },
-		{ value: '5', label: 'Junio' },
-		{ value: '6', label: 'Julio' },
-		{ value: '7', label: 'Agosto' },
-		{ value: '8', label: 'Septiembre' },
-		{ value: '9', label: 'Octubre' },
-		{ value: '10', label: 'Noviembre' },
-		{ value: '11', label: 'Diciembre' },
-	];
-
 	const currentYear = new Date().getFullYear();
 	const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
 
@@ -92,8 +81,6 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	const handleLiquidate = async () => {
 		setLoading(true);
 		try {
-			const supabase = getSupabaseClient();
-
 			// Validate rates
 			if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
 				toast({
@@ -117,27 +104,10 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 
 			// Get all attendance entries for the selected month
 			const [yearNum, monthNum] = [Number(year), Number(month)];
-			const startOfMonth = `${yearNum}-${String(monthNum + 1).padStart(2, '0')}-01`;
-			const endOfMonth = `${yearNum}-${String(monthNum + 1).padStart(2, '0')}-${new Date(yearNum, monthNum + 1, 0).getDate()}`;
-
-			const { data: attendanceData, error: attendanceError } = await supabase
-				.from('attendance_entries')
-				.select(
-					`
-					*,
-					attendance!inner (
-						date,
-						user_id,
-						users (
-							name,
-							last_name,
-							username
-						)
-					)
-				`
-				)
-				.gte('attendance.date', startOfMonth)
-				.lte('attendance.date', endOfMonth);
+			const { data: attendanceData, error: attendanceError } = await getAttendanceEntriesForMonth(
+				yearNum,
+				monthNum
+			);
 
 			if (attendanceError) throw attendanceError;
 
@@ -203,21 +173,16 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 			for (const [userId, hours] of Object.entries(userHours)) {
 				const amount = hours.regular * hourlyRate + hours.overtime * overtimeRate;
 
-				const { error: insertError } = await supabase.from('monthly_settlements').upsert(
-					{
-						user_id: userId,
-						year: yearNum,
-						month: monthNum,
-						amount,
-						number_hours: hours.regular,
-						number_overtime_hours: hours.overtime,
-						price_hour: hourlyRate,
-						price_overtime_hour: overtimeRate,
-					},
-					{
-						onConflict: 'user_id,year,month',
-					}
-				);
+				const { error: insertError } = await upsertMonthlySettlement({
+					user_id: userId,
+					year: yearNum,
+					month: monthNum,
+					amount,
+					number_hours: hours.regular,
+					number_overtime_hours: hours.overtime,
+					price_hour: hourlyRate,
+					price_overtime_hour: overtimeRate,
+				});
 
 				if (insertError) throw insertError;
 			}
@@ -232,7 +197,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 		} catch (error) {
 			toast({
 				title: 'Error',
-				description: 'Error al generar liquidación',
+				description: translateError(error) || 'Error al generar liquidación',
 				variant: 'destructive',
 			});
 		} finally {
@@ -325,7 +290,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 										<SelectValue placeholder="Selecciona mes" />
 									</SelectTrigger>
 									<SelectContent>
-										{months.map((m) => (
+										{MONTHS.map((m) => (
 											<SelectItem key={m.value} value={m.value}>
 												{m.label}
 											</SelectItem>
@@ -384,7 +349,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 										<SelectValue placeholder="Selecciona mes" />
 									</SelectTrigger>
 									<SelectContent>
-										{months.map((m) => (
+										{MONTHS.map((m) => (
 											<SelectItem key={m.value} value={m.value}>
 												{m.label}
 											</SelectItem>
@@ -405,7 +370,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 											<div>
 												<div className="font-medium">{settlement.user_name}</div>
 												<div className="text-sm text-gray-500">
-													{months[settlement.month].label} {settlement.year}
+													{MONTHS[settlement.month].label} {settlement.year}
 												</div>
 												<div className="text-xs text-gray-400">
 													{settlement.number_hours.toFixed(2)}h normales ·{' '}
