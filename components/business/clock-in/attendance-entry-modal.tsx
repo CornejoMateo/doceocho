@@ -76,18 +76,20 @@ export function AttendanceEntryModal({
 			if (error) {
 				toast({
 					title: 'Error',
-					description: 'No se pudo cargar la lista de usuarios',
+					description: translateError(error) || 'No se pudo cargar la lista de usuarios',
 					variant: 'destructive',
 				});
+				return;
 			} else {
 				setUsers(data || []);
 			}
 		} catch (err) {
 			toast({
 				title: 'Error',
-				description: 'No se pudo cargar la lista de usuarios',
+				description: translateError(err) || 'No se pudo cargar la lista de usuarios',
 				variant: 'destructive',
 			});
+			return;
 		} finally {
 			setLoadingUsers(false);
 		}
@@ -180,11 +182,10 @@ export function AttendanceEntryModal({
 			if (error) {
 				toast({
 					title: isEditing ? 'Error al actualizar registro' : 'Error al crear registro',
-					description:
-						translateError(error) ||
-						(isEditing ? 'No se pudo actualizar el registro' : 'No se pudo crear el registro'),
+					description: translateError(error),
 					variant: 'destructive',
 				});
+				return;
 			} else {
 				toast({
 					title: isEditing ? 'Registro actualizado' : 'Registro creado',
