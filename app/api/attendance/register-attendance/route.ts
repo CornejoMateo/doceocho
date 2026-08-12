@@ -8,11 +8,14 @@ import {
 import { getCurrentUser } from '@/lib/auth';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import { verifyQRToken } from '@/lib/qr/qr-token';
+import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
+import { sendAttendanceCreatedNotification } from '@/actions/push/send-attendance-notification';
 
 export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
-		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
+		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long, username } =
+			await req.json();
 		const userId = user?.id;
 
 		if (!userId) {
@@ -156,6 +159,21 @@ export async function POST(req: NextRequest) {
 
 		if (entryError) {
 			throw entryError;
+		}
+
+		try {
+			const supabase = await getServerSupabaseClient();
+			const { after } = await import('next/server');
+			after(async () => {
+				try {
+					await sendAttendanceCreatedNotification(supabase, username, entryType);
+				} catch (error: any) {
+					console.error('Failed to send client notification:', error.message);
+				}
+			});
+		} catch (e) {
+			// Notification failure must never fail the attendance registration
+			console.error('Failed to schedule attendance notification:', e);
 		}
 
 		return NextResponse.json({

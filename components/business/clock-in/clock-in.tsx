@@ -141,6 +141,7 @@ export function ClockIn() {
 					radiusMeters: radiusMeters,
 					lat: latitude || TARGET_LOCATION.latitude,
 					long: longitude || TARGET_LOCATION.longitude,
+					username: user?.username || '',
 				}),
 			});
 
