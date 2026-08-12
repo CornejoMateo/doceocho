@@ -11,13 +11,17 @@ import {
 import { optimizeFile } from '@/utils/optimization-images';
 
 interface UseFileUploadOptions {
-	clientId: number;
-	checklistId?: number | null;
+	clientId?: number;
 	claimId?: number | null;
 	allowedFileTypes?: readonly string[];
 	maxFileSize?: number;
 	getDefaultDisplayName?: (file: File) => string;
 	getDefaultDescription?: (file: File) => string;
+	uploadFile?: (
+		file: File,
+		title: string | null,
+		description: string | null
+	) => Promise<{ error: any }>;
 	beforeUpload?: () => string | null;
 	onUploadSuccess?: () => void;
 	onImageFileSelect?: (file: File) => void;
@@ -25,12 +29,12 @@ interface UseFileUploadOptions {
 
 export function useFileUpload({
 	clientId,
-	checklistId,
 	claimId,
 	allowedFileTypes = CLIENT_FILE_TYPES,
 	maxFileSize,
 	getDefaultDisplayName,
 	getDefaultDescription,
+	uploadFile,
 	beforeUpload,
 	onUploadSuccess,
 	onImageFileSelect,
@@ -92,6 +96,15 @@ export function useFileUpload({
 	const handleUploadSubmit = async () => {
 		if (!selectedFile) return;
 
+		if (!uploadFile && !clientId) {
+			toast({
+				variant: 'destructive',
+				title: 'No se puede subir archivo',
+				description: 'No se ha especificado un destino para la subida del archivo.',
+			});
+			return;
+		}
+
 		const preUploadError = beforeUpload?.();
 		if (preUploadError) {
 			const error = translateError(preUploadError);
@@ -108,14 +121,12 @@ export function useFileUpload({
 		try {
 			const optimizedFile = await optimizeFile(selectedFile);
 
-			const { error } = await uploadClientFile(
-				clientId,
-				optimizedFile,
-				displayName.trim() || null,
-				description.trim() || null,
-				checklistId || null,
-				claimId || null
-			);
+			const { error } = uploadFile
+				? await uploadFile(optimizedFile, displayName.trim() || null, description.trim() || null)
+				: await uploadClientFile(clientId!, optimizedFile, {
+						title: displayName.trim() || null,
+						description: description.trim() || null,
+					});
 
 			if (error) {
 				toast({

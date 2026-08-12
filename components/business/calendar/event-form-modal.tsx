@@ -477,7 +477,16 @@ export function EventFormModal({
 							type="button"
 							variant="outline"
 							className={`justify-start ${formData.remember ? 'bg-yellow-200' : ''}`}
-							onClick={() => setFormData((prev) => ({ ...prev, remember: !prev.remember }))}
+							onClick={() => {
+								const newRemember = !formData.remember;
+								setFormData((prev) => ({ ...prev, remember: newRemember }));
+								toast({
+									title: 'Recordatorio actualizado',
+									description: newRemember
+										? 'El recordatorio ha sido activado'
+										: 'El recordatorio ha sido desactivado',
+								});
+							}}
 						>
 							<Bell className={`w-6 h-6 ${formData.remember ? 'text-red-600' : 'text-gray-700'}`} />
 						</Button>

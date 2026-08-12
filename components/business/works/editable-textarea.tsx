@@ -20,6 +20,7 @@ interface EditableTextareaProps {
 	onSave: (newValue: string) => Promise<void>;
 	className?: string;
 	formatDisplay?: (value: string) => string;
+	showEditButton?: boolean;
 }
 
 const MAX_PREVIEW_LENGTH = 100;
@@ -29,6 +30,7 @@ export function EditableTextarea({
 	onSave,
 	className = '',
 	formatDisplay,
+	showEditButton = true,
 }: EditableTextareaProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -125,15 +127,17 @@ export function EditableTextarea({
 								<Button variant="outline" onClick={() => setIsModalOpen(false)}>
 									Cerrar
 								</Button>
-								<Button
-									onClick={() => {
-										setEditedValue(value);
-										setIsEditing(true);
-									}}
-								>
-									<Pencil className="h-4 w-4 mr-2" />
-									Editar
-								</Button>
+								{showEditButton && (
+									<Button
+										onClick={() => {
+											setEditedValue(value);
+											setIsEditing(true);
+										}}
+									>
+										<Pencil className="h-4 w-4 mr-2" />
+										Editar
+									</Button>
+								)}
 							</>
 						)}
 					</DialogFooter>
@@ -158,19 +162,21 @@ export function EditableTextarea({
 					<Eye className="h-3 w-3" />
 				</Button>
 			)}
-			<Button
-				variant="ghost"
-				size="sm"
-				className="h-4 w-4 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity flex-shrink-0"
-				onClick={(e) => {
-					e.stopPropagation();
-					setEditedValue(value);
-					setIsEditing(true);
-					setIsModalOpen(true);
-				}}
-			>
-				<Pencil className="h-3 w-3" />
-			</Button>
+			{showEditButton && (
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-4 w-4 p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-70 transition-opacity flex-shrink-0"
+					onClick={(e) => {
+						e.stopPropagation();
+						setEditedValue(value);
+						setIsEditing(true);
+						setIsModalOpen(true);
+					}}
+				>
+					<Pencil className="h-3 w-3" />
+				</Button>
+			)}
 		</div>
 	);
 }

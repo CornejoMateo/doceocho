@@ -181,7 +181,6 @@ export function ChecklistCard({
 
 	const {} = useFileUpload({
 		clientId: clientId || 0,
-		checklistId: checklist.id,
 		getDefaultDisplayName: (file) => checklist.name || file.name.replace(/\.[^/.]+$/, ''),
 		getDefaultDescription: () => checklist.description || '',
 		onUploadSuccess: () => setImagesRefreshKey((prev) => prev + 1),

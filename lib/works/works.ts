@@ -32,6 +32,16 @@ export type WorkWithProgress = Work & {
 	hasBudget: boolean;
 };
 
+export type WorkFileItem = {
+	id: number;
+	uploaded_at?: string;
+	path: string | null;
+	title: string | null;
+	description: string | null;
+	type?: string | null;
+	size?: number | null;
+};
+
 const TABLE = 'works';
 
 export async function listWorks(): Promise<{ data: Work[] | null; error: any }> {
@@ -158,6 +168,29 @@ export async function deleteWork(id: number): Promise<{ data: null; error: any }
 				const { error } = await deleteFolderBudgetWithBudgets(folderBudget.id);
 
 				if (error) {
+					throw error;
+				}
+			})
+		);
+	} catch (error) {
+		return { data: null, error };
+	}
+
+	try {
+		const { data: files, error: filesError } = await supabase
+			.from('files_client')
+			.select('id')
+			.eq('work_id', id);
+
+		if (filesError) {
+			return { data: null, error: filesError };
+		}
+
+		await Promise.all(
+			(files ?? []).map(async (file) => {
+				const { success, error } = await deleteWorkFile(file.id);
+
+				if (!success) {
 					throw error;
 				}
 			})
@@ -300,4 +333,136 @@ export async function getWorksThisWeek(): Promise<{ data: Work[] | null; error: 
 	}));
 
 	return { data: worksWithClientNames, error: null };
+}
+
+export async function getFileByWorkId(
+	workId: number
+): Promise<{ data: WorkFileItem[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	try {
+		if (!workId) {
+			return { data: null, error: new Error('Invalid work id') };
+		}
+
+		const { data: files, error: listError } = await supabase
+			.from('files_client')
+			.select('*')
+			.eq('work_id', workId)
+			.order('id', { ascending: true });
+
+		if (listError) {
+			return { data: null, error: listError };
+		}
+
+		return { data: files ?? [], error: null };
+	} catch (err) {
+		console.error('Unexpected error listing work files:', err);
+		return { data: null, error: err };
+	}
+}
+
+export async function uploadWorkFile(
+	workId: number,
+	file: File,
+	title?: string | null,
+	description?: string | null
+): Promise<{ data: WorkFileItem | null; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const fileExt = file.name.split('.').pop();
+		const fileName = `${crypto.randomUUID()}.${fileExt}`;
+		const filePath = `${workId}/${fileName}`;
+
+		const { error: uploadError } = await supabase.storage
+			.from('works-files')
+			.upload(filePath, file);
+
+		if (uploadError) {
+			return { data: null, error: uploadError };
+		}
+
+		const { data: fileRecord, error: dbError } = await supabase
+			.from('files_client')
+			.insert({
+				path: filePath,
+				work_id: workId,
+				title: title || null,
+				description: description || null,
+				type: file.type || null,
+				size: file.size,
+			})
+			.select()
+			.single();
+
+		if (dbError) {
+			await supabase.storage.from('works-files').remove([filePath]);
+			return { data: null, error: dbError };
+		}
+
+		return { data: fileRecord ?? null, error: null };
+	} catch (err) {
+		console.error('Unexpected error uploading work file:', err);
+		return { data: null, error: err };
+	}
+}
+
+export async function deleteWorkFile(fileId: number): Promise<{ success: boolean; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const { data: fileRecord, error: fetchError } = await supabase
+			.from('files_client')
+			.select('path')
+			.eq('id', fileId)
+			.single();
+
+		if (fetchError) {
+			return { success: false, error: fetchError };
+		}
+
+		if (!fileRecord || !fileRecord.path) {
+			return { success: false, error: 'File record not found or missing path' };
+		}
+
+		const { data: fileBlob, error: downloadError } = await supabase.storage
+			.from('works-files')
+			.download(fileRecord.path);
+
+		if (downloadError) {
+			return { success: false, error: downloadError };
+		}
+
+		const { error: deleteStorageError } = await supabase.storage
+			.from('works-files')
+			.remove([fileRecord.path]);
+
+		if (deleteStorageError) {
+			return { success: false, error: deleteStorageError };
+		}
+
+		const { error: deleteDbError } = await supabase.from('files_client').delete().eq('id', fileId);
+
+		if (deleteDbError) {
+			const { error: reuploadError } = await supabase.storage
+				.from('works-files')
+				.upload(fileRecord.path, fileBlob, { upsert: true });
+
+			if (reuploadError) {
+				console.error('Failed to restore file to storage after DB delete failure:', reuploadError);
+				return {
+					success: false,
+					error: { deleteDbError, reuploadError },
+				};
+			}
+
+			return { success: false, error: deleteDbError };
+		}
+
+		return { success: true, error: null };
+	} catch (err) {
+		console.error('Unexpected error deleting work file:', err);
+		return { success: false, error: err };
+	}
 }

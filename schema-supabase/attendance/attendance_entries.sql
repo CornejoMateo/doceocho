@@ -69,3 +69,70 @@ USING (
     )
 );
 
+------ AUTOMATIC CLOSE OF ATTENDANCE ENTRIES ------
+
+CREATE OR REPLACE FUNCTION public.close_pending_attendance_entries()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    argentina_date date;
+    argentina_close_time timestamptz;
+BEGIN
+    argentina_date :=
+        (CURRENT_TIMESTAMP AT TIME ZONE 'America/Argentina/Buenos_Aires')::date;
+
+    argentina_close_time :=
+        argentina_date::timestamp
+        AT TIME ZONE 'America/Argentina/Buenos_Aires';
+
+    argentina_close_time :=
+        argentina_close_time + interval '23 hours';
+
+    INSERT INTO public.attendance_entries (
+        attendance_id,
+        type,
+        entry_time,
+        description
+    )
+    SELECT
+        latest.attendance_id,
+        CASE
+            WHEN latest.type = 'regular_in' THEN 'regular_out'
+            WHEN latest.type = 'overtime_in' THEN 'overtime_out'
+        END,
+        argentina_close_time,
+        'Salida automática por cierre de jornada'
+    FROM (
+        SELECT DISTINCT ON (ae.attendance_id)
+            ae.attendance_id,
+            ae.type,
+            ae.entry_time,
+            ae.id
+        FROM public.attendance_entries ae
+        INNER JOIN public.attendance a
+            ON a.id = ae.attendance_id
+        WHERE a.date = argentina_date
+        ORDER BY ae.attendance_id, ae.entry_time DESC, ae.id DESC
+    ) latest
+    WHERE latest.type IN ('regular_in', 'overtime_in')
+      AND NOT EXISTS (
+          SELECT 1
+          FROM public.attendance_entries existing
+          WHERE existing.attendance_id = latest.attendance_id
+            AND existing.type = CASE
+                WHEN latest.type = 'regular_in' THEN 'regular_out'
+                WHEN latest.type = 'overtime_in' THEN 'overtime_out'
+            END
+            AND existing.entry_time >= argentina_close_time
+      );
+END;
+$$;
+
+SELECT cron.schedule(
+    'close-pending-attendance-entries',
+    '0 2 * * *',
+    $$SELECT public.close_pending_attendance_entries();$$
+);

@@ -57,6 +57,15 @@ export function ClientDetailsDialog({
 
 	const isAuthorized = user?.role === 'Admin';
 
+	const [activeTab, setActiveTab] = useState<string>(isAuthorized ? 'info' : 'images');
+
+	// Sync the active tab once auth resolves (user starts as null and loads async)
+	useEffect(() => {
+		if (user) {
+			setActiveTab(isAuthorized ? 'info' : 'images');
+		}
+	}, [user, isAuthorized]);
+
 	// Auto-save hook for cover field
 	const {
 		isSaving,
@@ -238,6 +247,7 @@ export function ClientDetailsDialog({
 	const resetForm = () => {
 		setClientData(null);
 		setCover('');
+		setActiveTab(isAuthorized ? 'info' : 'images');
 		setIsWorkFormOpen(false);
 		setIsBalanceFormOpen(false);
 		setSelectedBalance(null);
@@ -307,16 +317,19 @@ export function ClientDetailsDialog({
 
 					<div className="border-t pt-2">
 						<Tabs
-							defaultValue={user?.role === 'Admin' ? 'info' : 'images'}
+							value={activeTab}
 							className="w-full "
-							onValueChange={handleTabChange}
+							onValueChange={(value) => {
+								setActiveTab(value);
+								handleTabChange(value);
+							}}
 						>
 							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">
 								<>
+									{isAuthorized && <TabsTrigger value="info">Información</TabsTrigger>}
+									<TabsTrigger value="works">Obras</TabsTrigger>
 									{isAuthorized && (
 										<>
-											<TabsTrigger value="info">Información</TabsTrigger>
-											<TabsTrigger value="works">Obras</TabsTrigger>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
 											<TabsTrigger value="balances">Saldos</TabsTrigger>
 										</>
@@ -372,10 +385,12 @@ export function ClientDetailsDialog({
 												<p className="text-sm text-muted-foreground mb-4">
 													No hay obras registradas para este cliente.
 												</p>
-												<Button onClick={() => setIsWorkFormOpen(true)} size="sm">
-													<Plus className="h-4 w-4 mr-1" />
-													Crear primera obra
-												</Button>
+												{isAuthorized && (
+													<Button onClick={() => setIsWorkFormOpen(true)} size="sm">
+														<Plus className="h-4 w-4 mr-1" />
+														Crear primera obra
+													</Button>
+												)}
 											</div>
 										)}
 									</div>
