@@ -57,15 +57,6 @@ export function ClientDetailsDialog({
 
 	const isAuthorized = user?.role === 'Admin';
 
-	const [activeTab, setActiveTab] = useState<string>(isAuthorized ? 'info' : 'images');
-
-	// Sync the active tab once auth resolves (user starts as null and loads async)
-	useEffect(() => {
-		if (user) {
-			setActiveTab(isAuthorized ? 'info' : 'images');
-		}
-	}, [user, isAuthorized]);
-
 	// Auto-save hook for cover field
 	const {
 		isSaving,
@@ -247,7 +238,6 @@ export function ClientDetailsDialog({
 	const resetForm = () => {
 		setClientData(null);
 		setCover('');
-		setActiveTab(isAuthorized ? 'info' : 'images');
 		setIsWorkFormOpen(false);
 		setIsBalanceFormOpen(false);
 		setSelectedBalance(null);
@@ -317,12 +307,9 @@ export function ClientDetailsDialog({
 
 					<div className="border-t pt-2">
 						<Tabs
-							value={activeTab}
+							defaultValue={isAuthorized ? 'info' : 'images'}
 							className="w-full "
-							onValueChange={(value) => {
-								setActiveTab(value);
-								handleTabChange(value);
-							}}
+							onValueChange={handleTabChange}
 						>
 							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">
 								<>
