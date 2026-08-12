@@ -50,17 +50,20 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
 	return (
 		<div className="flex flex-col items-center justify-center space-y-4">
-			<video
-				ref={videoRef}
-				style={{
-					width: '100%',
-					maxWidth: 400,
-				}}
-			/>
+			{!cameraError ? (
+				<video
+					ref={videoRef}
+					style={{
+						width: '100%',
+						maxWidth: 400,
+					}}
+				/>
+			) : (
+				<div className="mt-5 text-red-500 text-center">{cameraError}</div>
+			)}
 			<Button variant="outline" onClick={onClose} className="w-full max-w-md">
 				Cancelar
 			</Button>
-			{cameraError && <p className="text-red-500">{cameraError}</p>}
 		</div>
 	);
 }

@@ -7,12 +7,12 @@ import {
 } from '@/lib/attendance/attendance-server';
 import { getCurrentUser } from '@/lib/auth';
 import { isWithinRadius } from '@/helpers/attendance/distance';
-import { TARGET_LOCATION } from '@/constants/attendance/attendance';
+import { verifyQRToken } from '@/lib/qr/qr-token';
 
 export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
-		const { isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
+		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
 		const userId = user?.id;
 
 		if (!userId) {
@@ -23,6 +23,34 @@ export async function POST(req: NextRequest) {
 				},
 				{
 					status: 400,
+				}
+			);
+		}
+
+		if (!token || typeof token !== 'string') {
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'Token inválido',
+				},
+				{
+					status: 400,
+				}
+			);
+		}
+
+		try {
+			await verifyQRToken(token);
+		} catch (qrError) {
+			console.error(qrError);
+
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'QR inválido o expirado',
+				},
+				{
+					status: 401,
 				}
 			);
 		}
@@ -44,6 +72,18 @@ export async function POST(req: NextRequest) {
 				{
 					success: false,
 					message: 'Radio inválido',
+				},
+				{
+					status: 400,
+				}
+			);
+		}
+
+		if (typeof lat !== 'number' || typeof long !== 'number') {
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'Ubicación de referencia inválida',
 				},
 				{
 					status: 400,
@@ -111,6 +151,7 @@ export async function POST(req: NextRequest) {
 			entry_time: new Date().toISOString(),
 			latitude,
 			longitude,
+			description: null,
 		});
 
 		if (entryError) {
