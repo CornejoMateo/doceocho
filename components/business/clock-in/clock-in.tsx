@@ -227,7 +227,7 @@ export function ClockIn() {
 					<TabsContent value="hour">
 						{isAuthorized && (
 							<>
-								<div className="flex justify-end gap-2 mb-4">
+								<div className="flex justify-center sm:justify-end gap-2 mb-4">
 									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
 										Crear Registro
 									</Button>
