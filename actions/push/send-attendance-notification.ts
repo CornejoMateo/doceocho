@@ -27,18 +27,17 @@ export async function sendAttendanceCreatedNotification(
 
 		let sentCount = 0;
 		let failedCount = 0;
+
+		const typeLabels: Record<string, string> = {
+			regular_in: 'entrada',
+			regular_out: 'salida',
+			overtime_in: 'entrada (extra)',
+			overtime_out: 'salida (extra)',
+		};
+
 		for (let i = 0; i < subscriptions.length; i++) {
 			const subscription = subscriptions[i];
-			const typeEntry =
-				type === 'regular-in'
-					? 'entrada'
-					: type === 'regular-out'
-						? 'salida'
-						: type === 'overtime-in'
-							? 'entrada extra'
-							: type === 'overtime-out'
-								? 'salida extra'
-								: 'fichaje';
+			const typeEntry = typeLabels[type] ?? 'fichaje';
 			const result = await sendPushNotification(subscription, {
 				title: 'Fichaje registrado',
 				body: `Ha registrado un fichaje de ${typeEntry} del usuario: ${username}`,
