@@ -25,6 +25,7 @@ import {
 	LayoutList,
 	Trash2,
 	Clock,
+	Backpack,
 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
@@ -54,6 +55,7 @@ import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import { useChatUnread } from '../provider/chat-unread-provider';
 import { toast } from '@/components/ui/use-toast';
+import { BackupButton } from '@/components/ui/backup-button';
 
 const navigation = [
 	{ name: 'Panel', href: '/', icon: LayoutDashboard, disabled: false },
@@ -255,15 +257,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 					<div className="px-3">
 						{user?.role === 'Admin' && (
-							<Button
-								variant="ghost"
-								size="sm"
-								className="w-full justify-start gap-2 mb-2 text-muted-foreground hover:text-foreground"
-								onClick={() => setUsersDialogOpen(true)}
-							>
-								<Settings className="h-4 w-4" />
-								Configurar usuarios
-							</Button>
+							<>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="w-full justify-start gap-2 mb-2 text-muted-foreground hover:text-foreground"
+									onClick={() => setUsersDialogOpen(true)}
+								>
+									<Settings className="h-4 w-4" />
+									Configurar usuarios
+								</Button>
+								<BackupButton />
+							</>
 						)}
 					</div>
 					<div className="border-t border-border p-4">
