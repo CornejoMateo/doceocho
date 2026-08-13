@@ -20,13 +20,14 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/use-toast';
-import { formatCurrencyWithoutSymbol } from '@/utils/formats-money';
+import { formatCurrency } from '@/utils/formats-money';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
 import { getAttendanceEntriesForMonth } from '@/lib/attendance/attendance-entries';
 import { upsertMonthlySettlement } from '@/lib/attendance/settlements';
 import { translateError } from '@/lib/error-translator';
 import { MONTHS } from '@/constants/attendance/settlements';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { Spinner } from '@/components/ui/spinner';
 
 interface SettlementsModalProps {
 	open: boolean;
@@ -54,12 +55,12 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	const [hourlyRate, setHourlyRate] = useState<number>(1000);
 	const [overtimeRate, setOvertimeRate] = useState<number>(1500);
 	const [loading, setLoading] = useState(false);
+	const [loadingSettlements, setLoadingSettlements] = useState(false);
 	const [settlements, setSettlements] = useState<MonthlySettlement[]>([]);
-	const [settlementsYear, setSettlementsYear] = useState(new Date().getFullYear().toString());
-	const [settlementsMonth, setSettlementsMonth] = useState(
-		(new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1).toString()
-	);
-
+	const prevMonthDate = new Date();
+	prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+	const [settlementsYear, setSettlementsYear] = useState(prevMonthDate.getFullYear().toString());
+	const [settlementsMonth, setSettlementsMonth] = useState(prevMonthDate.getMonth().toString());
 	const currentYear = new Date().getFullYear();
 	const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
 
@@ -206,6 +207,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	};
 
 	const loadSettlements = async () => {
+		setLoadingSettlements(true);
 		try {
 			const supabase = getSupabaseClient();
 
@@ -242,6 +244,8 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 				description: 'Error al cargar liquidaciones',
 				variant: 'destructive',
 			});
+		} finally {
+			setLoadingSettlements(false);
 		}
 	};
 
@@ -358,7 +362,11 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 								</Select>
 							</div>
 						</div>
-						{settlements.length === 0 ? (
+						{loadingSettlements ? (
+							<div className="flex justify-center py-8">
+								<Spinner className="h-8 w-8 text-muted-foreground" />
+							</div>
+						) : settlements.length === 0 ? (
 							<div className="text-center py-8 text-gray-500">
 								No hay liquidaciones para el período seleccionado
 							</div>
@@ -378,7 +386,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 												</div>
 											</div>
 											<div className="font-bold text-green-600">
-												${formatCurrencyWithoutSymbol(settlement.amount)}
+												{formatCurrency(settlement.amount)}
 											</div>
 										</div>
 									</div>
