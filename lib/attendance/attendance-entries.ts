@@ -213,3 +213,34 @@ export async function getAttendanceStatus(
 		error: null,
 	};
 }
+
+export async function getAttendanceEntriesForMonth(
+	year: number,
+	month: number
+): Promise<{ data: any[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+	const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id,
+				users (
+					name,
+					last_name,
+					username
+				)
+			)
+		`
+		)
+		.gte('attendance.date', startOfMonth)
+		.lte('attendance.date', endOfMonth);
+
+	return { data, error };
+}
