@@ -12,7 +12,7 @@ export async function POST() {
 		return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 	}
 
-	if (user.role !== 'admin') {
+	if (user.role !== 'Admin') {
 		return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 	}
 
