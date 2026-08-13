@@ -156,16 +156,3 @@ export async function getUserByUid(uid: string): Promise<{ data: User | null; er
 
 	return { data, error: null };
 }
-
-export async function isAdmin(userId: string) {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from('users')
-		.select('role')
-		.eq('uid_user', userId)
-		.single();
-
-	if (error || !data) return false;
-
-	return data.role === 'Admin';
-}
