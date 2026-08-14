@@ -40,27 +40,6 @@ export interface PaymentSummary {
 }
 
 /**
- * Create a new attendance record for the current user
- */
-export async function createAttendance(
-	date: string,
-	userId: string
-): Promise<{ data: Attendance | null; error: any }> {
-	const supabase = getSupabaseClient();
-
-	const { data, error } = await supabase
-		.from('attendance')
-		.insert({
-			date,
-			user_id: userId,
-		})
-		.select()
-		.single();
-
-	return { data, error };
-}
-
-/**
  * Get attendance history for a user with entries
  */
 export async function getUserAttendanceHistory(

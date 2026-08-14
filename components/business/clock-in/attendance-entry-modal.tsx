@@ -29,6 +29,7 @@ import { toast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
+import { getLocalDate } from '@/utils/format-date';
 import { ENTRY_TYPES } from '@/constants/attendance/attendance';
 import { listUsers, User } from '@/lib/users/users';
 
@@ -55,7 +56,7 @@ export function AttendanceEntryModal({
 
 	const [loading, setLoading] = useState(false);
 	const [entryType, setEntryType] = useState<string>(ENTRY_TYPES[0].value);
-	const [entryDate, setEntryDate] = useState<string>(new Date().toISOString().split('T')[0]);
+	const [entryDate, setEntryDate] = useState<string>(getLocalDate());
 	const [entryTime, setEntryTime] = useState<string>(format(new Date(), 'HH:mm', { locale: es }));
 	const [description, setDescription] = useState<string>('');
 	const [users, setUsers] = useState<User[]>([]);
@@ -106,7 +107,7 @@ export function AttendanceEntryModal({
 			} else {
 				setEntryType(ENTRY_TYPES[0].value);
 				setEntryTime(format(new Date(), 'HH:mm', { locale: es }));
-				setEntryDate(new Date().toISOString().split('T')[0]);
+				setEntryDate(getLocalDate());
 				setDescription('');
 			}
 		}

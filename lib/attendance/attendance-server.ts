@@ -1,4 +1,5 @@
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
+import { getLocalDate } from '@/utils/format-date';
 import { Attendance } from './attendance';
 import { AttendanceEntry } from '@/lib/attendance/attendance-entries';
 
@@ -36,7 +37,7 @@ export async function createAttendance(
 
 export async function getAttendanceForToday(userId: string) {
 	const supabase = await getServerSupabaseClient();
-	const today = new Date().toISOString().split('T')[0];
+	const today = getLocalDate();
 
 	const { data, error } = await supabase
 		.from('attendance')

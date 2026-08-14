@@ -6,6 +6,7 @@ import {
 	getLastAttendanceEntry,
 } from '@/lib/attendance/attendance-server';
 import { getCurrentUser } from '@/lib/auth';
+import { getLocalDate } from '@/utils/format-date';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import { verifyQRToken } from '@/lib/qr/qr-token';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const today = new Date().toISOString().split('T')[0];
+		const today = getLocalDate();
 
 		let attendance;
 
