@@ -310,13 +310,15 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="all">Todos los empleados</SelectItem>
-									{users.map((user) => (
-										<SelectItem key={user.uid_user} value={user.uid_user}>
-											{user.name && user.last_name
-												? `${user.name} ${user.last_name}`
-												: user.username}
-										</SelectItem>
-									))}
+									{users
+										.filter((user) => user.role !== 'Admin')
+										.map((user) => (
+											<SelectItem key={user.uid_user} value={user.uid_user}>
+												{user.name && user.last_name
+													? `${user.name} ${user.last_name}`
+													: user.username}
+											</SelectItem>
+										))}
 								</SelectContent>
 							</Select>
 						</div>
