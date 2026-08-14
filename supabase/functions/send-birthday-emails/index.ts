@@ -15,7 +15,11 @@ serve(async (req) => {
 
   const { data: events, error } = await supabase
     .from("events")
-    .select("*")
+    .select(`
+      *,
+      clients:client_id (name, last_name),
+      works:work_id (name, address, locality, zone, hood)
+    `)
     .eq("date", argDate)
     .eq("remember", true)
 
@@ -52,14 +56,31 @@ serve(async (req) => {
 
   // Send email for each event
   for (const event of events) {
+    const clientName =
+      event.clients
+        ? [event.clients.last_name, event.clients.name].filter(Boolean).join(' ')
+        : event.client_name
+
+    const workName = event.works?.name || ''
+    const workLocality = event.works?.locality || ''
+    const workAddress = event.works?.address || ''
+    const workZone = event.works?.zone || ''
+    const workHood = event.works?.hood || ''
+
     const eventHtml = `
       <div style="border-left: 4px solid #194236 ; padding: 16px; margin: 16px 0; background-color: #ebebeb; border-radius: 0 8px 8px 0;">
         ${event.type ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Tipo:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.type}</span></div>` : ''}
         ${event.title ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Título:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.title}</span></div>` : ''}
-        ${event.client ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Cliente:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.client}</span></div>` : ''}
-        ${event.location ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Localidad:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.location}</span></div>` : ''}
-        ${event.address ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Dirección:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.address}</span></div>` : ''}
-        ${event.description ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Dirección:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.description}</span></div>` : ''}
+        ${clientName ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Cliente:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${clientName}</span></div>` : ''}
+        ${workName ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Obra:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${workName}</span></div>` : ''}
+        ${workLocality ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Localidad:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${workLocality}</span></div>` : ''}
+        ${workAddress ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Dirección:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${workAddress}</span></div>` : ''}
+        ${workZone ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Zona:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${workZone}</span></div>` : ''}
+        ${workHood ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Barrio:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${workHood}</span></div>` : ''}
+        ${event.work_location && !workLocality ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Localidad:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.work_location}</span></div>` : ''}
+        ${event.location && !workLocality ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Localidad:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.location}</span></div>` : ''}
+        ${event.address && !workAddress ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Dirección:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.address}</span></div>` : ''}
+        ${event.description ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Descripción:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${event.description}</span></div>` : ''}
       </div>
     `
 
