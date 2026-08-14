@@ -28,6 +28,7 @@ import { translateError } from '@/lib/error-translator';
 import { MONTHS } from '@/constants/attendance/settlements';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Spinner } from '@/components/ui/spinner';
+import { listUsers, User } from '@/lib/users/users';
 
 interface SettlementsModalProps {
 	open: boolean;
@@ -57,6 +58,8 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	const [loading, setLoading] = useState(false);
 	const [loadingSettlements, setLoadingSettlements] = useState(false);
 	const [settlements, setSettlements] = useState<MonthlySettlement[]>([]);
+	const [users, setUsers] = useState<User[]>([]);
+	const [selectedUserId, setSelectedUserId] = useState<string>('all');
 	const prevMonthDate = new Date();
 	prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
 	const [settlementsYear, setSettlementsYear] = useState(prevMonthDate.getFullYear().toString());
@@ -64,10 +67,11 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	const currentYear = new Date().getFullYear();
 	const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
 
-	// Load default rates from settings
+	// Load default rates from settings and users
 	useEffect(() => {
 		if (open) {
 			loadSettings();
+			loadUsers();
 		}
 	}, [open]);
 
@@ -76,6 +80,27 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 		if (settings) {
 			if (settings.price_hour) setHourlyRate(settings.price_hour);
 			if (settings.price_hour_overtime) setOvertimeRate(settings.price_hour_overtime);
+		}
+	};
+
+	const loadUsers = async () => {
+		try {
+			const { data, error } = await listUsers();
+			if (error) {
+				toast({
+					title: 'Error',
+					description: translateError(error) || 'No se pudo cargar la lista de usuarios',
+					variant: 'destructive',
+				});
+			} else {
+				setUsers(data || []);
+			}
+		} catch (err) {
+			toast({
+				title: 'Error',
+				description: translateError(err) || 'No se pudo cargar la lista de usuarios',
+				variant: 'destructive',
+			});
 		}
 	};
 
@@ -112,10 +137,16 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 
 			if (attendanceError) throw attendanceError;
 
+			// Filter by user if specific user is selected
+			const filteredAttendanceData =
+				selectedUserId === 'all'
+					? attendanceData
+					: attendanceData?.filter((entry: any) => entry.attendance.user_id === selectedUserId);
+
 			// Group by user and calculate hours precisely
 			const userHours: { [key: string]: { regular: number; overtime: number; name: string } } = {};
 
-			attendanceData?.forEach((entry: any) => {
+			filteredAttendanceData?.forEach((entry: any) => {
 				const userId = entry.attendance.user_id;
 				const userName =
 					entry.attendance.users?.name && entry.attendance.users?.last_name
@@ -129,7 +160,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 
 			// Calculate hours for each user by pairing entries
 			const userEntries: { [key: string]: any[] } = {};
-			attendanceData?.forEach((entry: any) => {
+			filteredAttendanceData?.forEach((entry: any) => {
 				const userId = entry.attendance.user_id;
 				if (!userEntries[userId]) {
 					userEntries[userId] = [];
@@ -271,6 +302,26 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 						<TabsTrigger value="liquidaciones">Liquidaciones</TabsTrigger>
 					</TabsList>
 					<TabsContent value="liquidar" className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label htmlFor="user-select">Empleado</Label>
+							<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+								<SelectTrigger id="user-select">
+									<SelectValue placeholder="Selecciona empleado" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">Todos los empleados</SelectItem>
+									{users
+										.filter((user) => user.role !== 'Admin')
+										.map((user) => (
+											<SelectItem key={user.uid_user} value={user.uid_user}>
+												{user.name && user.last_name
+													? `${user.name} ${user.last_name}`
+													: user.username}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+						</div>
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<Label htmlFor="year">Año</Label>
