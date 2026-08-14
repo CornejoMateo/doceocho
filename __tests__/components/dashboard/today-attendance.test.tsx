@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { TodayAttendance } from '@/components/dashboard/today-attendance';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import { getAttendanceEntriesForDay } from '@/lib/attendance/attendance';
+import { getAttendanceEntriesForDay } from '@/lib/attendance/attendance-entries';
 
 jest.mock('@/hooks/use-optimized-realtime', () => ({
 	useOptimizedRealtime: jest.fn(),
@@ -17,49 +17,60 @@ jest.mock('@/components/ui/card', () => ({
 	Card: ({ children, className }: any) => <div className={className}>{children}</div>,
 }));
 
-const today = new Date().toISOString().split('T')[0];
+beforeEach(() => {
+	jest.useFakeTimers().setSystemTime(new Date('2026-06-15T23:30:00.000Z')); // 20:30 in UTC-3
+});
 
-const entries = [
-	{
-		id: 1,
-		attendance_id: 100,
-		attendance_date: today,
-		user_id: 'u1',
-		user_name: 'Juan Perez',
-		type: 'regular_in',
-		entry_time: `${today}T09:00:00.000Z`,
-		latitude: 0,
-		longitude: 0,
-		description: null,
-	},
-	{
-		id: 2,
-		attendance_id: 100,
-		attendance_date: today,
-		user_id: 'u1',
-		user_name: 'Juan Perez',
-		type: 'regular_out',
-		entry_time: `${today}T17:00:00.000Z`,
-		latitude: 0,
-		longitude: 0,
-		description: null,
-	},
-	{
-		id: 3,
-		attendance_id: 101,
-		attendance_date: '2000-01-01',
-		user_id: 'u2',
-		user_name: 'Ana Garcia',
-		type: 'regular_in',
-		entry_time: '2000-01-01T09:00:00.000Z',
-		latitude: 0,
-		longitude: 0,
-		description: null,
-	},
-];
+afterEach(() => {
+	jest.useRealTimers();
+});
 
-function setup({ data = entries, loading = false } = {}) {
-	(useOptimizedRealtime as jest.Mock).mockReturnValue({ data, loading });
+function createEntries() {
+	const today = new Date().toISOString().split('T')[0];
+
+	return [
+		{
+			id: 1,
+			attendance_id: 100,
+			attendance_date: today,
+			user_id: 'u1',
+			user_name: 'Juan Perez',
+			type: 'regular_in',
+			entry_time: `${today}T09:00:00.000Z`,
+			latitude: 0,
+			longitude: 0,
+			description: null,
+		},
+		{
+			id: 2,
+			attendance_id: 100,
+			attendance_date: today,
+			user_id: 'u1',
+			user_name: 'Juan Perez',
+			type: 'regular_out',
+			entry_time: `${today}T17:00:00.000Z`,
+			latitude: 0,
+			longitude: 0,
+			description: null,
+		},
+		{
+			id: 3,
+			attendance_id: 101,
+			attendance_date: '2000-01-01',
+			user_id: 'u2',
+			user_name: 'Ana Garcia',
+			type: 'regular_in',
+			entry_time: '2000-01-01T09:00:00.000Z',
+			latitude: 0,
+			longitude: 0,
+			description: null,
+		},
+	];
+}
+
+function setup({ data, loading = false }: { data?: any[]; loading?: boolean } = {}) {
+	const entries = data ?? createEntries();
+	(useOptimizedRealtime as jest.Mock).mockReturnValue({ data: entries, loading });
 	(getAttendanceEntriesForDay as jest.Mock).mockResolvedValue({ data: entries, error: null });
 	render(<TodayAttendance />);
 }
@@ -88,6 +99,7 @@ describe('TodayAttendance', () => {
 	});
 
 	it('shows Entrada before Salida for the same user', () => {
+		const entries = createEntries();
 		const reversed = [...entries.slice(0, 2)].reverse();
 		setup({ data: [...reversed, entries[2]] });
 
@@ -110,6 +122,7 @@ describe('TodayAttendance', () => {
 	});
 
 	it('shows users who are still working first', () => {
+		const today = new Date().toISOString().split('T')[0];
 		const stillWorking = {
 			id: 4,
 			attendance_id: 102,
@@ -122,7 +135,7 @@ describe('TodayAttendance', () => {
 			longitude: 0,
 			description: null,
 		};
-		setup({ data: [...entries, stillWorking] });
+		setup({ data: [...createEntries(), stillWorking] });
 
 		const container = screen.getByText('Luis Gomez').parentElement!.parentElement!;
 		const juanCard = screen.getByText('Juan Perez').parentElement!.parentElement!;

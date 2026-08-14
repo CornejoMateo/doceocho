@@ -3,9 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DashboardHome } from '@/components/layout/dashboard-home';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { getClientsCount, getClientsThisWeek } from '@/lib/clients/clients';
-import { getWorksInProgressCount, getWorksThisWeek, Work } from '@/lib/works/works';
+import { getWorksInProgressCount, getWorksThisWeek, getWorksByIds, Work } from '@/lib/works/works';
 import { getSoldBudgetsCount } from '@/lib/reports/budgets/methods';
-import { getSupabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
@@ -21,15 +20,12 @@ jest.mock('@/lib/clients/clients', () => ({
 jest.mock('@/lib/works/works', () => ({
 	getWorksInProgressCount: jest.fn(),
 	getWorksThisWeek: jest.fn(),
+	getWorksByIds: jest.fn(),
 	Work: {},
 }));
 
 jest.mock('@/lib/reports/budgets/methods', () => ({
 	getSoldBudgetsCount: jest.fn(),
-}));
-
-jest.mock('@/lib/supabase-client', () => ({
-	getSupabaseClient: jest.fn(),
 }));
 
 jest.mock('@/hooks/use-optimized-realtime', () => ({
@@ -104,7 +100,6 @@ function setup({
 	worksCount = 5,
 	budgetsCount = 8,
 	worksData = null,
-	supabaseFrom = null,
 }: {
 	events?: any[];
 	isLoading?: boolean;
@@ -112,7 +107,6 @@ function setup({
 	worksCount?: number;
 	budgetsCount?: number;
 	worksData?: any[] | null;
-	supabaseFrom?: any;
 } = {}) {
 	(useLoadEvents as jest.Mock).mockReturnValue({ events, isLoading });
 	(getClientsCount as jest.Mock).mockResolvedValue({ data: clientsCount, error: null });
@@ -129,12 +123,7 @@ function setup({
 	});
 	(getClientsThisWeek as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(getWorksThisWeek as jest.Mock).mockResolvedValue({ data: [], error: null });
-
-	const mockFrom = supabaseFrom ?? {
-		select: jest.fn().mockReturnThis(),
-		in: jest.fn().mockResolvedValue({ data: worksData ?? mockWorks, error: null }),
-	};
-	(getSupabaseClient as jest.Mock).mockReturnValue({ from: jest.fn(() => mockFrom) });
+	(getWorksByIds as jest.Mock).mockResolvedValue({ data: worksData ?? mockWorks, error: null });
 
 	render(<DashboardHome />);
 }
@@ -182,13 +171,30 @@ describe('DashboardHome', () => {
 		});
 	});
 
-	it('shows work location data when the event has a work_id', async () => {
+	it('shows the work name when the event has a work_id', async () => {
 		setup();
 
 		await waitFor(() => {
-			expect(
-				screen.getByText(/CABA · Av. Siempre Viva 123 · Norte · Belgrano/)
-			).toBeInTheDocument();
+			expect(screen.getByText('Obra 100')).toBeInTheDocument();
+		});
+	});
+
+	it('falls back to locality and address when the work has no name', async () => {
+		setup({
+			worksData: [
+				{
+					id: 100,
+					name: null,
+					address: 'Av. Siempre Viva 123',
+					locality: 'CABA',
+					zone: 'Norte',
+					hood: 'Belgrano',
+				},
+			],
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText(/CABA · Av. Siempre Viva 123/)).toBeInTheDocument();
 		});
 	});
 
@@ -231,11 +237,11 @@ describe('DashboardHome', () => {
 		});
 	});
 
-	it('calls getSupabaseClient to fetch work data', async () => {
+	it('calls getWorksByIds to fetch work data', async () => {
 		setup();
 
 		await waitFor(() => {
-			expect(getSupabaseClient).toHaveBeenCalled();
+			expect(getWorksByIds).toHaveBeenCalled();
 		});
 	});
 
