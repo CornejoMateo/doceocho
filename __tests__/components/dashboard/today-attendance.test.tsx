@@ -8,8 +8,8 @@ jest.mock('@/hooks/use-optimized-realtime', () => ({
 	useOptimizedRealtime: jest.fn(),
 }));
 
-jest.mock('@/lib/attendance/attendance', () => ({
-	...jest.requireActual('@/lib/attendance/attendance'),
+jest.mock('@/lib/attendance/attendance-entries', () => ({
+	...jest.requireActual('@/lib/attendance/attendance-entries'),
 	getAttendanceEntriesForDay: jest.fn(),
 }));
 
