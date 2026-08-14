@@ -40,27 +40,6 @@ export interface PaymentSummary {
 }
 
 /**
- * Create a new attendance record for the current user
- */
-export async function createAttendance(
-	date: string,
-	userId: string
-): Promise<{ data: Attendance | null; error: any }> {
-	const supabase = getSupabaseClient();
-
-	const { data, error } = await supabase
-		.from('attendance')
-		.insert({
-			date,
-			user_id: userId,
-		})
-		.select()
-		.single();
-
-	return { data, error };
-}
-
-/**
  * Get attendance history for a user with entries
  */
 export async function getUserAttendanceHistory(
@@ -118,48 +97,6 @@ export async function getAllAttendanceHistory(): Promise<{
 			)
 		`
 		)
-		.order('entry_time', { ascending: false });
-
-	if (error) return { data: null, error };
-
-	const entriesWithDate = data?.map((entry: any) => ({
-		...entry,
-		attendance_date: entry.attendance.date,
-		user_id: entry.attendance.user_id,
-		user_name:
-			`${entry.attendance.users?.name || ''} ${entry.attendance.users?.last_name || ''}`.trim() ||
-			entry.attendance.users?.username ||
-			'Desconocido',
-	})) as AttendanceEntryWithDate[];
-
-	return { data: entriesWithDate || null, error: null };
-}
-
-/**
- * Get attendance entries with user info for a specific date
- */
-export async function getAttendanceEntriesForDay(
-	date: string
-): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
-	const supabase = getSupabaseClient();
-
-	const { data, error } = await supabase
-		.from('attendance_entries')
-		.select(
-			`
-			*,
-			attendance!inner (
-				date,
-				user_id,
-				users (
-					name,
-					last_name,
-					username
-				)
-			)
-		`
-		)
-		.eq('attendance.date', date)
 		.order('entry_time', { ascending: false });
 
 	if (error) return { data: null, error };

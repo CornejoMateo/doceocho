@@ -2,15 +2,17 @@
 
 import { Card } from '@/components/ui/card';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { getUserAttendanceSummaries } from '@/lib/attendance/attendance';
 import {
+	AttendanceEntryWithDate,
+	getEntriesByPeriod,
 	getAttendanceEntriesForDay,
-	getUserAttendanceSummaries,
-} from '@/lib/attendance/attendance';
-import { AttendanceEntryWithDate, getEntriesByPeriod } from '@/lib/attendance/attendance-entries';
+} from '@/lib/attendance/attendance-entries';
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Clock } from 'lucide-react';
+import { getLocalDate } from '@/utils/format-date';
 
 function isStillWorking(entries: AttendanceEntryWithDate[]): boolean {
 	const sorted = [...entries].sort(
@@ -36,7 +38,7 @@ function isStillWorking(entries: AttendanceEntryWithDate[]): boolean {
 }
 
 export function TodayAttendance() {
-	const today = new Date().toISOString().split('T')[0];
+	const today = getLocalDate();
 
 	const { data: entries, loading } = useOptimizedRealtime<AttendanceEntryWithDate>(
 		'attendance_entries',
@@ -49,9 +51,10 @@ export function TodayAttendance() {
 
 	const todayEntries = getEntriesByPeriod(entries, 'day', today);
 	const summaries = getUserAttendanceSummaries(todayEntries);
-	const sortedSummaries = [...summaries].sort(
-		(a, b) => Number(isStillWorking(b.entries)) - Number(isStillWorking(a.entries))
-	);
+	const sortedSummaries = summaries
+		.map((summary) => ({ summary, working: Number(isStillWorking(summary.entries)) }))
+		.sort((a, b) => b.working - a.working)
+		.map(({ summary }) => summary);
 
 	return (
 		<Card className="p-4 min-w-0">
@@ -69,7 +72,7 @@ export function TodayAttendance() {
 					{sortedSummaries.map((summary) => (
 						<div
 							key={summary.user_id}
-							className="flex gap-4 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4"
+							className="flex gap-4 rounded-xl border border-purple-500/20 hover:bg-purple-500/10 bg-purple-500/5 p-4"
 						>
 							<div className="flex h-10 w-10 shrink-0 self-center items-center justify-center rounded-full bg-purple-500/10 text-purple-600">
 								<Clock className="h-5 w-5" />

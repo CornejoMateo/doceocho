@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { getLocalDate } from '@/utils/format-date';
 
 export interface AttendanceEntry {
 	attendance_id: number;
@@ -59,14 +60,8 @@ export async function createAdminAttendanceEntry(
 	description: string | null
 ): Promise<{ data: AttendanceEntryWithDate | null; error: any }> {
 	const supabase = getSupabaseClient();
+	const date = getLocalDate(entryTime);
 
-	// First, ensure attendance record exists for the date
-	const entryDate = new Date(entryTime);
-	const date = [
-		entryDate.getFullYear(),
-		String(entryDate.getMonth() + 1).padStart(2, '0'),
-		String(entryDate.getDate()).padStart(2, '0'),
-	].join('-');
 	const { data: attendance, error: attendanceError } = await supabase
 		.from('attendance')
 		.select('id')
@@ -135,7 +130,7 @@ export function getEntriesByPeriod(
 	date?: string
 ): AttendanceEntryWithDate[] {
 	if (!date) {
-		date = new Date().toISOString().split('T')[0];
+		date = getLocalDate();
 	}
 
 	const targetDate = new Date(date);
@@ -178,7 +173,7 @@ export async function getAttendanceStatus(
 ): Promise<{ data: AttendanceStatus | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const today = new Date().toISOString().split('T')[0];
+	const today = getLocalDate();
 
 	const { data, error } = await supabase
 		.from('attendance_entries')
@@ -243,4 +238,46 @@ export async function getAttendanceEntriesForMonth(
 		.lte('attendance.date', endOfMonth);
 
 	return { data, error };
+}
+
+/**
+ * Get attendance entries with user info for a specific date
+ */
+export async function getAttendanceEntriesForDay(
+	date: string = getLocalDate()
+): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id,
+				users (
+					name,
+					last_name,
+					username
+				)
+			)
+		`
+		)
+		.eq('attendance.date', date)
+		.order('entry_time', { ascending: false });
+
+	if (error) return { data: null, error };
+
+	const entriesWithDate = data?.map((entry: any) => ({
+		...entry,
+		attendance_date: entry.attendance.date,
+		user_id: entry.attendance.user_id,
+		user_name:
+			`${entry.attendance.users?.name || ''} ${entry.attendance.users?.last_name || ''}`.trim() ||
+			entry.attendance.users?.username ||
+			'Desconocido',
+	})) as AttendanceEntryWithDate[];
+
+	return { data: entriesWithDate || null, error: null };
 }

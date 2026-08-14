@@ -19,9 +19,10 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
+import { getLocalDate } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
 import { toast } from '@/components/ui/use-toast';
-import { Pencil, Trash2, Plus, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -63,7 +64,7 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 				setError(translateError(error) || 'Error al cargar el historial de empleados');
 			} else {
 				setAllEntries(data || []);
-				const today = new Date().toISOString().split('T')[0];
+				const today = getLocalDate();
 				const periodEntries = getEntriesByPeriod(data || [], period, today);
 				setFilteredEntries(periodEntries);
 				setSummaries(getUserAttendanceSummaries(periodEntries));
