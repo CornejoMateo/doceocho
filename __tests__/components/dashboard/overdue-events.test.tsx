@@ -84,7 +84,7 @@ function setup({
 
 	const mockFrom = supabaseFrom ?? {
 		select: jest.fn().mockReturnThis(),
-		in: jest.fn().mockResolvedValue({ data: worksData ?? mockWorks, error: null }),
+		in: jest.fn(() => Promise.resolve({ data: worksData ?? mockWorks, error: null })),
 	};
 	(getSupabaseClient as jest.Mock).mockReturnValue({ from: jest.fn(() => mockFrom) });
 
@@ -130,13 +130,30 @@ describe('OverdueEvents', () => {
 		});
 	});
 
-	it('shows work location data when the event has a work_id', async () => {
+	it('shows the work name when the event has a work_id', async () => {
 		setup();
 
 		await waitFor(() => {
-			expect(
-				screen.getByText(/CABA · Av. Siempre Viva 123 · Norte · Belgrano/)
-			).toBeInTheDocument();
+			expect(screen.getByText('Obra 100')).toBeInTheDocument();
+		});
+	});
+
+	it('falls back to locality and address when the work has no name', async () => {
+		setup({
+			worksData: [
+				{
+					id: 100,
+					name: null,
+					address: 'Av. Siempre Viva 123',
+					locality: 'CABA',
+					zone: 'Norte',
+					hood: 'Belgrano',
+				},
+			],
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText(/CABA · Av. Siempre Viva 123/)).toBeInTheDocument();
 		});
 	});
 

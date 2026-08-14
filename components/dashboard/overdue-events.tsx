@@ -3,9 +3,9 @@
 import { Card } from '@/components/ui/card';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { useEffect, useMemo, useState } from 'react';
-import { Work } from '@/lib/works/works';
-import { getSupabaseClient } from '@/lib/supabase-client';
+import { getWorksByIds, Work } from '@/lib/works/works';
 import { formatCreatedAt } from '@/utils/format-date';
+import { OctagonAlert } from 'lucide-react';
 
 export function OverdueEvents() {
 	const { events, isLoading } = useLoadEvents();
@@ -23,12 +23,13 @@ export function OverdueEvents() {
 			setWorkDataMap({});
 			return;
 		}
-		const supabase = getSupabaseClient();
-		supabase
-			.from('works')
-			.select('*')
-			.in('id', workIds)
-			.then(({ data, error }) => {
+		let cancelled = false;
+
+		const fetchWorks = async () => {
+			try {
+				const { data, error } = await getWorksByIds(workIds);
+
+				if (cancelled) return;
 				if (error) {
 					console.error('Error fetching work data:', error);
 					return;
@@ -40,7 +41,17 @@ export function OverdueEvents() {
 					});
 					setWorkDataMap(map);
 				}
-			});
+			} catch (err) {
+				if (cancelled) return;
+				console.error('Error fetching work data:', err);
+			}
+		};
+
+		fetchWorks();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [overdueEvents]);
 
 	const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -68,19 +79,24 @@ export function OverdueEvents() {
 				) : overdueEvents.length > 0 ? (
 					visibleEvents.map((event) => {
 						const work = event.work_id ? workDataMap[event.work_id] : null;
-						const locationParts = [work?.locality, work?.address, work?.zone, work?.hood].filter(
-							Boolean
-						);
-						const locationDisplay =
-							locationParts.length > 0 ? locationParts.join(' · ') : event.work_location || '';
+						const locationParts = [work?.locality, work?.address].filter(Boolean);
+
+						const workName = work?.name || '';
+
+						const locationDisplay = workName
+							? workName
+							: locationParts.length > 0
+								? locationParts.join(' · ')
+								: event.work_location || '';
 
 						return (
 							<div
 								key={event.id}
 								className="group flex gap-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4 transition hover:bg-red-500/10"
 							>
-								<p>-</p>
-
+								<div className="flex h-10 w-10 shrink-0 self-center items-center justify-center rounded-full bg-red-500/10 text-red-600">
+									<OctagonAlert className="h-5 w-5" />
+								</div>
 								<div className="flex-1 space-y-1 min-w-0">
 									<div className="flex items-center justify-between gap-2">
 										<p className="text-sm font-medium truncate">{event.title}</p>
@@ -94,7 +110,9 @@ export function OverdueEvents() {
 									)}
 
 									{locationDisplay && (
-										<p className="text-xs text-muted-foreground truncate">{locationDisplay}</p>
+										<p className="text-xs text-muted-foreground truncate">
+											{workName ? `${workName}` : locationDisplay}
+										</p>
 									)}
 
 									<p className="text-xs text-red-600 pt-1">

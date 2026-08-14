@@ -104,6 +104,17 @@ export async function getWorkById(id: number): Promise<{ data: Work | null; erro
 	return { data, error };
 }
 
+export async function getWorksByIds(ids: number[]): Promise<{ data: Work[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select('id, name, locality, address')
+		.in('id', ids);
+
+	return { data, error };
+}
+
 export async function createWork(
 	work: Omit<Work, 'id' | 'created_at'>,
 	supabaseClient?: SupabaseClient
