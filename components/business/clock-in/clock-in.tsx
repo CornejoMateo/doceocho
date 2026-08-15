@@ -220,7 +220,7 @@ export function ClockIn() {
 							<>
 								<div className="flex justify-center sm:justify-end gap-2 mb-4">
 									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
-										Crear Registro
+										Crear registro
 									</Button>
 									<Button variant="outline" onClick={() => setSettlementsModalOpen(true)}>
 										Liquidaciones

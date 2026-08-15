@@ -4,13 +4,14 @@ import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-	getAllAttendanceHistory,
 	getUserAttendanceSummaries,
 	UserAttendanceSummary,
 	hasMatchingPair,
 } from '@/lib/attendance/attendance';
 import {
 	getEntriesByPeriod,
+	getAttendanceEntriesForMonth,
+	mapAttendanceEntries,
 	AttendanceEntryWithDate,
 	deleteAttendanceEntry,
 } from '@/lib/attendance/attendance-entries';
@@ -21,6 +22,7 @@ import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
 import { AttendanceEntryModal } from './attendance-entry-modal';
+import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
 import { toast } from '@/components/ui/use-toast';
 import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import {
@@ -43,11 +45,12 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 	const [loading, setLoading] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
 	const [period, setPeriod] = useState<PeriodFilter>('day');
-	const [dateFilter, setDateFilter] = useState<string>('');
+	const [dateFilter, setDateFilter] = useState<string | null>(null);
 	const [selectedUser, setSelectedUser] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedEntry, setSelectedEntry] = useState<AttendanceEntryWithDate | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
+	const [loadMoreOpen, setLoadMoreOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
 
@@ -59,16 +62,19 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 		setLoading(true);
 		setError(null);
 		try {
-			const { data, error } = await getAllAttendanceHistory();
+			const now = new Date();
+			const { data, error } = await getAttendanceEntriesForMonth(now.getFullYear(), now.getMonth());
 			if (error) {
 				setError(translateError(error) || 'Error al cargar el historial de empleados');
 			} else {
-				setAllEntries(data || []);
-				const today = getLocalDate();
-				const periodEntries = getEntriesByPeriod(data || [], period, today);
+				const entries = mapAttendanceEntries(data || []);
+				setAllEntries(entries);
+				setDateFilter(null);
+				setPeriod('day');
+				const periodEntries = getEntriesByPeriod(entries, 'day', getLocalDate());
 				setFilteredEntries(periodEntries);
 				setSummaries(getUserAttendanceSummaries(periodEntries));
-				setDateFilter(today);
+				setSelectedUser(null);
 			}
 		} catch (err: any) {
 			setError(translateError(err) || 'Error al cargar el historial de empleados');
@@ -86,17 +92,37 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 
 	const handlePeriodChange = (newPeriod: PeriodFilter) => {
 		setPeriod(newPeriod);
-		const periodEntries = getEntriesByPeriod(allEntries, newPeriod, dateFilter);
+		let periodEntries: AttendanceEntryWithDate[];
+		if (newPeriod === 'month') {
+			periodEntries = dateFilter ? getEntriesByPeriod(allEntries, 'day', dateFilter) : allEntries;
+		} else {
+			periodEntries = getEntriesByPeriod(allEntries, 'day', getLocalDate());
+		}
 		setFilteredEntries(periodEntries);
 		setSummaries(getUserAttendanceSummaries(periodEntries));
 		setSelectedUser(null);
 	};
 
 	const handleDateChange = (newDate: string) => {
+		if (!newDate) {
+			handleClearDateFilter();
+			return;
+		}
 		setDateFilter(newDate);
-		const periodEntries = getEntriesByPeriod(allEntries, period, newDate);
-		setFilteredEntries(periodEntries);
-		setSummaries(getUserAttendanceSummaries(periodEntries));
+		if (period === 'month') {
+			const periodEntries = getEntriesByPeriod(allEntries, 'day', newDate);
+			setFilteredEntries(periodEntries);
+			setSummaries(getUserAttendanceSummaries(periodEntries));
+		}
+		setSelectedUser(null);
+	};
+
+	const handleClearDateFilter = () => {
+		setDateFilter(null);
+		if (period === 'month') {
+			setFilteredEntries(allEntries);
+			setSummaries(getUserAttendanceSummaries(allEntries));
+		}
 		setSelectedUser(null);
 	};
 
@@ -140,6 +166,14 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 		setSelectedEntry(null);
 	};
 
+	const [currentYear, currentMonth] = getLocalDate().split('-').map(Number);
+	const monthStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+	const monthEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(
+		currentYear,
+		currentMonth,
+		0
+	).getDate()}`;
+
 	if (!showHistory) {
 		return (
 			<Button onClick={handleToggleHistory} variant="outline" className="w-full">
@@ -174,15 +208,7 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 										onClick={() => handlePeriodChange('day')}
 										className="h-10 flex-1 sm:flex-none"
 									>
-										Día
-									</Button>
-									<Button
-										variant={period === 'week' ? 'default' : 'outline'}
-										size="sm"
-										onClick={() => handlePeriodChange('week')}
-										className="h-10 flex-1 sm:flex-none"
-									>
-										Semana
+										Hoy
 									</Button>
 									<Button
 										variant={period === 'month' ? 'default' : 'outline'}
@@ -190,20 +216,36 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 										onClick={() => handlePeriodChange('month')}
 										className="h-10 flex-1 sm:flex-none"
 									>
-										Mes
+										Mes actual
 									</Button>
 								</div>
-								<input
-									type="date"
-									value={dateFilter}
-									onChange={(e) => handleDateChange(e.target.value)}
-									className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
-								/>
+								{period === 'month' && (
+									<div className="flex gap-2">
+										<input
+											type="date"
+											value={dateFilter ?? ''}
+											min={monthStart}
+											max={monthEnd}
+											onChange={(e) => handleDateChange(e.target.value)}
+											className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+										/>
+										{dateFilter && (
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={handleClearDateFilter}
+												className="h-10 flex-none"
+											>
+												Limpiar filtro
+											</Button>
+										)}
+									</div>
+								)}
 							</div>
 
 							{summaries.length === 0 ? (
 								<div className="text-center py-6 text-gray-500 text-sm">
-									No hay registros de asistencia
+									No hay registros de asistencia del dia de hoy o del mes actual.
 								</div>
 							) : (
 								<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
@@ -305,6 +347,9 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 							)}
 						</>
 					)}
+					<Button onClick={() => setLoadMoreOpen(true)} variant="outline" className="mx-auto flex">
+						Cargar más fichajes
+					</Button>
 				</CardContent>
 			</Card>
 			<AttendanceEntryModal
@@ -313,6 +358,7 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 				onOpenChange={handleModalClose}
 				onUpdate={loadHistory}
 			/>
+			<LoadMoreAttendanceModal open={loadMoreOpen} onOpenChange={setLoadMoreOpen} />
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>

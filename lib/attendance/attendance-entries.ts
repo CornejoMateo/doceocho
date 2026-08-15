@@ -240,6 +240,24 @@ export async function getAttendanceEntriesForMonth(
 	return { data, error };
 }
 
+export function mapAttendanceEntries(data: any[]): AttendanceEntryWithDate[] {
+	return (data || [])
+		.map((entry: any) => ({
+			...entry,
+			attendance_date: entry.attendance?.date,
+			user_id: entry.attendance?.user_id,
+			user_name:
+				`${entry.attendance?.users?.name || ''} ${
+					entry.attendance?.users?.last_name || ''
+				}`.trim() ||
+				entry.attendance?.users?.username ||
+				'Desconocido',
+		}))
+		.sort(
+			(a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime()
+		) as AttendanceEntryWithDate[];
+}
+
 /**
  * Get attendance entries with user info for a specific date
  */
