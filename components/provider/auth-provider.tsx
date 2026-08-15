@@ -112,15 +112,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange(async (event, session) => {
-			console.log('[AUTH EVENT]', {
-				event,
-				hasSession: !!session,
-				userId: session?.user?.id,
-				expiresAt: session?.expires_at,
-				now: Math.floor(Date.now() / 1000),
-				expiresIn: session?.expires_at ? session.expires_at - Math.floor(Date.now() / 1000) : null,
-			});
-
 			if (cancelled) return;
 
 			switch (event) {
@@ -200,23 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		}
 	}
 
-	useEffect(() => {
-		const interval = setInterval(async () => {
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-
-			console.log('[SESSION]', {
-				expiresAt: session?.expires_at,
-				remaining: session?.expires_at && session.expires_at - Math.floor(Date.now() / 1000),
-			});
-		}, 60_000);
-
-		return () => clearInterval(interval);
-	}, []);
-
 	async function signOutUser() {
-		console.log('[AUTH] signOut()');
 		setLoading(true);
 
 		clearChannelsCache();
