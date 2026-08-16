@@ -246,7 +246,10 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 							) : (
 								<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
 									{summaries.map((summary: UserAttendanceSummary) => (
-										<div key={summary.user_id} className="border rounded-lg overflow-hidden">
+										<div
+											key={summary.user_id}
+											className="border rounded-lg overflow-hidden h-auto py-4"
+										>
 											<Button
 												onClick={() => handleUserSelect(summary.user_id)}
 												variant="ghost"
