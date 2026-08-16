@@ -31,8 +31,7 @@ import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
 import { ENTRY_TYPES } from '@/constants/attendance/attendance';
-import { listUsers, User } from '@/lib/users/users';
-import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { User } from '@/lib/users/users';
 
 interface AttendanceEntryModalProps {
 	entry: AttendanceEntryWithDate | null;
