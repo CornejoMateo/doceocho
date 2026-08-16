@@ -23,33 +23,87 @@ import { toast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/formats-money';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
 import { getAttendanceEntriesForMonth } from '@/lib/attendance/attendance-entries';
-import { upsertMonthlySettlement } from '@/lib/attendance/settlements';
+import {
+	getMonthlySettlementsByMonth,
+	MonthlySettlementWithUser,
+	upsertMonthlySettlement,
+} from '@/lib/attendance/settlements';
 import { translateError } from '@/lib/error-translator';
 import { MONTHS } from '@/constants/attendance/settlements';
-import { getSupabaseClient } from '@/lib/supabase-client';
 import { Spinner } from '@/components/ui/spinner';
-import { listUsers, User } from '@/lib/users/users';
+import { User } from '@/lib/users/users';
 
 interface SettlementsModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	users?: User[];
 }
 
-interface MonthlySettlement {
-	id: string;
-	created_at: string;
-	year: number;
-	month: number;
-	user_id: string;
-	amount: number;
-	number_hours: number;
-	number_overtime_hours: number;
-	price_hour: number;
-	price_overtime_hour: number;
-	user_name?: string;
+interface UserHours {
+	[key: string]: { regular: number; overtime: number; name: string };
 }
 
-export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) {
+function calculateUserHours(entries: any[]): UserHours {
+	const userHours: UserHours = {};
+
+	entries.forEach((entry: any) => {
+		const userId = entry.attendance.user_id;
+		const userName =
+			entry.attendance.users?.name && entry.attendance.users?.last_name
+				? `${entry.attendance.users.name} ${entry.attendance.users.last_name}`
+				: entry.attendance.users?.username || 'Desconocido';
+
+		if (!userHours[userId]) {
+			userHours[userId] = { regular: 0, overtime: 0, name: userName };
+		}
+	});
+
+	const userEntries: { [key: string]: any[] } = {};
+	entries.forEach((entry: any) => {
+		const userId = entry.attendance.user_id;
+		if (!userEntries[userId]) {
+			userEntries[userId] = [];
+		}
+		userEntries[userId].push(entry);
+	});
+
+	for (const [userId, userEntryList] of Object.entries(userEntries)) {
+		const sortedEntries = userEntryList.sort(
+			(a: any, b: any) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime()
+		);
+
+		const pendingRegularIn: any[] = [];
+		const pendingOvertimeIn: any[] = [];
+
+		for (const entry of sortedEntries) {
+			if (entry.type === 'regular_in') {
+				pendingRegularIn.push(entry);
+			} else if (entry.type === 'regular_out' && pendingRegularIn.length > 0) {
+				const matchingIn = pendingRegularIn.shift();
+				if (matchingIn) {
+					const startTime = new Date(matchingIn.entry_time).getTime();
+					const endTime = new Date(entry.entry_time).getTime();
+					const hours = (endTime - startTime) / (1000 * 60 * 60);
+					userHours[userId].regular += hours;
+				}
+			} else if (entry.type === 'overtime_in') {
+				pendingOvertimeIn.push(entry);
+			} else if (entry.type === 'overtime_out' && pendingOvertimeIn.length > 0) {
+				const matchingIn = pendingOvertimeIn.shift();
+				if (matchingIn) {
+					const startTime = new Date(matchingIn.entry_time).getTime();
+					const endTime = new Date(entry.entry_time).getTime();
+					const hours = (endTime - startTime) / (1000 * 60 * 60);
+					userHours[userId].overtime += hours;
+				}
+			}
+		}
+	}
+
+	return userHours;
+}
+
+export function SettlementsModal({ open, onOpenChange, users = [] }: SettlementsModalProps) {
 	const [activeTab, setActiveTab] = useState<'liquidar' | 'liquidaciones'>('liquidar');
 	const [year, setYear] = useState(new Date().getFullYear().toString());
 	const [month, setMonth] = useState(new Date().getMonth().toString());
@@ -57,9 +111,10 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	const [overtimeRate, setOvertimeRate] = useState<number>(1500);
 	const [loading, setLoading] = useState(false);
 	const [loadingSettlements, setLoadingSettlements] = useState(false);
-	const [settlements, setSettlements] = useState<MonthlySettlement[]>([]);
-	const [users, setUsers] = useState<User[]>([]);
+	const [settlements, setSettlements] = useState<MonthlySettlementWithUser[]>([]);
 	const [selectedUserId, setSelectedUserId] = useState<string>('all');
+	const [calculating, setCalculating] = useState(false);
+	const [calculatedHours, setCalculatedHours] = useState<UserHours | null>(null);
 	const prevMonthDate = new Date();
 	prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
 	const [settlementsYear, setSettlementsYear] = useState(prevMonthDate.getFullYear().toString());
@@ -71,9 +126,23 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	useEffect(() => {
 		if (open) {
 			loadSettings();
-			loadUsers();
 		}
 	}, [open]);
+
+	// Reset form each time the Liquidar tab is entered
+	useEffect(() => {
+		if (open && activeTab === 'liquidar') {
+			setYear(new Date().getFullYear().toString());
+			setMonth(new Date().getMonth().toString());
+			setSelectedUserId('all');
+			setCalculatedHours(null);
+		}
+	}, [open, activeTab]);
+
+	// Clear calculated hours when the selection changes
+	useEffect(() => {
+		setCalculatedHours(null);
+	}, [selectedUserId, year, month]);
 
 	const loadSettings = async () => {
 		const { data: settings } = await getAttendanceSettings();
@@ -83,24 +152,39 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 		}
 	};
 
-	const loadUsers = async () => {
-		try {
-			const { data, error } = await listUsers();
-			if (error) {
-				toast({
-					title: 'Error',
-					description: translateError(error) || 'No se pudo cargar la lista de usuarios',
-					variant: 'destructive',
-				});
-			} else {
-				setUsers(data || []);
-			}
-		} catch (err) {
+	const fetchAndComputeHours = async (): Promise<UserHours | null> => {
+		const [yearNum, monthNum] = [Number(year), Number(month)];
+		const { data: attendanceData, error: attendanceError } = await getAttendanceEntriesForMonth(
+			yearNum,
+			monthNum
+		);
+
+		if (attendanceError) {
 			toast({
 				title: 'Error',
-				description: translateError(err) || 'No se pudo cargar la lista de usuarios',
+				description: translateError(attendanceError) || 'Error al cargar los fichajes',
 				variant: 'destructive',
 			});
+			return null;
+		}
+
+		const filteredAttendanceData =
+			selectedUserId === 'all'
+				? attendanceData
+				: attendanceData?.filter((entry: any) => entry.attendance.user_id === selectedUserId);
+
+		return calculateUserHours(filteredAttendanceData || []);
+	};
+
+	const handleCalculateHours = async () => {
+		setCalculating(true);
+		try {
+			const hours = await fetchAndComputeHours();
+			if (hours) {
+				setCalculatedHours(hours);
+			}
+		} finally {
+			setCalculating(false);
 		}
 	};
 
@@ -128,77 +212,31 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 				return;
 			}
 
-			// Get all attendance entries for the selected month
 			const [yearNum, monthNum] = [Number(year), Number(month)];
-			const { data: attendanceData, error: attendanceError } = await getAttendanceEntriesForMonth(
-				yearNum,
-				monthNum
-			);
 
-			if (attendanceError) throw attendanceError;
+			const userHours = calculatedHours ?? (await fetchAndComputeHours());
+			if (!userHours) {
+				setLoading(false);
+				return;
+			}
 
-			// Filter by user if specific user is selected
-			const filteredAttendanceData =
-				selectedUserId === 'all'
-					? attendanceData
-					: attendanceData?.filter((entry: any) => entry.attendance.user_id === selectedUserId);
+			// Seed zero-hours settlements for the selected user(s) when there are no entries
+			if (Object.keys(userHours).length === 0) {
+				const usersToSeed =
+					selectedUserId === 'all'
+						? users.filter((user) => user.role !== 'Admin')
+						: users.filter((user) => user.uid_user === selectedUserId);
 
-			// Group by user and calculate hours precisely
-			const userHours: { [key: string]: { regular: number; overtime: number; name: string } } = {};
-
-			filteredAttendanceData?.forEach((entry: any) => {
-				const userId = entry.attendance.user_id;
-				const userName =
-					entry.attendance.users?.name && entry.attendance.users?.last_name
-						? `${entry.attendance.users.name} ${entry.attendance.users.last_name}`
-						: entry.attendance.users?.username || 'Desconocido';
-
-				if (!userHours[userId]) {
-					userHours[userId] = { regular: 0, overtime: 0, name: userName };
-				}
-			});
-
-			// Calculate hours for each user by pairing entries
-			const userEntries: { [key: string]: any[] } = {};
-			filteredAttendanceData?.forEach((entry: any) => {
-				const userId = entry.attendance.user_id;
-				if (!userEntries[userId]) {
-					userEntries[userId] = [];
-				}
-				userEntries[userId].push(entry);
-			});
-
-			for (const [userId, entries] of Object.entries(userEntries)) {
-				const sortedEntries = entries.sort(
-					(a: any, b: any) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime()
-				);
-
-				const pendingRegularIn: any[] = [];
-				const pendingOvertimeIn: any[] = [];
-
-				for (const entry of sortedEntries) {
-					if (entry.type === 'regular_in') {
-						pendingRegularIn.push(entry);
-					} else if (entry.type === 'regular_out' && pendingRegularIn.length > 0) {
-						const matchingIn = pendingRegularIn.shift();
-						if (matchingIn) {
-							const startTime = new Date(matchingIn.entry_time).getTime();
-							const endTime = new Date(entry.entry_time).getTime();
-							const hours = (endTime - startTime) / (1000 * 60 * 60);
-							userHours[userId].regular += hours;
-						}
-					} else if (entry.type === 'overtime_in') {
-						pendingOvertimeIn.push(entry);
-					} else if (entry.type === 'overtime_out' && pendingOvertimeIn.length > 0) {
-						const matchingIn = pendingOvertimeIn.shift();
-						if (matchingIn) {
-							const startTime = new Date(matchingIn.entry_time).getTime();
-							const endTime = new Date(entry.entry_time).getTime();
-							const hours = (endTime - startTime) / (1000 * 60 * 60);
-							userHours[userId].overtime += hours;
-						}
-					}
-				}
+				usersToSeed.forEach((user) => {
+					userHours[user.uid_user] = {
+						regular: 0,
+						overtime: 0,
+						name:
+							user.name && user.last_name
+								? `${user.name} ${user.last_name}`
+								: user.username || 'Desconocido',
+					};
+				});
 			}
 
 			// Create settlements for each user
@@ -240,35 +278,14 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 	const loadSettlements = async () => {
 		setLoadingSettlements(true);
 		try {
-			const supabase = getSupabaseClient();
-
-			const { data, error } = await supabase
-				.from('monthly_settlements')
-				.select(
-					`
-					*,
-					users (
-						name,
-						last_name,
-						username
-					)
-				`
-				)
-				.eq('year', Number(settlementsYear))
-				.eq('month', Number(settlementsMonth));
+			const { data, error } = await getMonthlySettlementsByMonth(
+				Number(settlementsYear),
+				Number(settlementsMonth)
+			);
 
 			if (error) throw error;
 
-			const settlementsWithNames =
-				data?.map((settlement: any) => ({
-					...settlement,
-					user_name:
-						settlement.users?.name && settlement.users?.last_name
-							? `${settlement.users.name} ${settlement.users.last_name}`
-							: settlement.users?.username || 'Desconocido',
-				})) || [];
-
-			setSettlements(settlementsWithNames);
+			setSettlements(data || []);
 		} catch (error) {
 			toast({
 				title: 'Error',
@@ -288,7 +305,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[600px]">
+			<DialogContent className="w-full sm:max-w-[600px] h-auto">
 				<DialogHeader>
 					<DialogTitle>Liquidaciones</DialogTitle>
 					<DialogDescription>Gestiona las liquidaciones de sueldos</DialogDescription>
@@ -376,9 +393,44 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 								/>
 							</div>
 						</div>
-						<Button onClick={handleLiquidate} disabled={loading} className="w-full">
-							{loading ? 'Liquidando...' : 'Liquidar'}
-						</Button>
+						{!calculatedHours && (
+							<Button
+								onClick={handleCalculateHours}
+								disabled={calculating || loading}
+								variant="outline"
+								className="w-full"
+							>
+								{calculating ? 'Calculando horas...' : 'Calcular horas trabajadas'}
+							</Button>
+						)}
+						{calculatedHours && Object.keys(calculatedHours).length > 0 && (
+							<div className="space-y-2 rounded-lg border bg-gray-50 p-4 overflow-y-auto max-h-50">
+								{Object.entries(calculatedHours).map(([userId, hours]) => (
+									<div key={userId} className="flex items-center justify-between text-sm">
+										<div>
+											<div className="font-medium">{hours.name}</div>
+											<div className="text-xs text-gray-500">
+												{hours.regular.toFixed(2)}h normales · {hours.overtime.toFixed(2)}h extras ·{' '}
+												{(hours.regular + hours.overtime).toFixed(2)}h totales
+											</div>
+										</div>
+										<div className="font-semibold">
+											{formatCurrency(hours.regular * hourlyRate + hours.overtime * overtimeRate)}
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+						{calculatedHours && Object.keys(calculatedHours).length === 0 && (
+							<div className="py-2 text-center text-sm text-gray-500">
+								No hay horas para calcular en el período seleccionado
+							</div>
+						)}
+						{calculatedHours && (
+							<Button onClick={handleLiquidate} disabled={loading} className="w-full">
+								{loading ? 'Liquidando...' : 'Liquidar'}
+							</Button>
+						)}
 					</TabsContent>
 					<TabsContent value="liquidaciones" className="space-y-4 py-4">
 						<div className="grid grid-cols-2 gap-4">
@@ -422,7 +474,7 @@ export function SettlementsModal({ open, onOpenChange }: SettlementsModalProps) 
 								No hay liquidaciones para el período seleccionado
 							</div>
 						) : (
-							<div className="space-y-2">
+							<div className="space-y-2 overflow-y-auto max-h-80">
 								{settlements.map((settlement) => (
 									<div key={settlement.id} className="border rounded-lg p-4">
 										<div className="flex justify-between items-center">
