@@ -52,6 +52,7 @@ export function LoadMoreAttendanceModal({
 	const [year, setYear] = useState(currentYear.toString());
 	const [month, setMonth] = useState(new Date().getMonth().toString());
 	const [selectedUserId, setSelectedUserId] = useState<string>('all');
+	const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [results, setResults] = useState<AttendanceEntryWithDate[] | null>(null);
@@ -63,10 +64,15 @@ export function LoadMoreAttendanceModal({
 			setYear(currentYear.toString());
 			setMonth(new Date().getMonth().toString());
 			setSelectedUserId('all');
+			setExpandedUserId(null);
 			setResults(null);
 			setError(null);
 		}
 	}, [open]);
+
+	const handleUserToggle = (userId: string) => {
+		setExpandedUserId(expandedUserId === userId ? null : userId);
+	};
 
 	const handleAccept = async () => {
 		setLoading(true);
@@ -186,7 +192,11 @@ export function LoadMoreAttendanceModal({
 							) : (
 								summaries.map((summary) => (
 									<div key={summary.user_id} className="border rounded-lg overflow-hidden">
-										<div className="flex justify-between items-center p-4 bg-gray-50">
+										<Button
+											onClick={() => handleUserToggle(summary.user_id)}
+											variant="ghost"
+											className="w-full flex h-auto justify-between items-center py-4 bg-gray-50 hover:bg-gray-100 hover:text-inherit cursor-pointer rounded-none"
+										>
 											<div className="text-left">
 												<div className="font-medium text-sm">{summary.user_name}</div>
 												<div className="text-xs text-gray-500">
@@ -199,41 +209,43 @@ export function LoadMoreAttendanceModal({
 												</div>
 												<div className="text-xs text-gray-500">horas trabajadas</div>
 											</div>
-										</div>
-										<div className="space-y-2 p-3">
-											{summary.entries.map((entry: AttendanceEntryWithDate) => (
-												<div
-													key={entry.id}
-													className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-2"
-												>
-													<div className="min-w-0 flex-1">
-														<div className="flex items-center gap-2">
-															<div
-																className={`font-medium text-sm ${getEntryTypeColor(entry.type)}`}
-															>
-																{getEntryTypeLabel(entry.type)}
+										</Button>
+										{expandedUserId === summary.user_id && (
+											<div className="space-y-2 p-3 border-t">
+												{summary.entries.map((entry: AttendanceEntryWithDate) => (
+													<div
+														key={entry.id}
+														className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-2"
+													>
+														<div className="min-w-0 flex-1">
+															<div className="flex items-center gap-2">
+																<div
+																	className={`font-medium text-sm ${getEntryTypeColor(entry.type)}`}
+																>
+																	{getEntryTypeLabel(entry.type)}
+																</div>
+																{!hasMatchingPair(entry, summary.entries) && (
+																	<span title="Registro sin par correspondiente">
+																		<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+																	</span>
+																)}
 															</div>
-															{!hasMatchingPair(entry, summary.entries) && (
-																<span title="Registro sin par correspondiente">
-																	<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-																</span>
+															<div className="text-xs text-gray-500">
+																{formatCreatedAt(entry.attendance_date)}
+															</div>
+															{entry.description && (
+																<div className="mt-1.5 text-sm text-gray-600 break-words">
+																	{entry.description}
+																</div>
 															)}
 														</div>
-														<div className="text-xs text-gray-500">
-															{formatCreatedAt(entry.attendance_date)}
+														<div className="font-medium text-sm">
+															{format(new Date(entry.entry_time), 'HH:mm', { locale: es })}
 														</div>
-														{entry.description && (
-															<div className="mt-1.5 text-sm text-gray-600 break-words">
-																{entry.description}
-															</div>
-														)}
 													</div>
-													<div className="font-medium text-sm">
-														{format(new Date(entry.entry_time), 'HH:mm', { locale: es })}
-													</div>
-												</div>
-											))}
-										</div>
+												))}
+											</div>
+										)}
 									</div>
 								))
 							)}
