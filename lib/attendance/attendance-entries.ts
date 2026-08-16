@@ -258,6 +258,36 @@ export function mapAttendanceEntries(data: any[]): AttendanceEntryWithDate[] {
 		) as AttendanceEntryWithDate[];
 }
 
+export async function getUserAttendanceEntriesForMonth(
+	userId: string,
+	year: number,
+	month: number
+): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+	const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id
+			)
+		`
+		)
+		.eq('attendance.user_id', userId)
+		.gte('attendance.date', startOfMonth)
+		.lte('attendance.date', endOfMonth);
+
+	if (error) return { data: null, error };
+
+	return { data: mapAttendanceEntries(data || []) || null, error: null };
+}
+
 /**
  * Get attendance entries with user info for a specific date
  */

@@ -19,11 +19,10 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { MONTHS } from '@/constants/attendance/settlements';
-import { listUsers, User } from '@/lib/users/users';
 import { translateError } from '@/lib/error-translator';
-import { toast } from '@/components/ui/use-toast';
 import {
 	getAttendanceEntriesForMonth,
+	getUserAttendanceEntriesForMonth,
 	mapAttendanceEntries,
 	AttendanceEntryWithDate,
 } from '@/lib/attendance/attendance-entries';
@@ -33,20 +32,26 @@ import { formatCreatedAt } from '@/utils/format-date';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AlertTriangle } from 'lucide-react';
+import { User } from '@/lib/users/users';
 
 interface LoadMoreAttendanceModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	users?: User[];
+	user: User | null;
 }
 
-export function LoadMoreAttendanceModal({ open, onOpenChange }: LoadMoreAttendanceModalProps) {
+export function LoadMoreAttendanceModal({
+	open,
+	onOpenChange,
+	users = [],
+	user = null,
+}: LoadMoreAttendanceModalProps) {
 	const currentYear = new Date().getFullYear();
 	const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
 	const [year, setYear] = useState(currentYear.toString());
 	const [month, setMonth] = useState(new Date().getMonth().toString());
 	const [selectedUserId, setSelectedUserId] = useState<string>('all');
-	const [users, setUsers] = useState<User[]>([]);
-	const [loadingUsers, setLoadingUsers] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [results, setResults] = useState<AttendanceEntryWithDate[] | null>(null);
@@ -60,46 +65,35 @@ export function LoadMoreAttendanceModal({ open, onOpenChange }: LoadMoreAttendan
 			setSelectedUserId('all');
 			setResults(null);
 			setError(null);
-			loadUsers();
 		}
 	}, [open]);
-
-	const loadUsers = async () => {
-		setLoadingUsers(true);
-		try {
-			const { data, error } = await listUsers();
-			if (error) {
-				toast({
-					title: 'Error',
-					description: translateError(error) || 'No se pudo cargar la lista de usuarios',
-					variant: 'destructive',
-				});
-			} else {
-				setUsers(data || []);
-			}
-		} catch (err) {
-			toast({
-				title: 'Error',
-				description: translateError(err) || 'No se pudo cargar la lista de usuarios',
-				variant: 'destructive',
-			});
-		} finally {
-			setLoadingUsers(false);
-		}
-	};
 
 	const handleAccept = async () => {
 		setLoading(true);
 		setError(null);
 		try {
-			const { data, error } = await getAttendanceEntriesForMonth(Number(year), Number(month));
-			if (error) {
-				setError(translateError(error) || 'Error al cargar los fichajes');
-				return;
-			}
-			let entries = mapAttendanceEntries(data || []);
-			if (selectedUserId !== 'all') {
-				entries = entries.filter((entry) => entry.user_id === selectedUserId);
+			let entries: AttendanceEntryWithDate[];
+			if (user?.uid_user) {
+				const { data, error } = await getUserAttendanceEntriesForMonth(
+					user.uid_user,
+					Number(year),
+					Number(month)
+				);
+				if (error) {
+					setError(translateError(error) || 'Error al cargar los fichajes');
+					return;
+				}
+				entries = data || [];
+			} else {
+				const { data, error } = await getAttendanceEntriesForMonth(Number(year), Number(month));
+				if (error) {
+					setError(translateError(error) || 'Error al cargar los fichajes');
+					return;
+				}
+				entries = mapAttendanceEntries(data || []);
+				if (selectedUserId !== 'all') {
+					entries = entries.filter((entry) => entry.user_id === selectedUserId);
+				}
 			}
 			setResults(entries);
 		} catch (err: any) {
@@ -151,30 +145,29 @@ export function LoadMoreAttendanceModal({ open, onOpenChange }: LoadMoreAttendan
 							</Select>
 						</div>
 					</div>
-					<div className="space-y-2">
-						<Label htmlFor="user-select">Usuario</Label>
-						{loadingUsers ? (
-							<div className="text-sm text-gray-500">Cargando empleados...</div>
-						) : (
+					{!user && (
+						<div className="space-y-2">
+							<Label htmlFor="user-select">Usuario</Label>
 							<Select value={selectedUserId} onValueChange={setSelectedUserId}>
 								<SelectTrigger id="user-select">
 									<SelectValue placeholder="Selecciona usuario" />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="all">Todos los usuarios</SelectItem>
-									{users
-										.filter((user) => user.role !== 'Admin')
-										.map((user) => (
-											<SelectItem key={user.uid_user} value={user.uid_user}>
-												{user.name && user.last_name
-													? `${user.name} ${user.last_name}`
-													: user.username}
-											</SelectItem>
-										))}
+									{users.map(
+										(user) =>
+											user.role === 'Taller' && (
+												<SelectItem key={user.uid_user} value={user.uid_user}>
+													{user.name && user.last_name
+														? `${user.name} ${user.last_name}`
+														: user.username}
+												</SelectItem>
+											)
+									)}
 								</SelectContent>
 							</Select>
-						)}
-					</div>
+						</div>
+					)}
 
 					{loading && (
 						<div className="text-center py-6 text-gray-500 text-sm">Cargando fichajes...</div>

@@ -21,7 +21,6 @@ import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
-import { AttendanceEntryModal } from './attendance-entry-modal';
 import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
 import { toast } from '@/components/ui/use-toast';
 import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
@@ -35,10 +34,12 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { User } from '@/lib/users/users';
 
 type PeriodFilter = 'day' | 'week' | 'month';
 
-export const AdminAttendanceHistory = forwardRef((props, ref) => {
+export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref) => {
+	const { users = [] } = props;
 	const [allEntries, setAllEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [filteredEntries, setFilteredEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [summaries, setSummaries] = useState<UserAttendanceSummary[]>([]);
@@ -159,11 +160,6 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 		}
 		setDeleteDialogOpen(false);
 		setEntryToDelete(null);
-	};
-
-	const handleModalClose = () => {
-		setModalOpen(false);
-		setSelectedEntry(null);
 	};
 
 	const [currentYear, currentMonth] = getLocalDate().split('-').map(Number);
@@ -352,13 +348,12 @@ export const AdminAttendanceHistory = forwardRef((props, ref) => {
 					</Button>
 				</CardContent>
 			</Card>
-			<AttendanceEntryModal
-				entry={selectedEntry}
-				open={modalOpen}
-				onOpenChange={handleModalClose}
-				onUpdate={loadHistory}
+			<LoadMoreAttendanceModal
+				open={loadMoreOpen}
+				onOpenChange={setLoadMoreOpen}
+				users={users}
+				user={null}
 			/>
-			<LoadMoreAttendanceModal open={loadMoreOpen} onOpenChange={setLoadMoreOpen} />
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
