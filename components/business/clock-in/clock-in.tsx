@@ -43,6 +43,10 @@ export function ClockIn() {
 
 	const { user } = useAuth();
 
+	const isAuthorized = user?.role === 'Admin';
+	const isTaller = user?.role === 'Taller';
+	const isQR = user?.role === 'QR';
+
 	const [showScanner, setShowScanner] = useState(false);
 	const [loading, setLoading] = useState(true);
 
@@ -51,14 +55,16 @@ export function ClockIn() {
 		loading: loadingUsers,
 		error: usersError,
 		refresh,
-	} = useOptimizedRealtime<User>(
-		'users',
-		async () => {
-			const { data } = await listUsers();
-			return data ?? [];
-		},
-		'users_cache'
-	);
+	} = isAuthorized
+		? useOptimizedRealtime<User>(
+				'users',
+				async () => {
+					const { data } = await listUsers();
+					return data ?? [];
+				},
+				'users_cache'
+			)
+		: { data: [], loading: false, error: null, refresh: () => {} };
 
 	useEffect(() => {
 		if (!user) return;
@@ -72,10 +78,6 @@ export function ClockIn() {
 
 		init();
 	}, [user]);
-
-	const isAuthorized = user?.role === 'Admin';
-	const isTaller = user?.role === 'Taller';
-	const isQR = user?.role === 'QR';
 
 	const loadSettings = async () => {
 		const { data: settings } = await getAttendanceSettings();
