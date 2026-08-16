@@ -122,6 +122,47 @@ export async function getAllMonthlySettlements(): Promise<{
 }
 
 /**
+ * Get all monthly settlements of a specific month (with user names)
+ */
+
+export async function getMonthlySettlementsByMonth(
+	year: number,
+	month: number
+): Promise<{ data: MonthlySettlementWithUser[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('monthly_settlements')
+		.select(
+			`
+			*,
+			users (
+				name,
+				last_name,
+				username
+			)
+		`
+		)
+		.eq('year', year)
+		.eq('month', month)
+		.order('created_at', { ascending: false });
+
+	if (error) {
+		return { data: null, error };
+	}
+
+	const settlements = data?.map((settlement: any) => ({
+		...settlement,
+		user_name:
+			settlement.users?.username ||
+			`${settlement.users?.name || ''} ${settlement.users?.last_name || ''}`.trim() ||
+			'Desconocido',
+	})) as MonthlySettlementWithUser[];
+
+	return { data: settlements || null, error: null };
+}
+
+/**
  * Create a new monthly settlement
  */
 
