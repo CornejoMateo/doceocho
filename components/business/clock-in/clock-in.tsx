@@ -360,7 +360,11 @@ export function ClockIn() {
 				showUserSelect={true}
 				users={users || []}
 			/>
-			<SettlementsModal open={settlementsModalOpen} onOpenChange={setSettlementsModalOpen} />
+			<SettlementsModal
+				open={settlementsModalOpen}
+				onOpenChange={setSettlementsModalOpen}
+				users={users || []}
+			/>
 		</div>
 	);
 }
