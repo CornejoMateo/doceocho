@@ -26,7 +26,7 @@ import {
 } from '@/lib/attendance/attendance-entries';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
@@ -72,6 +72,7 @@ export function AttendanceEntryModal({
 				setEntryDate(entry.attendance_date);
 				setDescription(entry.description || '');
 			} else {
+				setSelectedUserId('');
 				setEntryType(ENTRY_TYPES[0].value);
 				setEntryTime(format(new Date(), 'HH:mm', { locale: es }));
 				setEntryDate(getLocalDate());
@@ -85,7 +86,7 @@ export function AttendanceEntryModal({
 		if (!targetUserId) {
 			toast({
 				title: 'Error',
-				description: translateError('Usuario no autenticado'),
+				description: 'No se seleccionó ningun usuario',
 				variant: 'destructive',
 			});
 			return;

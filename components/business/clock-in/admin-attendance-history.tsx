@@ -246,103 +246,119 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 								</div>
 							) : (
 								<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-									{summaries.map((summary: UserAttendanceSummary) => (
-										<div
-											key={summary.user_id}
-											className="border rounded-lg overflow-hidden h-auto py-4"
-										>
-											<Button
-												onClick={() => handleUserSelect(summary.user_id)}
-												variant="ghost"
-												className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
+									{summaries.map((summary: UserAttendanceSummary) => {
+										const unmatchedIds = new Set(
+											summary.entries
+												.filter((e) => !hasMatchingPair(e, summary.entries))
+												.map((e) => e.id)
+										);
+										return (
+											<div
+												key={summary.user_id}
+												className="border rounded-lg overflow-hidden h-auto py-4"
 											>
-												<div className="text-left flex-1 text-black">
-													<div className="font-medium text-sm md:text-lg">{summary.user_name}</div>
-													<div className="text-sm md:text-xs text-gray-500">
-														{summary.entries.length} registros
+												<Button
+													onClick={() => handleUserSelect(summary.user_id)}
+													variant="ghost"
+													className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
+												>
+													<div className="text-left flex-1 text-black">
+														<div className="flex items-center gap-2">
+															<div className="font-medium text-sm md:text-lg">
+																{summary.user_name}
+															</div>
+															{unmatchedIds.size > 0 && (
+																<span title="Registros sin par correspondiente">
+																	<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+																</span>
+															)}
+														</div>
+														<div className="text-sm md:text-xs text-gray-500">
+															{summary.entries.length} registros
+														</div>
 													</div>
-												</div>
-												<div className="text-right flex-1">
-													<div className="font-bold text-base md:text-1xl text-blue-600">
-														{formatHours(summary.total_hours)}
+													<div className="text-right flex-1">
+														<div className="font-bold text-base md:text-1xl text-blue-600">
+															{formatHours(summary.total_hours)}
+														</div>
+														<div className="text-xs text-gray-500">horas trabajadas</div>
 													</div>
-													<div className="text-xs text-gray-500">horas trabajadas</div>
-												</div>
-											</Button>
+												</Button>
 
-											{selectedUser === summary.user_id && (
-												<div className="p-4 bg-gray-50 border-t">
-													<div className="flex justify-between items-center mb-4 gap-2">
-														<h3 className="font-medium text-sm md:text-base">Registros</h3>
-													</div>
-													<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-														{summary.entries.map((entry: AttendanceEntryWithDate) => (
-															<div
-																key={entry.id}
-																className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-3"
-															>
-																<div className="min-w-0 flex-1">
-																	<div className="flex items-center gap-2">
-																		<div
-																			className={`font-medium text-sm md:text-base ${getEntryTypeColor(
-																				entry.type
-																			)}`}
-																		>
-																			{getEntryTypeLabel(entry.type)}
+												{selectedUser === summary.user_id && (
+													<div className="p-4 bg-gray-50 border-t">
+														<div className="flex justify-between items-center mb-4 gap-2">
+															<h3 className="font-medium text-sm md:text-base">Registros</h3>
+														</div>
+														<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+															{summary.entries.map((entry: AttendanceEntryWithDate) => (
+																<div
+																	key={entry.id}
+																	className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-3"
+																>
+																	<div className="min-w-0 flex-1">
+																		<div className="flex items-center gap-2">
+																			<div
+																				className={`font-medium text-sm md:text-base ${getEntryTypeColor(
+																					entry.type
+																				)}`}
+																			>
+																				{getEntryTypeLabel(entry.type)}
+																			</div>
+
+																			{unmatchedIds.has(entry.id) && (
+																				<span title="Registro sin par correspondiente">
+																					<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+																				</span>
+																			)}
 																		</div>
 
-																		{!hasMatchingPair(entry, summary.entries) && (
-																			<span title="Registro sin par correspondiente">
-																				<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-																			</span>
+																		<div className="text-xs md:text-sm text-gray-500">
+																			{formatCreatedAt(entry.attendance_date)}
+																		</div>
+
+																		{entry.description && (
+																			<div className="mt-1.5 text-sm text-gray-600 break-words">
+																				{entry.description}
+																			</div>
 																		)}
 																	</div>
 
-																	<div className="text-xs md:text-sm text-gray-500">
-																		{formatCreatedAt(entry.attendance_date)}
-																	</div>
-
-																	{entry.description && (
-																		<div className="mt-1.5 text-sm text-gray-600 break-words">
-																			{entry.description}
+																	<div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+																		<div className="font-medium text-sm md:text-base">
+																			{format(new Date(entry.entry_time), 'HH:mm', {
+																				locale: es,
+																			})}
 																		</div>
-																	)}
-																</div>
 
-																<div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-																	<div className="font-medium text-sm md:text-base">
-																		{format(new Date(entry.entry_time), 'HH:mm', {
-																			locale: es,
-																		})}
-																	</div>
+																		<div className="flex gap-1">
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				onClick={() => handleEditEntry(entry)}
+																				className="h-8 w-8 p-0"
+																			>
+																				<Pencil className="h-4 w-4" />
+																			</Button>
 
-																	<div className="flex gap-1">
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			onClick={() => handleEditEntry(entry)}
-																			className="h-8 w-8 p-0"
-																		>
-																			<Pencil className="h-4 w-4" />
-																		</Button>
-
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			onClick={() => handleDeleteEntry(entry)}
-																			className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-																		>
-																			<Trash2 className="h-4 w-4" />
-																		</Button>
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				onClick={() => handleDeleteEntry(entry)}
+																				className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+																			>
+																				<Trash2 className="h-4 w-4" />
+																			</Button>
+																		</div>
 																	</div>
 																</div>
-															</div>
-														))}
+															))}
+														</div>
 													</div>
-												</div>
-											)}
-										</div>
-									))}
+												)}
+											</div>
+										);
+									})}
 								</div>
 							)}
 						</>
