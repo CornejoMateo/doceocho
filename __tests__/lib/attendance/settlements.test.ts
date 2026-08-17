@@ -41,6 +41,17 @@ describe('settlements lib', () => {
 		jest.clearAllMocks();
 	});
 
+	const buildInput = (): MonthlySettlementInput => ({
+		year: 2026,
+		month: 7,
+		user_id: 'user-1',
+		amount: 100000,
+		number_hours: 160,
+		number_overtime_hours: 10,
+		price_hour: 500,
+		price_overtime_hour: 750,
+	});
+
 	describe('getMonthlySettlement', () => {
 		it('fetches a single settlement by user, year and month', async () => {
 			const { supabase, chain } = createSupabaseMock();
@@ -301,16 +312,7 @@ describe('settlements lib', () => {
 	describe('createMonthlySettlement', () => {
 		it('inserts a settlement and returns it', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input: MonthlySettlementInput = {
-				year: 2026,
-				month: 7,
-				user_id: 'user-1',
-				amount: 100000,
-				number_hours: 160,
-				number_overtime_hours: 10,
-				price_hour: 500,
-				price_overtime_hour: 750,
-			};
+			const input = buildInput();
 			chain.single = jest.fn().mockResolvedValue({ data: { id: 1, ...input }, error: null });
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
@@ -323,16 +325,7 @@ describe('settlements lib', () => {
 
 		it('returns the error on failure', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input: MonthlySettlementInput = {
-				year: 2026,
-				month: 7,
-				user_id: 'user-1',
-				amount: 100000,
-				number_hours: 160,
-				number_overtime_hours: 10,
-				price_hour: 500,
-				price_overtime_hour: 750,
-			};
+			const input = buildInput();
 			const error = { message: 'Failed' };
 			chain.single = jest.fn().mockResolvedValue({ data: null, error });
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
@@ -399,16 +392,7 @@ describe('settlements lib', () => {
 	describe('upsertMonthlySettlement', () => {
 		it('upserts a settlement on user, year and month conflict and returns it', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input: MonthlySettlementInput = {
-				year: 2026,
-				month: 7,
-				user_id: 'user-1',
-				amount: 100000,
-				number_hours: 160,
-				number_overtime_hours: 10,
-				price_hour: 500,
-				price_overtime_hour: 750,
-			};
+			const input = buildInput();
 			chain.single = jest.fn().mockResolvedValue({ data: { id: 1, ...input }, error: null });
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
@@ -423,16 +407,7 @@ describe('settlements lib', () => {
 
 		it('returns the error on failure', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input: MonthlySettlementInput = {
-				year: 2026,
-				month: 7,
-				user_id: 'user-1',
-				amount: 100000,
-				number_hours: 160,
-				number_overtime_hours: 10,
-				price_hour: 500,
-				price_overtime_hour: 750,
-			};
+			const input = buildInput();
 			const error = { message: 'Failed' };
 			chain.single = jest.fn().mockResolvedValue({ data: null, error });
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);

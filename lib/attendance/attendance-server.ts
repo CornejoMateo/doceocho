@@ -35,24 +35,6 @@ export async function createAttendance(
 	return { data, error };
 }
 
-export async function getAttendanceForToday(userId: string) {
-	const supabase = await getServerSupabaseClient();
-	const today = getLocalDate();
-
-	const { data, error } = await supabase
-		.from('attendance')
-		.select('*')
-		.eq('date', today)
-		.eq('user_id', userId)
-		.maybeSingle();
-
-	if (error) {
-		throw error;
-	}
-
-	return data;
-}
-
 export async function getAttendanceByDate(
 	date: string,
 	userId: string
