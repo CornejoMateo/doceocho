@@ -42,7 +42,6 @@ type PeriodFilter = 'day' | 'week' | 'month';
 export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref) => {
 	const { users = [] } = props;
 	const [allEntries, setAllEntries] = useState<AttendanceEntryWithDate[]>([]);
-	const [filteredEntries, setFilteredEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [summaries, setSummaries] = useState<UserAttendanceSummary[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
@@ -74,7 +73,6 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 				setDateFilter(null);
 				setPeriod('day');
 				const periodEntries = getEntriesByPeriod(entries, 'day', getLocalDate());
-				setFilteredEntries(periodEntries);
 				setSummaries(getUserAttendanceSummaries(periodEntries));
 				setSelectedUser(null);
 			}
@@ -100,7 +98,6 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 		} else {
 			periodEntries = getEntriesByPeriod(allEntries, 'day', getLocalDate());
 		}
-		setFilteredEntries(periodEntries);
 		setSummaries(getUserAttendanceSummaries(periodEntries));
 		setSelectedUser(null);
 	};
@@ -113,7 +110,6 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 		setDateFilter(newDate);
 		if (period === 'month') {
 			const periodEntries = getEntriesByPeriod(allEntries, 'day', newDate);
-			setFilteredEntries(periodEntries);
 			setSummaries(getUserAttendanceSummaries(periodEntries));
 		}
 		setSelectedUser(null);
@@ -122,7 +118,6 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 	const handleClearDateFilter = () => {
 		setDateFilter(null);
 		if (period === 'month') {
-			setFilteredEntries(allEntries);
 			setSummaries(getUserAttendanceSummaries(allEntries));
 		}
 		setSelectedUser(null);
