@@ -33,12 +33,14 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AlertTriangle } from 'lucide-react';
 import { User } from '@/lib/users/users';
+import { getLocalDate } from '@/utils/format-date';
+import { SessionUser } from '@/components/provider/auth-provider';
 
 interface LoadMoreAttendanceModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	users?: User[];
-	user: User | null;
+	user: SessionUser | null;
 }
 
 export function LoadMoreAttendanceModal({
@@ -47,10 +49,13 @@ export function LoadMoreAttendanceModal({
 	users = [],
 	user = null,
 }: LoadMoreAttendanceModalProps) {
-	const currentYear = new Date().getFullYear();
-	const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+	const currentYear = Number(getLocalDate().split('-')[0]);
+	const currentMonth = Number(getLocalDate().split('-')[1]) - 1;
+	const years = Array.from({ length: currentYear - 2025 + 1 }, (_, i) =>
+		(currentYear - i).toString()
+	);
 	const [year, setYear] = useState(currentYear.toString());
-	const [month, setMonth] = useState(new Date().getMonth().toString());
+	const [month, setMonth] = useState(currentMonth.toString());
 	const [selectedUserId, setSelectedUserId] = useState<string>('all');
 	const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
@@ -62,7 +67,7 @@ export function LoadMoreAttendanceModal({
 	useEffect(() => {
 		if (open) {
 			setYear(currentYear.toString());
-			setMonth(new Date().getMonth().toString());
+			setMonth(currentMonth.toString());
 			setSelectedUserId('all');
 			setExpandedUserId(null);
 			setResults(null);
@@ -79,9 +84,9 @@ export function LoadMoreAttendanceModal({
 		setError(null);
 		try {
 			let entries: AttendanceEntryWithDate[];
-			if (user?.uid_user) {
+			if (user?.uid) {
 				const { data, error } = await getUserAttendanceEntriesForMonth(
-					user.uid_user,
+					user.uid,
 					Number(year),
 					Number(month)
 				);
@@ -198,7 +203,9 @@ export function LoadMoreAttendanceModal({
 											className="w-full flex h-auto justify-between items-center py-4 bg-gray-50 hover:bg-gray-100 hover:text-inherit cursor-pointer rounded-none"
 										>
 											<div className="text-left">
-												<div className="font-medium text-sm">{summary.user_name}</div>
+												<div className="font-medium text-sm">
+													{user ? 'Mis registros' : summary.user_name}
+												</div>
 												<div className="text-xs text-gray-500">
 													{summary.entries.length} registros
 												</div>

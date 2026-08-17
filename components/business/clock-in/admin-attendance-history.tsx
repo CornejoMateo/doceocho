@@ -35,6 +35,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { User } from '@/lib/users/users';
+import { AttendanceEntryModal } from './attendance-entry-modal';
 
 type PeriodFilter = 'day' | 'week' | 'month';
 
@@ -63,8 +64,8 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 		setLoading(true);
 		setError(null);
 		try {
-			const now = new Date();
-			const { data, error } = await getAttendanceEntriesForMonth(now.getFullYear(), now.getMonth());
+			const now = getLocalDate().split('-').map(Number);
+			const { data, error } = await getAttendanceEntriesForMonth(now[0], now[1] - 1);
 			if (error) {
 				setError(translateError(error) || 'Error al cargar el historial de empleados');
 			} else {
@@ -356,6 +357,15 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 				onOpenChange={setLoadMoreOpen}
 				users={users}
 				user={null}
+			/>
+			<AttendanceEntryModal
+				open={modalOpen}
+				onOpenChange={setModalOpen}
+				entry={selectedEntry}
+				onUpdate={() => {
+					setModalOpen(false);
+					loadHistory();
+				}}
 			/>
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>

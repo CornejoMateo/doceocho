@@ -55,16 +55,16 @@ export function ClockIn() {
 		loading: loadingUsers,
 		error: usersError,
 		refresh,
-	} = isAuthorized
-		? useOptimizedRealtime<User>(
-				'users',
-				async () => {
-					const { data } = await listUsers();
-					return data ?? [];
-				},
-				'users_cache'
-			)
-		: { data: [], loading: false, error: null, refresh: () => {} };
+	} = useOptimizedRealtime<User>(
+		'users',
+		async () => {
+			const { data, error } = await listUsers();
+			if (error) throw error;
+			return data ?? [];
+		},
+		'users_cache',
+		isAuthorized
+	);
 
 	useEffect(() => {
 		if (!user) return;
@@ -236,7 +236,7 @@ export function ClockIn() {
 					<TabsContent value="hour">
 						{isAuthorized && (
 							<>
-								<div className="flex justify-center sm:justify-end gap-2 mb-4">
+								<div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mb-4">
 									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
 										Crear registro
 									</Button>

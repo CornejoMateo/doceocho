@@ -16,6 +16,7 @@ import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
 import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
+import { User } from '@/lib/users/users';
 
 type PeriodFilter = 'day' | 'month';
 
@@ -37,12 +38,8 @@ export function AttendanceHistory() {
 		setLoading(true);
 		setError(null);
 		try {
-			const now = new Date();
-			const { data, error } = await getUserAttendanceEntriesForMonth(
-				userId,
-				now.getFullYear(),
-				now.getMonth()
-			);
+			const now = getLocalDate().split('-').map(Number);
+			const { data, error } = await getUserAttendanceEntriesForMonth(userId, now[0], now[1] - 1);
 			if (error) {
 				setError(translateError(error) || 'Error al cargar el historial');
 			} else {
@@ -215,11 +212,7 @@ export function AttendanceHistory() {
 					</Button>
 				</CardContent>
 			</Card>
-			<LoadMoreAttendanceModal
-				open={loadMoreOpen}
-				onOpenChange={setLoadMoreOpen}
-				user={user as any}
-			/>
+			<LoadMoreAttendanceModal open={loadMoreOpen} onOpenChange={setLoadMoreOpen} user={user} />
 		</>
 	);
 }

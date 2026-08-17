@@ -214,11 +214,13 @@ export function SettlementsModal({ open, onOpenChange, users = [] }: Settlements
 
 			const [yearNum, monthNum] = [Number(year), Number(month)];
 
-			const userHours = calculatedHours ?? (await fetchAndComputeHours());
-			if (!userHours) {
+			const computedHours = calculatedHours ?? (await fetchAndComputeHours());
+			if (!computedHours) {
 				setLoading(false);
 				return;
 			}
+
+			const userHours: UserHours = { ...computedHours };
 
 			// Seed zero-hours settlements for the selected user(s) when there are no entries
 			if (Object.keys(userHours).length === 0) {
