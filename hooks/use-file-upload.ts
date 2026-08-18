@@ -218,6 +218,18 @@ export function useFileUpload({
 			const uploadPromises = filesToUpload.map(async ({ file, displayName, description }) => {
 				try {
 					const optimizedFile = await optimizeFile(file);
+
+					// Validate optimized file (important for edited files that may have changed)
+					const validation = validateFileForUpload(optimizedFile, allowedFileTypes, maxUploadSize);
+					if (!validation.isValid) {
+						console.error(
+							'File validation failed after optimization:',
+							file.name,
+							validation.error
+						);
+						return { error: validation.error };
+					}
+
 					if (uploadFile) {
 						return await uploadFile(
 							optimizedFile,
