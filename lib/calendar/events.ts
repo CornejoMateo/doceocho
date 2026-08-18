@@ -4,6 +4,7 @@ export type Event = {
 	id: number;
 	created_at?: string;
 	date: string;
+	time?: string | null;
 	type?: string | null;
 	title?: string | null;
 	description?: string | null;
@@ -74,6 +75,7 @@ export async function createEvent(
 			client_id: event.client_id,
 			client_name: event.client_id ? null : event.client_name,
 			date: event.date,
+			time: event.time || null,
 			status: 'pending',
 			is_overdue: false,
 			remember: event.remember,
@@ -103,6 +105,12 @@ export async function updateEvent(
 	const supabase = getSupabaseClient();
 
 	let updatePayload = { ...changes };
+
+	// Handle time field
+	if (Object.prototype.hasOwnProperty.call(changes, 'time')) {
+		updatePayload.time = changes.time || null;
+	}
+
 	if (Object.prototype.hasOwnProperty.call(changes, 'status')) {
 		if (changes.status) {
 			if (changes.status !== 'pending') {
@@ -112,13 +120,17 @@ export async function updateEvent(
 				let eventDate: Date;
 				const { data: currentEvent, error: fetchError } = await supabase
 					.from(TABLE)
-					.select('date')
+					.select('date, time')
 					.eq('id', id)
 					.single();
 				if (fetchError || !currentEvent?.date) {
 					eventDate = currentDate;
 				} else {
 					eventDate = new Date(currentEvent.date);
+					if (currentEvent.time) {
+						const [hours, minutes] = currentEvent.time.split(':');
+						eventDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+					}
 				}
 				updatePayload.is_overdue = eventDate < currentDate;
 			}

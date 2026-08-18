@@ -80,6 +80,7 @@ export function EventFormModal({
 				title: event.title || '',
 				type: event.type || defaultEventType,
 				date: event.date ? parse(event.date, 'yyyy-MM-dd', new Date()) : undefined,
+				time: event.time || '',
 				client_id: event.client_id ?? null,
 				client_name: event.client_name || '',
 				isManualClient: !event.client_id && !!event.client_name,
@@ -123,6 +124,7 @@ export function EventFormModal({
 				title: initialWork.name || '',
 				type: defaultEventType,
 				date: undefined,
+				time: '',
 				client_id: initialWork.client_id ?? null,
 				client_name:
 					[initialWork.client_last_name, initialWork.client_name].filter(Boolean).join(' ') || '',
@@ -178,6 +180,7 @@ export function EventFormModal({
 		title: '',
 		type: defaultEventType,
 		date: undefined as Date | undefined,
+		time: '' as string,
 		client_id: null as number | null,
 		client_name: '' as string,
 		isManualClient: false,
@@ -248,6 +251,7 @@ export function EventFormModal({
 			...(mode === 'edit' && event ? { id: event.id } : {}),
 			...formData,
 			date: format(formData.date!, 'dd-MM-yyyy'),
+			time: formData.time || null,
 		});
 
 		if (!success) return;
@@ -267,6 +271,7 @@ export function EventFormModal({
 			title: '',
 			type: defaultEventType,
 			date: undefined,
+			time: '',
 			client_id: null,
 			client_name: '',
 			isManualClient: false,
@@ -363,6 +368,17 @@ export function EventFormModal({
 								/>
 							</PopoverContent>
 						</Popover>
+					</div>
+
+					<div className="grid gap-2 col-span-2">
+						<Label htmlFor="time">Hora del evento (opcional)</Label>
+						<Input
+							id="time"
+							type="time"
+							value={formData.time}
+							onChange={handleInputChange}
+							placeholder="Seleccionar hora"
+						/>
 					</div>
 
 					<div className="grid gap-2 col-span-2">
