@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Work } from '@/lib/works/works';
-import { formatCreatedAt } from '@/utils/format-date';
+import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
 
 export function CalendarView() {
 	const { toast } = useToast();
@@ -535,7 +535,9 @@ export function CalendarView() {
 													<CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
 													<span>
 														{formatCreatedAt(event.date)}
-														{event.time && <span className="ml-1">{event.time}</span>}
+														{event.time && (
+															<span className="ml-1">{formatSimpleTime(event.time)}</span>
+														)}
 													</span>
 												</div>
 												{event.work_id && workDataMap[event.work_id] ? (

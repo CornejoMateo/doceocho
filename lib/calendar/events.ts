@@ -106,11 +106,6 @@ export async function updateEvent(
 
 	let updatePayload = { ...changes };
 
-	// Handle time field
-	if (Object.prototype.hasOwnProperty.call(changes, 'time')) {
-		updatePayload.time = changes.time || null;
-	}
-
 	if (Object.prototype.hasOwnProperty.call(changes, 'status')) {
 		if (changes.status) {
 			if (changes.status !== 'pending') {
@@ -120,17 +115,13 @@ export async function updateEvent(
 				let eventDate: Date;
 				const { data: currentEvent, error: fetchError } = await supabase
 					.from(TABLE)
-					.select('date, time')
+					.select('date')
 					.eq('id', id)
 					.single();
 				if (fetchError || !currentEvent?.date) {
 					eventDate = currentDate;
 				} else {
 					eventDate = new Date(currentEvent.date);
-					if (currentEvent.time) {
-						const [hours, minutes] = currentEvent.time.split(':');
-						eventDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-					}
 				}
 				updatePayload.is_overdue = eventDate < currentDate;
 			}
