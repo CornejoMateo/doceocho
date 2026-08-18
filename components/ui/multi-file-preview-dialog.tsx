@@ -150,7 +150,7 @@ export function MultiFilePreviewDialog({
 										<Button
 											size="icon"
 											variant="destructive"
-											className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+											className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10"
 											onClick={() => handleRemoveFile(fileWithPreview.id)}
 										>
 											<X className="h-3 w-3" />
@@ -164,7 +164,7 @@ export function MultiFilePreviewDialog({
 													className="w-full h-full object-cover"
 												/>
 												{fileWithPreview.editedFile && (
-													<div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+													<div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1 z-10">
 														<Check className="h-3 w-3" />
 														Editada
 													</div>
@@ -206,11 +206,11 @@ export function MultiFilePreviewDialog({
 											<Button
 												size="sm"
 												variant="outline"
-												className="w-full"
+												className="w-full text-xs h-8"
 												onClick={() => handleEditImage(fileWithPreview)}
 											>
 												<Pencil className="h-3 w-3 mr-1" />
-												Editar imagen
+												Editar
 											</Button>
 										)}
 									</div>
