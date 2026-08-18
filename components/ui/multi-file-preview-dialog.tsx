@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Upload, X, Pencil, Loader2, Check } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
 import { isImage, formatFileSize } from '@/utils/file-upload-utils';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
 
@@ -46,14 +48,23 @@ export function MultiFilePreviewDialog({
 
 	useEffect(() => {
 		if (open && files.length > 0) {
-			const previews = files.map((file) => ({
-				file,
-				id: `${file.name}-${file.size}-${Date.now()}`,
-				preview: isImage(file.type) ? URL.createObjectURL(file) : '',
-				displayName: file.name.replace(/\.[^/.]+$/, ''),
-				description: '',
-			}));
-			setFilesWithPreview(previews);
+			try {
+				const previews = files.map((file) => ({
+					file,
+					id: `${file.name}-${file.size}-${Date.now()}`,
+					preview: isImage(file.type) ? URL.createObjectURL(file) : '',
+					displayName: file.name.replace(/\.[^/.]+$/, ''),
+					description: '',
+				}));
+				setFilesWithPreview(previews);
+			} catch (error) {
+				console.error('Error creating file previews:', error);
+				toast({
+					variant: 'destructive',
+					title: 'Error al crear vista previa',
+					description: translateError(error),
+				});
+			}
 		} else if (!open) {
 			// Cleanup URLs when dialog closes
 			filesWithPreview.forEach((f) => {
@@ -82,22 +93,34 @@ export function MultiFilePreviewDialog({
 	};
 
 	const handleImageEdited = (editedFile: File) => {
-		if (editingFileId) {
-			setFilesWithPreview((prev) =>
-				prev.map((f) =>
-					f.id === editingFileId
-						? {
-								...f,
-								editedFile,
-								preview: URL.createObjectURL(editedFile),
-							}
-						: f
-				)
-			);
+		try {
+			if (editingFileId) {
+				setFilesWithPreview((prev) =>
+					prev.map((f) =>
+						f.id === editingFileId
+							? {
+									...f,
+									editedFile,
+									preview: URL.createObjectURL(editedFile),
+								}
+							: f
+					)
+				);
+			}
+			setEditingFileId(null);
+			setSelectedFileForEdit(null);
+			return true;
+		} catch (error) {
+			console.error('Error creating preview for edited image:', error);
+			toast({
+				variant: 'destructive',
+				title: 'Error al crear vista previa',
+				description: translateError(error),
+			});
+			setEditingFileId(null);
+			setSelectedFileForEdit(null);
+			return false;
 		}
-		setEditingFileId(null);
-		setSelectedFileForEdit(null);
-		return true;
 	};
 
 	const handleDisplayNameChange = (id: string, value: string) => {
@@ -113,12 +136,21 @@ export function MultiFilePreviewDialog({
 	};
 
 	const handleUploadAll = async () => {
-		const filesToUpload = filesWithPreview.map((f) => ({
-			file: f.editedFile || f.file,
-			displayName: f.displayName,
-			description: f.description,
-		}));
-		await onUpload(filesToUpload);
+		try {
+			const filesToUpload = filesWithPreview.map((f) => ({
+				file: f.editedFile || f.file,
+				displayName: f.displayName,
+				description: f.description,
+			}));
+			await onUpload(filesToUpload);
+		} catch (error) {
+			console.error('Error uploading files:', error);
+			toast({
+				variant: 'destructive',
+				title: 'Error al subir archivos',
+				description: translateError(error),
+			});
+		}
 	};
 
 	return (
