@@ -65,30 +65,12 @@ export function formatTime(timestamp: string | Date | null | undefined): string 
 export function formatSimpleTime(timeString: string | null | undefined): string {
 	if (!timeString) return '';
 
-	// If it's already in the correct format (HH:MM), return it as is
-	if (/^\d{1,2}:\d{2}$/.test(timeString)) {
-		return timeString;
+	// Simple split to remove seconds if present
+	const parts = timeString.split(':');
+	if (parts.length >= 2) {
+		return `${parts[0]}:${parts[1]}`;
 	}
 
-	// If it includes seconds (HH:MM:SS), remove the seconds
-	if (/^\d{1,2}:\d{2}:\d{2}$/.test(timeString)) {
-		return timeString.substring(0, 5);
-	}
-
-	// If it's a timestamp, try to format it
-	try {
-		const date = new Date(timeString);
-		if (!isNaN(date.getTime())) {
-			return new Intl.DateTimeFormat('es-AR', {
-				hour: '2-digit',
-				minute: '2-digit',
-				hour12: false,
-			}).format(date);
-		}
-	} catch (error) {
-		console.error('Error formatting time:', error);
-	}
-
-	// Return original string if no formatting worked
+	// Return original string if format is unexpected
 	return timeString;
 }
