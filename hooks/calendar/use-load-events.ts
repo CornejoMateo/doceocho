@@ -27,6 +27,7 @@ export function useLoadEvents() {
 				return {
 					id: event.id,
 					date: event.date || new Date().toISOString().split('T')[0],
+					time: event.time || null,
 					title: event.title || 'Sin título',
 					description: event.description || '',
 					client_id: event.client_id,

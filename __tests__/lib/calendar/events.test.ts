@@ -50,6 +50,7 @@ describe('lib/calendar/events', () => {
 				id: 10,
 				title: 'evt',
 				date: '2024-03-03',
+				time: null,
 				status: 'pending',
 			},
 			error: null,
@@ -82,6 +83,7 @@ describe('lib/calendar/events', () => {
 			client_id: null,
 			client_name: 'Cliente',
 			date: '2024-03-03',
+			time: null,
 			remember: true,
 			work_id: null,
 			work_location: '',
@@ -96,6 +98,7 @@ describe('lib/calendar/events', () => {
 				id: 10,
 				title: 'evt',
 				date: '2024-03-03',
+				time: null,
 				status: 'pending',
 			})
 		);
@@ -108,6 +111,7 @@ describe('lib/calendar/events', () => {
 				client_id: null,
 				client_name: 'Cliente',
 				date: '2024-03-03',
+				time: null,
 				status: 'pending',
 				is_overdue: false,
 				remember: true,
@@ -122,8 +126,10 @@ describe('lib/calendar/events', () => {
 	});
 
 	test('updateEvent sets is_overdue based on current event date when status pending', async () => {
-		// First select('date').eq(id).single() -> returns currentEvent with old date
-		const fetchSingle = jest.fn().mockResolvedValue({ data: { date: '2000-01-01' }, error: null });
+		// First select('date, time').eq(id).single() -> returns currentEvent with old date
+		const fetchSingle = jest
+			.fn()
+			.mockResolvedValue({ data: { date: '2000-01-01', time: null }, error: null });
 		const fetchEq = jest.fn().mockReturnValue({ single: fetchSingle });
 		const fetchSelect = jest.fn().mockReturnValue({ eq: fetchEq });
 
@@ -149,7 +155,7 @@ describe('lib/calendar/events', () => {
 
 		expect(res.error).toBeNull();
 		expect(res.data).toMatchObject({ id: 20, status: 'pending', is_overdue: true });
-		expect(fetchSelect).toHaveBeenCalledWith('date');
+		expect(fetchSelect).toHaveBeenCalledWith('date, time');
 		expect(update).toHaveBeenCalled();
 		expect(updateEq).toHaveBeenCalledWith('id', 20);
 	});

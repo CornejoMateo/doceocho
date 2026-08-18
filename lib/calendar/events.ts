@@ -4,6 +4,7 @@ export type Event = {
 	id: number;
 	created_at?: string;
 	date: string;
+	time?: string | null;
 	type?: string | null;
 	title?: string | null;
 	description?: string | null;
@@ -74,6 +75,7 @@ export async function createEvent(
 			client_id: event.client_id,
 			client_name: event.client_id ? null : event.client_name,
 			date: event.date,
+			time: event.time || null,
 			status: 'pending',
 			is_overdue: false,
 			remember: event.remember,
@@ -103,6 +105,7 @@ export async function updateEvent(
 	const supabase = getSupabaseClient();
 
 	let updatePayload = { ...changes };
+
 	if (Object.prototype.hasOwnProperty.call(changes, 'status')) {
 		if (changes.status) {
 			if (changes.status !== 'pending') {
