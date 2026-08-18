@@ -49,9 +49,16 @@ export function MultiFilePreviewDialog({
 	useEffect(() => {
 		if (open && files.length > 0) {
 			try {
-				const previews = files.map((file) => ({
+				// Cleanup previous URLs before creating new ones
+				filesWithPreview.forEach((f) => {
+					if (f.preview) {
+						URL.revokeObjectURL(f.preview);
+					}
+				});
+
+				const previews = files.map((file, index) => ({
 					file,
-					id: `${file.name}-${file.size}-${Date.now()}`,
+					id: `${file.name}-${file.size}-${Date.now()}-${index}`,
 					preview: isImage(file.type) ? URL.createObjectURL(file) : '',
 					displayName: file.name.replace(/\.[^/.]+$/, ''),
 					description: '',
@@ -74,6 +81,15 @@ export function MultiFilePreviewDialog({
 			});
 			setFilesWithPreview([]);
 		}
+
+		// Cleanup function for unmount
+		return () => {
+			filesWithPreview.forEach((f) => {
+				if (f.preview) {
+					URL.revokeObjectURL(f.preview);
+				}
+			});
+		};
 	}, [open, files]);
 
 	const handleRemoveFile = (id: string) => {
@@ -96,15 +112,20 @@ export function MultiFilePreviewDialog({
 		try {
 			if (editingFileId) {
 				setFilesWithPreview((prev) =>
-					prev.map((f) =>
-						f.id === editingFileId
-							? {
-									...f,
-									editedFile,
-									preview: URL.createObjectURL(editedFile),
-								}
-							: f
-					)
+					prev.map((f) => {
+						if (f.id === editingFileId) {
+							// Revoke old preview URL before creating new one
+							if (f.preview) {
+								URL.revokeObjectURL(f.preview);
+							}
+							return {
+								...f,
+								editedFile,
+								preview: URL.createObjectURL(editedFile),
+							};
+						}
+						return f;
+					})
 				);
 			}
 			setEditingFileId(null);
