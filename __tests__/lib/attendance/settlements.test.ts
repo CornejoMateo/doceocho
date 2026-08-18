@@ -2,9 +2,11 @@ import {
 	getMonthlySettlement,
 	getMonthlySettlementsByUser,
 	getAllMonthlySettlements,
+	getMonthlySettlementsByMonth,
 	createMonthlySettlement,
 	updateMonthlySettlement,
 	deleteMonthlySettlement,
+	upsertMonthlySettlement,
 	type MonthlySettlementInput,
 } from '@/lib/attendance/settlements';
 import { getSupabaseClient } from '@/lib/supabase-client';
@@ -23,6 +25,7 @@ function createSupabaseMock() {
 		insert: jest.fn(() => chain),
 		update: jest.fn(() => chain),
 		delete: jest.fn(() => chain),
+		upsert: jest.fn(() => chain),
 		single: jest.fn(() => chain),
 	};
 
@@ -36,6 +39,17 @@ function createSupabaseMock() {
 describe('settlements lib', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+	});
+
+	const buildInput = (): MonthlySettlementInput => ({
+		year: 2026,
+		month: 7,
+		user_id: 'user-1',
+		amount: 100000,
+		number_hours: 160,
+		number_overtime_hours: 10,
+		price_hour: 500,
+		price_overtime_hour: 750,
 	});
 
 	describe('getMonthlySettlement', () => {
@@ -214,19 +228,91 @@ describe('settlements lib', () => {
 		});
 	});
 
+	describe('getMonthlySettlementsByMonth', () => {
+		function mockSettlementResponse(
+			chain: Record<string, jest.Mock>,
+			response: { data: any; error: any }
+		) {
+			chain.order = jest.fn().mockResolvedValue(response);
+		}
+
+		it('fetches settlements filtered by year and month with user names', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			const mockData = [
+				{
+					id: 1,
+					user_id: 'user-1',
+					users: {
+						name: 'Juan',
+						last_name: 'Pérez',
+					},
+				},
+			];
+
+			mockSettlementResponse(chain, { data: mockData, error: null });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getMonthlySettlementsByMonth(2026, 7);
+
+			expect(supabase.from).toHaveBeenCalledWith('monthly_settlements');
+			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('users'));
+			expect(chain.eq).toHaveBeenCalledWith('year', 2026);
+			expect(chain.eq).toHaveBeenCalledWith('month', 7);
+			expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false });
+			expect(result.data?.[0].id).toBe(1);
+			expect(result.data?.[0].user_name).toBe('Juan Pérez');
+		});
+
+		it('builds user_name from username when name and last_name are missing', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			mockSettlementResponse(chain, {
+				data: [{ id: 1, users: { username: 'jperez' } }],
+				error: null,
+			});
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getMonthlySettlementsByMonth(2026, 7);
+
+			expect(result.data?.[0].user_name).toBe('jperez');
+		});
+
+		it('uses Desconocido when no user info', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			mockSettlementResponse(chain, { data: [{ id: 1, users: null }], error: null });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getMonthlySettlementsByMonth(2026, 7);
+
+			expect(result.data?.[0].user_name).toBe('Desconocido');
+		});
+
+		it('returns null when no data', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			mockSettlementResponse(chain, { data: null, error: null });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getMonthlySettlementsByMonth(2026, 7);
+
+			expect(result.data).toBeNull();
+		});
+
+		it('returns the error on failure', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			const error = { message: 'Failed' };
+			mockSettlementResponse(chain, { data: null, error });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getMonthlySettlementsByMonth(2026, 7);
+
+			expect(result.data).toBeNull();
+			expect(result.error).toEqual(error);
+		});
+	});
+
 	describe('createMonthlySettlement', () => {
 		it('inserts a settlement and returns it', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input: MonthlySettlementInput = {
-				year: 2026,
-				month: 7,
-				user_id: 'user-1',
-				amount: 100000,
-				number_hours: 160,
-				number_overtime_hours: 10,
-				price_hour: 500,
-				price_overtime_hour: 750,
-			};
+			const input = buildInput();
 			chain.single = jest.fn().mockResolvedValue({ data: { id: 1, ...input }, error: null });
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
@@ -239,16 +325,7 @@ describe('settlements lib', () => {
 
 		it('returns the error on failure', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input: MonthlySettlementInput = {
-				year: 2026,
-				month: 7,
-				user_id: 'user-1',
-				amount: 100000,
-				number_hours: 160,
-				number_overtime_hours: 10,
-				price_hour: 500,
-				price_overtime_hour: 750,
-			};
+			const input = buildInput();
 			const error = { message: 'Failed' };
 			chain.single = jest.fn().mockResolvedValue({ data: null, error });
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
@@ -307,6 +384,35 @@ describe('settlements lib', () => {
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			const result = await deleteMonthlySettlement(10);
+
+			expect(result.error).toEqual(error);
+		});
+	});
+
+	describe('upsertMonthlySettlement', () => {
+		it('upserts a settlement on user, year and month conflict and returns it', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			const input = buildInput();
+			chain.single = jest.fn().mockResolvedValue({ data: { id: 1, ...input }, error: null });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await upsertMonthlySettlement(input);
+
+			expect(supabase.from).toHaveBeenCalledWith('monthly_settlements');
+			expect(chain.upsert).toHaveBeenCalledWith(input, {
+				onConflict: 'user_id,year,month',
+			});
+			expect(result.data).toEqual({ id: 1, ...input });
+		});
+
+		it('returns the error on failure', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			const input = buildInput();
+			const error = { message: 'Failed' };
+			chain.single = jest.fn().mockResolvedValue({ data: null, error });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await upsertMonthlySettlement(input);
 
 			expect(result.error).toEqual(error);
 		});

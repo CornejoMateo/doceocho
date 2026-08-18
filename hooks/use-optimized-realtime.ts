@@ -13,8 +13,13 @@ const DEBOUNCE_DELAY = 300; // 300ms para agrupar actualizaciones
 export function useOptimizedRealtime<T extends { id: number }>(
 	table: string,
 	fetchFromDb: () => Promise<T[]>,
-	cacheKey?: string
+	cacheKey?: string,
+	isAuthorized?: boolean
 ) {
+	if (table === 'users' && !isAuthorized) {
+		return { data: [], loading: false, error: null, refresh: () => {} };
+	}
+
 	const [data, setData] = useState<T[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);

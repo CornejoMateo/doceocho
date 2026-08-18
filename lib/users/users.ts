@@ -3,6 +3,7 @@ import { getSupabaseClient } from '@/lib/supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type User = {
+	id: number;
 	username: string;
 	name?: string;
 	last_name?: string;

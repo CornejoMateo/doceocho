@@ -20,6 +20,8 @@ import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QRScanner from './attendance-qr-scanner';
+import { listUsers, User } from '@/lib/users/users';
+import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
 export function ClockIn() {
 	const adminHistoryRef = useRef<{ loadHistory: () => Promise<void> }>(null);
@@ -41,8 +43,28 @@ export function ClockIn() {
 
 	const { user } = useAuth();
 
+	const isAuthorized = user?.role === 'Admin';
+	const isTaller = user?.role === 'Taller';
+	const isQR = user?.role === 'QR';
+
 	const [showScanner, setShowScanner] = useState(false);
 	const [loading, setLoading] = useState(true);
+
+	const {
+		data: users,
+		loading: loadingUsers,
+		error: usersError,
+		refresh,
+	} = useOptimizedRealtime<User>(
+		'users',
+		async () => {
+			const { data, error } = await listUsers();
+			if (error) throw error;
+			return data ?? [];
+		},
+		'users_cache',
+		isAuthorized
+	);
 
 	useEffect(() => {
 		if (!user) return;
@@ -56,10 +78,6 @@ export function ClockIn() {
 
 		init();
 	}, [user]);
-
-	const isAuthorized = user?.role === 'Admin';
-	const isTaller = user?.role === 'Taller';
-	const isQR = user?.role === 'QR';
 
 	const loadSettings = async () => {
 		const { data: settings } = await getAttendanceSettings();
@@ -218,9 +236,9 @@ export function ClockIn() {
 					<TabsContent value="hour">
 						{isAuthorized && (
 							<>
-								<div className="flex justify-center sm:justify-end gap-2 mb-4">
+								<div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mb-4">
 									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
-										Crear Registro
+										Crear registro
 									</Button>
 									<Button variant="outline" onClick={() => setSettlementsModalOpen(true)}>
 										Liquidaciones
@@ -230,7 +248,7 @@ export function ClockIn() {
 										Configuración
 									</Button>
 								</div>
-								<AdminAttendanceHistory ref={adminHistoryRef} />
+								<AdminAttendanceHistory ref={adminHistoryRef} users={users} />
 							</>
 						)}
 						{isTaller && (
@@ -340,8 +358,13 @@ export function ClockIn() {
 					adminHistoryRef.current?.loadHistory();
 				}}
 				showUserSelect={true}
+				users={users || []}
 			/>
-			<SettlementsModal open={settlementsModalOpen} onOpenChange={setSettlementsModalOpen} />
+			<SettlementsModal
+				open={settlementsModalOpen}
+				onOpenChange={setSettlementsModalOpen}
+				users={users || []}
+			/>
 		</div>
 	);
 }

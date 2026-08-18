@@ -240,6 +240,54 @@ export async function getAttendanceEntriesForMonth(
 	return { data, error };
 }
 
+export function mapAttendanceEntries(data: any[]): AttendanceEntryWithDate[] {
+	return (data || [])
+		.map((entry: any) => ({
+			...entry,
+			attendance_date: entry.attendance?.date,
+			user_id: entry.attendance?.user_id,
+			user_name:
+				`${entry.attendance?.users?.name || ''} ${
+					entry.attendance?.users?.last_name || ''
+				}`.trim() ||
+				entry.attendance?.users?.username ||
+				'Desconocido',
+		}))
+		.sort(
+			(a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime()
+		) as AttendanceEntryWithDate[];
+}
+
+export async function getUserAttendanceEntriesForMonth(
+	userId: string,
+	year: number,
+	month: number
+): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+	const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id
+			)
+		`
+		)
+		.eq('attendance.user_id', userId)
+		.gte('attendance.date', startOfMonth)
+		.lte('attendance.date', endOfMonth);
+
+	if (error) return { data: null, error };
+
+	return { data: mapAttendanceEntries(data || []) || null, error: null };
+}
+
 /**
  * Get attendance entries with user info for a specific date
  */

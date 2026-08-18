@@ -26,12 +26,12 @@ import {
 } from '@/lib/attendance/attendance-entries';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
 import { ENTRY_TYPES } from '@/constants/attendance/attendance';
-import { listUsers, User } from '@/lib/users/users';
+import { User } from '@/lib/users/users';
 
 interface AttendanceEntryModalProps {
 	entry: AttendanceEntryWithDate | null;
@@ -41,6 +41,7 @@ interface AttendanceEntryModalProps {
 	onOpenChange: (open: boolean) => void;
 	onUpdate: () => void;
 	showUserSelect?: boolean;
+	users?: User[];
 }
 
 export function AttendanceEntryModal({
@@ -51,6 +52,7 @@ export function AttendanceEntryModal({
 	onOpenChange,
 	onUpdate,
 	showUserSelect = false,
+	users = [],
 }: AttendanceEntryModalProps) {
 	const isEditing = !!entry;
 
@@ -59,42 +61,7 @@ export function AttendanceEntryModal({
 	const [entryDate, setEntryDate] = useState<string>(getLocalDate());
 	const [entryTime, setEntryTime] = useState<string>(format(new Date(), 'HH:mm', { locale: es }));
 	const [description, setDescription] = useState<string>('');
-	const [users, setUsers] = useState<User[]>([]);
 	const [selectedUserId, setSelectedUserId] = useState<string>(userId || '');
-	const [loadingUsers, setLoadingUsers] = useState(false);
-
-	// Load users when modal opens with showUserSelect
-	useEffect(() => {
-		if (open && showUserSelect && !isEditing) {
-			loadUsers();
-		}
-	}, [open, showUserSelect, isEditing]);
-
-	const loadUsers = async () => {
-		setLoadingUsers(true);
-		try {
-			const { data, error } = await listUsers();
-			if (error) {
-				toast({
-					title: 'Error',
-					description: translateError(error) || 'No se pudo cargar la lista de usuarios',
-					variant: 'destructive',
-				});
-				return;
-			} else {
-				setUsers(data || []);
-			}
-		} catch (err) {
-			toast({
-				title: 'Error',
-				description: translateError(err) || 'No se pudo cargar la lista de usuarios',
-				variant: 'destructive',
-			});
-			return;
-		} finally {
-			setLoadingUsers(false);
-		}
-	};
 
 	// Reset form when the modal opens
 	useEffect(() => {
@@ -105,6 +72,7 @@ export function AttendanceEntryModal({
 				setEntryDate(entry.attendance_date);
 				setDescription(entry.description || '');
 			} else {
+				setSelectedUserId('');
 				setEntryType(ENTRY_TYPES[0].value);
 				setEntryTime(format(new Date(), 'HH:mm', { locale: es }));
 				setEntryDate(getLocalDate());
@@ -118,7 +86,7 @@ export function AttendanceEntryModal({
 		if (!targetUserId) {
 			toast({
 				title: 'Error',
-				description: translateError('Usuario no autenticado'),
+				description: 'No se seleccionó ningun usuario',
 				variant: 'destructive',
 			});
 			return;
@@ -225,24 +193,24 @@ export function AttendanceEntryModal({
 					{showUserSelect && !isEditing ? (
 						<div className="space-y-2">
 							<Label htmlFor="user-select">Empleado</Label>
-							{loadingUsers ? (
-								<div className="text-sm text-gray-500">Cargando empleados...</div>
-							) : (
-								<Select value={selectedUserId} onValueChange={setSelectedUserId}>
-									<SelectTrigger id="user-select">
-										<SelectValue placeholder="Selecciona un empleado" />
-									</SelectTrigger>
-									<SelectContent>
-										{users.map((user) => (
-											<SelectItem key={user.uid_user} value={user.uid_user}>
-												{user.name && user.last_name
-													? `${user.name} ${user.last_name}`
-													: user.username}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							)}
+
+							<Select value={selectedUserId} onValueChange={setSelectedUserId}>
+								<SelectTrigger id="user-select">
+									<SelectValue placeholder="Selecciona un empleado" />
+								</SelectTrigger>
+								<SelectContent>
+									{users.map(
+										(user) =>
+											user.role === 'Taller' && (
+												<SelectItem key={user.uid_user} value={user.uid_user}>
+													{user.name && user.last_name
+														? `${user.name} ${user.last_name}`
+														: user.username}
+												</SelectItem>
+											)
+									)}
+								</SelectContent>
+							</Select>
 						</div>
 					) : (
 						(entry?.user_name || userName) && (
