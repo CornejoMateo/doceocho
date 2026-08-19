@@ -59,7 +59,9 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 					}}
 				/>
 			) : (
-				<div className="mt-5 text-red-500 text-center">{cameraError}</div>
+				<div role="alert" className="mt-5 text-red-500 text-center">
+					{cameraError}
+				</div>
 			)}
 			<Button variant="outline" onClick={onClose} className="w-full max-w-md">
 				Cancelar

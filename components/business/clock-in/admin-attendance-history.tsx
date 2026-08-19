@@ -37,7 +37,7 @@ import {
 import { User } from '@/lib/users/users';
 import { AttendanceEntryModal } from './attendance-entry-modal';
 
-type PeriodFilter = 'day' | 'week' | 'month';
+type PeriodFilter = 'day' | 'month';
 
 export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref) => {
 	const { users = [] } = props;
@@ -237,7 +237,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 
 							{summaries.length === 0 ? (
 								<div className="text-center py-6 text-gray-500 text-sm">
-									No hay registros de asistencia del dia de hoy o del mes actual.
+									No hay registros de asistencia del día de hoy o del mes actual.
 								</div>
 							) : (
 								<div className="space-y-2 max-h-96 overflow-y-auto pr-2">

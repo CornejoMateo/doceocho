@@ -26,7 +26,7 @@ import {
 } from '@/lib/attendance/attendance-entries';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
-import { format, set } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
@@ -86,16 +86,9 @@ export function AttendanceEntryModal({
 		if (!targetUserId) {
 			toast({
 				title: 'Error',
-				description: 'No se seleccionó ningun usuario',
-				variant: 'destructive',
-			});
-			return;
-		}
-
-		if (showUserSelect && !selectedUserId) {
-			toast({
-				title: 'Error',
-				description: 'Debes seleccionar un empleado',
+				description: showUserSelect
+					? 'Debes seleccionar un empleado'
+					: 'No se seleccionó ningún usuario',
 				variant: 'destructive',
 			});
 			return;

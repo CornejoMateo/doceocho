@@ -300,9 +300,37 @@ export function SettlementsModal({ open, onOpenChange, users = [] }: Settlements
 	};
 
 	useEffect(() => {
-		if (open && activeTab === 'liquidaciones') {
-			loadSettlements();
-		}
+		if (!open || activeTab !== 'liquidaciones') return;
+
+		let cancelled = false;
+
+		const run = async () => {
+			setLoadingSettlements(true);
+			try {
+				const { data, error } = await getMonthlySettlementsByMonth(
+					Number(settlementsYear),
+					Number(settlementsMonth)
+				);
+				if (cancelled) return;
+				if (error) throw error;
+				setSettlements(data || []);
+			} catch (error) {
+				if (cancelled) return;
+				toast({
+					title: 'Error',
+					description: 'Error al cargar liquidaciones',
+					variant: 'destructive',
+				});
+			} finally {
+				if (!cancelled) setLoadingSettlements(false);
+			}
+		};
+
+		run();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [open, activeTab, settlementsYear, settlementsMonth]);
 
 	return (

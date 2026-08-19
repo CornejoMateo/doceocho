@@ -110,9 +110,7 @@ export function OverdueEvents() {
 									)}
 
 									{locationDisplay && (
-										<p className="text-xs text-muted-foreground truncate">
-											{workName ? `${workName}` : locationDisplay}
-										</p>
+										<p className="text-xs text-muted-foreground truncate">{locationDisplay}</p>
 									)}
 
 									<p className="text-xs text-red-600 pt-1">

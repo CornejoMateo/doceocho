@@ -1,8 +1,9 @@
-'use server';
-
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { configureWebPush, sendPushNotification } from '@/lib/push/vapid';
-import { getAdminPushSubscriptions } from '@/lib/push/subscriptions';
+import {
+	getAdminPushSubscriptions,
+	deletePushSubscriptionByEndpoint,
+} from '@/lib/push/subscriptions';
 
 export async function sendAttendanceCreatedNotification(
 	supabase: SupabaseClient,
@@ -53,6 +54,9 @@ export async function sendAttendanceCreatedNotification(
 				sentCount++;
 			} else {
 				failedCount++;
+				if (result.statusCode === 404 || result.statusCode === 410) {
+					await deletePushSubscriptionByEndpoint(subscription.endpoint, supabase);
+				}
 			}
 		}
 

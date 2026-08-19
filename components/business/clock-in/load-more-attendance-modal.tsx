@@ -40,7 +40,7 @@ interface LoadMoreAttendanceModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	users?: User[];
-	user: SessionUser | null;
+	user?: SessionUser | null;
 }
 
 export function LoadMoreAttendanceModal({

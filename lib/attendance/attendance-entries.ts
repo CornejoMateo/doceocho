@@ -235,7 +235,8 @@ export async function getAttendanceEntriesForMonth(
 		`
 		)
 		.gte('attendance.date', startOfMonth)
-		.lte('attendance.date', endOfMonth);
+		.lte('attendance.date', endOfMonth)
+		.not('attendance.users.role', 'eq', 'Admin');
 
 	return { data, error };
 }
@@ -317,15 +318,5 @@ export async function getAttendanceEntriesForDay(
 
 	if (error) return { data: null, error };
 
-	const entriesWithDate = data?.map((entry: any) => ({
-		...entry,
-		attendance_date: entry.attendance.date,
-		user_id: entry.attendance.user_id,
-		user_name:
-			`${entry.attendance.users?.name || ''} ${entry.attendance.users?.last_name || ''}`.trim() ||
-			entry.attendance.users?.username ||
-			'Desconocido',
-	})) as AttendanceEntryWithDate[];
-
-	return { data: entriesWithDate || null, error: null };
+	return { data: mapAttendanceEntries(data || []), error: null };
 }

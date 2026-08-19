@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Clock } from 'lucide-react';
 import { getLocalDate } from '@/utils/format-date';
+import { useMemo } from 'react';
 
 function isStillWorking(entries: AttendanceEntryWithDate[]): boolean {
 	const sorted = [...entries].sort(
@@ -49,12 +50,15 @@ export function TodayAttendance() {
 		'today_attendance_cache'
 	);
 
-	const todayEntries = getEntriesByPeriod(entries, 'day', today);
-	const summaries = getUserAttendanceSummaries(todayEntries);
-	const sortedSummaries = summaries
-		.map((summary) => ({ summary, working: Number(isStillWorking(summary.entries)) }))
-		.sort((a, b) => b.working - a.working)
-		.map(({ summary }) => summary);
+	const { todayEntries, summaries, sortedSummaries } = useMemo(() => {
+		const todayEntries = getEntriesByPeriod(entries, 'day', today);
+		const summaries = getUserAttendanceSummaries(todayEntries);
+		const sortedSummaries = summaries
+			.map((summary) => ({ summary, working: Number(isStillWorking(summary.entries)) }))
+			.sort((a, b) => b.working - a.working)
+			.map(({ summary }) => summary);
+		return { todayEntries, summaries, sortedSummaries };
+	}, [entries, today]);
 
 	return (
 		<Card className="p-4 min-w-0">

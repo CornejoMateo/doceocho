@@ -10,13 +10,13 @@ import { getLocalDate } from '@/utils/format-date';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import { verifyQRToken } from '@/lib/qr/qr-token';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
-import { sendAttendanceCreatedNotification } from '@/actions/push/send-attendance-notification';
+import { sendAttendanceCreatedNotification } from '@/lib/push/send-attendance-notification';
+import { getUserByUid } from '@/lib/users/users';
 
 export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
-		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long, username } =
-			await req.json();
+		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
 		const userId = user?.id;
 
 		if (!userId) {
@@ -167,7 +167,12 @@ export async function POST(req: NextRequest) {
 			const { after } = await import('next/server');
 			after(async () => {
 				try {
-					await sendAttendanceCreatedNotification(supabase, username, entryType);
+					const { data: userProfile } = await getUserByUid(user.id);
+					await sendAttendanceCreatedNotification(
+						supabase,
+						userProfile?.username ?? 'Usuario Taller',
+						entryType
+					);
 				} catch (error: any) {
 					console.error('Failed to send client notification:', error.message);
 				}
