@@ -61,3 +61,16 @@ export function formatTime(timestamp: string | Date | null | undefined): string 
 		hour12: false,
 	}).format(date);
 }
+
+export function formatSimpleTime(timeString: string | null | undefined): string {
+	if (!timeString) return '';
+
+	// Simple split to remove seconds if present
+	const parts = timeString.split(':');
+	if (parts.length >= 2) {
+		return `${parts[0]}:${parts[1]}`;
+	}
+
+	// Return original string if format is unexpected
+	return timeString;
+}

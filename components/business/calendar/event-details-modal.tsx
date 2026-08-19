@@ -19,7 +19,7 @@ import { translateError } from '@/lib/error-translator';
 import { EventType, resolveEventType } from '@/lib/calendar/event-types';
 import { useAuth } from '@/components/provider/auth-provider';
 import { getWorkById, Work } from '@/lib/works/works';
-import { formatCreatedAt } from '@/utils/format-date';
+import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
 import { Pencil } from 'lucide-react';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { format, parse } from 'date-fns';
@@ -138,6 +138,7 @@ export function EventDetailsModal({
 			const parsedDate = parse(dateToFormat, 'dd-MM-yyyy', new Date());
 			const formattedDate = format(parsedDate, 'yyyy-MM-dd');
 			updateData.date = formattedDate;
+			updateData.time = rest.time || null;
 			const { error } = await updateEvent(event.id, updateData);
 			if (error) throw error;
 			onEventUpdated?.();
@@ -211,6 +212,16 @@ export function EventDetailsModal({
 								<p className="text-sm">{formatCreatedAt(event.date)}</p>
 							</div>
 						</div>
+
+						{event.time && (
+							<div className="flex items-start gap-3">
+								<CalendarIcon className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+								<div>
+									<p className="text-sm text-muted-foreground">Hora</p>
+									<p className="text-sm font-medium">{formatSimpleTime(event.time)}</p>
+								</div>
+							</div>
+						)}
 
 						{isLoadingWork ? (
 							<div className="flex items-center gap-2 text-sm text-muted-foreground">

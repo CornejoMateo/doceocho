@@ -22,6 +22,7 @@ import {
 import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
+import { MultiFilePreviewDialog } from '@/components/ui/multi-file-preview-dialog';
 import { formatFileSize, isVideo, isImage, getFileExtension } from '@/utils/file-upload-utils';
 import { useAuth } from '@/components/provider/auth-provider';
 
@@ -44,6 +45,8 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const [fileToDelete, setFileToDelete] = useState<FileWithUrl | null>(null);
 	const [isCameraEditorOpen, setIsCameraEditorOpen] = useState(false);
 	const [fileForEditor, setFileForEditor] = useState<File | null>(null);
+	const [isMultiFilePreviewOpen, setIsMultiFilePreviewOpen] = useState(false);
+	const [filesForMultiUpload, setFilesForMultiUpload] = useState<File[]>([]);
 
 	const { user } = useAuth();
 	const isAuthorized = user?.role === 'Admin';
@@ -146,6 +149,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 		setDescription,
 		handleFileSelect,
 		handleUploadSubmit,
+		handleUploadMultiple,
 		handleCloseUploadDialog,
 		openUploadDialogForFile,
 		acceptedFileTypes,
@@ -159,6 +163,10 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 			setFileForEditor(file);
 			setIsCameraEditorOpen(true);
 		},
+		onMultipleFilesSelect: (files) => {
+			setFilesForMultiUpload(files);
+			setIsMultiFilePreviewOpen(true);
+		},
 	});
 
 	const handleImageReady = (imageFile: File) => {
@@ -168,6 +176,14 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 			setFileForEditor(null);
 		}
 		return shouldContinue;
+	};
+
+	const handleMultiFileUpload = async (
+		filesToUpload: Array<{ file: File; displayName: string; description: string }>
+	) => {
+		await handleUploadMultiple(filesToUpload);
+		setIsMultiFilePreviewOpen(false);
+		setFilesForMultiUpload([]);
 	};
 
 	const handleDeleteFile = async () => {
@@ -234,6 +250,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 						className="hidden"
 						onChange={handleFileSelect}
 						disabled={isUploading}
+						multiple
 					/>
 					<Button
 						size="sm"
@@ -255,7 +272,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 						) : (
 							<>
 								<Upload className="h-4 w-4 mr-2" />
-								Subir archivo
+								Subir archivos
 							</>
 						)}
 					</Button>
@@ -393,6 +410,14 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 				}}
 				onImageReady={handleImageReady}
 				initialFile={fileForEditor}
+			/>
+
+			<MultiFilePreviewDialog
+				open={isMultiFilePreviewOpen}
+				onOpenChange={setIsMultiFilePreviewOpen}
+				files={filesForMultiUpload}
+				onUpload={handleMultiFileUpload}
+				isUploading={isUploading}
 			/>
 		</div>
 	);

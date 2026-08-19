@@ -5,6 +5,7 @@ create table public.events (
   title character varying null,
   client_name character varying null,
   date date null,
+  time time null,
   status character varying null,
   is_overdue boolean null default false,
   remember boolean null default false,
