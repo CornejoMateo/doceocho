@@ -65,6 +65,7 @@
 		"embla-carousel-react": "8.5.1",
 		"fns": "^1.0.0",
 		"geist": "latest",
+		"googleapis": "^176.0.0",
 		"html2canvas": "^1.4.1",
 		"input-otp": "1.4.1",
 		"jose": "^6.2.4",
@@ -133,6 +134,6 @@
 		"next": {
 			"postcss": "8.5.26",
 			"sharp": "0.35.3"
-  		}
+		}
 	}
 }

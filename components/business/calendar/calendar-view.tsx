@@ -7,7 +7,8 @@ import { EventFormModal } from '@/components/business/calendar/event-form-modal'
 import { EventDetailsModal } from '@/components/business/calendar/event-details-modal';
 import { CalendarDay } from '@/components/business/calendar/calendar-days';
 import { EventTypesDialog } from '@/components/business/calendar/event-types-dialog';
-import { createEvent, deleteEvent } from '@/lib/calendar/events';
+import { deleteEvent } from '@/lib/calendar/events';
+import { createEventServer } from '@/lib/calendar/events-server-aux';
 import { getEventTypeOptions, resolveEventType } from '@/lib/calendar/event-types';
 import {
 	Calendar as CalendarIcon,
@@ -291,8 +292,7 @@ export function CalendarView() {
 
 								const [day, month, year] = dateStr.split('-').map(Number);
 								const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
-								const { data: newEvent, error } = await createEvent({
+								const payload = {
 									title: eventData.title || 'Sin título',
 									type_id: selectedEventType?.id ?? null,
 									description: eventData.description,
@@ -303,7 +303,10 @@ export function CalendarView() {
 									remember: eventData.remember,
 									work_id: eventData.work_id,
 									work_location: eventData.work_location,
-								});
+								};
+
+								// 1. Llamamos a tu Server Action directamente
+								const { data: newEvent, error } = await createEventServer(payload);
 
 								if (error) {
 									console.error('Error al crear el evento:', error);
@@ -316,6 +319,30 @@ export function CalendarView() {
 								}
 
 								if (newEvent) {
+									// 2. Armamos la URL de Google Calendar con los datos del evento
+									const title = encodeURIComponent(payload.title);
+									const details = encodeURIComponent(
+										payload.description ||
+											`Cliente: ${payload.client_name || 'N/A'} - Ubicación: ${payload.work_location || 'N/A'}`
+									);
+									const location = encodeURIComponent(payload.work_location || '');
+
+									const cleanDate = payload.date.replace(/-/g, '');
+									const startTime = payload.time ? payload.time.replace(':', '') + '00' : '090000';
+									const endTime = payload.time
+										? String(parseInt(payload.time.split(':')[0]) + 1).padStart(2, '0') +
+											payload.time.split(':')[1] +
+											'00'
+										: '100000';
+
+									const startDateTime = `${cleanDate}T${startTime}`;
+									const endDateTime = `${cleanDate}T${endTime}`;
+
+									const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDateTime}/${endDateTime}&details=${details}&location=${location}&ctz=America/Argentina/Cordoba`;
+
+									// 3. Abrimos la pestaña para que el usuario solo presione "Guardar"
+									window.open(googleCalendarUrl, '_blank');
+
 									await refresh();
 									setShowAllEvents(false);
 									return true;
