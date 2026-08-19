@@ -31,6 +31,7 @@ function createSupabaseMock() {
 		eq: jest.fn(() => chain),
 		gte: jest.fn(() => chain),
 		lte: jest.fn(() => chain),
+		not: jest.fn(() => chain),
 		insert: jest.fn(() => chain),
 		update: jest.fn(() => chain),
 		delete: jest.fn(() => chain),
@@ -266,8 +267,8 @@ describe('attendance-entries lib', () => {
 		});
 
 		it('returns matching entries for unknown period type', () => {
-			const result = getEntriesByPeriod(entries, 'day' as any, '2026-08-15');
-			expect(result).toHaveLength(1);
+			const result = getEntriesByPeriod(entries, 'year' as any, '2026-08-15');
+			expect(result).toHaveLength(entries.length);
 		});
 	});
 
@@ -360,7 +361,8 @@ describe('attendance-entries lib', () => {
 					},
 				},
 			];
-			chain.lte = jest.fn().mockResolvedValue({ data, error: null });
+			const notChain = { not: jest.fn().mockResolvedValue({ data, error: null }) };
+			chain.lte = jest.fn().mockReturnValue(notChain);
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			const result = await getAttendanceEntriesForMonth(2026, 6);
@@ -372,7 +374,8 @@ describe('attendance-entries lib', () => {
 		it('returns the error on failure', async () => {
 			const { supabase, chain } = createSupabaseMock();
 			const error = { message: 'Failed' };
-			chain.lte = jest.fn().mockResolvedValue({ data: null, error });
+			const notChain = { not: jest.fn().mockResolvedValue({ data: null, error }) };
+			chain.lte = jest.fn().mockReturnValue(notChain);
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			const result = await getAttendanceEntriesForMonth(2026, 6);

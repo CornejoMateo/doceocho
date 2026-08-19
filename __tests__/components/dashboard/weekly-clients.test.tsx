@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { WeeklyClients } from '@/components/dashboard/weekly-clients';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 import { getClientsThisWeek } from '@/lib/clients/clients';
@@ -33,10 +33,12 @@ const clients = [
 ];
 
 function setup({ data = clients, loading = false } = {}) {
-	(useRouter as jest.Mock).mockReturnValue({ push: jest.fn() });
+	const push = jest.fn();
+	(useRouter as jest.Mock).mockReturnValue({ push });
 	(useOptimizedRealtime as jest.Mock).mockReturnValue({ data, loading });
 	(getClientsThisWeek as jest.Mock).mockResolvedValue({ data: clients, error: null });
 	render(<WeeklyClients />);
+	return { push };
 }
 
 describe('WeeklyClients', () => {
@@ -65,5 +67,13 @@ describe('WeeklyClients', () => {
 	it('shows empty state when there are no clients', () => {
 		setup({ data: [] });
 		expect(screen.getByText('No hay clientes nuevos esta semana')).toBeInTheDocument();
+	});
+
+	it('navigates to client detail on card click', () => {
+		const { push } = setup();
+
+		fireEvent.click(screen.getByText('Juan Perez'));
+
+		expect(push).toHaveBeenCalledWith('/clients?clientId=1');
 	});
 });

@@ -145,9 +145,6 @@ describe('settlements lib', () => {
 		}
 
 		it('filters settlements to the current and previous month', async () => {
-			jest.useFakeTimers();
-			jest.setSystemTime(new Date(2026, 7, 11)); // August 11, 2026
-
 			const { supabase, chain } = createSupabaseMock();
 			const mockData = [
 				{
@@ -178,8 +175,6 @@ describe('settlements lib', () => {
 
 			expect(result.data?.[0].id).toBe(1);
 			expect(result.data?.[0].user_name).toBe('Juan Pérez');
-
-			jest.useRealTimers();
 		});
 
 		it('builds user_name from username when name and last_name are missing', async () => {
@@ -225,6 +220,20 @@ describe('settlements lib', () => {
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(error);
+		});
+
+		it('queries December of previous year when current month is January', async () => {
+			jest.setSystemTime(new Date('2027-01-15T12:00:00Z'));
+
+			const { supabase, chain } = createSupabaseMock();
+			mockSettlementResponse(chain, { data: [], error: null });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			await getAllMonthlySettlements();
+
+			expect(chain.or).toHaveBeenCalledWith(
+				'and(year.eq.2027,month.eq.1),and(year.eq.2026,month.eq.12)'
+			);
 		});
 	});
 

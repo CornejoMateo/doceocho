@@ -2,14 +2,14 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { OverdueEvents } from '@/components/dashboard/overdue-events';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
-import { getSupabaseClient } from '@/lib/supabase-client';
+import { getWorksByIds } from '@/lib/works/works';
 
 jest.mock('@/hooks/calendar/use-load-events', () => ({
 	useLoadEvents: jest.fn(),
 }));
 
-jest.mock('@/lib/supabase-client', () => ({
-	getSupabaseClient: jest.fn(),
+jest.mock('@/lib/works/works', () => ({
+	getWorksByIds: jest.fn(),
 }));
 
 jest.mock('@/components/ui/card', () => ({
@@ -73,20 +73,13 @@ function setup({
 	events = mockEvents,
 	isLoading = false,
 	worksData = null,
-	supabaseFrom = null,
 }: {
 	events?: any[];
 	isLoading?: boolean;
 	worksData?: any[] | null;
-	supabaseFrom?: any;
 } = {}) {
 	(useLoadEvents as jest.Mock).mockReturnValue({ events, isLoading });
-
-	const mockFrom = supabaseFrom ?? {
-		select: jest.fn().mockReturnThis(),
-		in: jest.fn(() => Promise.resolve({ data: worksData ?? mockWorks, error: null })),
-	};
-	(getSupabaseClient as jest.Mock).mockReturnValue({ from: jest.fn(() => mockFrom) });
+	(getWorksByIds as jest.Mock).mockResolvedValue({ data: worksData ?? mockWorks, error: null });
 
 	render(<OverdueEvents />);
 }
