@@ -155,7 +155,7 @@ describe('lib/calendar/events', () => {
 
 		expect(res.error).toBeNull();
 		expect(res.data).toMatchObject({ id: 20, status: 'pending', is_overdue: true });
-		expect(fetchSelect).toHaveBeenCalledWith('date, time');
+		expect(fetchSelect).toHaveBeenCalledWith('date');
 		expect(update).toHaveBeenCalled();
 		expect(updateEq).toHaveBeenCalledWith('id', 20);
 	});
