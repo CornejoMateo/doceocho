@@ -126,7 +126,7 @@ export async function createAdminAttendanceEntry(
  */
 export function getEntriesByPeriod(
 	entries: AttendanceEntryWithDate[],
-	period: 'day' | 'week' | 'month',
+	period: 'day' | 'month',
 	date?: string
 ): AttendanceEntryWithDate[] {
 	if (!date) {
@@ -138,21 +138,6 @@ export function getEntriesByPeriod(
 
 	if (period === 'day') {
 		return entries.filter((entry) => entry.attendance_date === targetDateStr);
-	}
-
-	if (period === 'week') {
-		const startOfWeek = new Date(targetDate);
-		const day = startOfWeek.getDay();
-		const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-		startOfWeek.setDate(diff);
-
-		const endOfWeek = new Date(startOfWeek);
-		endOfWeek.setDate(startOfWeek.getDate() + 6);
-
-		return entries.filter((entry) => {
-			const entryDate = new Date(entry.attendance_date);
-			return entryDate >= startOfWeek && entryDate <= endOfWeek;
-		});
 	}
 
 	if (period === 'month') {

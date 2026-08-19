@@ -14,7 +14,7 @@ import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
 import { AttendanceEntryModal } from './attendance-entry-modal';
-import { SettlementsModal } from './settlements-modal';
+import { SettlementsModal } from './settlements/settlements-modal';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
