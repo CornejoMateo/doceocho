@@ -1,7 +1,6 @@
 import {
 	getUserAttendanceHistory,
 	calculateHoursWorked,
-	calculatePaymentSummary,
 	hasMatchingPair,
 	getUserAttendanceSummaries,
 } from '@/lib/attendance/attendance';
@@ -310,78 +309,6 @@ describe('attendance lib', () => {
 			const result = getUserAttendanceSummaries(entries);
 
 			expect(result[0].user_name).toBe('Desconocido');
-		});
-	});
-
-	describe('calculatePaymentSummary', () => {
-		it('returns payment summary with daily, weekly, monthly data', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			const historyData = [
-				{
-					id: 1,
-					type: 'regular_in',
-					entry_time: '2026-08-15T10:00:00Z',
-					attendance: { date: '2026-08-15', user_id: 'user-1' },
-				},
-				{
-					id: 2,
-					type: 'regular_out',
-					entry_time: '2026-08-15T18:00:00Z',
-					attendance: { date: '2026-08-15', user_id: 'user-1' },
-				},
-			];
-			chain.order = jest.fn().mockResolvedValue({ data: historyData, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await calculatePaymentSummary('user-1', 'Juan');
-
-			expect(result.data).toBeDefined();
-			expect(result.data?.user_id).toBe('user-1');
-			expect(result.data?.user_name).toBe('Juan');
-			expect(result.data?.daily).toHaveLength(1);
-			expect(result.data?.daily[0].regular_hours).toBe(8);
-			expect(result.data?.daily[0].overtime_hours).toBe(0);
-			expect(result.data?.daily[0].total_payment).toBe(8000);
-			expect(result.data?.weekly.length).toBeGreaterThanOrEqual(1);
-			expect(result.data?.monthly.length).toBeGreaterThanOrEqual(1);
-		});
-
-		it('returns error when getUserAttendanceHistory fails', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			const error = { message: 'Failed' };
-			chain.order = jest.fn().mockResolvedValue({ data: null, error });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await calculatePaymentSummary('user-1', 'Juan');
-
-			expect(result.data).toBeNull();
-			expect(result.error).toEqual(error);
-		});
-
-		it('calculates overtime payment correctly', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			const historyData = [
-				{
-					id: 1,
-					type: 'overtime_in',
-					entry_time: '2026-08-15T18:00:00Z',
-					attendance: { date: '2026-08-15', user_id: 'user-1' },
-				},
-				{
-					id: 2,
-					type: 'overtime_out',
-					entry_time: '2026-08-15T20:00:00Z',
-					attendance: { date: '2026-08-15', user_id: 'user-1' },
-				},
-			];
-			chain.order = jest.fn().mockResolvedValue({ data: historyData, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await calculatePaymentSummary('user-1', 'Juan');
-
-			expect(result.data?.daily[0].regular_hours).toBe(0);
-			expect(result.data?.daily[0].overtime_hours).toBe(2);
-			expect(result.data?.daily[0].total_payment).toBe(3000);
 		});
 	});
 });

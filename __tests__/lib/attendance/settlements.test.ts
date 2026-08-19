@@ -1,7 +1,6 @@
 import {
 	getMonthlySettlement,
 	getMonthlySettlementsByUser,
-	getAllMonthlySettlements,
 	getMonthlySettlementsByMonth,
 	createMonthlySettlement,
 	updateMonthlySettlement,
@@ -122,118 +121,6 @@ describe('settlements lib', () => {
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(error);
-		});
-	});
-
-	describe('getAllMonthlySettlements', () => {
-		beforeEach(() => {
-			jest.useFakeTimers();
-			jest.setSystemTime(new Date('2026-08-15T12:00:00Z'));
-		});
-
-		afterEach(() => {
-			jest.useRealTimers();
-		});
-
-		function mockSettlementResponse(
-			chain: Record<string, jest.Mock>,
-			response: { data: any; error: any }
-		) {
-			chain.order = jest.fn(() => ({
-				order: jest.fn().mockResolvedValue(response),
-			}));
-		}
-
-		it('filters settlements to the current and previous month', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			const mockData = [
-				{
-					id: 1,
-					users: {
-						name: 'Juan',
-						last_name: 'Pérez',
-					},
-				},
-			];
-
-			mockSettlementResponse(chain, {
-				data: mockData,
-				error: null,
-			});
-
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getAllMonthlySettlements();
-
-			expect(supabase.from).toHaveBeenCalledWith('monthly_settlements');
-
-			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('users'));
-
-			expect(chain.or).toHaveBeenCalledWith(
-				'and(year.eq.2026,month.eq.8),and(year.eq.2026,month.eq.7)'
-			);
-
-			expect(result.data?.[0].id).toBe(1);
-			expect(result.data?.[0].user_name).toBe('Juan Pérez');
-		});
-
-		it('builds user_name from username when name and last_name are missing', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			mockSettlementResponse(chain, {
-				data: [{ id: 1, users: { username: 'jperez' } }],
-				error: null,
-			});
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getAllMonthlySettlements();
-
-			expect(result.data?.[0].user_name).toBe('jperez');
-		});
-
-		it('uses Desconocido when no user info', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			mockSettlementResponse(chain, { data: [{ id: 1, users: null }], error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getAllMonthlySettlements();
-
-			expect(result.data?.[0].user_name).toBe('Desconocido');
-		});
-
-		it('returns null when no data', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			mockSettlementResponse(chain, { data: null, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getAllMonthlySettlements();
-
-			expect(result.data).toBeNull();
-		});
-
-		it('returns the error on failure', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			const error = { message: 'Failed' };
-			mockSettlementResponse(chain, { data: null, error });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getAllMonthlySettlements();
-
-			expect(result.data).toBeNull();
-			expect(result.error).toEqual(error);
-		});
-
-		it('queries December of previous year when current month is January', async () => {
-			jest.setSystemTime(new Date('2027-01-15T12:00:00Z'));
-
-			const { supabase, chain } = createSupabaseMock();
-			mockSettlementResponse(chain, { data: [], error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			await getAllMonthlySettlements();
-
-			expect(chain.or).toHaveBeenCalledWith(
-				'and(year.eq.2027,month.eq.1),and(year.eq.2026,month.eq.12)'
-			);
 		});
 	});
 

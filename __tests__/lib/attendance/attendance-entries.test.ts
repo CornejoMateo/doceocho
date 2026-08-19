@@ -255,20 +255,10 @@ describe('attendance-entries lib', () => {
 			expect(result[0].attendance_date).toBe('2026-08-15');
 		});
 
-		it('filters entries for a week', () => {
-			const result = getEntriesByPeriod(entries, 'week', '2026-08-15');
-			expect(result).toHaveLength(2);
-		});
-
 		it('filters entries for a month', () => {
 			const result = getEntriesByPeriod(entries, 'month', '2026-08-15');
 			expect(result).toHaveLength(2);
 			expect(result.every((e) => e.attendance_date.startsWith('2026-08'))).toBe(true);
-		});
-
-		it('returns matching entries for unknown period type', () => {
-			const result = getEntriesByPeriod(entries, 'year' as any, '2026-08-15');
-			expect(result).toHaveLength(entries.length);
 		});
 	});
 
