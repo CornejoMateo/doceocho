@@ -95,6 +95,28 @@ export async function deletePushSubscription(
 }
 
 /**
+ * Delete a push subscription by endpoint only (for expired/invalid subscriptions)
+ */
+export async function deletePushSubscriptionByEndpoint(
+	endpoint: string,
+	supabase?: SupabaseClient
+): Promise<{ success: boolean; error?: string }> {
+	const client = supabase ?? getSupabaseClient();
+
+	try {
+		const { error } = await client.from('push_subscriptions').delete().eq('endpoint', endpoint);
+
+		if (error) {
+			return { success: false, error: error.message };
+		}
+
+		return { success: true };
+	} catch (error: any) {
+		return { success: false, error: error.message };
+	}
+}
+
+/**
  * Get all push subscriptions for users in a channel (excluding sender)
  */
 export async function getChannelPushSubscriptions(

@@ -13,8 +13,13 @@ const DEBOUNCE_DELAY = 300; // 300ms para agrupar actualizaciones
 export function useOptimizedRealtime<T extends { id: number }>(
 	table: string,
 	fetchFromDb: () => Promise<T[]>,
-	cacheKey?: string
+	cacheKey?: string,
+	isAuthorized?: boolean
 ) {
+	if (table === 'users' && !isAuthorized) {
+		return { data: [], loading: false, error: null, refresh: () => {} };
+	}
+
 	const [data, setData] = useState<T[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -122,7 +127,7 @@ export function useOptimizedRealtime<T extends { id: number }>(
 			// For tables that require joined relational data, do a full refresh on INSERT/UPDATE
 			// to avoid incomplete realtime payloads without nested relations.
 			if (
-				(table === 'balances' || table === 'folder_budgets') &&
+				(table === 'balances' || table === 'folder_budgets' || table === 'attendance_entries') &&
 				(eventType === 'INSERT' || eventType === 'UPDATE')
 			) {
 				fetchData(true);
