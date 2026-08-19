@@ -139,14 +139,13 @@ export async function updateUser(
 	}
 }
 
-export async function getUserByUid(uid: string): Promise<{ data: User | null; error: any }> {
-	const supabase = getSupabaseClient();
+export async function getUserByUid(
+	uid: string,
+	supabase?: SupabaseClient
+): Promise<{ data: User | null; error: any }> {
+	const client = supabase ?? getSupabaseClient();
 
-	const { data, error } = await supabase
-		.from('users')
-		.select('*')
-		.eq('uid_user', uid)
-		.maybeSingle();
+	const { data, error } = await client.from('users').select('*').eq('uid_user', uid).maybeSingle();
 
 	if (error) {
 		return { data: null, error: 'Error al buscar usuario' };

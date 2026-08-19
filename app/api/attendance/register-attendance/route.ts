@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
 			const { after } = await import('next/server');
 			after(async () => {
 				try {
-					const { data: userProfile } = await getUserByUid(user.id);
+					const { data: userProfile } = await getUserByUid(user.id, supabase);
 					await sendAttendanceCreatedNotification(
 						supabase,
 						userProfile?.username ?? 'Usuario Taller',
