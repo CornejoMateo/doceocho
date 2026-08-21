@@ -28,13 +28,13 @@ afterEach(() => {
 });
 
 describe('AttendanceQRCode', () => {
-	it('muestra "Cargando QR..." mientras carga', () => {
+	it('shows "Cargando QR..." while loading', () => {
 		mockFetch.mockReturnValue(new Promise(() => {}));
 		render(<AttendanceQRCode />);
 		expect(screen.getByText('Cargando QR...')).toBeInTheDocument();
 	});
 
-	it('muestra el QR cuando la API responde correctamente', async () => {
+	it('shows the QR when the API responds correctly', async () => {
 		mockFetch.mockResolvedValue({
 			ok: true,
 			json: () => Promise.resolve({ token: 'test-token-123' }),
@@ -46,7 +46,7 @@ describe('AttendanceQRCode', () => {
 		expect(screen.getByTestId('qr-code')).toHaveAttribute('data-value', 'test-token-123');
 	});
 
-	it('muestra countdown "Se renueva en Xs" después de cargar', async () => {
+	it('shows countdown "Se renueva en Xs" after loading', async () => {
 		mockFetch.mockResolvedValue({
 			ok: true,
 			json: () => Promise.resolve({ token: 'token' }),
@@ -57,7 +57,7 @@ describe('AttendanceQRCode', () => {
 		});
 	});
 
-	it('muestra error cuando la API falla', async () => {
+	it('shows error when the API fails', async () => {
 		mockFetch.mockResolvedValue({
 			ok: false,
 			json: () => Promise.resolve({ error: 'fail' }),
@@ -68,7 +68,7 @@ describe('AttendanceQRCode', () => {
 		});
 	});
 
-	it('muestra error cuando fetch lanza excepción', async () => {
+	it('shows error when fetch throws an exception', async () => {
 		mockFetch.mockRejectedValue(new Error('Network error'));
 		render(<AttendanceQRCode />);
 		await waitFor(() => {
@@ -76,7 +76,7 @@ describe('AttendanceQRCode', () => {
 		});
 	});
 
-	it('muestra botón Reintentar cuando hay error', async () => {
+	it('shows "Reintentar" button when there is an error', async () => {
 		mockFetch.mockRejectedValue(new Error('fail'));
 		render(<AttendanceQRCode />);
 		await waitFor(() => {
@@ -84,7 +84,7 @@ describe('AttendanceQRCode', () => {
 		});
 	});
 
-	it('reintenta al hacer clic en Reintentar', async () => {
+	it('retries when clicking "Reintentar"', async () => {
 		mockFetch.mockRejectedValueOnce(new Error('fail'));
 		render(<AttendanceQRCode />);
 		await waitFor(() => {
@@ -101,20 +101,20 @@ describe('AttendanceQRCode', () => {
 		});
 	});
 
-	it('no muestra error ni QR mientras carga inicialmente', () => {
+	it('does not show error or QR while loading initially', () => {
 		mockFetch.mockReturnValue(new Promise(() => {}));
 		render(<AttendanceQRCode />);
 		expect(screen.queryByTestId('qr-code')).not.toBeInTheDocument();
 		expect(screen.queryByText('No se pudo generar el QR')).not.toBeInTheDocument();
 	});
 
-	it('llama a fetch al montar', () => {
+	it('calls fetch on mount', () => {
 		mockFetch.mockReturnValue(new Promise(() => {}));
 		render(<AttendanceQRCode />);
 		expect(mockFetch).toHaveBeenCalledWith('/api/attendance/qr');
 	});
 
-	it('refresca el QR cuando la pestaña vuelve a ser visible', async () => {
+	it('refreshes the QR when the tab becomes visible again', async () => {
 		mockFetch.mockResolvedValue({
 			ok: true,
 			json: () => Promise.resolve({ token: 'initial' }),

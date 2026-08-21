@@ -20,25 +20,25 @@ describe('CoordinatesHelpDialog', () => {
 		mockOnOpenChange.mockClear();
 	});
 
-	it('no renderiza cuando está cerrado', () => {
+	it('does not render when closed', () => {
 		render(<CoordinatesHelpDialog open={false} onOpenChange={mockOnOpenChange} />);
 		expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
 	});
 
-	it('renderiza cuando está abierto', () => {
+	it('renders when open', () => {
 		render(<CoordinatesHelpDialog open={true} onOpenChange={mockOnOpenChange} />);
 		expect(screen.getByTestId('dialog')).toBeInTheDocument();
 		expect(screen.getByText('Cómo obtener coordenadas de Google Maps')).toBeInTheDocument();
 	});
 
-	it('muestra los pasos para obtener coordenadas', () => {
+	it('shows the steps to obtain coordinates', () => {
 		render(<CoordinatesHelpDialog open={true} onOpenChange={mockOnOpenChange} />);
 		expect(screen.getByText(/Abre/)).toBeInTheDocument();
 		expect(screen.getAllByText('Google Maps').length).toBeGreaterThanOrEqual(1);
 		expect(screen.getByText(/Haz clic derecho/)).toBeInTheDocument();
 	});
 
-	it('tiene link a Google Maps con target _blank', () => {
+	it('has a link to Google Maps with target="_blank"', () => {
 		render(<CoordinatesHelpDialog open={true} onOpenChange={mockOnOpenChange} />);
 		const link = screen.getByText('Google Maps').closest('a');
 		expect(link).toHaveAttribute('href', 'https://maps.google.com');
@@ -46,13 +46,13 @@ describe('CoordinatesHelpDialog', () => {
 		expect(link).toHaveAttribute('rel', 'noopener noreferrer');
 	});
 
-	it('botón Entendido tiene type="button"', () => {
+	it('button "Entendido" has type="button"', () => {
 		render(<CoordinatesHelpDialog open={true} onOpenChange={mockOnOpenChange} />);
 		const button = screen.getByText('Entendido');
 		expect(button).toHaveAttribute('type', 'button');
 	});
 
-	it('cierra el dialog al hacer clic en Entendido', () => {
+	it('closes the dialog when clicking "Entendido"', () => {
 		render(<CoordinatesHelpDialog open={true} onOpenChange={mockOnOpenChange} />);
 		fireEvent.click(screen.getByText('Entendido'));
 		expect(mockOnOpenChange).toHaveBeenCalledWith(false);

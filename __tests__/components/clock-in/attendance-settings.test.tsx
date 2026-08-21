@@ -69,25 +69,25 @@ beforeEach(() => {
 describe('AttendanceSettings', () => {
 	const mockOnOpenChange = jest.fn();
 
-	it('no renderiza cuando está cerrado', () => {
+	it('does not render when closed', () => {
 		render(<AttendanceSettings open={false} onOpenChange={mockOnOpenChange} />);
 		expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
 	});
 
-	it('renderiza cuando está abierto', () => {
+	it('renders when open', () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		expect(screen.getByTestId('dialog')).toBeInTheDocument();
 		expect(screen.getByText('Configuración de Asistencia')).toBeInTheDocument();
 	});
 
-	it('muestra spinner mientras carga la configuración', () => {
+	it('shows spinner while loading settings', () => {
 		(getAttendanceSettings as jest.Mock).mockReturnValue(new Promise(() => {}));
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		expect(screen.getByTestId('spinner')).toBeInTheDocument();
 	});
 
-	it('oculta spinner y muestra formulario después de cargar', async () => {
+	it('hides spinner and shows form after loading', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		await waitFor(() => {
@@ -98,7 +98,7 @@ describe('AttendanceSettings', () => {
 		expect(screen.getByText('Ubicación Objetivo')).toBeInTheDocument();
 	});
 
-	it('carga valores de la DB en los inputs', async () => {
+	it('loads values from the database into the inputs', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({
 			data: {
 				square_meters: 100,
@@ -119,7 +119,7 @@ describe('AttendanceSettings', () => {
 		expect(screen.getByLabelText('Longitud')).toHaveValue(-64);
 	});
 
-	it('usa valores por defecto cuando la DB no tiene datos', async () => {
+	it('uses default values when the DB has no data', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		await waitFor(() => {
@@ -128,7 +128,7 @@ describe('AttendanceSettings', () => {
 		expect(screen.getByLabelText(/Radio en metros/)).toHaveValue(50);
 	});
 
-	it('muestra botón Guardar', async () => {
+	it('shows "Guardar" button', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		await waitFor(() => {
@@ -136,7 +136,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('guarda correctamente con valores válidos', async () => {
+	it('saves correctly with valid values', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		(updateAttendanceSettings as jest.Mock).mockResolvedValue({ data: {}, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
@@ -157,7 +157,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('muestra toast de éxito al guardar', async () => {
+	it('shows success toast when saving successfully', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		(updateAttendanceSettings as jest.Mock).mockResolvedValue({ data: {}, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
@@ -176,7 +176,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('cierra el dialog después de guardar exitosamente', async () => {
+	it('closes the dialog after saving successfully', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		(updateAttendanceSettings as jest.Mock).mockResolvedValue({ data: {}, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
@@ -191,7 +191,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('muestra toast de error cuando updateAttendanceSettings falla', async () => {
+	it('shows error toast when updateAttendanceSettings fails', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		(updateAttendanceSettings as jest.Mock).mockResolvedValue({
 			data: null,
@@ -213,7 +213,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('muestra "Guardando..." mientras guarda', async () => {
+	it('shows "Guardando..." while saving', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		(updateAttendanceSettings as jest.Mock).mockReturnValue(new Promise(() => {}));
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
@@ -228,7 +228,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('valida radio mínimo', async () => {
+	it('validates minimum radio', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		await waitFor(() => {
@@ -250,7 +250,7 @@ describe('AttendanceSettings', () => {
 		});
 	});
 
-	it('no llama a updateAttendanceSettings si la validación falla', async () => {
+	it('does not call updateAttendanceSettings if validation fails', async () => {
 		(getAttendanceSettings as jest.Mock).mockResolvedValue({ data: null, error: null });
 		render(<AttendanceSettings open={true} onOpenChange={mockOnOpenChange} />);
 		await waitFor(() => {

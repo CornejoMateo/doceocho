@@ -118,8 +118,8 @@ describe('AttendanceEntryModal', () => {
 		mockOnUpdate.mockReset();
 	});
 
-	describe('Crear registro', () => {
-		it('no renderiza cuando está cerrado', () => {
+	describe('Creation mode', () => {
+		it('does not render when closed', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -131,7 +131,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.queryByTestId('dialog')).not.toBeInTheDocument();
 		});
 
-		it('renderiza en modo creación', () => {
+		it('renders in creation mode', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -145,7 +145,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Crear')).toBeInTheDocument();
 		});
 
-		it('muestra nombre del empleado cuando se provee', () => {
+		it('shows employee name when provided', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -159,7 +159,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Empleado: Juan Pérez')).toBeInTheDocument();
 		});
 
-		it('muestra select de empleado cuando showUserSelect es true', () => {
+		it('shows employee select when showUserSelect is true', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -173,7 +173,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Empleado')).toBeInTheDocument();
 		});
 
-		it('filtra solo usuarios con rol Taller en el select', () => {
+		it('filters only users with role Taller in the select', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -188,7 +188,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.queryByText('Admin User')).not.toBeInTheDocument();
 		});
 
-		it('muestra toast de error si no se selecciona empleado en modo admin', async () => {
+		it('shows error toast if no employee is selected in admin mode', async () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -211,7 +211,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('valida formato de hora', async () => {
+		it('validates time format', async () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -235,7 +235,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('guarda correctamente con createAdminAttendanceEntry', async () => {
+		it('creates the attendance entry correctly', async () => {
 			(createAdminAttendanceEntry as jest.Mock).mockResolvedValue({ data: {}, error: null });
 			render(
 				<AttendanceEntryModal
@@ -257,7 +257,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('muestra toast de éxito al crear', async () => {
+		it('shows success toast when creating an entry', async () => {
 			(createAdminAttendanceEntry as jest.Mock).mockResolvedValue({ data: {}, error: null });
 			render(
 				<AttendanceEntryModal
@@ -278,7 +278,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('cierra el modal y llama a onUpdate después de crear', async () => {
+		it('closes the modal and calls onUpdate after creating', async () => {
 			(createAdminAttendanceEntry as jest.Mock).mockResolvedValue({ data: {}, error: null });
 			render(
 				<AttendanceEntryModal
@@ -296,7 +296,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('muestra toast de error cuando createAdminAttendanceEntry falla', async () => {
+		it('shows error toast when createAdminAttendanceEntry fails', async () => {
 			(createAdminAttendanceEntry as jest.Mock).mockResolvedValue({
 				data: null,
 				error: { message: 'DB error' },
@@ -321,7 +321,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('muestra "Guardando..." mientras guarda', async () => {
+		it('shows "Guardando..." while saving', async () => {
 			(createAdminAttendanceEntry as jest.Mock).mockReturnValue(new Promise(() => {}));
 			render(
 				<AttendanceEntryModal
@@ -339,7 +339,7 @@ describe('AttendanceEntryModal', () => {
 		});
 	});
 
-	describe('Editar registro', () => {
+	describe('Edit entry', () => {
 		it('renderiza en modo edición', () => {
 			render(
 				<AttendanceEntryModal
@@ -353,7 +353,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Guardar')).toBeInTheDocument();
 		});
 
-		it('muestra el nombre del empleado del entry', () => {
+		it('shows the employee name from the entry', () => {
 			render(
 				<AttendanceEntryModal
 					entry={mockEntry}
@@ -365,7 +365,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Empleado: Juan Pérez')).toBeInTheDocument();
 		});
 
-		it('muestra la fecha del registro (no editable)', () => {
+		it('shows the date of the entry (not editable)', () => {
 			render(
 				<AttendanceEntryModal
 					entry={mockEntry}
@@ -378,7 +378,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.queryByLabelText('Fecha')).not.toBeInTheDocument();
 		});
 
-		it('pobla los campos con los valores del entry', () => {
+		it('populates the fields with the values from the entry', () => {
 			render(
 				<AttendanceEntryModal
 					entry={mockEntry}
@@ -391,7 +391,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByLabelText('Descripción (opcional)')).toHaveValue('Test entry');
 		});
 
-		it('guarda correctamente con updateAttendanceEntry', async () => {
+		it('updates the attendance entry correctly', async () => {
 			(updateAttendanceEntry as jest.Mock).mockResolvedValue({ data: {}, error: null });
 			render(
 				<AttendanceEntryModal
@@ -414,7 +414,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('muestra toast de éxito al actualizar', async () => {
+		it('shows success toast when updating an entry', async () => {
 			(updateAttendanceEntry as jest.Mock).mockResolvedValue({ data: {}, error: null });
 			render(
 				<AttendanceEntryModal
@@ -434,7 +434,7 @@ describe('AttendanceEntryModal', () => {
 			});
 		});
 
-		it('muestra toast de error cuando updateAttendanceEntry falla', async () => {
+		it('shows error toast when updateAttendanceEntry fails', async () => {
 			(updateAttendanceEntry as jest.Mock).mockResolvedValue({
 				data: null,
 				error: { message: 'Update failed' },
@@ -459,7 +459,7 @@ describe('AttendanceEntryModal', () => {
 		});
 	});
 
-	describe('Dirty state y confirmación de cierre', () => {
+	describe('Dirty state and close confirmation', () => {
 		it('no muestra confirmación al cerrar sin cambios', () => {
 			render(
 				<AttendanceEntryModal
@@ -474,7 +474,7 @@ describe('AttendanceEntryModal', () => {
 			expect(mockOnOpenChange).toHaveBeenCalledWith(false);
 		});
 
-		it('muestra confirmación al intentar cerrar con cambios', () => {
+		it('shows confirmation when trying to close with changes', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -490,7 +490,7 @@ describe('AttendanceEntryModal', () => {
 			expect(mockOnOpenChange).not.toHaveBeenCalled();
 		});
 
-		it('cancelar en confirmación vuelve al form', () => {
+		it('closes the modal when confirming the close', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -509,7 +509,7 @@ describe('AttendanceEntryModal', () => {
 			expect(mockOnOpenChange).not.toHaveBeenCalled();
 		});
 
-		it('confirmar cierre cierra el modal', () => {
+		it('closes the modal when confirming the close', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -525,7 +525,7 @@ describe('AttendanceEntryModal', () => {
 			expect(mockOnOpenChange).toHaveBeenCalledWith(false);
 		});
 
-		it('marca dirty al cambiar tipo de registro', () => {
+		it('marks as dirty when changing the entry type', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -541,7 +541,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Cambios sin guardar')).toBeInTheDocument();
 		});
 
-		it('marca dirty al cambiar descripción', () => {
+		it('marks as dirty when changing the description', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -558,7 +558,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Cambios sin guardar')).toBeInTheDocument();
 		});
 
-		it('resetea dirty al guardar exitosamente', async () => {
+		it('resets the dirty state when saving successfully', async () => {
 			(createAdminAttendanceEntry as jest.Mock).mockResolvedValue({ data: {}, error: null });
 			render(
 				<AttendanceEntryModal
@@ -578,7 +578,7 @@ describe('AttendanceEntryModal', () => {
 	});
 
 	describe('type="button"', () => {
-		it('botones Cancelar y Guardar/Crear tienen type="button"', () => {
+		it('has type="button" attribute', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
