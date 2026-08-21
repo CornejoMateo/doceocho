@@ -53,15 +53,15 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
 	return (
 		<div className="flex flex-col items-center justify-center space-y-4">
-			{!cameraError ? (
-				<video
-					ref={videoRef}
-					style={{
-						width: '100%',
-						maxWidth: 400,
-					}}
-				/>
-			) : (
+			<video
+				ref={videoRef}
+				style={{
+					width: '100%',
+					maxWidth: 400,
+				}}
+				className={cameraError ? 'hidden' : ''}
+			/>
+			{cameraError && (
 				<div role="alert" className="mt-5 text-red-500 text-center">
 					{cameraError}
 				</div>
