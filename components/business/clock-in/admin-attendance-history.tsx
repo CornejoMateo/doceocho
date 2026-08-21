@@ -17,6 +17,7 @@ import {
 } from '@/lib/attendance/attendance-entries';
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
@@ -24,6 +25,8 @@ import { getLocalDate } from '@/utils/format-date';
 import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
 import { toast } from '@/components/ui/use-toast';
 import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -321,9 +324,16 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 
 																	<div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
 																		<div className="font-medium text-sm md:text-base">
-																			{format(new Date(entry.entry_time), 'HH:mm', {
-																				locale: es,
-																			})}
+																			{format(
+																				toZonedTime(
+																					new Date(entry.entry_time),
+																					ARGENTINA_TIME_ZONE
+																				),
+																				'HH:mm',
+																				{
+																					locale: es,
+																				}
+																			)}
 																		</div>
 
 																		<div className="flex gap-1">

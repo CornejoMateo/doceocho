@@ -30,8 +30,11 @@ import { getUserAttendanceSummaries, hasMatchingPair } from '@/lib/attendance/at
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { formatCreatedAt } from '@/utils/format-date';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { AlertTriangle } from 'lucide-react';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 import { User } from '@/lib/users/users';
 import { getLocalDate } from '@/utils/format-date';
 import { SessionUser } from '@/components/provider/auth-provider';
@@ -247,7 +250,11 @@ export function LoadMoreAttendanceModal({
 															)}
 														</div>
 														<div className="font-medium text-sm">
-															{format(new Date(entry.entry_time), 'HH:mm', { locale: es })}
+															{format(
+																toZonedTime(new Date(entry.entry_time), ARGENTINA_TIME_ZONE),
+																'HH:mm',
+																{ locale: es }
+															)}
 														</div>
 													</div>
 												))}

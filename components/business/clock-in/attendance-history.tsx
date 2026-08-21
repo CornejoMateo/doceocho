@@ -11,12 +11,15 @@ import {
 import { getEntryTypeLabel, getEntryTypeColor } from '@/helpers/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
 import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
 import { User } from '@/lib/users/users';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 type PeriodFilter = 'day' | 'month';
 
@@ -196,9 +199,13 @@ export function AttendanceHistory() {
 											</div>
 											<div className="text-right">
 												<div className="font-medium text-sm md:text-base">
-													{format(new Date(entry.entry_time), 'HH:mm', {
-														locale: es,
-													})}
+													{format(
+														toZonedTime(new Date(entry.entry_time), ARGENTINA_TIME_ZONE),
+														'HH:mm',
+														{
+															locale: es,
+														}
+													)}
 												</div>
 											</div>
 										</div>
