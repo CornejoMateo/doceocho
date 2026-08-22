@@ -28,6 +28,7 @@ import { translateError } from '@/lib/error-translator';
 import { CoordinatesHelpDialog } from './coordinates-help-dialog';
 import { HelpCircleIcon } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { formatCurrencyWithoutSymbol, formatNumber, parseArsToNumber } from '@/utils/formats-money';
 
 interface AttendanceSettingsProps {
 	open: boolean;
@@ -60,10 +61,10 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 				setAdminSquareMeters(DEFAULT_RADIUS_METERS.toString());
 			}
 			if (settings?.price_hour !== null && settings?.price_hour !== undefined) {
-				setPriceHour(settings.price_hour.toString());
+				setPriceHour(formatCurrencyWithoutSymbol(settings.price_hour));
 			}
 			if (settings?.price_hour_overtime !== null && settings?.price_hour_overtime !== undefined) {
-				setPriceHourOvertime(settings.price_hour_overtime.toString());
+				setPriceHourOvertime(formatCurrencyWithoutSymbol(settings.price_hour_overtime));
 			}
 			if (settings?.target_latitude !== null && settings?.target_latitude !== undefined) {
 				setTargetLatitude(settings.target_latitude.toString());
@@ -82,8 +83,8 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 
 	const handleAdminSave = async () => {
 		const radiusValue = parseInt(adminSquareMeters, 10);
-		const priceHourValue = parseFloat(priceHour);
-		const priceHourOvertimeValue = parseFloat(priceHourOvertime);
+		const priceHourValue = parseArsToNumber(priceHour);
+		const priceHourOvertimeValue = parseArsToNumber(priceHourOvertime);
 
 		if (isNaN(radiusValue) || radiusValue < DEFAULT_RADIUS_METERS) {
 			toast({
@@ -222,11 +223,9 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 											</Label>
 											<Input
 												id="price-hour"
-												type="number"
-												step="0.01"
+												type="text"
 												value={priceHour}
-												onChange={(e) => setPriceHour(e.target.value)}
-												min="0"
+												onChange={(e) => setPriceHour(formatNumber(e.target.value))}
 												placeholder={DEFAULT_PRICE_HOUR.toString()}
 												className="text-base"
 											/>
@@ -237,11 +236,9 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 											</Label>
 											<Input
 												id="price-hour-overtime"
-												type="number"
-												step="0.01"
+												type="text"
 												value={priceHourOvertime}
-												onChange={(e) => setPriceHourOvertime(e.target.value)}
-												min="0"
+												onChange={(e) => setPriceHourOvertime(formatNumber(e.target.value))}
 												placeholder={DEFAULT_PRICE_HOUR_OVERTIME.toString()}
 												className="text-base"
 											/>

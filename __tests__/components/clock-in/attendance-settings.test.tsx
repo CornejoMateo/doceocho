@@ -113,8 +113,8 @@ describe('AttendanceSettings', () => {
 		await waitFor(() => {
 			expect(screen.getByLabelText(/Radio en metros/)).toHaveValue(100);
 		});
-		expect(screen.getByLabelText('Precio por hora normal')).toHaveValue(1500);
-		expect(screen.getByLabelText('Precio por hora extra')).toHaveValue(2000);
+		expect(screen.getByLabelText('Precio por hora normal')).toHaveValue('1.500');
+		expect(screen.getByLabelText('Precio por hora extra')).toHaveValue('2.000');
 		expect(screen.getByLabelText('Latitud')).toHaveValue(-33);
 		expect(screen.getByLabelText('Longitud')).toHaveValue(-64);
 	});
