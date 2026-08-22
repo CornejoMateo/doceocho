@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
@@ -49,6 +50,7 @@ export function ClockIn() {
 
 	const [showScanner, setShowScanner] = useState(false);
 	const [loading, setLoading] = useState(true);
+	const [validating, setValidating] = useState(false);
 
 	const {
 		data: users,
@@ -66,20 +68,7 @@ export function ClockIn() {
 		isAuthorized
 	);
 
-	useEffect(() => {
-		if (!user) return;
-		if (!user.uid) return;
-
-		const init = async () => {
-			await loadSettings();
-			await loadAttendanceStatus();
-			setLoading(false);
-		};
-
-		init();
-	}, [user]);
-
-	const loadSettings = async () => {
+	const loadSettings = useCallback(async () => {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setRadiusMeters(settings.square_meters);
@@ -94,9 +83,9 @@ export function ClockIn() {
 		} else {
 			setLongitude(TARGET_LOCATION.longitude);
 		}
-	};
+	}, []);
 
-	const loadAttendanceStatus = async () => {
+	const loadAttendanceStatus = useCallback(async () => {
 		if (!user) return;
 
 		const { data, error } = await getAttendanceStatus(user.uid);
@@ -112,7 +101,22 @@ export function ClockIn() {
 
 		setIsClockedIn(data?.regularOpen ?? false);
 		setIsClockedInOvertime(data?.overtimeOpen ?? false);
-	};
+
+		return data;
+	}, [user]);
+
+	useEffect(() => {
+		if (!user) return;
+		if (!user.uid) return;
+
+		const init = async () => {
+			await loadSettings();
+			await loadAttendanceStatus();
+			setLoading(false);
+		};
+
+		init();
+	}, [user, loadSettings, loadAttendanceStatus]);
 
 	const validateLocation = async () => {
 		const location = await getCurrentLocation().catch((error) => {
@@ -168,26 +172,31 @@ export function ClockIn() {
 			});
 
 			if (!registerResponse.ok) {
-				const data = await registerResponse.json();
-				throw new Error(data.message);
+				let message = 'Error al registrar fichaje';
+				try {
+					const data = await registerResponse.json();
+					message = data.message || message;
+				} catch {}
+				throw new Error(message);
 			}
 
 			await loadAttendanceStatus();
 
 			const isCheckOut = isClockedIn || isClockedInOvertime;
 
-			loadingToast.update({
-				id: loadingToast.id,
+			loadingToast.dismiss();
+
+			toast({
 				title: 'Fichaje registrado',
 				description: isCheckOut
 					? 'Salida registrada correctamente'
 					: 'Entrada registrada correctamente',
 			});
 		} catch (error) {
-			loadingToast.update({
-				id: loadingToast.id,
-				title:
-					'Error al registrar fichaje. Saca una foto del error para poder mostrarsela a los desarrolladores',
+			loadingToast.dismiss();
+
+			toast({
+				title: 'Error al registrar fichaje',
 				description: translateError(error),
 				variant: 'destructive',
 			});
@@ -205,6 +214,8 @@ export function ClockIn() {
 			return;
 		}
 
+		setValidating(true);
+
 		try {
 			const location = await validateLocation();
 
@@ -220,6 +231,8 @@ export function ClockIn() {
 				description: translateError(error),
 				variant: 'destructive',
 			});
+		} finally {
+			setValidating(false);
 		}
 	};
 
@@ -235,48 +248,90 @@ export function ClockIn() {
 					<TabsContent value="hour">
 						{isAuthorized && (
 							<>
-								<div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mb-4">
-									<Button variant="outline" onClick={() => setCreateEntryModalOpen(true)}>
-										Crear registro
-									</Button>
-									<Button variant="outline" onClick={() => setSettlementsModalOpen(true)}>
-										Liquidaciones
-									</Button>
-									<Button variant="outline" onClick={() => setSettingsOpen(true)}>
-										<Settings className="h-4 w-4 mr-2" />
-										Configuración
-									</Button>
-								</div>
-								<AdminAttendanceHistory ref={adminHistoryRef} users={users} />
+								{loading ? (
+									<div className="flex justify-center py-8">
+										<Spinner className="h-6 w-6" />
+									</div>
+								) : (
+									<>
+										<div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mb-4">
+											<Button
+												variant="outline"
+												onClick={() => setCreateEntryModalOpen(true)}
+												type="button"
+											>
+												Crear registro
+											</Button>
+											<Button
+												variant="outline"
+												onClick={() => setSettlementsModalOpen(true)}
+												type="button"
+											>
+												Liquidaciones
+											</Button>
+											<Button variant="outline" onClick={() => setSettingsOpen(true)} type="button">
+												<Settings className="h-4 w-4 mr-2" />
+												Configuración
+											</Button>
+										</div>
+										<AdminAttendanceHistory ref={adminHistoryRef} users={users} />
+									</>
+								)}
 							</>
 						)}
 						{isTaller && (
 							<>
 								{loading ? (
-									<p className="text-muted-foreground text-sm text-center">Cargando...</p>
+									<div className="flex justify-center py-8">
+										<Spinner className="h-6 w-6" />
+									</div>
 								) : (
 									<div className="flex flex-col items-center gap-4 w-full">
 										<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
 											{!isClockedIn && !isClockedInOvertime && (
 												<>
-													<Button onClick={() => handleClockAction(false)} className="flex-1">
+													<Button
+														onClick={() => handleClockAction(false)}
+														className="flex-1"
+														type="button"
+														disabled={validating}
+													>
+														{validating && <Spinner className="mr-2 h-4 w-4" />}
 														Registrar entrada
 													</Button>
 
-													<Button onClick={() => handleClockAction(true)} className="flex-1">
+													<Button
+														onClick={() => handleClockAction(true)}
+														className="flex-1"
+														type="button"
+														disabled={validating}
+													>
+														{validating && <Spinner className="mr-2 h-4 w-4" />}
 														Registrar entrada (horas extras)
 													</Button>
 												</>
 											)}
 
 											{isClockedIn && (
-												<Button onClick={() => handleClockAction(false)} className="w-full">
+												<Button
+													onClick={() => handleClockAction(false)}
+													className="w-full"
+													type="button"
+													disabled={validating}
+												>
+													{validating && <Spinner className="mr-2 h-4 w-4" />}
 													Registrar salida
 												</Button>
 											)}
 
 											{isClockedInOvertime && (
-												<Button onClick={() => handleClockAction(true)} className="w-full">
+												<Button
+													onClick={() => handleClockAction(true)}
+													className="w-full"
+													type="button"
+													disabled={validating}
+												>
+													{validating && <Spinner className="mr-2 h-4 w-4" />}
 													Registrar salida (horas extras)
 												</Button>
 											)}
