@@ -24,6 +24,7 @@ import { upsertMonthlySettlement } from '@/lib/attendance/settlements';
 import { translateError } from '@/lib/error-translator';
 import { MONTHS } from '@/constants/attendance/settlements';
 import { User } from '@/lib/users/users';
+import { Spinner } from '@/components/ui/spinner';
 
 interface LiquidarTabProps {
 	users: User[];
@@ -103,6 +104,7 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 	const [hourlyRate, setHourlyRate] = useState<string | null>(null);
 	const [overtimeRate, setOvertimeRate] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [loadingRates, setLoadingRates] = useState(true);
 	const [selectedUserId, setSelectedUserId] = useState<string>('all');
 	const [calculating, setCalculating] = useState(false);
 	const [calculatedHours, setCalculatedHours] = useState<UserHours | null>(null);
@@ -123,11 +125,16 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 	}, []);
 
 	const loadSettings = async () => {
-		const { data: settings } = await getAttendanceSettings();
-		if (settings) {
-			if (settings.price_hour) setHourlyRate(formatCurrencyWithoutSymbol(settings.price_hour));
-			if (settings.price_hour_overtime)
-				setOvertimeRate(formatCurrencyWithoutSymbol(settings.price_hour_overtime));
+		setLoadingRates(true);
+		try {
+			const { data: settings } = await getAttendanceSettings();
+			if (settings) {
+				if (settings.price_hour) setHourlyRate(formatCurrencyWithoutSymbol(settings.price_hour));
+				if (settings.price_hour_overtime)
+					setOvertimeRate(formatCurrencyWithoutSymbol(settings.price_hour_overtime));
+			}
+		} finally {
+			setLoadingRates(false);
 		}
 	};
 
@@ -318,21 +325,35 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="hourly-rate">Pago por hora</Label>
-					<Input
-						id="hourly-rate"
-						type="text"
-						value={hourlyRate !== null ? hourlyRate : ''}
-						onChange={(e) => setHourlyRate(formatNumber(e.target.value))}
-					/>
+					<div className="relative">
+						<Input
+							id="hourly-rate"
+							type="text"
+							value={hourlyRate !== null ? hourlyRate : ''}
+							onChange={(e) => setHourlyRate(formatNumber(e.target.value))}
+							disabled={loadingRates}
+							className="pr-10"
+						/>
+						{loadingRates && (
+							<Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						)}
+					</div>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="overtime-rate">Pago por hora extra</Label>
-					<Input
-						id="overtime-rate"
-						type="text"
-						value={overtimeRate !== null ? overtimeRate : ''}
-						onChange={(e) => setOvertimeRate(formatNumber(e.target.value))}
-					/>
+					<div className="relative">
+						<Input
+							id="overtime-rate"
+							type="text"
+							value={overtimeRate !== null ? overtimeRate : ''}
+							onChange={(e) => setOvertimeRate(formatNumber(e.target.value))}
+							disabled={loadingRates}
+							className="pr-10"
+						/>
+						{loadingRates && (
+							<Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						)}
+					</div>
 				</div>
 			</div>
 			{!calculatedHours && (
