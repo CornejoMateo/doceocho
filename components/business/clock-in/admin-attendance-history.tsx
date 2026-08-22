@@ -236,7 +236,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 												min={monthStart}
 												max={monthEnd}
 												onChange={(e) => handleDateChange(e.target.value)}
-												className="ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
 											/>
 										</div>
 										{dateFilter && (
