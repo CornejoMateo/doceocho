@@ -15,6 +15,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
 	const onScanRef = useRef(onScan);
 	const [cameraError, setCameraError] = useState<string | null>(null);
+	const [retryCount, setRetryCount] = useState(0);
 
 	useEffect(() => {
 		onScanRef.current = onScan;
@@ -22,6 +23,8 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 
 	useEffect(() => {
 		if (!videoRef.current) return;
+
+		setCameraError(null);
 
 		const scanner = new QrScanner(
 			videoRef.current,
@@ -46,26 +49,33 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
 			scanner.stop();
 			scanner.destroy();
 		};
-	}, []);
+	}, [retryCount]);
 
 	return (
 		<div className="flex flex-col items-center justify-center space-y-4">
-			{!cameraError ? (
-				<video
-					ref={videoRef}
-					style={{
-						width: '100%',
-						maxWidth: 400,
-					}}
-				/>
-			) : (
+			<video
+				ref={videoRef}
+				style={{
+					width: '100%',
+					maxWidth: 400,
+				}}
+				className={cameraError ? 'hidden' : ''}
+			/>
+			{cameraError && (
 				<div role="alert" className="mt-5 text-red-500 text-center">
 					{cameraError}
 				</div>
 			)}
-			<Button variant="outline" onClick={onClose} className="w-full max-w-md">
-				Cancelar
-			</Button>
+			<div className="flex gap-2 w-full max-w-md">
+				<Button type="button" variant="outline" onClick={onClose} className="flex-1">
+					Cancelar
+				</Button>
+				{cameraError && (
+					<Button type="button" onClick={() => setRetryCount((c) => c + 1)} className="flex-1">
+						Reintentar
+					</Button>
+				)}
+			</div>
 		</div>
 	);
 }

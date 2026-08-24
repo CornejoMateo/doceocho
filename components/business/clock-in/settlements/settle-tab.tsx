@@ -12,13 +12,19 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { formatCurrency } from '@/utils/formats-money';
+import {
+	formatCurrency,
+	formatCurrencyWithoutSymbol,
+	formatNumber,
+	parseArsToNumber,
+} from '@/utils/formats-money';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
 import { getAttendanceEntriesForMonth } from '@/lib/attendance/attendance-entries';
 import { upsertMonthlySettlement } from '@/lib/attendance/settlements';
 import { translateError } from '@/lib/error-translator';
 import { MONTHS } from '@/constants/attendance/settlements';
 import { User } from '@/lib/users/users';
+import { Spinner } from '@/components/ui/spinner';
 
 interface LiquidarTabProps {
 	users: User[];
@@ -95,9 +101,10 @@ const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
 export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 	const [year, setYear] = useState(new Date().getFullYear().toString());
 	const [month, setMonth] = useState(new Date().getMonth().toString());
-	const [hourlyRate, setHourlyRate] = useState<number>(1000);
-	const [overtimeRate, setOvertimeRate] = useState<number>(1500);
+	const [hourlyRate, setHourlyRate] = useState<string | null>(null);
+	const [overtimeRate, setOvertimeRate] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [loadingRates, setLoadingRates] = useState(true);
 	const [selectedUserId, setSelectedUserId] = useState<string>('all');
 	const [calculating, setCalculating] = useState(false);
 	const [calculatedHours, setCalculatedHours] = useState<UserHours | null>(null);
@@ -118,10 +125,16 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 	}, []);
 
 	const loadSettings = async () => {
-		const { data: settings } = await getAttendanceSettings();
-		if (settings) {
-			if (settings.price_hour) setHourlyRate(settings.price_hour);
-			if (settings.price_hour_overtime) setOvertimeRate(settings.price_hour_overtime);
+		setLoadingRates(true);
+		try {
+			const { data: settings } = await getAttendanceSettings();
+			if (settings) {
+				if (settings.price_hour) setHourlyRate(formatCurrencyWithoutSymbol(settings.price_hour));
+				if (settings.price_hour_overtime)
+					setOvertimeRate(formatCurrencyWithoutSymbol(settings.price_hour_overtime));
+			}
+		} finally {
+			setLoadingRates(false);
 		}
 	};
 
@@ -152,6 +165,15 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 	const handleCalculateHours = async () => {
 		setCalculating(true);
 		try {
+			if (!year || !month) {
+				toast({
+					title: 'Error de validación',
+					description: 'Por favor, selecciona un año y un mes válidos',
+					variant: 'destructive',
+				});
+				return;
+			}
+
 			const hours = await fetchAndComputeHours();
 			if (hours) {
 				setCalculatedHours(hours);
@@ -164,7 +186,7 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 	const handleLiquidate = async () => {
 		setLoading(true);
 		try {
-			if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
+			if (hourlyRate === null || parseArsToNumber(hourlyRate) < 0) {
 				toast({
 					title: 'Error de validación',
 					description: 'El pago por hora debe ser un número válido y no negativo',
@@ -174,7 +196,7 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 				return;
 			}
 
-			if (!Number.isFinite(overtimeRate) || overtimeRate < 0) {
+			if (overtimeRate === null || parseArsToNumber(overtimeRate) < 0) {
 				toast({
 					title: 'Error de validación',
 					description: 'El pago por hora extra debe ser un número válido y no negativo',
@@ -213,7 +235,9 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 			}
 
 			for (const [userId, hours] of Object.entries(userHours)) {
-				const amount = hours.regular * hourlyRate + hours.overtime * overtimeRate;
+				const amount =
+					hours.regular * parseArsToNumber(hourlyRate) +
+					hours.overtime * parseArsToNumber(overtimeRate);
 
 				const { error: insertError } = await upsertMonthlySettlement({
 					user_id: userId,
@@ -222,8 +246,8 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 					amount,
 					number_hours: hours.regular,
 					number_overtime_hours: hours.overtime,
-					price_hour: hourlyRate,
-					price_overtime_hour: overtimeRate,
+					price_hour: parseArsToNumber(hourlyRate),
+					price_overtime_hour: parseArsToNumber(overtimeRate),
 				});
 
 				if (insertError) throw insertError;
@@ -301,23 +325,35 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 			<div className="grid grid-cols-2 gap-4">
 				<div className="space-y-2">
 					<Label htmlFor="hourly-rate">Pago por hora</Label>
-					<Input
-						id="hourly-rate"
-						type="number"
-						min="0"
-						value={hourlyRate}
-						onChange={(e) => setHourlyRate(Number(e.target.value))}
-					/>
+					<div className="relative">
+						<Input
+							id="hourly-rate"
+							type="text"
+							value={hourlyRate !== null ? hourlyRate : ''}
+							onChange={(e) => setHourlyRate(formatNumber(e.target.value))}
+							disabled={loadingRates}
+							className="pr-10"
+						/>
+						{loadingRates && (
+							<Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						)}
+					</div>
 				</div>
 				<div className="space-y-2">
 					<Label htmlFor="overtime-rate">Pago por hora extra</Label>
-					<Input
-						id="overtime-rate"
-						type="number"
-						min="0"
-						value={overtimeRate}
-						onChange={(e) => setOvertimeRate(Number(e.target.value))}
-					/>
+					<div className="relative">
+						<Input
+							id="overtime-rate"
+							type="text"
+							value={overtimeRate !== null ? overtimeRate : ''}
+							onChange={(e) => setOvertimeRate(formatNumber(e.target.value))}
+							disabled={loadingRates}
+							className="pr-10"
+						/>
+						{loadingRates && (
+							<Spinner className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+						)}
+					</div>
 				</div>
 			</div>
 			{!calculatedHours && (
@@ -331,22 +367,30 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 				</Button>
 			)}
 			{calculatedHours && Object.keys(calculatedHours).length > 0 && (
-				<div className="space-y-2 rounded-lg border bg-gray-50 p-4 overflow-y-auto max-h-50">
-					{Object.entries(calculatedHours).map(([userId, hours]) => (
-						<div key={userId} className="flex items-center justify-between text-sm">
-							<div>
-								<div className="font-medium">{hours.name}</div>
-								<div className="text-xs text-gray-500">
-									{hours.regular.toFixed(2)}h normales · {hours.overtime.toFixed(2)}h extras ·{' '}
-									{(hours.regular + hours.overtime).toFixed(2)}h totales
+				<>
+					<div className="space-y-2 rounded-lg border bg-gray-50 p-4 overflow-y-auto max-h-50">
+						{Object.entries(calculatedHours).map(([userId, hours]) => (
+							<div key={userId} className="flex items-center justify-between text-sm">
+								<div>
+									<div className="font-medium">{hours.name}</div>
+									<div className="text-xs text-gray-500">
+										{hours.regular.toFixed(2)}h normales · {hours.overtime.toFixed(2)}h extras ·{' '}
+										{(hours.regular + hours.overtime).toFixed(2)}h totales
+									</div>
+								</div>
+								<div className="font-semibold">
+									{formatCurrency(
+										hours.regular * parseArsToNumber(hourlyRate || '1') +
+											hours.overtime * parseArsToNumber(overtimeRate || '1')
+									)}
 								</div>
 							</div>
-							<div className="font-semibold">
-								{formatCurrency(hours.regular * hourlyRate + hours.overtime * overtimeRate)}
-							</div>
-						</div>
-					))}
-				</div>
+						))}
+					</div>
+					<p className="text-xs text-gray-400 text-center">
+						Los montos se actualizan al modificar las tasas
+					</p>
+				</>
 			)}
 			{calculatedHours && Object.keys(calculatedHours).length === 0 && (
 				<div className="py-2 text-center text-sm text-gray-500">

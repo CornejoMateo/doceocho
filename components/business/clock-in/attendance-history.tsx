@@ -11,12 +11,15 @@ import {
 import { getEntryTypeLabel, getEntryTypeColor } from '@/helpers/attendance/attendance';
 import { useAuth } from '@/components/provider/auth-provider';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
+import { Spinner } from '@/components/ui/spinner';
 import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
-import { User } from '@/lib/users/users';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 type PeriodFilter = 'day' | 'month';
 
@@ -102,7 +105,7 @@ export function AttendanceHistory() {
 
 	if (!showHistory) {
 		return (
-			<Button onClick={handleToggleHistory} variant="outline" className="w-full">
+			<Button onClick={handleToggleHistory} variant="outline" className="w-full" type="button">
 				Ver historial de fichajes
 			</Button>
 		);
@@ -114,16 +117,24 @@ export function AttendanceHistory() {
 				<CardHeader>
 					<div className="flex items-center justify-between">
 						<CardTitle className="text-lg md:text-xl">Historial de Fichajes</CardTitle>
-						<Button onClick={handleToggleHistory} variant="ghost" size="sm">
+						<Button onClick={handleToggleHistory} variant="ghost" size="sm" type="button">
 							Ocultar
 						</Button>
 					</div>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					{loading ? (
-						<div className="text-center py-8">Cargando historial...</div>
+						<div className="text-center py-8">
+							<Spinner className="mx-auto mb-2" />
+							<div className="text-sm text-gray-500">Cargando historial...</div>
+						</div>
 					) : error ? (
-						<div className="text-center py-6 text-red-500 text-sm">{error}</div>
+						<div className="text-center py-6 space-y-3">
+							<div className="text-red-500 text-sm">{error}</div>
+							<Button onClick={loadHistory} variant="outline" size="sm" type="button">
+								Reintentar
+							</Button>
+						</div>
 					) : (
 						<>
 							<div className="flex flex-col sm:flex-row gap-3">
@@ -133,6 +144,7 @@ export function AttendanceHistory() {
 										size="sm"
 										onClick={() => handlePeriodChange('day')}
 										className="h-10 flex-1 sm:flex-none"
+										type="button"
 									>
 										Hoy
 									</Button>
@@ -141,26 +153,31 @@ export function AttendanceHistory() {
 										size="sm"
 										onClick={() => handlePeriodChange('month')}
 										className="h-10 flex-1 sm:flex-none"
+										type="button"
 									>
 										Mes actual
 									</Button>
 								</div>
 								{period === 'month' && (
-									<div className="flex gap-2">
-										<input
-											type="date"
-											value={dateFilter ?? ''}
-											min={monthStart}
-											max={monthEnd}
-											onChange={(e) => handleDateChange(e.target.value)}
-											className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
-										/>
+									<div className="flex gap-2 items-end">
+										<div className="space-y-1">
+											<label className="text-xs text-gray-500">Filtrar por fecha</label>
+											<input
+												type="date"
+												value={dateFilter ?? ''}
+												min={monthStart}
+												max={monthEnd}
+												onChange={(e) => handleDateChange(e.target.value)}
+												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+											/>
+										</div>
 										{dateFilter && (
 											<Button
 												variant="outline"
 												size="sm"
 												onClick={handleClearDateFilter}
 												className="h-10 flex-none"
+												type="button"
 											>
 												Limpiar filtro
 											</Button>
@@ -196,9 +213,13 @@ export function AttendanceHistory() {
 											</div>
 											<div className="text-right">
 												<div className="font-medium text-sm md:text-base">
-													{format(new Date(entry.entry_time), 'HH:mm', {
-														locale: es,
-													})}
+													{format(
+														toZonedTime(new Date(entry.entry_time), ARGENTINA_TIME_ZONE),
+														'HH:mm',
+														{
+															locale: es,
+														}
+													)}
 												</div>
 											</div>
 										</div>
@@ -207,7 +228,12 @@ export function AttendanceHistory() {
 							)}
 						</>
 					)}
-					<Button onClick={() => setLoadMoreOpen(true)} variant="outline" className="mx-auto flex">
+					<Button
+						onClick={() => setLoadMoreOpen(true)}
+						variant="outline"
+						className="mx-auto flex"
+						type="button"
+					>
 						Cargar más fichajes
 					</Button>
 				</CardContent>

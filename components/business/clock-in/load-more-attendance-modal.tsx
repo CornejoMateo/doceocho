@@ -29,9 +29,13 @@ import {
 import { getUserAttendanceSummaries, hasMatchingPair } from '@/lib/attendance/attendance';
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { formatCreatedAt } from '@/utils/format-date';
+import { Spinner } from '@/components/ui/spinner';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronDown } from 'lucide-react';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 import { User } from '@/lib/users/users';
 import { getLocalDate } from '@/utils/format-date';
 import { SessionUser } from '@/components/provider/auth-provider';
@@ -181,11 +185,19 @@ export function LoadMoreAttendanceModal({
 					)}
 
 					{loading && (
-						<div className="text-center py-6 text-gray-500 text-sm">Cargando fichajes...</div>
+						<div className="text-center py-6 space-y-2">
+							<Spinner className="mx-auto" />
+							<div className="text-gray-500 text-sm">Cargando fichajes...</div>
+						</div>
 					)}
 
 					{!loading && error && (
-						<div className="text-center py-6 text-red-500 text-sm">{error}</div>
+						<div className="text-center py-6 space-y-3">
+							<div className="text-red-500 text-sm">{error}</div>
+							<Button onClick={handleAccept} variant="outline" size="sm" type="button">
+								Reintentar
+							</Button>
+						</div>
 					)}
 
 					{!loading && !error && results && (
@@ -201,6 +213,7 @@ export function LoadMoreAttendanceModal({
 											onClick={() => handleUserToggle(summary.user_id)}
 											variant="ghost"
 											className="w-full flex h-auto justify-between items-center py-4 bg-gray-50 hover:bg-gray-100 hover:text-inherit cursor-pointer rounded-none"
+											type="button"
 										>
 											<div className="text-left">
 												<div className="font-medium text-sm">
@@ -210,11 +223,18 @@ export function LoadMoreAttendanceModal({
 													{summary.entries.length} registros
 												</div>
 											</div>
-											<div className="text-right">
-												<div className="font-bold text-sm text-blue-600">
-													{formatHours(summary.total_hours)}
+											<div className="flex items-center gap-2">
+												<div className="text-right">
+													<div className="font-bold text-sm text-blue-600">
+														{formatHours(summary.total_hours)}
+													</div>
+													<div className="text-xs text-gray-500">horas trabajadas</div>
 												</div>
-												<div className="text-xs text-gray-500">horas trabajadas</div>
+												<ChevronDown
+													className={`h-4 w-4 text-gray-400 transition-transform ${
+														expandedUserId === summary.user_id ? 'rotate-180' : ''
+													}`}
+												/>
 											</div>
 										</Button>
 										{expandedUserId === summary.user_id && (
@@ -247,7 +267,11 @@ export function LoadMoreAttendanceModal({
 															)}
 														</div>
 														<div className="font-medium text-sm">
-															{format(new Date(entry.entry_time), 'HH:mm', { locale: es })}
+															{format(
+																toZonedTime(new Date(entry.entry_time), ARGENTINA_TIME_ZONE),
+																'HH:mm',
+																{ locale: es }
+															)}
 														</div>
 													</div>
 												))}
@@ -261,11 +285,11 @@ export function LoadMoreAttendanceModal({
 				</div>
 				<DialogFooter>
 					<div className="flex gap-2 w-full justify-end">
-						<Button variant="outline" onClick={() => onOpenChange(false)}>
+						<Button variant="outline" onClick={() => onOpenChange(false)} type="button">
 							Cerrar
 						</Button>
-						<Button onClick={handleAccept} disabled={loading}>
-							Aceptar
+						<Button onClick={handleAccept} disabled={loading} type="button">
+							Cargar
 						</Button>
 					</div>
 				</DialogFooter>

@@ -118,6 +118,10 @@ export function SettlementsListTab() {
 										{settlement.number_hours.toFixed(2)}h normales ·{' '}
 										{settlement.number_overtime_hours.toFixed(2)}h extras
 									</div>
+									<div className="text-xs text-gray-400">
+										{formatCurrency(settlement.price_hour)}/h ·{' '}
+										{formatCurrency(settlement.price_overtime_hour)}/h extra
+									</div>
 								</div>
 								<div className="font-bold text-green-600">{formatCurrency(settlement.amount)}</div>
 							</div>

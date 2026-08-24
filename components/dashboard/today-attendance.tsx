@@ -10,10 +10,13 @@ import {
 } from '@/lib/attendance/attendance-entries';
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { Clock } from 'lucide-react';
 import { getLocalDate } from '@/utils/format-date';
 import { useMemo } from 'react';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 function isStillWorking(entries: AttendanceEntryWithDate[]): boolean {
 	const sorted = [...entries].sort(
@@ -98,7 +101,11 @@ export function TodayAttendance() {
 													{getEntryTypeLabel(entry.type)}
 												</span>
 												<span className="text-xs text-muted-foreground">
-													{format(new Date(entry.entry_time), 'HH:mm', { locale: es })}
+													{format(
+														toZonedTime(new Date(entry.entry_time), ARGENTINA_TIME_ZONE),
+														'HH:mm',
+														{ locale: es }
+													)}
 												</span>
 											</div>
 										))}

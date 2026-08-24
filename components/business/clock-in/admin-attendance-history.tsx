@@ -17,13 +17,17 @@ import {
 } from '@/lib/attendance/attendance-entries';
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
 import { getLocalDate } from '@/utils/format-date';
 import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/use-toast';
 import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -97,6 +101,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 			periodEntries = dateFilter ? getEntriesByPeriod(allEntries, 'day', dateFilter) : allEntries;
 		} else {
 			periodEntries = getEntriesByPeriod(allEntries, 'day', getLocalDate());
+			setDateFilter(null);
 		}
 		setSummaries(getUserAttendanceSummaries(periodEntries));
 		setSelectedUser(null);
@@ -168,7 +173,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 
 	if (!showHistory) {
 		return (
-			<Button onClick={handleToggleHistory} variant="outline" className="w-full">
+			<Button onClick={handleToggleHistory} variant="outline" className="w-full" type="button">
 				Ver historial de empleados
 			</Button>
 		);
@@ -180,16 +185,24 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 				<CardHeader>
 					<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
 						<CardTitle className="text-lg md:text-xl">Historial de Empleados</CardTitle>
-						<Button onClick={handleToggleHistory} variant="ghost" size="sm">
+						<Button onClick={handleToggleHistory} variant="ghost" size="sm" type="button">
 							Ocultar
 						</Button>
 					</div>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					{loading ? (
-						<div className="text-center py-8">Cargando historial...</div>
+						<div className="text-center py-8">
+							<Spinner className="mx-auto mb-2" />
+							<div className="text-sm text-gray-500">Cargando historial...</div>
+						</div>
 					) : error ? (
-						<div className="text-center py-6 text-red-500 text-sm">{error}</div>
+						<div className="text-center py-6 space-y-3">
+							<div className="text-red-500 text-sm">{error}</div>
+							<Button onClick={loadHistory} variant="outline" size="sm" type="button">
+								Reintentar
+							</Button>
+						</div>
 					) : (
 						<>
 							<div className="flex flex-col sm:flex-row gap-3">
@@ -199,6 +212,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 										size="sm"
 										onClick={() => handlePeriodChange('day')}
 										className="h-10 flex-1 sm:flex-none"
+										type="button"
 									>
 										Hoy
 									</Button>
@@ -207,26 +221,31 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 										size="sm"
 										onClick={() => handlePeriodChange('month')}
 										className="h-10 flex-1 sm:flex-none"
+										type="button"
 									>
 										Mes actual
 									</Button>
 								</div>
 								{period === 'month' && (
-									<div className="flex gap-2">
-										<input
-											type="date"
-											value={dateFilter ?? ''}
-											min={monthStart}
-											max={monthEnd}
-											onChange={(e) => handleDateChange(e.target.value)}
-											className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
-										/>
+									<div className="flex gap-2 items-end">
+										<div className="space-y-1">
+											<label className="text-xs text-gray-500">Filtrar por fecha</label>
+											<input
+												type="date"
+												value={dateFilter ?? ''}
+												min={monthStart}
+												max={monthEnd}
+												onChange={(e) => handleDateChange(e.target.value)}
+												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+											/>
+										</div>
 										{dateFilter && (
 											<Button
 												variant="outline"
 												size="sm"
 												onClick={handleClearDateFilter}
 												className="h-10 flex-none"
+												type="button"
 											>
 												Limpiar filtro
 											</Button>
@@ -256,6 +275,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 													onClick={() => handleUserSelect(summary.user_id)}
 													variant="ghost"
 													className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
+													type="button"
 												>
 													<div className="text-left flex-1 text-black">
 														<div className="flex items-center gap-2">
@@ -281,7 +301,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 												</Button>
 
 												{selectedUser === summary.user_id && (
-													<div className="p-4 bg-gray-50 border-t">
+													<div className="mt-2 p-4 bg-gray-50 border-t">
 														<div className="flex justify-between items-center mb-4 gap-2">
 															<h3 className="font-medium text-sm md:text-base">Registros</h3>
 														</div>
@@ -321,9 +341,16 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 
 																	<div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
 																		<div className="font-medium text-sm md:text-base">
-																			{format(new Date(entry.entry_time), 'HH:mm', {
-																				locale: es,
-																			})}
+																			{format(
+																				toZonedTime(
+																					new Date(entry.entry_time),
+																					ARGENTINA_TIME_ZONE
+																				),
+																				'HH:mm',
+																				{
+																					locale: es,
+																				}
+																			)}
 																		</div>
 
 																		<div className="flex gap-1">
@@ -332,6 +359,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 																				size="sm"
 																				onClick={() => handleEditEntry(entry)}
 																				className="h-8 w-8 p-0"
+																				type="button"
 																			>
 																				<Pencil className="h-4 w-4" />
 																			</Button>
@@ -341,6 +369,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 																				size="sm"
 																				onClick={() => handleDeleteEntry(entry)}
 																				className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+																				type="button"
 																			>
 																				<Trash2 className="h-4 w-4" />
 																			</Button>
@@ -358,7 +387,12 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 							)}
 						</>
 					)}
-					<Button onClick={() => setLoadMoreOpen(true)} variant="outline" className="mx-auto flex">
+					<Button
+						onClick={() => setLoadMoreOpen(true)}
+						variant="outline"
+						className="mx-auto flex"
+						type="button"
+					>
 						Cargar más fichajes
 					</Button>
 				</CardContent>
@@ -387,6 +421,32 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 							puede deshacer.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
+					{entryToDelete && (
+						<div className="px-6 pb-2">
+							<div className="bg-gray-50 rounded-lg p-3 text-sm">
+								<div className="flex items-center gap-2 mb-1">
+									<span className={`font-medium ${getEntryTypeColor(entryToDelete.type)}`}>
+										{getEntryTypeLabel(entryToDelete.type)}
+									</span>
+									<span className="text-gray-400">•</span>
+									<span className="text-gray-500">
+										{formatCreatedAt(entryToDelete.attendance_date)}
+									</span>
+									<span className="text-gray-400">•</span>
+									<span className="text-gray-500">
+										{format(
+											toZonedTime(new Date(entryToDelete.entry_time), ARGENTINA_TIME_ZONE),
+											'HH:mm',
+											{ locale: es }
+										)}
+									</span>
+								</div>
+								{entryToDelete.description && (
+									<div className="text-gray-600 text-xs mt-1">{entryToDelete.description}</div>
+								)}
+							</div>
+						</div>
+					)}
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancelar</AlertDialogCancel>
 						<AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
