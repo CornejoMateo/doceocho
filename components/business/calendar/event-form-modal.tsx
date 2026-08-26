@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
 	Dialog,
 	DialogContent,
@@ -193,6 +194,7 @@ export function EventFormModal({
 
 	const [clientWorks, setClientWorks] = useState<Work[]>([]);
 	const [loadingWorks, setLoadingWorks] = useState(false);
+	const [saving, setSaving] = useState(false);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { id, value } = e.target;
@@ -247,12 +249,14 @@ export function EventFormModal({
 			});
 			return;
 		}
+		setSaving(true);
 		const success = await onSave({
 			...(mode === 'edit' && event ? { id: event.id } : {}),
 			...formData,
 			date: format(formData.date!, 'dd-MM-yyyy'),
 			time: formData.time || null,
 		});
+		setSaving(false);
 
 		if (!success) return;
 
@@ -289,6 +293,12 @@ export function EventFormModal({
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			{children && <DialogTrigger asChild>{children}</DialogTrigger>}{' '}
 			<DialogContent className="sm:max-w-[600px]">
+				{saving && (
+					<div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-lg bg-background/80 backdrop-blur-sm">
+						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<p className="mt-3 text-sm text-muted-foreground">Guardando evento...</p>
+					</div>
+				)}
 				<DialogHeader>
 					<DialogTitle>{mode === 'edit' ? 'Editar evento' : 'Nuevo evento'}</DialogTitle>
 					<DialogDescription>
