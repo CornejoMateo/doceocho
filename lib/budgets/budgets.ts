@@ -28,6 +28,28 @@ export type BudgetWithWorkAndClient = BudgetWithWork & {
 
 const TABLE = 'budgets';
 
+function sanitizePart(value: string | null | undefined, fallback: string): string {
+	const cleaned = (value ?? '')
+		.trim()
+		.replace(/\s+/g, '_')
+		.replace(/[^a-zA-Z0-9._-]/g, '');
+	return cleaned || fallback;
+}
+
+function buildBudgetPdfPath(
+	clientId: number,
+	pdfName: string,
+	type?: string | null,
+	number?: string | null
+): string {
+	const sanitizedName = sanitizePart(pdfName, 'archivo.pdf');
+	const typePart = sanitizePart(type, 'sin_tipo');
+	const numberPart = sanitizePart(number, 'sin_numero');
+	const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+	const fileName = `budget_${typePart}_${numberPart}_${uniqueSuffix}_${sanitizedName}`;
+	return `${clientId}/${fileName}`;
+}
+
 export async function getBudgetsCount(): Promise<{ data: number; error: any }> {
 	const supabase = getSupabaseClient();
 	const { count, error } = await supabase.from(TABLE).select('*', { count: 'exact', head: true });
@@ -152,20 +174,7 @@ export async function createBudget(
 	let filePath: string | null = null;
 
 	if (pdfFile) {
-		const sanitizePart = (value: string | null | undefined, fallback: string) => {
-			const cleaned = (value ?? '')
-				.trim()
-				.replace(/\s+/g, '_')
-				.replace(/[^a-zA-Z0-9._-]/g, '');
-			return cleaned || fallback;
-		};
-
-		const sanitizedName = sanitizePart(pdfFile.name, 'archivo.pdf');
-		const typePart = sanitizePart(budget.type, 'sin_tipo');
-		const numberPart = sanitizePart(budget.number, 'sin_numero');
-		const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-		const fileName = `budget_${typePart}_${numberPart}_${uniqueSuffix}_${sanitizedName}`;
-		filePath = `${clientId}/${fileName}`;
+		filePath = buildBudgetPdfPath(clientId, pdfFile.name, budget.type, budget.number);
 
 		// Load the PDF file to Supabase Storage
 		const { error: uploadError } = await supabase.storage
@@ -217,14 +226,10 @@ export async function editBudget(
 
 	// Handle PDF update if provided
 	if (pdfFile) {
-		const sanitizedName = pdfFile.name.replace(/\s+/g, '_');
-		const fileName = `budget_${changes.type || 'edit'}_${Date.now()}_${sanitizedName}`;
-		filePath = `${clientId}/${fileName}`;
+		filePath = buildBudgetPdfPath(clientId, pdfFile.name, changes.type, changes.number);
 
 		// Upload the new PDF file to Supabase Storage
-		const { data: uploadData, error: uploadError } = await supabase.storage
-			.from('clients')
-			.upload(filePath, pdfFile);
+		const { error: uploadError } = await supabase.storage.from('clients').upload(filePath, pdfFile);
 
 		if (uploadError) {
 			console.error('Error uploading PDF:', uploadError);
