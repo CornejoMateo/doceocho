@@ -203,7 +203,7 @@ export function EventFormModal({
 		setFormData((prev) => ({
 			...prev,
 			client_id: clientId,
-			client_name: clientId ? '' : clientName || '',
+			client_name: clientName || '',
 			isManualClient: false,
 			work_id: null,
 			work_location: '',
@@ -428,7 +428,10 @@ export function EventFormModal({
 										setFormData((prev) => ({
 											...prev,
 											work_id: parseInt(value),
-											work_location: '',
+											work_location:
+												clientWorks.find((work) => work.id === parseInt(value))?.locality +
+													', ' +
+													clientWorks.find((work) => work.id === parseInt(value))?.address || '',
 										}));
 									}
 								}}

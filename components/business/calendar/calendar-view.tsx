@@ -282,6 +282,7 @@ export function CalendarView() {
 								const selectedEventType = eventTypes.find(
 									(eventType) => eventType.name === eventData.type
 								);
+
 								const dateStr =
 									typeof eventData.date === 'string'
 										? eventData.date
@@ -290,45 +291,95 @@ export function CalendarView() {
 											: '';
 
 								const [day, month, year] = dateStr.split('-').map(Number);
-								const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+								const formattedDate = `${year}-${month
+									.toString()
+									.padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
 								const { data: newEvent, error } = await createEvent({
 									title: eventData.title || 'Sin título',
 									type_id: selectedEventType?.id ?? null,
 									description: eventData.description,
 									client_id: eventData.client_id,
-									client_name: eventData.client_name,
+									client_name: !eventData.client_id ? eventData.client_name : null,
 									date: formattedDate,
 									time: eventData.time || null,
 									remember: eventData.remember,
 									work_id: eventData.work_id,
-									work_location: eventData.work_location,
+									work_location: !eventData.work_id ? eventData.work_location : null,
 								});
 
 								if (error) {
 									console.error('Error al crear el evento:', error);
+
 									toast({
 										title: 'Error',
 										description: translateError(error) || 'No se pudo crear el evento.',
 										variant: 'destructive',
 									});
+
 									return false;
 								}
 
 								if (newEvent) {
+									// ==========================
+									// DATOS PARA GOOGLE CALENDAR
+									// ==========================
+
+									const title = eventData.title || 'Sin título';
+
+									const details = [
+										`Tipo: ${selectedEventType?.name || eventData.type || 'N/A'}`,
+										`Descripción: ${eventData.description || 'N/A'}`,
+										`Cliente: ${eventData.client_name || 'N/A'}`,
+									].join('\n');
+
+									const location = eventData.work_location || '';
+
+									const cleanDate = formattedDate.replace(/-/g, '');
+
+									const startTime = eventData.time
+										? eventData.time.replace(':', '') + '00'
+										: '090000';
+
+									const endTime = eventData.time
+										? String(parseInt(eventData.time.split(':')[0], 10) + 1).padStart(2, '0') +
+											eventData.time.split(':')[1] +
+											'00'
+										: '100000';
+
+									const startDateTime = `${cleanDate}T${startTime}`;
+									const endDateTime = `${cleanDate}T${endTime}`;
+
+									const params = new URLSearchParams({
+										action: 'TEMPLATE',
+										text: title,
+										dates: `${startDateTime}/${endDateTime}`,
+										details,
+										location,
+										ctz: 'America/Argentina/Cordoba',
+									});
+
+									const googleCalendarUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
+
+									window.open(googleCalendarUrl, '_blank');
+
 									await refresh();
 									setShowAllEvents(false);
+
 									return true;
 								}
 
 								return false;
 							} catch (error) {
 								console.error('Error inesperado al crear el evento:', error);
+
 								toast({
 									title: 'Error',
 									description: translateError(error) || 'No se pudo crear el evento.',
 									variant: 'destructive',
 								});
+
 								return false;
 							}
 						}}
