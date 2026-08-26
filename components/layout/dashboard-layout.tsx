@@ -66,7 +66,6 @@ const navigation = [
 	{ name: 'Reportes de Presupuestos', href: '/budgets', icon: FileText, disabled: false },
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
-	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
 	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
 ] as const;
 
@@ -101,10 +100,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Obras',
 				'Chat',
 				'Reportes',
-				'Fichar',
 			],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Fichar'],
-			QR: ['Fichar'],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
