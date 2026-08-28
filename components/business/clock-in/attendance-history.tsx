@@ -126,11 +126,11 @@ export function AttendanceHistory() {
 					{loading ? (
 						<div className="text-center py-8">
 							<Spinner className="mx-auto mb-2" />
-							<div className="text-sm text-gray-500">Cargando historial...</div>
+							<div className="text-sm text-muted-foreground">Cargando historial...</div>
 						</div>
 					) : error ? (
 						<div className="text-center py-6 space-y-3">
-							<div className="text-red-500 text-sm">{error}</div>
+							<div className="text-destructive text-sm">{error}</div>
 							<Button onClick={loadHistory} variant="outline" size="sm" type="button">
 								Reintentar
 							</Button>
@@ -161,14 +161,14 @@ export function AttendanceHistory() {
 								{period === 'month' && (
 									<div className="flex gap-2 items-end">
 										<div className="space-y-1">
-											<label className="text-xs text-gray-500">Filtrar por fecha</label>
+											<label className="text-xs text-muted-foreground">Filtrar por fecha</label>
 											<input
 												type="date"
 												value={dateFilter ?? ''}
 												min={monthStart}
 												max={monthEnd}
 												onChange={(e) => handleDateChange(e.target.value)}
-												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto bg-background"
 											/>
 										</div>
 										{dateFilter && (
@@ -187,7 +187,7 @@ export function AttendanceHistory() {
 							</div>
 
 							{filteredEntries.length === 0 ? (
-								<div className="text-center py-6 text-gray-500 text-sm">
+								<div className="text-center py-6 text-muted-foreground text-sm">
 									{allEntries.length === 0
 										? 'No hay registros de fichaje'
 										: 'No hay registros con los filtros aplicados'}
@@ -197,7 +197,7 @@ export function AttendanceHistory() {
 									{filteredEntries.map((entry) => (
 										<div
 											key={entry.id}
-											className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg gap-2"
+											className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-muted/50 rounded-lg gap-2"
 										>
 											<div className="flex-1">
 												<div
@@ -207,7 +207,7 @@ export function AttendanceHistory() {
 												>
 													{getEntryTypeLabel(entry.type)}
 												</div>
-												<div className="text-xs md:text-sm text-gray-500">
+												<div className="text-xs md:text-sm text-muted-foreground">
 													{formatCreatedAt(entry.attendance_date)}
 												</div>
 											</div>

@@ -286,14 +286,16 @@ export function EventDetailsModal({
 
 				<div className="flex gap-2 mb-4">
 					<Badge
-						className="px-2 py-1 text-sm flex gap-1"
+						className="px-2 py-1 text-sm flex gap-1 text-white dark:text-white"
 						style={{ backgroundColor: typeInfo.color }}
 					>
 						{typeInfo.label}
 					</Badge>
 					<div className="flex items-center gap-2 justify-end flex-1">
 						{event.is_overdue && (
-							<span className="text-xs font-semibold text-red-600 mx-2">Evento vencido</span>
+							<span className="text-xs font-semibold text-red-500 dark:text-red-400 mx-2">
+								Evento vencido
+							</span>
 						)}
 					</div>
 				</div>

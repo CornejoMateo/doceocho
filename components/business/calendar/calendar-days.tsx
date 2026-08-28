@@ -23,7 +23,7 @@ export function CalendarDay({
 			onClick={onClick}
 			className={`aspect-square p-2 rounded-lg border transition-colors cursor-pointer ${
 				isToday
-					? 'border-green-300 bg-green-300/10'
+					? 'border-green-500 dark:border-green-400 bg-green-500/10 dark:bg-green-400/10'
 					: isSelected
 						? 'border-primary bg-primary/10'
 						: Object.keys(events).length > 0
@@ -33,7 +33,7 @@ export function CalendarDay({
 		>
 			<div className="flex flex-col h-full">
 				<span
-					className={`text-sm font-medium ${isToday ? 'text-green-600' : Object.keys(events).length > 0 ? 'text-foreground' : 'text-muted-foreground'}`}
+					className={`text-sm font-medium ${isToday ? 'text-green-600 dark:text-green-400' : Object.keys(events).length > 0 ? 'text-foreground' : 'text-muted-foreground'}`}
 				>
 					{day}
 				</span>
