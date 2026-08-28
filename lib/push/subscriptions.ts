@@ -95,6 +95,28 @@ export async function deletePushSubscription(
 }
 
 /**
+ * Delete a push subscription by endpoint only (for expired/invalid subscriptions)
+ */
+export async function deletePushSubscriptionByEndpoint(
+	endpoint: string,
+	supabase?: SupabaseClient
+): Promise<{ success: boolean; error?: string }> {
+	const client = supabase ?? getSupabaseClient();
+
+	try {
+		const { error } = await client.from('push_subscriptions').delete().eq('endpoint', endpoint);
+
+		if (error) {
+			return { success: false, error: error.message };
+		}
+
+		return { success: true };
+	} catch (error: any) {
+		return { success: false, error: error.message };
+	}
+}
+
+/**
  * Get all push subscriptions for users in a channel (excluding sender)
  */
 export async function getChannelPushSubscriptions(
@@ -120,6 +142,53 @@ export async function getChannelPushSubscriptions(
 		}
 
 		const userIds = members.map((m) => m.user_id);
+
+		const { data, error } = await client
+			.from('push_subscriptions')
+			.select('endpoint, p256dh, auth')
+			.in('user_id', userIds);
+
+		if (error) {
+			return { data: null, error: error.message };
+		}
+
+		const subscriptions: PushSubscription[] = data.map((sub) => ({
+			endpoint: sub.endpoint,
+			keys: {
+				p256dh: sub.p256dh,
+				auth: sub.auth,
+			},
+		}));
+
+		return { data: subscriptions };
+	} catch (error: any) {
+		return { data: null, error: error.message };
+	}
+}
+
+/**
+ * Get all push subscriptions for admin users
+ */
+export async function getAdminPushSubscriptions(
+	supabase?: SupabaseClient
+): Promise<{ data: PushSubscription[] | null; error?: string }> {
+	const client = supabase ?? getSupabaseClient();
+
+	try {
+		const { data: admins, error: adminsError } = await client
+			.from('users')
+			.select('uid_user')
+			.eq('role', 'Admin');
+
+		if (adminsError) {
+			return { data: null, error: adminsError.message };
+		}
+
+		if (!admins || admins.length === 0) {
+			return { data: [] };
+		}
+
+		const userIds = admins.map((admin) => admin.uid_user);
 
 		const { data, error } = await client
 			.from('push_subscriptions')

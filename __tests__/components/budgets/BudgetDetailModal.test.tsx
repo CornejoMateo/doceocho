@@ -17,7 +17,7 @@ const mockBudget = {
 	folder_budget: {
 		id: 1,
 		work_id: 5,
-		work: { address: 'Calle 123', locality: 'Bs As' },
+		work: { address: 'Calle 123', locality: 'Bs As', name: 'Obra 1' },
 	},
 } as BudgetWithWork;
 
@@ -100,7 +100,7 @@ describe('BudgetDetailModal', () => {
 			/>
 		);
 
-		expect(screen.getByText('Calle 123 - Bs As')).toBeInTheDocument();
+		expect(screen.getByText('Obra 1')).toBeInTheDocument();
 	});
 
 	it('shows "Sin obra asignada" when budget has no work', () => {

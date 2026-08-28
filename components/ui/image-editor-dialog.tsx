@@ -416,8 +416,16 @@ export function ImageEditorDialog({
 
 			tempCanvas.toBlob(
 				(blob) => {
-					if (blob) {
-						const file = new File([blob], 'camara-editada.jpg', { type: 'image/jpeg' });
+					if (!blob) {
+						toast({
+							variant: 'destructive',
+							title: 'No se pudo generar la imagen',
+							description: 'Intenta nuevamente.',
+						});
+						return;
+					} else {
+						const defaultName = (initialFile?.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
+						const file = new File([blob], defaultName, { type: 'image/jpeg' });
 						const shouldCloseAndReset = onImageReady(file);
 						if (shouldCloseAndReset) {
 							onOpenChange(false);
@@ -570,7 +578,7 @@ export function ImageEditorDialog({
 									className="text-xs md:text-sm"
 								>
 									<Undo className="h-4 w-4 mr-1 md:mr-2" />
-									<span className="hidden md:inline">Deshacer</span>
+									<span className="hidden md:inline">Deshacer todo</span>
 								</Button>
 							</div>
 

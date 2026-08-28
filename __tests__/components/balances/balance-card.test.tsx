@@ -37,7 +37,7 @@ const baseBalance = {
 		amount_usd: 5000,
 		folder_budget: {
 			id: 20,
-			work: { address: 'Calle 123', locality: 'Springfield' },
+			work: { address: 'Calle 123', locality: 'Springfield', name: 'Obra Springfield' },
 		},
 	},
 };
@@ -51,7 +51,7 @@ describe('BalanceCard', () => {
 		jest.clearAllMocks();
 	});
 
-	it('renders work locality and address', () => {
+	it('renders work name', () => {
 		render(
 			<BalanceCard
 				balance={baseBalance as any}
@@ -62,8 +62,7 @@ describe('BalanceCard', () => {
 			/>
 		);
 
-		expect(screen.getByText('Springfield')).toBeInTheDocument();
-		expect(screen.getByText('Calle 123')).toBeInTheDocument();
+		expect(screen.getByText('Obra Springfield')).toBeInTheDocument();
 	});
 
 	it('renders budget, delivered, and remaining amounts', () => {
@@ -109,7 +108,7 @@ describe('BalanceCard', () => {
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Springfield').closest('.cursor-pointer')!);
+		fireEvent.click(screen.getByText('Obra Springfield').closest('.cursor-pointer')!);
 		expect(onCardClick).toHaveBeenCalled();
 	});
 

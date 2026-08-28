@@ -12,7 +12,7 @@ import {
 	TableRow,
 } from '@/components/ui/table';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
+import { formatCurrency } from '@/utils/formats-money';
 import { formatShortDate } from '@/utils/format-date';
 import { calculateBalanceStats } from '@/helpers/balances/stats';
 import {
@@ -24,13 +24,6 @@ import { StatsCardsBalances } from '@/components/business/balances/stats-cards-b
 import { BalanceWithBudgetAndClient, listBalancesForReport } from '@/lib/balances/balances';
 import { getLastTransactionUSD } from '@/lib/balances/balance_transactions';
 import { getTotalsByBalanceIds } from '@/lib/balances/balance_transactions';
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Filter, Download } from 'lucide-react';
 import { normalizeMoney } from '@/utils/formats-money';
@@ -116,6 +109,7 @@ export function BalancesReport() {
 					const workLocality = b.budget?.folder_budget?.work?.locality ?? '';
 					const workAddress = b.budget?.folder_budget?.work?.address ?? '';
 					const work =
+						b.budget?.folder_budget?.work?.name ||
 						`${workLocality}${workLocality && workAddress ? ' - ' : ''}${workAddress}`.trim() ||
 						DEFAULT_FALLBACK;
 

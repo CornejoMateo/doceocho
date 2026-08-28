@@ -23,6 +23,7 @@ interface BalanceInformationProps {
 	work?: {
 		locality?: string | null;
 		address?: string | null;
+		name?: string | null;
 	} | null;
 
 	budget?: {
@@ -122,9 +123,7 @@ export function BalanceInformation({
 					<p className="text-sm font-medium">
 						{work ? (
 							<>
-								<span className="block">{work.locality}</span>
-
-								<span className="text-xs text-muted-foreground">{work.address}</span>
+								<span className="block">{work.name || `${work.locality} - ${work.address}`}</span>
 							</>
 						) : (
 							'Sin obra asignada'

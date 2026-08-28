@@ -1,29 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-	getAllAttendanceHistory,
 	getUserAttendanceSummaries,
 	UserAttendanceSummary,
 	hasMatchingPair,
 } from '@/lib/attendance/attendance';
 import {
 	getEntriesByPeriod,
+	getAttendanceEntriesForMonth,
+	mapAttendanceEntries,
 	AttendanceEntryWithDate,
 	deleteAttendanceEntry,
 } from '@/lib/attendance/attendance-entries';
 import { getEntryTypeLabel, getEntryTypeColor, formatHours } from '@/helpers/attendance/attendance';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt } from '@/utils/format-date';
-import { AttendanceEntryModal } from './attendance-entry-modal';
-import { CreateEntryModal } from './create-entry-modal';
-import { PaymentSummaryModal } from './payment-summary';
+import { getLocalDate } from '@/utils/format-date';
+import { LoadMoreAttendanceModal } from './load-more-attendance-modal';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/use-toast';
-import { Pencil, Trash2, Plus, AlertTriangle, DollarSign } from 'lucide-react';
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -34,40 +38,47 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { User } from '@/lib/users/users';
+import { AttendanceEntryModal } from './attendance-entry-modal';
 
-type PeriodFilter = 'day' | 'week' | 'month';
+type PeriodFilter = 'day' | 'month';
 
-export function AdminAttendanceHistory() {
+export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref) => {
+	const { users = [] } = props;
 	const [allEntries, setAllEntries] = useState<AttendanceEntryWithDate[]>([]);
-	const [filteredEntries, setFilteredEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [summaries, setSummaries] = useState<UserAttendanceSummary[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [showHistory, setShowHistory] = useState(false);
 	const [period, setPeriod] = useState<PeriodFilter>('day');
-	const [dateFilter, setDateFilter] = useState<string>('');
+	const [dateFilter, setDateFilter] = useState<string | null>(null);
 	const [selectedUser, setSelectedUser] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedEntry, setSelectedEntry] = useState<AttendanceEntryWithDate | null>(null);
 	const [modalOpen, setModalOpen] = useState(false);
+	const [loadMoreOpen, setLoadMoreOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [entryToDelete, setEntryToDelete] = useState<AttendanceEntryWithDate | null>(null);
-	const [createModalOpen, setCreateModalOpen] = useState(false);
-	const [paymentSummaryOpen, setPaymentSummaryOpen] = useState(false);
+
+	useImperativeHandle(ref, () => ({
+		loadHistory,
+	}));
 
 	const loadHistory = async () => {
 		setLoading(true);
 		setError(null);
 		try {
-			const { data, error } = await getAllAttendanceHistory();
+			const now = getLocalDate().split('-').map(Number);
+			const { data, error } = await getAttendanceEntriesForMonth(now[0], now[1] - 1);
 			if (error) {
 				setError(translateError(error) || 'Error al cargar el historial de empleados');
 			} else {
-				setAllEntries(data || []);
-				const today = new Date().toISOString().split('T')[0];
-				const periodEntries = getEntriesByPeriod(data || [], period, today);
-				setFilteredEntries(periodEntries);
+				const entries = mapAttendanceEntries(data || []);
+				setAllEntries(entries);
+				setDateFilter(null);
+				setPeriod('day');
+				const periodEntries = getEntriesByPeriod(entries, 'day', getLocalDate());
 				setSummaries(getUserAttendanceSummaries(periodEntries));
-				setDateFilter(today);
+				setSelectedUser(null);
 			}
 		} catch (err: any) {
 			setError(translateError(err) || 'Error al cargar el historial de empleados');
@@ -85,17 +96,35 @@ export function AdminAttendanceHistory() {
 
 	const handlePeriodChange = (newPeriod: PeriodFilter) => {
 		setPeriod(newPeriod);
-		const periodEntries = getEntriesByPeriod(allEntries, newPeriod, dateFilter);
-		setFilteredEntries(periodEntries);
+		let periodEntries: AttendanceEntryWithDate[];
+		if (newPeriod === 'month') {
+			periodEntries = dateFilter ? getEntriesByPeriod(allEntries, 'day', dateFilter) : allEntries;
+		} else {
+			periodEntries = getEntriesByPeriod(allEntries, 'day', getLocalDate());
+			setDateFilter(null);
+		}
 		setSummaries(getUserAttendanceSummaries(periodEntries));
 		setSelectedUser(null);
 	};
 
 	const handleDateChange = (newDate: string) => {
+		if (!newDate) {
+			handleClearDateFilter();
+			return;
+		}
 		setDateFilter(newDate);
-		const periodEntries = getEntriesByPeriod(allEntries, period, newDate);
-		setFilteredEntries(periodEntries);
-		setSummaries(getUserAttendanceSummaries(periodEntries));
+		if (period === 'month') {
+			const periodEntries = getEntriesByPeriod(allEntries, 'day', newDate);
+			setSummaries(getUserAttendanceSummaries(periodEntries));
+		}
+		setSelectedUser(null);
+	};
+
+	const handleClearDateFilter = () => {
+		setDateFilter(null);
+		if (period === 'month') {
+			setSummaries(getUserAttendanceSummaries(allEntries));
+		}
 		setSelectedUser(null);
 	};
 
@@ -134,14 +163,17 @@ export function AdminAttendanceHistory() {
 		setEntryToDelete(null);
 	};
 
-	const handleModalClose = () => {
-		setModalOpen(false);
-		setSelectedEntry(null);
-	};
+	const [currentYear, currentMonth] = getLocalDate().split('-').map(Number);
+	const monthStart = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+	const monthEnd = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(
+		currentYear,
+		currentMonth,
+		0
+	).getDate()}`;
 
 	if (!showHistory) {
 		return (
-			<Button onClick={handleToggleHistory} variant="outline" className="w-full">
+			<Button onClick={handleToggleHistory} variant="outline" className="w-full" type="button">
 				Ver historial de empleados
 			</Button>
 		);
@@ -153,16 +185,24 @@ export function AdminAttendanceHistory() {
 				<CardHeader>
 					<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
 						<CardTitle className="text-lg md:text-xl">Historial de Empleados</CardTitle>
-						<Button onClick={handleToggleHistory} variant="ghost" size="sm">
+						<Button onClick={handleToggleHistory} variant="ghost" size="sm" type="button">
 							Ocultar
 						</Button>
 					</div>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					{loading ? (
-						<div className="text-center py-8">Cargando historial...</div>
+						<div className="text-center py-8">
+							<Spinner className="mx-auto mb-2" />
+							<div className="text-sm text-gray-500">Cargando historial...</div>
+						</div>
 					) : error ? (
-						<div className="text-center py-6 text-red-500 text-sm">{error}</div>
+						<div className="text-center py-6 space-y-3">
+							<div className="text-red-500 text-sm">{error}</div>
+							<Button onClick={loadHistory} variant="outline" size="sm" type="button">
+								Reintentar
+							</Button>
+						</div>
 					) : (
 						<>
 							<div className="flex flex-col sm:flex-row gap-3">
@@ -172,154 +212,205 @@ export function AdminAttendanceHistory() {
 										size="sm"
 										onClick={() => handlePeriodChange('day')}
 										className="h-10 flex-1 sm:flex-none"
+										type="button"
 									>
-										Día
-									</Button>
-									<Button
-										variant={period === 'week' ? 'default' : 'outline'}
-										size="sm"
-										onClick={() => handlePeriodChange('week')}
-										className="h-10 flex-1 sm:flex-none"
-									>
-										Semana
+										Hoy
 									</Button>
 									<Button
 										variant={period === 'month' ? 'default' : 'outline'}
 										size="sm"
 										onClick={() => handlePeriodChange('month')}
 										className="h-10 flex-1 sm:flex-none"
+										type="button"
 									>
-										Mes
+										Mes actual
 									</Button>
 								</div>
-								<input
-									type="date"
-									value={dateFilter}
-									onChange={(e) => handleDateChange(e.target.value)}
-									className="px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
-								/>
+								{period === 'month' && (
+									<div className="flex gap-2 items-end">
+										<div className="space-y-1">
+											<label className="text-xs text-gray-500">Filtrar por fecha</label>
+											<input
+												type="date"
+												value={dateFilter ?? ''}
+												min={monthStart}
+												max={monthEnd}
+												onChange={(e) => handleDateChange(e.target.value)}
+												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+											/>
+										</div>
+										{dateFilter && (
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={handleClearDateFilter}
+												className="h-10 flex-none"
+												type="button"
+											>
+												Limpiar filtro
+											</Button>
+										)}
+									</div>
+								)}
 							</div>
 
 							{summaries.length === 0 ? (
 								<div className="text-center py-6 text-gray-500 text-sm">
-									No hay registros de asistencia
+									No hay registros de asistencia del día de hoy o del mes actual.
 								</div>
 							) : (
 								<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-									{summaries.map((summary: UserAttendanceSummary) => (
-										<div key={summary.user_id} className="border rounded-lg overflow-hidden">
-											<Button
-												onClick={() => handleUserSelect(summary.user_id)}
-												variant="ghost"
-												className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
+									{summaries.map((summary: UserAttendanceSummary) => {
+										const unmatchedIds = new Set(
+											summary.entries
+												.filter((e) => !hasMatchingPair(e, summary.entries))
+												.map((e) => e.id)
+										);
+										return (
+											<div
+												key={summary.user_id}
+												className="border rounded-lg overflow-hidden h-auto py-4"
 											>
-												<div className="text-left flex-1 text-black">
-													<div className="font-medium text-sm md:text-lg">{summary.user_name}</div>
-													<div className="text-sm md:text-xs text-gray-500">
-														{summary.entries.length} registros
-													</div>
-												</div>
-												<div className="text-right flex-1">
-													<div className="font-bold text-base md:text-1xl text-blue-600">
-														{formatHours(summary.total_hours)}
-													</div>
-													<div className="text-xs text-gray-500">horas trabajadas</div>
-												</div>
-											</Button>
-
-											{selectedUser === summary.user_id && (
-												<div className="p-4 bg-gray-50 border-t">
-													<div className="flex justify-between items-center mb-4 gap-2">
-														<h3 className="font-medium text-sm md:text-base">Registros</h3>
-														<div className="flex gap-2">
-															<Button
-																variant="outline"
-																size="sm"
-																onClick={() => setPaymentSummaryOpen(true)}
-																className="h-8 text-xs"
-															>
-																<DollarSign className="h-3 w-3 mr-1" />
-																Pagos
-															</Button>
-															<Button
-																variant="outline"
-																size="sm"
-																onClick={() => setCreateModalOpen(true)}
-																className="h-8 text-xs"
-															>
-																<Plus className="h-3 w-3 mr-1" />
-																Crear registro
-															</Button>
+												<Button
+													onClick={() => handleUserSelect(summary.user_id)}
+													variant="ghost"
+													className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
+													type="button"
+												>
+													<div className="text-left flex-1 text-black">
+														<div className="flex items-center gap-2">
+															<div className="font-medium text-sm md:text-lg">
+																{summary.user_name}
+															</div>
+															{unmatchedIds.size > 0 && (
+																<span title="Registros sin par correspondiente">
+																	<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+																</span>
+															)}
+														</div>
+														<div className="text-sm md:text-xs text-gray-500">
+															{summary.entries.length} registros
 														</div>
 													</div>
-													<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-														{summary.entries.map((entry: AttendanceEntryWithDate) => (
-															<div
-																key={entry.id}
-																className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-2"
-															>
-																<div className="flex-1">
-																	<div className="flex items-center gap-2">
-																		<div
-																			className={`font-medium text-sm md:text-base ${getEntryTypeColor(
-																				entry.type
-																			)}`}
-																		>
-																			{getEntryTypeLabel(entry.type)}
+													<div className="text-right flex-1">
+														<div className="font-bold text-base md:text-1xl text-blue-600">
+															{formatHours(summary.total_hours)}
+														</div>
+														<div className="text-xs text-gray-500">horas trabajadas</div>
+													</div>
+												</Button>
+
+												{selectedUser === summary.user_id && (
+													<div className="mt-2 p-4 bg-gray-50 border-t">
+														<div className="flex justify-between items-center mb-4 gap-2">
+															<h3 className="font-medium text-sm md:text-base">Registros</h3>
+														</div>
+														<div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+															{summary.entries.map((entry: AttendanceEntryWithDate) => (
+																<div
+																	key={entry.id}
+																	className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-3"
+																>
+																	<div className="min-w-0 flex-1">
+																		<div className="flex items-center gap-2">
+																			<div
+																				className={`font-medium text-sm md:text-base ${getEntryTypeColor(
+																					entry.type
+																				)}`}
+																			>
+																				{getEntryTypeLabel(entry.type)}
+																			</div>
+
+																			{unmatchedIds.has(entry.id) && (
+																				<span title="Registro sin par correspondiente">
+																					<AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+																				</span>
+																			)}
 																		</div>
-																		{!hasMatchingPair(entry, summary.entries) && (
-																			<span title="Registro sin par correspondiente">
-																				<AlertTriangle className="h-4 w-4 text-orange-500" />
-																			</span>
+
+																		<div className="text-xs md:text-sm text-gray-500">
+																			{formatCreatedAt(entry.attendance_date)}
+																		</div>
+
+																		{entry.description && (
+																			<div className="mt-1.5 text-sm text-gray-600 break-words">
+																				{entry.description}
+																			</div>
 																		)}
 																	</div>
-																	<div className="text-xs md:text-sm text-gray-500">
-																		{formatCreatedAt(entry.attendance_date)}
+
+																	<div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+																		<div className="font-medium text-sm md:text-base">
+																			{format(
+																				toZonedTime(
+																					new Date(entry.entry_time),
+																					ARGENTINA_TIME_ZONE
+																				),
+																				'HH:mm',
+																				{
+																					locale: es,
+																				}
+																			)}
+																		</div>
+
+																		<div className="flex gap-1">
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				onClick={() => handleEditEntry(entry)}
+																				className="h-8 w-8 p-0"
+																				type="button"
+																			>
+																				<Pencil className="h-4 w-4" />
+																			</Button>
+
+																			<Button
+																				variant="ghost"
+																				size="sm"
+																				onClick={() => handleDeleteEntry(entry)}
+																				className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+																				type="button"
+																			>
+																				<Trash2 className="h-4 w-4" />
+																			</Button>
+																		</div>
 																	</div>
 																</div>
-																<div className="flex items-center gap-2">
-																	<div className="font-medium text-sm md:text-base">
-																		{format(new Date(entry.entry_time), 'HH:mm', {
-																			locale: es,
-																		})}
-																	</div>
-																	<div className="flex gap-1">
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			onClick={() => handleEditEntry(entry)}
-																			className="h-8 w-8 p-0"
-																		>
-																			<Pencil className="h-4 w-4" />
-																		</Button>
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			onClick={() => handleDeleteEntry(entry)}
-																			className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-																		>
-																			<Trash2 className="h-4 w-4" />
-																		</Button>
-																	</div>
-																</div>
-															</div>
-														))}
+															))}
+														</div>
 													</div>
-												</div>
-											)}
-										</div>
-									))}
+												)}
+											</div>
+										);
+									})}
 								</div>
 							)}
 						</>
 					)}
+					<Button
+						onClick={() => setLoadMoreOpen(true)}
+						variant="outline"
+						className="mx-auto flex"
+						type="button"
+					>
+						Cargar más fichajes
+					</Button>
 				</CardContent>
 			</Card>
+			<LoadMoreAttendanceModal
+				open={loadMoreOpen}
+				onOpenChange={setLoadMoreOpen}
+				users={users}
+				user={null}
+			/>
 			<AttendanceEntryModal
-				entry={selectedEntry}
 				open={modalOpen}
-				onOpenChange={handleModalClose}
-				onUpdate={loadHistory}
+				onOpenChange={setModalOpen}
+				entry={selectedEntry}
+				onUpdate={() => {
+					setModalOpen(false);
+					loadHistory();
+				}}
 			/>
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
@@ -330,6 +421,32 @@ export function AdminAttendanceHistory() {
 							puede deshacer.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
+					{entryToDelete && (
+						<div className="px-6 pb-2">
+							<div className="bg-gray-50 rounded-lg p-3 text-sm">
+								<div className="flex items-center gap-2 mb-1">
+									<span className={`font-medium ${getEntryTypeColor(entryToDelete.type)}`}>
+										{getEntryTypeLabel(entryToDelete.type)}
+									</span>
+									<span className="text-gray-400">•</span>
+									<span className="text-gray-500">
+										{formatCreatedAt(entryToDelete.attendance_date)}
+									</span>
+									<span className="text-gray-400">•</span>
+									<span className="text-gray-500">
+										{format(
+											toZonedTime(new Date(entryToDelete.entry_time), ARGENTINA_TIME_ZONE),
+											'HH:mm',
+											{ locale: es }
+										)}
+									</span>
+								</div>
+								{entryToDelete.description && (
+									<div className="text-gray-600 text-xs mt-1">{entryToDelete.description}</div>
+								)}
+							</div>
+						</div>
+					)}
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancelar</AlertDialogCancel>
 						<AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
@@ -338,19 +455,6 @@ export function AdminAttendanceHistory() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-			<CreateEntryModal
-				userId={selectedUser}
-				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
-				open={createModalOpen}
-				onOpenChange={setCreateModalOpen}
-				onUpdate={loadHistory}
-			/>
-			<PaymentSummaryModal
-				userId={selectedUser}
-				userName={summaries.find((s) => s.user_id === selectedUser)?.user_name || null}
-				open={paymentSummaryOpen}
-				onOpenChange={setPaymentSummaryOpen}
-			/>
 		</>
 	);
-}
+});

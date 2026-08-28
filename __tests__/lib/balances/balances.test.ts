@@ -63,6 +63,9 @@ describe('balances lib', () => {
 			expect(chain.select).toHaveBeenCalledWith(
 				expect.stringContaining('client:clients(id, name, last_name)')
 			);
+			expect(chain.select).toHaveBeenCalledWith(
+				expect.stringContaining('work:works(address, locality, name)')
+			);
 			expect(result.data).toEqual(mockData);
 		});
 	});

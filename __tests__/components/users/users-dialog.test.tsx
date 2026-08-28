@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import {
 	listUsers,
@@ -113,6 +113,8 @@ function setup(users: any[] = []) {
 describe('UsersDialog', () => {
 	const toast = jest.fn();
 
+	const table = async () => within(await screen.findByRole('table'));
+
 	beforeEach(() => {
 		jest.clearAllMocks();
 		(useToast as jest.Mock).mockReturnValue({ toast });
@@ -124,10 +126,10 @@ describe('UsersDialog', () => {
 			{ uid_user: '2', username: 'taller1', role: 'Taller' },
 		]);
 
-		await waitFor(() => {
-			expect(screen.getByText('admin1')).toBeInTheDocument();
-		});
-		expect(screen.getByText('taller1')).toBeInTheDocument();
+		const t = await table();
+
+		expect(t.getByText('admin1')).toBeInTheDocument();
+		expect(t.getByText('taller1')).toBeInTheDocument();
 	});
 
 	it('shows create user form when clicking Agregar usuario', async () => {
@@ -172,9 +174,9 @@ describe('UsersDialog', () => {
 		setup([{ uid_user: '1', username: 'user1', role: 'Taller' }]);
 		(updateUser as jest.Mock).mockResolvedValue({ data: null, error: null });
 
-		await screen.findByText('user1');
+		const t = await table();
 
-		fireEvent.change(screen.getByTestId('select-role'), { target: { value: 'Admin' } });
+		fireEvent.change(t.getByTestId('select-role'), { target: { value: 'Admin' } });
 
 		await waitFor(() => {
 			expect(updateUser).toHaveBeenCalledWith('1', { role: 'Admin' });
@@ -186,8 +188,8 @@ describe('UsersDialog', () => {
 		setup([{ uid_user: '1', username: 'user1', role: 'Taller' }]);
 		(deleteUser as jest.Mock).mockResolvedValue({ error: null });
 
-		await screen.findByText('user1');
-		fireEvent.click(screen.getByRole('button', { name: /eliminar user1/i }));
+		const t = await table();
+		fireEvent.click(t.getByRole('button', { name: /eliminar user1/i }));
 
 		await screen.findByText('¿Eliminar usuario?');
 		fireEvent.click(screen.getByText('Eliminar'));
@@ -201,8 +203,8 @@ describe('UsersDialog', () => {
 	it('shows edit form when clicking Editar button', async () => {
 		setup([{ uid_user: '1', username: 'user1', role: 'Taller' }]);
 
-		await screen.findByText('user1');
-		fireEvent.click(screen.getByRole('button', { name: /editar user1/i }));
+		const t = await table();
+		fireEvent.click(t.getByRole('button', { name: /editar user1/i }));
 
 		expect(screen.getByDisplayValue('user1')).toBeInTheDocument();
 		expect(screen.getByText('Guardar cambios')).toBeInTheDocument();
@@ -213,8 +215,8 @@ describe('UsersDialog', () => {
 		setup([{ uid_user: '1', username: 'user1', role: 'Taller' }]);
 		(updateUser as jest.Mock).mockResolvedValue({ data: null, error: null });
 
-		await screen.findByText('user1');
-		fireEvent.click(screen.getByRole('button', { name: /editar user1/i }));
+		const t = await table();
+		fireEvent.click(t.getByRole('button', { name: /editar user1/i }));
 
 		fireEvent.change(screen.getByLabelText('Nombre de usuario'), {
 			target: { value: 'user1-editado' },
@@ -239,8 +241,8 @@ describe('UsersDialog', () => {
 		(updateUser as jest.Mock).mockResolvedValue({ data: null, error: null });
 		(updateUserPassword as jest.Mock).mockResolvedValue({ error: null });
 
-		await screen.findByText('user1');
-		fireEvent.click(screen.getByRole('button', { name: /editar user1/i }));
+		const t = await table();
+		fireEvent.click(t.getByRole('button', { name: /editar user1/i }));
 
 		fireEvent.change(screen.getByLabelText('Nombre de usuario'), { target: { value: 'user1' } });
 		fireEvent.change(screen.getByLabelText(/contraseña/i), { target: { value: 'newpass123' } });

@@ -126,33 +126,98 @@ describe('works lib', () => {
 	});
 
 	describe('deleteWork', () => {
-		it('deletes a work', async () => {
+		const mockTableSelect = (data: any[]) => ({
+			select: jest.fn().mockReturnValue({
+				eq: jest.fn().mockResolvedValue({ data, error: null }),
+			}),
+		});
+
+		const buildFrom = (
+			files: { id: number }[] = [],
+			options: { fileFetchError?: Error | null } = {}
+		) => {
+			const { fileFetchError = null } = options;
+			const mockWorkDeleteEq = jest.fn().mockResolvedValue({ error: null });
+
 			const mockFrom = jest.fn().mockImplementation((table: string) => {
-				if (table === 'checklists') {
-					return {
-						select: jest.fn().mockReturnValue({
-							eq: jest.fn().mockResolvedValue({ data: [], error: null }),
-						}),
-					};
+				if (table === 'checklists' || table === 'folder_budgets') {
+					return mockTableSelect([]);
 				}
-				if (table === 'folder_budgets') {
+				if (table === 'files_client') {
 					return {
-						select: jest.fn().mockReturnValue({
-							eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+						select: jest.fn().mockImplementation((columns: string) => {
+							if (columns === 'id') {
+								return {
+									eq: jest.fn().mockResolvedValue({ data: files, error: null }),
+								};
+							}
+							return {
+								eq: jest.fn().mockReturnValue({
+									single: jest.fn().mockResolvedValue({
+										data: fileFetchError ? null : { path: '1/a.txt' },
+										error: fileFetchError,
+									}),
+								}),
+							};
+						}),
+						delete: jest.fn().mockReturnValue({
+							eq: jest.fn().mockResolvedValue({ error: null }),
 						}),
 					};
 				}
 				return {
-					delete: jest.fn().mockReturnValue({
-						eq: jest.fn().mockResolvedValue({ error: null }),
-					}),
+					delete: jest.fn().mockReturnValue({ eq: mockWorkDeleteEq }),
 				};
 			});
+
+			return { mockFrom, mockWorkDeleteEq };
+		};
+
+		it('deletes a work', async () => {
+			const { mockFrom } = buildFrom();
 
 			(getSupabaseClient as jest.Mock).mockReturnValue({ from: mockFrom });
 
 			const { error } = await deleteWork(1);
 			expect(error).toBeNull();
+		});
+
+		it('deletes each file before deleting the work', async () => {
+			const storageRemove = jest.fn().mockResolvedValue({ error: null });
+			const { mockFrom, mockWorkDeleteEq } = buildFrom([{ id: 1 }, { id: 2 }]);
+
+			(getSupabaseClient as jest.Mock).mockReturnValue({
+				from: mockFrom,
+				storage: {
+					from: jest.fn().mockReturnValue({
+						download: jest.fn().mockResolvedValue({ data: new Blob(), error: null }),
+						remove: storageRemove,
+					}),
+				},
+			});
+
+			const { error } = await deleteWork(1);
+			expect(error).toBeNull();
+			expect(storageRemove).toHaveBeenCalledTimes(2);
+			expect(mockWorkDeleteEq).toHaveBeenCalledWith('id', 1);
+		});
+
+		it('aborts and does not delete the work when a file fails to delete', async () => {
+			const fileError = new Error('Failed to delete file');
+			const { mockFrom, mockWorkDeleteEq } = buildFrom([{ id: 1 }], {
+				fileFetchError: fileError,
+			});
+
+			(getSupabaseClient as jest.Mock).mockReturnValue({
+				from: mockFrom,
+				storage: {
+					from: jest.fn(),
+				},
+			});
+
+			const { error } = await deleteWork(1);
+			expect(error).toBe(fileError);
+			expect(mockWorkDeleteEq).not.toHaveBeenCalled();
 		});
 	});
 

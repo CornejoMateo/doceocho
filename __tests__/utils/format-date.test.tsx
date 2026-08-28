@@ -1,4 +1,4 @@
-import { formatCreatedAt } from '@/utils/format-date';
+import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
 
 describe('formatCreatedAt', () => {
 	it('formats valid ISO date correctly', () => {
@@ -53,5 +53,43 @@ describe('formatCreatedAt', () => {
 
 	it('handles leap year correctly', () => {
 		expect(formatCreatedAt('2024-02-29T00:00:00Z')).toBe('29/02/2024');
+	});
+});
+
+describe('formatSimpleTime', () => {
+	it('formats time with seconds correctly', () => {
+		expect(formatSimpleTime('14:30:45')).toBe('14:30');
+	});
+
+	it('formats time without seconds correctly', () => {
+		expect(formatSimpleTime('14:30')).toBe('14:30');
+	});
+
+	it('handles single digit hours', () => {
+		expect(formatSimpleTime('9:30:00')).toBe('9:30');
+	});
+
+	it('handles single digit minutes', () => {
+		expect(formatSimpleTime('14:5:00')).toBe('14:5');
+	});
+
+	it('returns empty string for null', () => {
+		expect(formatSimpleTime(null)).toBe('');
+	});
+
+	it('returns empty string for undefined', () => {
+		expect(formatSimpleTime(undefined)).toBe('');
+	});
+
+	it('returns empty string for empty string', () => {
+		expect(formatSimpleTime('')).toBe('');
+	});
+
+	it('handles time with milliseconds', () => {
+		expect(formatSimpleTime('14:30:45.123')).toBe('14:30');
+	});
+
+	it('returns original string if format is unexpected', () => {
+		expect(formatSimpleTime('invalid')).toBe('invalid');
 	});
 });

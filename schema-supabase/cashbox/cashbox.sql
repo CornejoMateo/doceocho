@@ -249,10 +249,10 @@ begin
 end;
 $$;
 
-select cron.schedule(
+SELECT cron.schedule(
   'close-open-cash-box',
-  '45 2 * * 1',  -- Domingo a las 23:00
-  $$select public.close_open_cash_box();$$
+  '0 4 1 * *',
+  $$SELECT public.close_open_cash_box();$$
 );
 
 create unique index one_open_cash_box

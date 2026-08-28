@@ -11,29 +11,35 @@ import {
 import { optimizeFile } from '@/utils/optimization-images';
 
 interface UseFileUploadOptions {
-	clientId: number;
-	checklistId?: number | null;
+	clientId?: number;
 	claimId?: number | null;
 	allowedFileTypes?: readonly string[];
 	maxFileSize?: number;
 	getDefaultDisplayName?: (file: File) => string;
 	getDefaultDescription?: (file: File) => string;
+	uploadFile?: (
+		file: File,
+		title: string | null,
+		description: string | null
+	) => Promise<{ error: any }>;
 	beforeUpload?: () => string | null;
 	onUploadSuccess?: () => void;
 	onImageFileSelect?: (file: File) => void;
+	onMultipleFilesSelect?: (files: File[]) => void;
 }
 
 export function useFileUpload({
 	clientId,
-	checklistId,
 	claimId,
 	allowedFileTypes = CLIENT_FILE_TYPES,
 	maxFileSize,
 	getDefaultDisplayName,
 	getDefaultDescription,
+	uploadFile,
 	beforeUpload,
 	onUploadSuccess,
 	onImageFileSelect,
+	onMultipleFilesSelect,
 }: UseFileUploadOptions) {
 	const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -64,13 +70,58 @@ export function useFileUpload({
 		return true;
 	};
 
-	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const selectedFiles = e.target.files;
 		if (!selectedFiles || selectedFiles.length === 0) return;
 
+		// If multiple files are selected and we have a callback for that
+		if (selectedFiles.length > 1 && onMultipleFilesSelect) {
+			const validFiles: File[] = [];
+			const invalidFiles: string[] = [];
+
+			Array.from(selectedFiles).forEach((file) => {
+				const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
+				if (validation.isValid) {
+					validFiles.push(file);
+				} else {
+					invalidFiles.push(file.name);
+				}
+			});
+
+			if (invalidFiles.length > 0) {
+				toast({
+					variant: 'destructive',
+					title: 'Algunos archivos no son válidos',
+					description: `Archivos ignorados: ${invalidFiles.join(', ')}`,
+				});
+			}
+
+			if (validFiles.length > 0) {
+				onMultipleFilesSelect(validFiles);
+			}
+
+			if (fileInputRef.current) {
+				fileInputRef.current.value = '';
+			}
+			return;
+		}
+
+		// Single file selection
 		const file = selectedFiles[0];
 
 		if (file.type.startsWith('image/') && onImageFileSelect) {
+			const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
+			if (!validation.isValid) {
+				toast({
+					variant: 'destructive',
+					title: 'Archivo no válido',
+					description: validation.error,
+				});
+				if (fileInputRef.current) {
+					fileInputRef.current.value = '';
+				}
+				return;
+			}
 			onImageFileSelect(file);
 		} else {
 			prepareFileForUpload(file);
@@ -79,6 +130,15 @@ export function useFileUpload({
 
 	const handleUploadSubmit = async () => {
 		if (!selectedFile) return;
+
+		if (!uploadFile && !clientId) {
+			toast({
+				variant: 'destructive',
+				title: 'No se puede subir archivo',
+				description: 'No se ha especificado un destino para la subida del archivo.',
+			});
+			return;
+		}
 
 		const preUploadError = beforeUpload?.();
 		if (preUploadError) {
@@ -96,14 +156,12 @@ export function useFileUpload({
 		try {
 			const optimizedFile = await optimizeFile(selectedFile);
 
-			const { error } = await uploadClientFile(
-				clientId,
-				optimizedFile,
-				displayName.trim() || null,
-				description.trim() || null,
-				checklistId || null,
-				claimId || null
-			);
+			const { error } = uploadFile
+				? await uploadFile(optimizedFile, displayName.trim() || null, description.trim() || null)
+				: await uploadClientFile(clientId!, optimizedFile, {
+						title: displayName.trim() || null,
+						description: description.trim() || null,
+					});
 
 			if (error) {
 				toast({
@@ -124,6 +182,94 @@ export function useFileUpload({
 			toast({
 				variant: 'destructive',
 				title: 'Error al subir archivo',
+				description: translateError(error),
+			});
+		} finally {
+			setIsUploading(false);
+		}
+	};
+
+	const handleUploadMultiple = async (
+		filesToUpload: Array<{ file: File; displayName: string; description: string }>
+	) => {
+		if (!uploadFile && !clientId) {
+			toast({
+				variant: 'destructive',
+				title: 'No se puede subir archivos',
+				description: 'No se ha especificado un destino para la subida de archivos.',
+			});
+			return;
+		}
+
+		const preUploadError = beforeUpload?.();
+		if (preUploadError) {
+			const error = translateError(preUploadError);
+			toast({
+				variant: 'destructive',
+				title: 'No se pueden subir archivos',
+				description: error || preUploadError,
+			});
+			return;
+		}
+
+		setIsUploading(true);
+
+		try {
+			const uploadPromises = filesToUpload.map(async ({ file, displayName, description }) => {
+				try {
+					const optimizedFile = await optimizeFile(file);
+
+					// Validate optimized file (important for edited files that may have changed)
+					const validation = validateFileForUpload(optimizedFile, allowedFileTypes, maxUploadSize);
+					if (!validation.isValid) {
+						console.error(
+							'File validation failed after optimization:',
+							file.name,
+							validation.error
+						);
+						return { error: validation.error };
+					}
+
+					if (uploadFile) {
+						return await uploadFile(
+							optimizedFile,
+							displayName.trim() || null,
+							description.trim() || null
+						);
+					} else if (clientId) {
+						return await uploadClientFile(clientId, optimizedFile, {
+							title: displayName.trim() || null,
+							description: description.trim() || null,
+						});
+					}
+					return { error: 'No upload method available' };
+				} catch (error) {
+					console.error('Error uploading file:', file.name, error);
+					return { error };
+				}
+			});
+
+			const results = await Promise.all(uploadPromises);
+			const errors = results.filter((r) => r.error);
+
+			if (errors.length > 0) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al subir algunos archivos',
+					description: `${errors.length} de ${filesToUpload.length} archivos fallaron.`,
+				});
+			} else {
+				toast({
+					title: 'Archivos subidos',
+					description: `${filesToUpload.length} archivos se subieron exitosamente.`,
+				});
+				onUploadSuccess?.();
+			}
+		} catch (error) {
+			console.error('Error uploading files:', error);
+			toast({
+				variant: 'destructive',
+				title: 'Error al subir archivos',
 				description: translateError(error),
 			});
 		} finally {
@@ -160,6 +306,7 @@ export function useFileUpload({
 		setDescription,
 		handleFileSelect,
 		handleUploadSubmit,
+		handleUploadMultiple,
 		handleCloseUploadDialog,
 		triggerFileUpload,
 		openUploadDialogForFile,

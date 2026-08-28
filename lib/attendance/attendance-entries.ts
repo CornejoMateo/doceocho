@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { getLocalDate } from '@/utils/format-date';
 
 export interface AttendanceEntry {
 	attendance_id: number;
@@ -6,6 +7,7 @@ export interface AttendanceEntry {
 	entry_time: string;
 	latitude: number;
 	longitude: number;
+	description: string | null;
 }
 
 export interface AttendanceStatus {
@@ -54,17 +56,12 @@ export async function deleteAttendanceEntry(
 export async function createAdminAttendanceEntry(
 	userId: string,
 	type: 'regular_in' | 'regular_out' | 'overtime_in' | 'overtime_out',
-	entryTime: string
+	entryTime: string,
+	description: string | null
 ): Promise<{ data: AttendanceEntryWithDate | null; error: any }> {
 	const supabase = getSupabaseClient();
+	const date = getLocalDate(entryTime);
 
-	// First, ensure attendance record exists for the date
-	const entryDate = new Date(entryTime);
-	const date = [
-		entryDate.getFullYear(),
-		String(entryDate.getMonth() + 1).padStart(2, '0'),
-		String(entryDate.getDate()).padStart(2, '0'),
-	].join('-');
 	const { data: attendance, error: attendanceError } = await supabase
 		.from('attendance')
 		.select('id')
@@ -96,6 +93,7 @@ export async function createAdminAttendanceEntry(
 		entry_time: entryTime,
 		latitude: 0,
 		longitude: 0,
+		description: description || null,
 	};
 
 	const { data, error } = await supabase
@@ -128,11 +126,11 @@ export async function createAdminAttendanceEntry(
  */
 export function getEntriesByPeriod(
 	entries: AttendanceEntryWithDate[],
-	period: 'day' | 'week' | 'month',
+	period: 'day' | 'month',
 	date?: string
 ): AttendanceEntryWithDate[] {
 	if (!date) {
-		date = new Date().toISOString().split('T')[0];
+		date = getLocalDate();
 	}
 
 	const targetDate = new Date(date);
@@ -140,21 +138,6 @@ export function getEntriesByPeriod(
 
 	if (period === 'day') {
 		return entries.filter((entry) => entry.attendance_date === targetDateStr);
-	}
-
-	if (period === 'week') {
-		const startOfWeek = new Date(targetDate);
-		const day = startOfWeek.getDay();
-		const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-		startOfWeek.setDate(diff);
-
-		const endOfWeek = new Date(startOfWeek);
-		endOfWeek.setDate(startOfWeek.getDate() + 6);
-
-		return entries.filter((entry) => {
-			const entryDate = new Date(entry.attendance_date);
-			return entryDate >= startOfWeek && entryDate <= endOfWeek;
-		});
 	}
 
 	if (period === 'month') {
@@ -175,7 +158,7 @@ export async function getAttendanceStatus(
 ): Promise<{ data: AttendanceStatus | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const today = new Date().toISOString().split('T')[0];
+	const today = getLocalDate();
 
 	const { data, error } = await supabase
 		.from('attendance_entries')
@@ -183,6 +166,7 @@ export async function getAttendanceStatus(
 			`
 			type,
 			entry_time,
+			description,
 			attendance!inner (
 				date,
 				user_id
@@ -208,4 +192,116 @@ export async function getAttendanceStatus(
 		},
 		error: null,
 	};
+}
+
+export async function getAttendanceEntriesForMonth(
+	year: number,
+	month: number
+): Promise<{ data: any[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+	const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id,
+				users (
+					name,
+					last_name,
+					username
+				)
+			)
+		`
+		)
+		.gte('attendance.date', startOfMonth)
+		.lte('attendance.date', endOfMonth)
+		.not('attendance.users.role', 'eq', 'Admin');
+
+	return { data, error };
+}
+
+export function mapAttendanceEntries(data: any[]): AttendanceEntryWithDate[] {
+	return (data || [])
+		.map((entry: any) => ({
+			...entry,
+			attendance_date: entry.attendance?.date,
+			user_id: entry.attendance?.user_id,
+			user_name:
+				`${entry.attendance?.users?.name || ''} ${
+					entry.attendance?.users?.last_name || ''
+				}`.trim() ||
+				entry.attendance?.users?.username ||
+				'Desconocido',
+		}))
+		.sort(
+			(a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime()
+		) as AttendanceEntryWithDate[];
+}
+
+export async function getUserAttendanceEntriesForMonth(
+	userId: string,
+	year: number,
+	month: number
+): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const startOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+	const endOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id
+			)
+		`
+		)
+		.eq('attendance.user_id', userId)
+		.gte('attendance.date', startOfMonth)
+		.lte('attendance.date', endOfMonth);
+
+	if (error) return { data: null, error };
+
+	return { data: mapAttendanceEntries(data || []) || null, error: null };
+}
+
+/**
+ * Get attendance entries with user info for a specific date
+ */
+export async function getAttendanceEntriesForDay(
+	date: string = getLocalDate()
+): Promise<{ data: AttendanceEntryWithDate[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from('attendance_entries')
+		.select(
+			`
+			*,
+			attendance!inner (
+				date,
+				user_id,
+				users (
+					name,
+					last_name,
+					username
+				)
+			)
+		`
+		)
+		.eq('attendance.date', date)
+		.order('entry_time', { ascending: false });
+
+	if (error) return { data: null, error };
+
+	return { data: mapAttendanceEntries(data || []), error: null };
 }

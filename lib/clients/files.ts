@@ -10,7 +10,6 @@ export type ClientFileRecord = {
 	path: string | null;
 	title: string | null;
 	description: string | null;
-	claim_id: string | null;
 	balance_transaction_id?: number | null;
 };
 
@@ -100,11 +99,15 @@ export async function getClientFilesByChecklist(
 export async function uploadClientFile(
 	clientId: number,
 	file: File,
-	title: string | null = null,
-	description: string | null = null,
-	claimId: number | null = null,
-	transactionId: number | null = null
+	options: {
+		title?: string | null;
+		description?: string | null;
+		claimId?: number | null;
+		transactionId?: number | null;
+	} = {}
 ): Promise<{ data: ClientFileRecord | null; error: any }> {
+	const { title = null, description = null, claimId = null, transactionId = null } = options;
+
 	const supabase = getSupabaseClient();
 	const fileExt = file.name.split('.').pop();
 	const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -123,7 +126,6 @@ export async function uploadClientFile(
 			title,
 			description,
 			path: filePath,
-			claim_id: claimId,
 			balance_transaction_id: transactionId,
 		})
 		.select()

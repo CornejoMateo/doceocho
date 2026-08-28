@@ -17,6 +17,12 @@ jest.mock('@/hooks/clients/use-client-budgets-info', () => ({
 	useClientBudgetsInfo: jest.fn(),
 }));
 
+const mockUseSearchParams = jest.fn();
+
+jest.mock('next/navigation', () => ({
+	useSearchParams: () => mockUseSearchParams(),
+}));
+
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: jest.fn() }),
 }));
@@ -27,8 +33,12 @@ jest.mock('@/components/business/clients/clients-add-dialog', () => ({
 }));
 
 jest.mock('@/components/business/clients/client-details-dialog', () => ({
-	ClientDetailsDialog: ({ isOpen }: { isOpen: boolean }) =>
-		isOpen ? <div data-testid="client-details-dialog" /> : null,
+	ClientDetailsDialog: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+		isOpen ? (
+			<div data-testid="client-details-dialog">
+				<button onClick={onClose}>Close</button>
+			</div>
+		) : null,
 }));
 
 jest.mock('@/components/ui/dialog', () => ({
@@ -77,6 +87,7 @@ describe('ClientManagement', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
+		mockUseSearchParams.mockReturnValue(new URLSearchParams());
 		(useAuth as jest.Mock).mockReturnValue({ user: { role: 'Admin' } });
 		(useOptimizedRealtime as jest.Mock).mockReturnValue({
 			data: [
@@ -114,5 +125,30 @@ describe('ClientManagement', () => {
 		render(<ClientManagement />);
 
 		expect(screen.queryByText('Nuevo cliente')).not.toBeInTheDocument();
+	});
+
+	it('keeps details dialog closed after closing and refreshing the client list', () => {
+		mockUseSearchParams.mockReturnValue(new URLSearchParams('clientId=1'));
+		const { rerender } = render(<ClientManagement />);
+
+		expect(screen.getByTestId('client-details-dialog')).toBeInTheDocument();
+
+		fireEvent.click(screen.getByText('Close'));
+		expect(screen.queryByTestId('client-details-dialog')).not.toBeInTheDocument();
+
+		(useOptimizedRealtime as jest.Mock).mockReturnValue({
+			data: [
+				{ id: 1, name: 'Juan', last_name: 'Pérez', locality: 'Rosario' },
+				{ id: 2, name: 'Ana', last_name: 'Gómez', locality: 'Córdoba' },
+				{ id: 3, name: 'Luis', last_name: 'Díaz', locality: 'Buenos Aires' },
+			],
+			loading: false,
+			error: null,
+			refresh,
+		});
+
+		rerender(<ClientManagement />);
+
+		expect(screen.queryByTestId('client-details-dialog')).not.toBeInTheDocument();
 	});
 });

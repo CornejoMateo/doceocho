@@ -3,19 +3,20 @@ create table public.events (
   created_at timestamp with time zone not null default now(),
   description character varying null,
   title character varying null,
-  client_id bigint null,
   client_name character varying null,
-  location character varying null,
   date date null,
-  address character varying null,
+  time time null,
   status character varying null,
   is_overdue boolean null default false,
   remember boolean null default false,
   type_id bigint null,
+  client_id bigint null,
   work_id bigint null,
-  work_location character varying null,
-  constraint events_pkey primary key (id)
-  constraint events_type_id_fkey foreign KEY (type_id) references events_types (id) on update CASCADE
+  work_location text null,
+  constraint events_pkey primary key (id),
+  constraint events_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete set null,
+  constraint events_type_id_fkey foreign KEY (type_id) references events_types (id) on update CASCADE on delete set null,
+  constraint events_work_id_fkey foreign KEY (work_id) references works (id) on update CASCADE on delete set null
 ) TABLESPACE pg_default;
 
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
@@ -137,10 +138,3 @@ WITH CHECK (
         AND u.role = 'Admin'
   )
 );
-
-ALTER TABLE public.events
-ADD constraint events_work_id_fkey
-FOREIGN KEY (work_id)
-REFERENCES public.works(id)
-ON UPDATE CASCADE
-ON DELETE SET NULL;

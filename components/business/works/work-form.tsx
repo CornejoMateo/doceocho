@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
 	Select,
 	SelectContent,
@@ -29,6 +30,7 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 		zone: '',
 		hood: '',
 		name: '',
+		general_note: '',
 	});
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -36,7 +38,7 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 		await onSubmit(formData);
 	};
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
 		const { name, value } = e.target;
 		setFormData((prev) => ({
 			...prev,
@@ -142,6 +144,19 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 						<SelectItem value="completed">Finalizada</SelectItem>
 					</SelectContent>
 				</Select>
+			</div>
+
+			<div className="space-y-2">
+				<Label htmlFor="general_note">Detalles de la obra</Label>
+				<Textarea
+					id="general_note"
+					name="general_note"
+					value={formData.general_note || ''}
+					onChange={handleChange}
+					placeholder="Describe los detalles importantes de la obra (materiales, medidas, especificaciones, etc.)"
+					rows={4}
+					className="resize-none"
+				/>
 			</div>
 
 			<div className="flex justify-end space-x-2 pt-4">

@@ -42,13 +42,19 @@ export function FileViewerModal({
 }: FileViewerModalProps) {
 	useEffect(() => {
 		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === 'ArrowLeft') handlePrevious();
-			if (e.key === 'ArrowRight') handleNext();
-			if (e.key === 'Escape') onSelectedIndexChange(null);
+			if (e.key === 'ArrowLeft' && selectedIndex > 0) {
+				onSelectedIndexChange(selectedIndex - 1);
+			}
+			if (e.key === 'ArrowRight' && selectedIndex < files.length - 1) {
+				onSelectedIndexChange(selectedIndex + 1);
+			}
+			if (e.key === 'Escape') {
+				onSelectedIndexChange(null);
+			}
 		}
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [selectedIndex]);
+	}, [files, selectedIndex, onSelectedIndexChange]);
 
 	if (selectedIndex === null || !files[selectedIndex]) {
 		return null;

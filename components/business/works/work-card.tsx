@@ -17,6 +17,7 @@ import {
 	StickyNote,
 	Map,
 	Home,
+	Plus,
 } from 'lucide-react';
 import { statusConfig } from '@/constants/type-config';
 import { WorkWithProgress } from '@/lib/works/works';
@@ -31,6 +32,7 @@ interface WorkCardProps {
 	onOpenWhatsApp: (work: WorkWithProgress) => void;
 	onOpenChecklist: (work: WorkWithProgress) => void;
 	onUpdateGeneralNote?: (workId: number, note: string) => Promise<void>;
+	onAddToCalendar?: (work: WorkWithProgress) => void;
 }
 
 export function WorkCard({
@@ -40,6 +42,7 @@ export function WorkCard({
 	onOpenWhatsApp,
 	onOpenChecklist,
 	onUpdateGeneralNote,
+	onAddToCalendar,
 }: WorkCardProps) {
 	const [isPostItModalOpen, setIsPostItModalOpen] = useState(false);
 	const [isUpdatingNote, setIsUpdatingNote] = useState(false);
@@ -144,6 +147,13 @@ export function WorkCard({
 								Ver checklists
 							</Button>
 						</ChecklistCompletionModal>
+
+						{isAuthorized && onAddToCalendar && (
+							<Button variant="outline" size="sm" onClick={() => onAddToCalendar(work)}>
+								<Plus className="mr-2 h-4 w-4" />
+								Agendar evento
+							</Button>
+						)}
 
 						{isAuthorized && (
 							<Button

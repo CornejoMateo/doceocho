@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
 import { isWithinRadius } from '@/helpers/attendance/distance';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
@@ -13,18 +14,26 @@ import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/a
 import { AttendanceHistory } from './attendance-history';
 import { AdminAttendanceHistory } from './admin-attendance-history';
 import { AttendanceSettings } from './attendance-settings';
+import { AttendanceEntryModal } from './attendance-entry-modal';
+import { SettlementsModal } from './settlements/settlements-modal';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Settings } from 'lucide-react';
 import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QRScanner from './attendance-qr-scanner';
+import { listUsers, User } from '@/lib/users/users';
+import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
 export function ClockIn() {
+	const adminHistoryRef = useRef<{ loadHistory: () => Promise<void> }>(null);
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
 	const [latitude, setLatitude] = useState<number | null>(null);
 	const [longitude, setLongitude] = useState<number | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [createEntryModalOpen, setCreateEntryModalOpen] = useState(false);
+	const [settlementsModalOpen, setSettlementsModalOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
 		location: {
@@ -35,27 +44,31 @@ export function ClockIn() {
 
 	const { user } = useAuth();
 
-	const [showScanner, setShowScanner] = useState(false);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		if (!user) return;
-		if (!user.uid) return;
-
-		const init = async () => {
-			await loadSettings();
-			await loadAttendanceStatus();
-			setLoading(false);
-		};
-
-		init();
-	}, [user]);
-
 	const isAuthorized = user?.role === 'Admin';
 	const isTaller = user?.role === 'Taller';
 	const isQR = user?.role === 'QR';
 
-	const loadSettings = async () => {
+	const [showScanner, setShowScanner] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [validating, setValidating] = useState(false);
+
+	const {
+		data: users,
+		loading: loadingUsers,
+		error: usersError,
+		refresh,
+	} = useOptimizedRealtime<User>(
+		'users',
+		async () => {
+			const { data, error } = await listUsers();
+			if (error) throw error;
+			return data ?? [];
+		},
+		'users_cache',
+		isAuthorized
+	);
+
+	const loadSettings = useCallback(async () => {
 		const { data: settings } = await getAttendanceSettings();
 		if (settings?.square_meters) {
 			setRadiusMeters(settings.square_meters);
@@ -70,9 +83,9 @@ export function ClockIn() {
 		} else {
 			setLongitude(TARGET_LOCATION.longitude);
 		}
-	};
+	}, []);
 
-	const loadAttendanceStatus = async () => {
+	const loadAttendanceStatus = useCallback(async () => {
 		if (!user) return;
 
 		const { data, error } = await getAttendanceStatus(user.uid);
@@ -88,7 +101,22 @@ export function ClockIn() {
 
 		setIsClockedIn(data?.regularOpen ?? false);
 		setIsClockedInOvertime(data?.overtimeOpen ?? false);
-	};
+
+		return data;
+	}, [user]);
+
+	useEffect(() => {
+		if (!user) return;
+		if (!user.uid) return;
+
+		const init = async () => {
+			await loadSettings();
+			await loadAttendanceStatus();
+			setLoading(false);
+		};
+
+		init();
+	}, [user, loadSettings, loadAttendanceStatus]);
 
 	const validateLocation = async () => {
 		const location = await getCurrentLocation().catch((error) => {
@@ -111,39 +139,29 @@ export function ClockIn() {
 	};
 
 	const finishClockAction = async (token: string) => {
-		validateLocation().catch((error) => {
+		try {
+			await validateLocation();
+		} catch (error) {
 			toast({
 				title: 'Error',
 				description: translateError(error),
 				variant: 'destructive',
 			});
 			throw error;
-		});
+		}
 		const loadingToast = toast({
 			title: 'Registrando fichaje...',
 			description: 'Validando datos y guardando en la base de datos.',
 		});
 
 		try {
-			const validateResponse = await fetch('/api/attendance/check-in', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({ token }),
-			});
-
-			if (!validateResponse.ok) {
-				const data = await validateResponse.json();
-				throw new Error(data.message);
-			}
-
 			const registerResponse = await fetch('/api/attendance/register-attendance', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
+					token,
 					isOvertime: pendingClockAction?.isOvertime,
 					latitude: pendingClockAction?.location.latitude,
 					longitude: pendingClockAction?.location.longitude,
@@ -154,26 +172,31 @@ export function ClockIn() {
 			});
 
 			if (!registerResponse.ok) {
-				const data = await registerResponse.json();
-				throw new Error(data.message);
+				let message = 'Error al registrar fichaje';
+				try {
+					const data = await registerResponse.json();
+					message = data.message || message;
+				} catch {}
+				throw new Error(message);
 			}
 
 			await loadAttendanceStatus();
 
 			const isCheckOut = isClockedIn || isClockedInOvertime;
 
-			loadingToast.update({
-				id: loadingToast.id,
+			loadingToast.dismiss();
+
+			toast({
 				title: 'Fichaje registrado',
 				description: isCheckOut
 					? 'Salida registrada correctamente'
 					: 'Entrada registrada correctamente',
 			});
 		} catch (error) {
-			loadingToast.update({
-				id: loadingToast.id,
-				title:
-					'Error al registrar fichaje. Saca una foto del error para poder mostrarsela a los desarrolladores',
+			loadingToast.dismiss();
+
+			toast({
+				title: 'Error al registrar fichaje',
 				description: translateError(error),
 				variant: 'destructive',
 			});
@@ -191,6 +214,8 @@ export function ClockIn() {
 			return;
 		}
 
+		setValidating(true);
+
 		try {
 			const location = await validateLocation();
 
@@ -206,95 +231,168 @@ export function ClockIn() {
 				description: translateError(error),
 				variant: 'destructive',
 			});
+		} finally {
+			setValidating(false);
 		}
 	};
 
 	return (
 		<div className="container mx-auto p-4 md:p-8">
 			<div className="grid gap-4 md:gap-6">
-				{isAuthorized && (
-					<>
-						<div className="flex justify-end">
-							<Button variant="outline" onClick={() => setSettingsOpen(true)}>
-								<Settings className="h-4 w-4 mr-2" />
-								Configuración
-							</Button>
-						</div>
-						<AdminAttendanceHistory />
-					</>
-				)}
-				{isTaller && (
-					<>
-						{loading ? (
-							<p className="text-muted-foreground text-sm text-center">Cargando...</p>
-						) : (
-							<div className="flex flex-col items-center gap-4 w-full">
-								<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
-									{!isClockedIn && !isClockedInOvertime && (
-										<>
-											<Button onClick={() => handleClockAction(false)} className="flex-1">
-												Registrar entrada
+				<Tabs defaultValue="hour">
+					<TabsList>
+						<TabsTrigger value="hour">Por hora</TabsTrigger>
+						{!isQR && <TabsTrigger value="module">Por módulo</TabsTrigger>}
+					</TabsList>
+
+					<TabsContent value="hour">
+						{isAuthorized && (
+							<>
+								{loading ? (
+									<div className="flex justify-center py-8">
+										<Spinner className="h-6 w-6" />
+									</div>
+								) : (
+									<>
+										<div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mb-4">
+											<Button
+												variant="outline"
+												onClick={() => setCreateEntryModalOpen(true)}
+												type="button"
+											>
+												Crear registro
 											</Button>
-
-											<Button onClick={() => handleClockAction(true)} className="flex-1">
-												Registrar entrada (horas extras)
+											<Button
+												variant="outline"
+												onClick={() => setSettlementsModalOpen(true)}
+												type="button"
+											>
+												Liquidaciones
 											</Button>
-										</>
-									)}
-
-									{isClockedIn && (
-										<Button onClick={() => handleClockAction(false)} className="w-full">
-											Registrar salida
-										</Button>
-									)}
-
-									{isClockedInOvertime && (
-										<Button onClick={() => handleClockAction(true)} className="w-full">
-											Registrar salida (horas extras)
-										</Button>
-									)}
-								</div>
-
-								<div className="w-full max-w-2xl">
-									<AttendanceHistory />
-								</div>
-							</div>
+											<Button variant="outline" onClick={() => setSettingsOpen(true)} type="button">
+												<Settings className="h-4 w-4 mr-2" />
+												Configuración
+											</Button>
+										</div>
+										<AdminAttendanceHistory ref={adminHistoryRef} users={users} />
+									</>
+								)}
+							</>
 						)}
-					</>
-				)}
-				{isQR && (
-					<Card className="w-full max-w-md mx-auto">
-						<CardHeader>
-							<CardTitle>QR de fichaje</CardTitle>
-							<CardDescription>
-								Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
-								minuto.
-							</CardDescription>
-						</CardHeader>
+						{isTaller && (
+							<>
+								{loading ? (
+									<div className="flex justify-center py-8">
+										<Spinner className="h-6 w-6" />
+									</div>
+								) : (
+									<div className="flex flex-col items-center gap-4 w-full">
+										<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
+											{!isClockedIn && !isClockedInOvertime && (
+												<>
+													<Button
+														onClick={() => handleClockAction(false)}
+														className="flex-1"
+														type="button"
+														disabled={validating}
+													>
+														{validating && <Spinner className="mr-2 h-4 w-4" />}
+														Registrar entrada
+													</Button>
 
-						<CardContent className="flex justify-center overflow-hidden">
-							<AttendanceQRCode />
-						</CardContent>
-					</Card>
-				)}
-				{showScanner && isTaller && (
-					<QRScanner
-						onClose={() => {
-							setShowScanner(false);
-							setPendingClockAction(null);
-						}}
-						onScan={async (token) => {
-							setShowScanner(false);
+													<Button
+														onClick={() => handleClockAction(true)}
+														className="flex-1"
+														type="button"
+														disabled={validating}
+													>
+														{validating && <Spinner className="mr-2 h-4 w-4" />}
+														Registrar entrada (horas extras)
+													</Button>
+												</>
+											)}
 
-							try {
-								await finishClockAction(token);
-							} catch {
-							} finally {
-								setPendingClockAction(null);
-							}
-						}}
-					/>
-				)}
+											{isClockedIn && (
+												<Button
+													onClick={() => handleClockAction(false)}
+													className="w-full"
+													type="button"
+													disabled={validating}
+												>
+													{validating && <Spinner className="mr-2 h-4 w-4" />}
+													Registrar salida
+												</Button>
+											)}
+
+											{isClockedInOvertime && (
+												<Button
+													onClick={() => handleClockAction(true)}
+													className="w-full"
+													type="button"
+													disabled={validating}
+												>
+													{validating && <Spinner className="mr-2 h-4 w-4" />}
+													Registrar salida (horas extras)
+												</Button>
+											)}
+										</div>
+
+										<div className="w-full max-w-2xl">
+											<AttendanceHistory />
+										</div>
+									</div>
+								)}
+							</>
+						)}
+						{isQR && (
+							<Card className="w-full max-w-md mx-auto">
+								<CardHeader>
+									<CardTitle>QR de fichaje</CardTitle>
+									<CardDescription>
+										Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
+										minuto.
+									</CardDescription>
+								</CardHeader>
+
+								<CardContent className="flex justify-center overflow-hidden">
+									<AttendanceQRCode />
+								</CardContent>
+							</Card>
+						)}
+						{showScanner && isTaller && (
+							<QRScanner
+								onClose={() => {
+									setShowScanner(false);
+									setPendingClockAction(null);
+								}}
+								onScan={async (token) => {
+									setShowScanner(false);
+
+									try {
+										await finishClockAction(token);
+									} catch {
+									} finally {
+										setPendingClockAction(null);
+									}
+								}}
+							/>
+						)}
+					</TabsContent>
+
+					<TabsContent value="module">
+						<Card className="w-full">
+							<CardHeader>
+								<CardTitle>Fichaje por módulo</CardTitle>
+								<CardDescription>
+									Sección en construcción. Aquí iremos agregando la funcionalidad por módulo.
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<p className="text-sm text-muted-foreground">Por ahora no hay nada para mostrar.</p>
+							</CardContent>
+						</Card>
+					</TabsContent>
+				</Tabs>
 			</div>
 			<AttendanceSettings
 				open={settingsOpen}
@@ -305,6 +403,21 @@ export function ClockIn() {
 						loadSettings();
 					}
 				}}
+			/>
+			<AttendanceEntryModal
+				entry={null}
+				open={createEntryModalOpen}
+				onOpenChange={setCreateEntryModalOpen}
+				onUpdate={() => {
+					adminHistoryRef.current?.loadHistory();
+				}}
+				showUserSelect={true}
+				users={users || []}
+			/>
+			<SettlementsModal
+				open={settlementsModalOpen}
+				onOpenChange={setSettlementsModalOpen}
+				users={users || []}
 			/>
 		</div>
 	);

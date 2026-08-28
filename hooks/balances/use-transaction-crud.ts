@@ -347,6 +347,7 @@ export function useTransactionCrud(
 		totalExtraArs,
 		totalExtraUsd,
 	});
+
 	const work = balance?.budget?.folder_budget?.work;
 
 	return {
