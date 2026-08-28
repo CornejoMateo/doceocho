@@ -1,28 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { EventDetailsModal } from '@/components/business/calendar/event-details-modal';
-import { CalendarDay } from '@/components/business/calendar/calendar-days';
 import { EventTypesDialog } from '@/components/business/calendar/event-types-dialog';
-import { createEvent, deleteEvent } from '@/lib/calendar/events';
-import { getEventTypeOptions, resolveEventType } from '@/lib/calendar/event-types';
-import {
-	Calendar as CalendarIcon,
-	ChevronLeft,
-	ChevronRight,
-	MapPin,
-	Package,
-	Trash2,
-	Home,
-} from 'lucide-react';
-import { monthNames, dayNames } from '@/constants/date';
-import { Event } from '@/lib/calendar/events';
+import { MonthGrid } from '@/components/business/calendar/month-grid';
+import { deleteEvent, deleteLastYearEvents, Event } from '@/lib/calendar/events';
+import { getEventTypeOptions } from '@/lib/calendar/event-types';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
 import { useToast } from '@/components/ui/use-toast';
-import { deleteLastYearEvents } from '@/lib/calendar/events';
 import {
 	Dialog,
 	DialogContent,
@@ -46,23 +35,39 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { Work } from '@/lib/works/works';
-import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
+import { useCreateEvent } from '@/hooks/calendar/use-create-event';
+import { UpcomingEvents } from '@/components/business/calendar/upcoming-events';
+import { matchesSearchText } from '@/helpers/calendar/search-events';
+import { toISODate } from '@/helpers/calendar/date';
+
+const maxVisibleEvents = 5;
 
 export function CalendarView() {
 	const { toast } = useToast();
-	const { events, isLoading, refresh } = useLoadEvents();
+	const { events, refresh } = useLoadEvents();
 	const { eventTypes } = useLoadEventTypes();
-	const eventTypeOptions = getEventTypeOptions(eventTypes);
 	const [currentDate, setCurrentDate] = useState(new Date());
 	const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 	const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 	const [selectedDate, setSelectedDate] = useState<string | null>(null);
 	const [activeFilter, setActiveFilter] = useState<string>('todos');
 	const [searchTerm, setSearchTerm] = useState('');
-	const maxVisibleEvents = 5; // Show only 5 events by default
 	const [showAllEvents, setShowAllEvents] = useState(false);
-
 	const [workDataMap, setWorkDataMap] = useState<Record<number, Work>>({});
+	const [openEventTypesDialog, setOpenEventTypesDialog] = useState(false);
+	const [deleteEventId, setDeleteEventId] = useState<number | null>(null);
+	const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
+
+	const { createEvent, googleCalendarErrorUrl, setGoogleCalendarErrorUrl } = useCreateEvent({
+		eventTypes,
+		onEventCreated: async () => {
+			await refresh();
+			setShowAllEvents(false);
+		},
+	});
+	const eventTypeOptions = getEventTypeOptions(eventTypes);
 
 	useEffect(() => {
 		const workIds = [...new Set(events.filter((e) => e.work_id).map((e) => e.work_id!))];
@@ -90,50 +95,21 @@ export function CalendarView() {
 			});
 	}, [events]);
 
-	const [openEventTypesDialog, setOpenEventTypesDialog] = useState(false);
-	const [deleteEventId, setDeleteEventId] = useState<number | null>(null);
-	const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-	const [googleCalendarErrorUrl, setGoogleCalendarErrorUrl] = useState<string | null>(null);
-
-	useEffect(() => {
-		console.log('eventTypes actualizados', eventTypes);
-	}, [eventTypes]);
-
 	const { user } = useAuth();
 	const isAuthorized = user?.role === 'Admin';
-	const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-	const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
 
-	const formatDateString = (year: number, month: number, day: number) => {
-		return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-	};
+	const eventsByDate = useMemo(() => {
+		const filtered =
+			activeFilter === 'todos' ? events : events.filter((event) => event.type === activeFilter);
 
-	const toISODate = (date: string | undefined): string | null => {
-		if (!date) return null;
-		return date.split('T')[0];
-	};
-
-	const getEventsForDate = (day: number) => {
-		const dateStr = formatDateString(currentDate.getFullYear(), currentDate.getMonth(), day);
-		let dayEvents = events.filter((event) => toISODate(event.date) === dateStr);
-
-		if (activeFilter !== 'todos') {
-			dayEvents = dayEvents.filter((event) => event.type === activeFilter);
+		const map: Record<string, Event[]> = {};
+		for (const event of filtered) {
+			const key = toISODate(event.date) ?? '';
+			if (!map[key]) map[key] = [];
+			map[key].push(event);
 		}
-
-		const eventsByType = dayEvents.reduce(
-			(acc, event) => {
-				if (event.type && !acc[event.type]) {
-					acc[event.type] = [];
-				}
-				if (event.type) acc[event.type].push(event);
-				return acc;
-			},
-			{} as Record<string, Event[]>
-		);
-
-		return eventsByType;
-	};
+		return map;
+	}, [events, activeFilter]);
 
 	const handleDeleteEvent = (eventId: number, e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -188,51 +164,28 @@ export function CalendarView() {
 		setIsDetailsModalOpen(true);
 	};
 
-	const matchesWorkData = (event: Event, search: string) => {
-		if (event.work_id && workDataMap[event.work_id]) {
-			const w = workDataMap[event.work_id];
-			if (
-				w.locality?.toLowerCase().includes(search) ||
-				w.address?.toLowerCase().includes(search) ||
-				w.zone?.toLowerCase().includes(search) ||
-				w.hood?.toLowerCase().includes(search)
-			) {
-				return true;
-			}
-		}
-		return false;
-	};
+	const filteredEvents = useMemo(() => {
+		const lowerSearch = searchTerm.toLowerCase();
 
-	const matchesSearchText = (event: Event, search: string) => {
-		if (search === '') return true;
-		return (
-			event.title?.toLowerCase().includes(search) ||
-			event.client_name?.toLowerCase().includes(search) ||
-			event.description?.toLowerCase().includes(search) ||
-			event.type?.toLowerCase().includes(search) ||
-			event.work_location?.toLowerCase().includes(search) ||
-			matchesWorkData(event, search)
-		);
-	};
-
-	const filteredEvents = selectedDate
-		? events.filter((event) => {
-				const matchesDate = toISODate(event.date) === selectedDate;
-				const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
-				return matchesDate && matchesFilter && matchesSearchText(event, searchTerm.toLowerCase());
-			})
-		: events
+		if (!selectedDate) {
+			return events
 				.filter((event) => {
 					const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
-					return matchesFilter && matchesSearchText(event, searchTerm.toLowerCase());
+					return matchesFilter && matchesSearchText(event, lowerSearch, workDataMap);
 				})
 				.sort((a, b) => {
 					return (toISODate(a.date) ?? '').localeCompare(toISODate(b.date) ?? '');
 				});
-	const currentEvents = showAllEvents ? filteredEvents : filteredEvents.slice(0, maxVisibleEvents);
+		}
 
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [isDeleting, setIsDeleting] = useState(false);
+		return events.filter((event) => {
+			const matchesDate = toISODate(event.date) === selectedDate;
+			const matchesFilter = activeFilter === 'todos' || event.type === activeFilter;
+			return matchesDate && matchesFilter && matchesSearchText(event, lowerSearch, workDataMap);
+		});
+	}, [events, selectedDate, activeFilter, searchTerm, workDataMap]);
+
+	const currentEvents = showAllEvents ? filteredEvents : filteredEvents.slice(0, maxVisibleEvents);
 
 	const handleDeleteLastYearEvents = async () => {
 		setIsDeleting(true);
@@ -246,10 +199,10 @@ export function CalendarView() {
 			});
 			await refresh();
 		} else {
-			const errorMesagge = translateError(error);
+			const errorMessage = translateError(error);
 			toast({
 				title: 'Error',
-				description: errorMesagge || 'No se pudieron eliminar los eventos.',
+				description: errorMessage || 'No se pudieron eliminar los eventos.',
 				variant: 'destructive',
 			});
 		}
@@ -276,115 +229,7 @@ export function CalendarView() {
 						eventTypes={eventTypes}
 						refresh={refresh}
 					/>
-					<EventFormModal
-						eventTypes={eventTypes}
-						onSave={async (eventData) => {
-							try {
-								const selectedEventType = eventTypes.find(
-									(eventType) => eventType.name === eventData.type
-								);
-
-								const dateStr =
-									typeof eventData.date === 'string'
-										? eventData.date
-										: eventData.date instanceof Date
-											? `${eventData.date.getDate()}-${eventData.date.getMonth() + 1}-${eventData.date.getFullYear()}`
-											: '';
-
-								const [day, month, year] = dateStr.split('-').map(Number);
-
-								const formattedDate = `${year}-${month
-									.toString()
-									.padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
-								const { data: newEvent, error } = await createEvent({
-									title: eventData.title || 'Sin título',
-									type_id: selectedEventType?.id ?? null,
-									description: eventData.description,
-									client_id: eventData.client_id,
-									client_name: !eventData.client_id ? eventData.client_name : null,
-									date: formattedDate,
-									time: eventData.time || null,
-									remember: eventData.remember,
-									work_id: eventData.work_id,
-									work_location: !eventData.work_id ? eventData.work_location : null,
-								});
-
-								if (error) {
-									console.error('Error al crear el evento:', error);
-
-									toast({
-										title: 'Error',
-										description: translateError(error) || 'No se pudo crear el evento.',
-										variant: 'destructive',
-									});
-
-									return false;
-								}
-
-								if (newEvent) {
-									const title = eventData.title || 'Sin título';
-
-									const details = [
-										`Tipo: ${selectedEventType?.name || eventData.type || 'N/A'}`,
-										`Descripción: ${eventData.description || 'N/A'}`,
-										`Cliente: ${eventData.client_name || 'N/A'}`,
-									].join('\n');
-
-									const location = eventData.work_location || '';
-
-									const cleanDate = formattedDate.replace(/-/g, '');
-
-									const startTime = eventData.time
-										? eventData.time.replace(':', '') + '00'
-										: '090000';
-
-									const endTime = eventData.time
-										? String(parseInt(eventData.time.split(':')[0], 10) + 1).padStart(2, '0') +
-											eventData.time.split(':')[1] +
-											'00'
-										: '100000';
-
-									const startDateTime = `${cleanDate}T${startTime}`;
-									const endDateTime = `${cleanDate}T${endTime}`;
-
-									const params = new URLSearchParams({
-										action: 'TEMPLATE',
-										text: title,
-										dates: `${startDateTime}/${endDateTime}`,
-										details,
-										location,
-										ctz: 'America/Argentina/Cordoba',
-									});
-
-									const googleCalendarUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
-
-									const opened = window.open(googleCalendarUrl, '_blank');
-
-									if (!opened) {
-										setGoogleCalendarErrorUrl(googleCalendarUrl);
-									}
-
-									await refresh();
-									setShowAllEvents(false);
-
-									return true;
-								}
-
-								return false;
-							} catch (error) {
-								console.error('Error inesperado al crear el evento:', error);
-
-								toast({
-									title: 'Error',
-									description: translateError(error) || 'No se pudo crear el evento.',
-									variant: 'destructive',
-								});
-
-								return false;
-							}
-						}}
-					>
+					<EventFormModal eventTypes={eventTypes} onSave={createEvent}>
 						{isAuthorized && (
 							<Button className="gap-2">
 								<CalendarIcon className="h-4 w-4" />
@@ -419,239 +264,42 @@ export function CalendarView() {
 							))}
 						</div>
 
-						{/* Calendar header */}
-						<div className="flex items-center justify-between">
-							<h3 className="text-lg font-semibold text-foreground">
-								{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-							</h3>
-							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="icon"
-									onClick={() =>
-										setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
-									}
-								>
-									<ChevronLeft className="h-4 w-4" />
-								</Button>
-								<Button
-									variant="outline"
-									size="icon"
-									onClick={() =>
-										setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
-									}
-								>
-									<ChevronRight className="h-4 w-4" />
-								</Button>
-							</div>
-						</div>
-
-						{/* Calendar grid */}
-						<div className="grid grid-cols-7 gap-1">
-							{/* Day names */}
-							{dayNames.map((day) => (
-								<div
-									key={day}
-									className="text-center text-xs font-medium text-muted-foreground py-2"
-								>
-									{day}
-								</div>
-							))}
-
-							{/* Empty cells for days before month starts */}
-							{Array.from({ length: firstDayOfMonth }).map((_, index) => (
-								<div key={`empty-${index}`} className="aspect-square" />
-							))}
-
-							{/* Calendar days */}
-							{Array.from({ length: daysInMonth }).map((_, index) => {
-								const day = index + 1;
-								const dayEvents = getEventsForDate(day);
-								const dateStr = formatDateString(
-									currentDate.getFullYear(),
-									currentDate.getMonth(),
-									day
-								);
-								const isToday =
-									new Date().toDateString() ===
-									new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
-
-								return (
-									<CalendarDay
-										key={day}
-										day={day}
-										events={dayEvents}
-										isToday={isToday}
-										isSelected={selectedDate === dateStr}
-										onClick={() => setSelectedDate(selectedDate === dateStr ? null : dateStr)}
-										eventTypes={eventTypes}
-									/>
-								);
-							})}
-						</div>
+						<MonthGrid
+							currentDate={currentDate}
+							selectedDate={selectedDate}
+							eventTypes={eventTypes}
+							eventsByDate={eventsByDate}
+							onDateSelect={setSelectedDate}
+							onPreviousMonth={() =>
+								setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
+							}
+							onNextMonth={() =>
+								setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
+							}
+						/>
 					</div>
 				</Card>
 
 				{/* Upcoming events */}
-				<Card className="p-6 bg-card border-border">
-					<div className="flex justify-between items-center">
-						<h3 className="text-sm font-semibold text-foreground">Próximos eventos</h3>
-						{selectedDate && (
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => {
-									setSelectedDate(null);
-									setShowAllEvents(false); // Reset to show only first 5 events when clearing date filter
-								}}
-								className="text-sm text-muted-foreground"
-							>
-								Mostrar todos los eventos
-							</Button>
-						)}
-					</div>
-					{/* Search Bar */}
-					<Card className="p-2 bg-card border-border">
-						<div className="flex items-center gap-2">
-							<input
-								type="text"
-								placeholder="Buscar eventos por cliente, ubicación, tipo, etc..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								className="flex-1 px-3 py-2 text-sm rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-							/>
-						</div>
-					</Card>
-					<div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-						{currentEvents.length > 0 ? (
-							<>
-								{currentEvents.map((event) => {
-									const typeInfo = resolveEventType(event.type, eventTypes);
-									const isOverdue = event.is_overdue || false;
-
-									return (
-										<div
-											key={event.id}
-											className={`p-3 rounded-lg border space-y-2 cursor-pointer transition-colors ${
-												isOverdue
-													? 'border-red-500 bg-red-500/10 hover:bg-red-500/20'
-													: 'border-border bg-secondary hover:bg-secondary/80'
-											}`}
-											onClick={() => handleEventClick(event)}
-										>
-											<div className="flex items-start justify-between gap-2">
-												<div className="flex items-start gap-2 min-w-0">
-													<div className="p-1.5 rounded bg-secondary/70 mt-0.5 flex-shrink-0">
-														<div
-															className="h-2 w-2 rounded-full"
-															style={{ backgroundColor: isOverdue ? '#ef4444' : typeInfo.color }}
-														/>
-													</div>
-													<div className="min-w-0 flex-1">
-														<div className="flex items-center gap-2">
-															<h4 className="text-sm font-medium text-foreground break-words">
-																{event.title}
-															</h4>
-															{isOverdue && (
-																<div className="flex items-center gap-1 flex-shrink-0">
-																	<div
-																		className="h-2 w-2 rounded-full bg-red-500"
-																		title="Evento atrasado"
-																	/>
-																</div>
-															)}
-														</div>
-														{event.client_name && (
-															<p className="text-xs text-muted-foreground break-words">
-																{event.client_name}
-															</p>
-														)}
-													</div>
-												</div>
-												{isAuthorized && (
-													<div className="flex items-start flex-shrink-0">
-														<Button
-															variant="ghost"
-															size="icon"
-															onClick={(e) => handleDeleteEvent(event.id, e)}
-															className="h-6 w-6 -mr-2"
-															aria-label="Eliminar evento"
-														>
-															<Trash2 className="h-3.5 w-3.5" />
-														</Button>
-													</div>
-												)}
-											</div>
-											<div className="space-y-1 text-xs text-muted-foreground">
-												<div className="flex items-center gap-1.5">
-													<CalendarIcon className="h-3.5 w-3.5 flex-shrink-0" />
-													<span>
-														{formatCreatedAt(event.date)}
-														{event.time && (
-															<span className="ml-1">{formatSimpleTime(event.time)}</span>
-														)}
-													</span>
-												</div>
-												{event.work_id && workDataMap[event.work_id] ? (
-													<>
-														<div className="flex items-center gap-1.5">
-															<MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-															<span>
-																{workDataMap[event.work_id].locality || 'Sin localidad'} -{' '}
-																{workDataMap[event.work_id].address || 'Sin dirección'}
-															</span>
-														</div>
-														{workDataMap[event.work_id].zone && (
-															<div className="flex items-center gap-1.5">
-																<MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-																<span>Zona: {workDataMap[event.work_id].zone}</span>
-															</div>
-														)}
-														{workDataMap[event.work_id].hood && (
-															<div className="flex items-center gap-1.5">
-																<Home className="h-3.5 w-3.5 flex-shrink-0" />
-																<span>Barrio: {workDataMap[event.work_id].hood}</span>
-															</div>
-														)}
-													</>
-												) : event.work_location ? (
-													<div className="flex items-center gap-1.5">
-														<MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-														<span>{event.work_location}</span>
-													</div>
-												) : null}
-												{event.description && (
-													<div className="flex items-center gap-1.5">
-														<Package className="h-3.5 w-3.5 flex-shrink-0" />
-														<span>{event.description}</span>
-													</div>
-												)}
-											</div>
-										</div>
-									);
-								})}
-								{filteredEvents.length > maxVisibleEvents && (
-									<Button
-										variant="outline"
-										size="sm"
-										className="w-full mt-2"
-										onClick={() => setShowAllEvents(!showAllEvents)}
-									>
-										{showAllEvents
-											? 'Mostrar menos'
-											: `Mostrar más (${filteredEvents.length - maxVisibleEvents})`}
-									</Button>
-								)}
-							</>
-						) : (
-							<p className="text-sm text-muted-foreground">
-								{selectedDate
-									? 'No hay eventos programados para esta fecha'
-									: 'No hay eventos próximos'}
-							</p>
-						)}
-					</div>
-				</Card>
+				<UpcomingEvents
+					events={currentEvents}
+					totalCount={filteredEvents.length}
+					maxVisibleEvents={maxVisibleEvents}
+					showAllEvents={showAllEvents}
+					onToggleShowAll={() => setShowAllEvents(!showAllEvents)}
+					selectedDate={selectedDate}
+					onClearDate={() => {
+						setSelectedDate(null);
+						setShowAllEvents(false);
+					}}
+					searchTerm={searchTerm}
+					onSearchChange={setSearchTerm}
+					onEventClick={handleEventClick}
+					onDeleteEvent={handleDeleteEvent}
+					isAuthorized={isAuthorized}
+					eventTypes={eventTypes}
+					workDataMap={workDataMap}
+				/>
 			</div>
 
 			{/* Legend */}
