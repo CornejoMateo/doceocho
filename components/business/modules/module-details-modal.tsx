@@ -17,7 +17,7 @@ import { ModuleFile, listModuleFiles } from '@/lib/modules/modules-files';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import {
 	formatDate,
-	getFileExtension,
+	getFileKind,
 	isImage,
 	isVideo,
 	FileViewerItem,
@@ -36,6 +36,7 @@ type ModuleFileWithUrl = ModuleFile & {
 	url: string;
 	isImg: boolean;
 	isVid: boolean;
+	fileType: string;
 };
 
 export function ModuleDetailsModal({
@@ -76,12 +77,17 @@ export function ModuleDetailsModal({
 							.from('modules')
 							.download(file.storage_path);
 						const contentType = blob?.type || '';
-						const ext = getFileExtension(file.file_name || file.storage_path);
+						const sourceName = file.file_name || file.storage_path;
+						const kind = getFileKind(sourceName);
+						const fileType =
+							contentType ||
+							(kind === 'image' ? 'image/jpeg' : kind === 'video' ? 'video/mp4' : '');
 						return {
 							...file,
 							url: blob ? URL.createObjectURL(blob) : '',
-							isImg: isImage(contentType) || isImage(ext),
-							isVid: isVideo(contentType) || isVideo(ext),
+							isImg: isImage(contentType) || kind === 'image',
+							isVid: isVideo(contentType) || kind === 'video',
+							fileType,
 						} as ModuleFileWithUrl;
 					} catch (err) {
 						setError('Error al descargar el archivo: ' + (err as Error).message);
@@ -90,6 +96,7 @@ export function ModuleDetailsModal({
 							url: '',
 							isImg: false,
 							isVid: false,
+							fileType: '',
 						} as ModuleFileWithUrl;
 					}
 				})
@@ -126,6 +133,7 @@ export function ModuleDetailsModal({
 		name: f.file_name || 'Archivo',
 		displayName: f.file_name || 'Archivo',
 		description: f.description || null,
+		mimetype: f.fileType || null,
 	}));
 
 	return (

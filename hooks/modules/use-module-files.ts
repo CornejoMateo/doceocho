@@ -5,7 +5,7 @@ import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { listModuleFiles } from '@/lib/modules/modules-files';
-import { isImage } from '@/utils/file-upload-utils';
+import { isImage, getFileKind } from '@/utils/file-upload-utils';
 import { PendingFile } from '@/components/business/modules/inputs-form-module';
 
 interface UseModuleFilesOptions {
@@ -56,7 +56,8 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 						const { data: blob } = await getSupabaseClient()
 							.storage.from('modules')
 							.download(f.storage_path);
-						const isImg = isImage(blob?.type || '');
+						const isImg =
+							isImage(blob?.type || '') || getFileKind(f.file_name || f.storage_path) === 'image';
 						return {
 							id: `existing-${f.id}`,
 							preview: blob ? URL.createObjectURL(blob) : '',
