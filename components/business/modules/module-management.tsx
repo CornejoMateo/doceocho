@@ -62,11 +62,10 @@ export function ModuleManagement() {
 		setIsDeleting(true);
 		const { error } = await deleteModule(deleteConfirm.module.id);
 		if (error) {
-			console.error('Error eliminando módulo:', error);
 			toast({
 				variant: 'destructive',
 				title: 'Error al eliminar el módulo',
-				description: translateError(error),
+				description: translateError(error) || 'Ocurrió un error al eliminar el módulo.',
 			});
 		} else {
 			toast({

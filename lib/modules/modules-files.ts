@@ -56,14 +56,15 @@ export async function updateModuleFile(
 export async function uploadModuleFile(
 	moduleId: number,
 	file: File,
-	description?: string | null
+	description?: string | null,
+	displayName?: string | null
 ): Promise<{ data: ModuleFile | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
 		const fileExt = file.name.split('.').pop();
-		const fileName = `${crypto.randomUUID()}.${fileExt}`;
-		const filePath = `${moduleId}/${fileName}`;
+		const storageName = `${crypto.randomUUID()}.${fileExt}`;
+		const filePath = `${moduleId}/${storageName}`;
 
 		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
 
@@ -76,7 +77,7 @@ export async function uploadModuleFile(
 			.insert({
 				storage_path: filePath,
 				module_id: moduleId,
-				file_name: file.name,
+				file_name: displayName?.trim() || file.name,
 				description: description || null,
 			})
 			.select()

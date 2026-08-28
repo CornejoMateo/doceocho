@@ -35,6 +35,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 		if (!enabled) return;
 
 		let cancelled = false;
+		setError(null);
 
 		const loadExistingFiles = async () => {
 			if (!moduleToEdit) {
@@ -322,5 +323,6 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 		closeEditor,
 		handleImageReady,
 		getOriginalExistingIds,
+		errorFiles: error,
 	};
 }
