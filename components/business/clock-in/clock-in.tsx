@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import QRScanner from './attendance-qr-scanner';
 import { listUsers, User } from '@/lib/users/users';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { ModuleManagement } from '../modules/module-management';
 
 export function ClockIn() {
 	const adminHistoryRef = useRef<{ loadHistory: () => Promise<void> }>(null);
@@ -380,17 +381,7 @@ export function ClockIn() {
 					</TabsContent>
 
 					<TabsContent value="module">
-						<Card className="w-full">
-							<CardHeader>
-								<CardTitle>Fichaje por módulo</CardTitle>
-								<CardDescription>
-									Sección en construcción. Aquí iremos agregando la funcionalidad por módulo.
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<p className="text-sm text-muted-foreground">Por ahora no hay nada para mostrar.</p>
-							</CardContent>
-						</Card>
+						<ModuleManagement />
 					</TabsContent>
 				</Tabs>
 			</div>
