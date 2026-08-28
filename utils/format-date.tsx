@@ -82,3 +82,12 @@ export function formatSimpleTime(timeString: string | null | undefined): string 
 	// Return original string if format is unexpected
 	return timeString;
 }
+
+// Used for formatting durations in seconds to mm:ss format (video)
+export const formatTimeVideo = (seconds: number) => {
+	const m = Math.floor(seconds / 60)
+		.toString()
+		.padStart(2, '0');
+	const s = (seconds % 60).toString().padStart(2, '0');
+	return `${m}:${s}`;
+};
