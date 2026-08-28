@@ -4,6 +4,7 @@ create table public.modules_files (
   storage_path text not null,
   module_id bigint not null,
   file_name text null,
+  description text null,
   constraint modules_files_pkey primary key (id),
   constraint modules_files_module_id_fkey foreign KEY (module_id) references modules (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
