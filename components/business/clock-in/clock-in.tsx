@@ -239,8 +239,8 @@ export function ClockIn() {
 
 	return (
 		<div className="container mx-auto p-4 md:p-8">
-			<div className="grid gap-4 md:gap-6">
-				<Tabs defaultValue="hour">
+			<div className="grid gap-4 md:gap-6 min-w-0">
+				<Tabs defaultValue="hour" className="min-w-0">
 					<TabsList>
 						<TabsTrigger value="hour">Por hora</TabsTrigger>
 						{!isQR && <TabsTrigger value="module">Por módulo</TabsTrigger>}
@@ -380,7 +380,7 @@ export function ClockIn() {
 						)}
 					</TabsContent>
 
-					<TabsContent value="module">
+					<TabsContent value="module" className="min-w-0">
 						<ModuleManagement />
 					</TabsContent>
 				</Tabs>

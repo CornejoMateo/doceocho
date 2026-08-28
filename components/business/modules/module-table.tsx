@@ -87,12 +87,13 @@ export function ModuleTable({
 										<Button
 											variant="ghost"
 											size="icon"
+											className="hover:bg-destructive hover:text-destructive-foreground"
 											onClick={(e) => {
 												e.stopPropagation();
 												onDelete(module);
 											}}
 										>
-											<Trash2 className="h-4 w-4 text-destructive" />
+											<Trash2 className="h-4 w-4" />
 										</Button>
 									</div>
 								</TableCell>

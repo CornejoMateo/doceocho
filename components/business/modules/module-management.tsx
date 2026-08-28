@@ -87,7 +87,7 @@ export function ModuleManagement() {
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-4 min-w-0">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0">
 					<h2 className="text-lg font-semibold">Módulos del mes actual</h2>
@@ -96,7 +96,11 @@ export function ModuleManagement() {
 					</p>
 				</div>
 
-				<Button size="sm" className="w-full sm:w-auto gap-2" onClick={() => setCreateOpen(true)}>
+				<Button
+					size="sm"
+					className="min-w-0 w-full sm:w-auto gap-2"
+					onClick={() => setCreateOpen(true)}
+				>
 					<Plus className="h-4 w-4 shrink-0" />
 					<span>Nuevo módulo</span>
 				</Button>
