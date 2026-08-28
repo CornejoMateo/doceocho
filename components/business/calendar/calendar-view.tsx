@@ -93,6 +93,7 @@ export function CalendarView() {
 	const [openEventTypesDialog, setOpenEventTypesDialog] = useState(false);
 	const [deleteEventId, setDeleteEventId] = useState<number | null>(null);
 	const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+	const [googleCalendarErrorUrl, setGoogleCalendarErrorUrl] = useState<string | null>(null);
 
 	useEffect(() => {
 		console.log('eventTypes actualizados', eventTypes);
@@ -322,10 +323,6 @@ export function CalendarView() {
 								}
 
 								if (newEvent) {
-									// ==========================
-									// DATOS PARA GOOGLE CALENDAR
-									// ==========================
-
 									const title = eventData.title || 'Sin título';
 
 									const details = [
@@ -362,7 +359,11 @@ export function CalendarView() {
 
 									const googleCalendarUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
 
-									window.open(googleCalendarUrl, '_blank');
+									const opened = window.open(googleCalendarUrl, '_blank');
+
+									if (!opened) {
+										setGoogleCalendarErrorUrl(googleCalendarUrl);
+									}
 
 									await refresh();
 									setShowAllEvents(false);
@@ -742,6 +743,37 @@ export function CalendarView() {
 					eventTypes={eventTypes}
 				/>
 			)}
+			<Dialog
+				open={googleCalendarErrorUrl !== null}
+				onOpenChange={(open) => {
+					if (!open) setGoogleCalendarErrorUrl(null);
+				}}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>No se pudo abrir Google Calendar</DialogTitle>
+						<DialogDescription>
+							Tu navegador bloqueó la apertura de la nueva pestaña. Hacé clic en el link para abrir
+							el evento manualmente.
+						</DialogDescription>
+					</DialogHeader>
+					{googleCalendarErrorUrl && (
+						<a
+							href={googleCalendarErrorUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90"
+						>
+							Abrir evento en Google Calendar
+						</a>
+					)}
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setGoogleCalendarErrorUrl(null)}>
+							Cerrar
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 			<AlertDialog
 				open={deleteEventId !== null}
 				onOpenChange={(open) => {

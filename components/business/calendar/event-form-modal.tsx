@@ -435,13 +435,16 @@ export function EventFormModal({
 											work_location: '',
 										}));
 									} else {
+										const selectedWork = clientWorks.find(
+											(work) => work.id === parseInt(value, 10)
+										);
+
 										setFormData((prev) => ({
 											...prev,
 											work_id: parseInt(value),
-											work_location:
-												clientWorks.find((work) => work.id === parseInt(value))?.locality +
-													', ' +
-													clientWorks.find((work) => work.id === parseInt(value))?.address || '',
+											work_location: [selectedWork?.locality, selectedWork?.address]
+												.filter(Boolean)
+												.join(', '),
 										}));
 									}
 								}}
