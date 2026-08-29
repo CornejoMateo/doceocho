@@ -64,7 +64,6 @@ export async function listModules(): Promise<{ data: Module[] | null; error: any
 	}
 }
 
-// Mes basado en 1 (1 = enero, 12 = diciembre), como viene de getLocalDate().
 export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
@@ -106,6 +105,39 @@ export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | n
 		return { data: modulesWithWorkNames, error: null };
 	} catch (error) {
 		console.error('Error inesperado en listModulesForCurrentMonth:', error);
+		return {
+			data: null,
+			error: error instanceof Error ? error : new Error('Error desconocido'),
+		};
+	}
+}
+
+export async function listModulesPending(): Promise<{ data: Module[] | null; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const { data, error } = await supabase
+			.from(TABLE)
+			.select(`*, works:work_id (name, locality, address, hood, zone)`)
+			.eq('status', 'pending')
+			.order('created_at', { ascending: false });
+
+		if (error) {
+			console.error('Error en la consulta de módulos pendientes:', {
+				message: error.message,
+				details: error.details,
+			});
+			return { data: null, error };
+		}
+
+		const modulesWithWorkNames = data.map((module) => ({
+			...module,
+			work_name: module.works?.name || null,
+		}));
+
+		return { data: modulesWithWorkNames, error: null };
+	} catch (error) {
+		console.error('Error inesperado en listModulesPending:', error);
 		return {
 			data: null,
 			error: error instanceof Error ? error : new Error('Error desconocido'),
@@ -204,17 +236,11 @@ export async function deleteModule(id: number): Promise<{ data: null; error: any
 		return { data: null, error: filesError };
 	}
 
-	// Borrar el módulo primero: el ON DELETE CASCADE elimina las filas de
-	// modules_files solas. Si el delete del módulo falla, no se tocó nada.
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	if (error) {
 		return { data: null, error };
 	}
 
-	// Después del cascade las filas ya no existen y deleteModuleFile no puede
-	// usarse (su lookup de fila fallaría). Quitamos los objetos directamente
-	// del bucket con los storage_path guardados; es best-effort: si falla solo
-	// quedan objetos huérfanos, el módulo ya está eliminado.
 	const storagePaths = (files ?? []).map((f) => f.storage_path).filter(Boolean);
 	if (storagePaths.length > 0) {
 		const { error: deleteStorageError } = await supabase.storage
