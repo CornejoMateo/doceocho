@@ -4,6 +4,7 @@ import {
 	getModuleById,
 	getModulesByWorkId,
 	getModulesByUserId,
+	getUserModulesForMonth,
 	createModule,
 	updateModule,
 	deleteModule,
@@ -237,6 +238,39 @@ describe('modules lib', () => {
 			chain.order.mockReturnValue(Promise.resolve({ data: null, error: new Error('DB error') }));
 
 			const result = await getModulesByUserId('user-1');
+
+			expect(result.data).toBeNull();
+			expect(result.error).toEqual(new Error('DB error'));
+		});
+	});
+
+	describe('getUserModulesForMonth', () => {
+		it('filters by user and period with Argentina timezone bounds', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.order.mockReturnValue(
+				Promise.resolve({ data: [MODULE_ROW, { ...MODULE_ROW, id: 2, works: null }], error: null })
+			);
+
+			const result = await getUserModulesForMonth('user-1', 2026, 7);
+
+			expect(chain.eq).toHaveBeenCalledWith('user_id', 'user-1');
+			expect((chain.gte as jest.Mock).mock.calls[0][1]).toBe('2026-08-01T03:00:00.000Z');
+			expect((chain.lte as jest.Mock).mock.calls[0][1]).toBe('2026-09-01T02:59:59.999Z');
+			expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false });
+			expect(result.data?.[0].work_name).toBe('Obra Centro');
+			expect(result.data?.[1].work_name).toBeNull();
+			expect(result.error).toBeNull();
+		});
+
+		it('returns error on supabase error', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.order.mockReturnValue(Promise.resolve({ data: null, error: new Error('DB error') }));
+
+			const result = await getUserModulesForMonth('user-1', 2026, 7);
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(new Error('DB error'));
