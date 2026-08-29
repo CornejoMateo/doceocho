@@ -90,7 +90,7 @@ export function ModuleManagement() {
 		<div className="flex flex-col gap-4 min-w-0">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0">
-					<h2 className="text-lg font-semibold">Módulos del mes actual</h2>
+					<h2 className="text-lg mt-5 font-semibold">Módulos del mes actual</h2>
 					<p className="text-sm text-muted-foreground">
 						{modules.length} módulo(s) registrado(s) este mes.
 					</p>
