@@ -79,23 +79,54 @@ jest.mock('@/components/ui/card', () => ({
 	CardTitle: ({ children }: any) => <h3>{children}</h3>,
 }));
 
-jest.mock('@/components/ui/tabs', () => ({
-	Tabs: ({ children, defaultValue }: any) => (
-		<div data-testid="tabs" data-default-value={defaultValue}>
-			{children}
-		</div>
-	),
-	TabsList: ({ children }: any) => <div role="tablist">{children}</div>,
-	TabsTrigger: ({ children, value, ...props }: any) => (
-		<button role="tab" data-value={value} {...props}>
-			{children}
-		</button>
-	),
-	TabsContent: ({ children, value }: any) => <div data-value={value}>{children}</div>,
-}));
+jest.mock('@/components/ui/tabs', () => {
+	const { createContext, useContext, useState } = require('react');
+	const TabsContext = createContext({
+		value: '',
+		setValue: (_value: string) => {},
+	});
+	const Tabs = ({ children, defaultValue }: any) => {
+		const [value, setValue] = useState(defaultValue);
+		return (
+			<TabsContext.Provider value={{ value, setValue }}>
+				<div data-testid="tabs" data-default-value={defaultValue}>
+					{children}
+				</div>
+			</TabsContext.Provider>
+		);
+	};
+	const TabsList = ({ children }: any) => <div role="tablist">{children}</div>;
+	const TabsTrigger = ({ children, value, onClick, ...props }: any) => {
+		const { setValue } = useContext(TabsContext);
+		return (
+			<button
+				role="tab"
+				data-value={value}
+				onClick={(event: any) => {
+					setValue(value);
+					onClick?.(event);
+				}}
+				{...props}
+			>
+				{children}
+			</button>
+		);
+	};
+	const TabsContent = ({ children, value }: any) => {
+		const { value: activeValue } = useContext(TabsContext);
+		return activeValue === value ? (
+			<div data-testid={`tabs-content-${value}`}>{children}</div>
+		) : null;
+	};
+	return { Tabs, TabsList, TabsTrigger, TabsContent };
+});
 
 jest.mock('@/components/business/clock-in/attendance-history', () => ({
 	AttendanceHistory: () => <div data-testid="attendance-history" />,
+}));
+
+jest.mock('@/components/business/modules/module-management', () => ({
+	ModuleManagement: () => <div data-testid="module-management" />,
 }));
 
 jest.mock('@/components/business/clock-in/admin-attendance-history', () => ({
@@ -642,14 +673,19 @@ describe('ClockIn', () => {
 	describe('Module tab', () => {
 		beforeEach(() => setupDefaults());
 
-		it('shows construction message in module tab', async () => {
+		it('shows module management only after switching to the module tab', async () => {
 			render(<ClockIn />);
 
 			await waitFor(() => {
-				expect(screen.getByText(/Fichaje por módulo/)).toBeInTheDocument();
+				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
 			});
 
-			expect(screen.getByText(/Por ahora no hay nada para mostrar/)).toBeInTheDocument();
+			expect(screen.queryByTestId('module-management')).not.toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Por módulo'));
+
+			expect(screen.getByTestId('module-management')).toBeInTheDocument();
+			expect(screen.queryByText('Registrar entrada')).not.toBeInTheDocument();
 		});
 	});
 
@@ -661,6 +697,26 @@ describe('ClockIn', () => {
 
 			expect(screen.getByText('Por hora')).toBeInTheDocument();
 			expect(screen.getByText('Por módulo')).toBeInTheDocument();
+		});
+
+		it('switches back and forth between tabs', async () => {
+			render(<ClockIn />);
+
+			await waitFor(() => {
+				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
+			});
+
+			fireEvent.click(screen.getByText('Por módulo'));
+
+			expect(screen.getByTestId('module-management')).toBeInTheDocument();
+			expect(screen.queryByText('Registrar entrada')).not.toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Por hora'));
+
+			await waitFor(() => {
+				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
+			});
+			expect(screen.queryByTestId('module-management')).not.toBeInTheDocument();
 		});
 	});
 });
