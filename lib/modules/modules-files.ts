@@ -129,7 +129,7 @@ export async function deleteModuleFile(fileId: number): Promise<{ success: boole
 
 		const { data: fileRecord, error: fetchError } = await supabase
 			.from(TABLE)
-			.select('storage_path')
+			.select('*')
 			.eq('id', fileId)
 			.single();
 
@@ -141,12 +141,10 @@ export async function deleteModuleFile(fileId: number): Promise<{ success: boole
 			return { success: false, error: 'File record not found or missing storage path' };
 		}
 
-		const { data: fileBlob, error: downloadError } = await supabase.storage
-			.from(BUCKET)
-			.download(fileRecord.storage_path);
+		const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
 
-		if (downloadError) {
-			return { success: false, error: downloadError };
+		if (deleteDbError) {
+			return { success: false, error: deleteDbError };
 		}
 
 		const { error: deleteStorageError } = await supabase.storage
@@ -154,25 +152,19 @@ export async function deleteModuleFile(fileId: number): Promise<{ success: boole
 			.remove([fileRecord.storage_path]);
 
 		if (deleteStorageError) {
-			return { success: false, error: deleteStorageError };
-		}
+			const { error: reinsertError } = await createModuleFile({
+				storage_path: fileRecord.storage_path,
+				module_id: fileRecord.module_id,
+				file_name: fileRecord.file_name ?? null,
+				description: fileRecord.description ?? null,
+			});
 
-		const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
-
-		if (deleteDbError) {
-			const { error: reuploadError } = await supabase.storage
-				.from(BUCKET)
-				.upload(fileRecord.storage_path, fileBlob, { upsert: true });
-
-			if (reuploadError) {
-				console.error('Failed to restore file to bucket after DB delete failure:', reuploadError);
-				return {
-					success: false,
-					error: { deleteDbError, reuploadError },
-				};
+			if (reinsertError) {
+				console.error('Failed to restore file record after storage delete failure:', reinsertError);
+				return { success: false, error: { deleteStorageError, reinsertError } };
 			}
 
-			return { success: false, error: deleteDbError };
+			return { success: false, error: deleteStorageError };
 		}
 
 		return { success: true, error: null };
