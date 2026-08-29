@@ -23,6 +23,7 @@ interface ModuleTableProps {
 	onRowClick: (module: Module) => void;
 	onEdit: (module: Module) => void;
 	onDelete: (module: Module) => void;
+	emptyText?: string;
 }
 
 export function ModuleTable({
@@ -31,6 +32,7 @@ export function ModuleTable({
 	onRowClick,
 	onEdit,
 	onDelete,
+	emptyText,
 }: ModuleTableProps) {
 	return (
 		<Card className="overflow-hidden">
@@ -40,7 +42,7 @@ export function ModuleTable({
 				</div>
 			) : modules.length === 0 ? (
 				<p className="text-sm text-muted-foreground text-center py-10">
-					Todavía no hay módulos registrados este mes.
+					{emptyText ?? 'Todavía no hay módulos registrados este mes.'}
 				</p>
 			) : (
 				<Table>
