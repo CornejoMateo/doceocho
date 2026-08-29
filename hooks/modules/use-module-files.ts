@@ -5,8 +5,16 @@ import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { listModuleFiles } from '@/lib/modules/modules-files';
-import { isImage, getFileKind } from '@/utils/file-upload-utils';
+import {
+	isImage,
+	getFileKind,
+	isValidFileSize,
+	MAX_MODULE_IMAGE_SIZE,
+	MAX_MODULE_VIDEO_SIZE,
+} from '@/utils/file-upload-utils';
 import { PendingFile } from '@/components/business/modules/inputs-form-module';
+
+const RECORDING_STOP_MARGIN = 1024 * 1024; // When the video reaches this point, it cuts off
 
 interface UseModuleFilesOptions {
 	moduleToEdit?: { id: number } | null;
@@ -20,6 +28,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 	const [editingFileId, setEditingFileId] = useState<string | null>(null);
 	const [isRecording, setIsRecording] = useState(false);
 	const [recordingTime, setRecordingTime] = useState(0);
+	const [recordingSize, setRecordingSize] = useState(0);
 
 	const [error, setError] = useState<string | null>(null);
 
@@ -29,10 +38,15 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const chunksRef = useRef<Blob[]>([]);
 	const recordingTimerRef = useRef<number | null>(null);
+	const autoStoppedByLimitRef = useRef(false);
 	const originalExistingIdsRef = useRef<number[]>([]);
+	const filesRef = useRef<PendingFile[]>([]);
 
 	useEffect(() => {
-		if (!enabled) return;
+		if (!enabled) {
+			clearFiles();
+			return;
+		}
 
 		let cancelled = false;
 		setError(null);
@@ -65,6 +79,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 							displayName: f.file_name || 'Archivo',
 							description: f.description || '',
 							existingId: f.id,
+							size: blob?.size,
 						} as PendingFile;
 					} catch (err) {
 						console.error('Error descargando archivo existente:', f.storage_path, err);
@@ -82,7 +97,10 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 
 			if (!cancelled) {
 				originalExistingIdsRef.current = (existingFiles ?? []).map((f) => f.id);
-				setFiles(pendingFiles);
+				setFiles((prev) => {
+					releasePreviews(prev);
+					return pendingFiles;
+				});
 			}
 		};
 
@@ -102,11 +120,24 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 	}, []);
 
 	useEffect(() => {
+		filesRef.current = files;
+	}, [files]);
+
+	useEffect(() => {
 		return () => {
 			stopRecording();
-			releasePreviews(files);
+			releasePreviews(filesRef.current);
 		};
 	}, []);
+
+	useEffect(() => {
+		if (!isRecording || !mediaStreamRef.current || !videoPreviewRef.current) return;
+		const video = videoPreviewRef.current;
+		video.srcObject = mediaStreamRef.current;
+		video.onloadedmetadata = () => {
+			video.play().catch(() => {});
+		};
+	}, [isRecording, videoPreviewRef]);
 
 	const clearFiles = () => {
 		setFiles((prev) => {
@@ -122,9 +153,14 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 		}
 	};
 
-	const addFiles = useCallback((incoming: File[]) => {
+	const addFiles = useCallback((incoming: File[], opts?: { allowOversize?: boolean }) => {
+		const isAllowedType = (file: File) => isImage(file.type) || file.type.startsWith('video/');
+		const isAllowedSize = (file: File) =>
+			opts?.allowOversize ||
+			isValidFileSize(file, isImage(file.type) ? MAX_MODULE_IMAGE_SIZE : MAX_MODULE_VIDEO_SIZE);
+
 		const newFiles: PendingFile[] = incoming
-			.filter((file) => isImage(file.type) || file.type.startsWith('video/'))
+			.filter((file) => isAllowedType(file) && isAllowedSize(file))
 			.map((file) => {
 				const isImg = isImage(file.type);
 				return {
@@ -136,6 +172,31 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 					description: '',
 				};
 			});
+
+		let rejectedImages = 0;
+		let rejectedVideos = 0;
+		incoming.forEach((file) => {
+			if (!isAllowedType(file) || opts?.allowOversize) return;
+			if (
+				!isValidFileSize(file, isImage(file.type) ? MAX_MODULE_IMAGE_SIZE : MAX_MODULE_VIDEO_SIZE)
+			) {
+				if (isImage(file.type)) rejectedImages += 1;
+				else rejectedVideos += 1;
+			}
+		});
+
+		if (rejectedImages > 0 || rejectedVideos > 0) {
+			const parts = [
+				rejectedImages > 0 ? `${rejectedImages} imagen(es) superan el límite de 10MB` : null,
+				rejectedVideos > 0 ? `${rejectedVideos} video(s) superan el límite de 50MB` : null,
+			].filter(Boolean);
+			toast({
+				variant: 'destructive',
+				title: 'Archivo(s) no agregados',
+				description: `${parts.join('. ')}.`,
+			});
+		}
+
 		setFiles((prev) => [...prev, ...newFiles]);
 	}, []);
 
@@ -144,17 +205,26 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 			mediaStreamRef.current.getTracks().forEach((track) => track.stop());
 			mediaStreamRef.current = null;
 		}
+		if (mediaRecorderRef.current) {
+			mediaRecorderRef.current = null;
+		}
 		if (recordingTimerRef.current) {
 			window.clearInterval(recordingTimerRef.current);
 			recordingTimerRef.current = null;
 		}
+		setIsRecording(false);
 		setRecordingTime(0);
+		setRecordingSize(0);
 	};
 
 	const startRecording = async () => {
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: 'environment' },
+				video: {
+					facingMode: 'environment',
+					width: { ideal: 1280, max: 1280 },
+					height: { ideal: 720, max: 720 },
+				},
 				audio: true,
 			});
 
@@ -169,12 +239,6 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 			}
 
 			mediaStreamRef.current = stream;
-			if (videoPreviewRef.current) {
-				videoPreviewRef.current.srcObject = stream;
-				videoPreviewRef.current.onloadedmetadata = () => {
-					videoPreviewRef.current?.play().catch(() => {});
-				};
-			}
 
 			const mimeType = MediaRecorder.isTypeSupported('video/mp4')
 				? 'video/mp4'
@@ -182,14 +246,36 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 					? 'video/webm'
 					: '';
 
-			const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+			const recorder = new MediaRecorder(stream, {
+				...(mimeType ? { mimeType } : {}),
+				videoBitsPerSecond: 3_000_000,
+				audioBitsPerSecond: 128_000,
+			});
 			chunksRef.current = [];
+			autoStoppedByLimitRef.current = false;
 			recorder.ondataavailable = (e) => {
 				if (e.data.size > 0) {
 					chunksRef.current.push(e.data);
+					const total = chunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+					setRecordingSize(total);
+					if (
+						!autoStoppedByLimitRef.current &&
+						recorder.state === 'recording' &&
+						total >= MAX_MODULE_VIDEO_SIZE - RECORDING_STOP_MARGIN
+					) {
+						autoStoppedByLimitRef.current = true;
+						recorder.stop();
+					}
 				}
 			};
 			recorder.onstop = () => {
+				if (autoStoppedByLimitRef.current) {
+					toast({
+						variant: 'default',
+						title: 'Límite de grabación alcanzado',
+						description: 'La grabación se detuvo al superar los 50MB.',
+					});
+				}
 				const blob = new Blob(chunksRef.current, {
 					type: recorder.mimeType || 'video/webm',
 				});
@@ -198,18 +284,23 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 					const file = new File([blob], `video_${Date.now()}.${extension}`, {
 						type: recorder.mimeType || 'video/mp4',
 					});
-					addFiles([file]);
+					addFiles([file], { allowOversize: true });
 				}
 				stopRecordingInternal();
 			};
 			mediaRecorderRef.current = recorder;
-			recorder.start();
+			recorder.start(1000);
 			setIsRecording(true);
 			setRecordingTime(0);
+			setRecordingSize(0);
 			recordingTimerRef.current = window.setInterval(() => {
 				setRecordingTime((t) => t + 1);
 			}, 1000);
 		} catch (error) {
+			if (mediaStreamRef.current) {
+				mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+				mediaStreamRef.current = null;
+			}
 			toast({
 				variant: 'destructive',
 				title: 'No se pudo grabar video',
@@ -221,7 +312,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 	};
 
 	const stopRecording = () => {
-		if (mediaRecorderRef.current && isRecording) {
+		if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
 			mediaRecorderRef.current.stop();
 		}
 	};
@@ -312,6 +403,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 		removeAllFiles,
 		isRecording,
 		recordingTime,
+		recordingSize,
 		startRecording,
 		stopRecording,
 		toggleRecording,
