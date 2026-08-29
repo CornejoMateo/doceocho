@@ -17,6 +17,7 @@ import { formatFileSize } from '@/utils/file-upload-utils';
 import {
 	Camera,
 	Video,
+	Square,
 	Image as ImageIcon,
 	X,
 	Pencil,
@@ -34,6 +35,7 @@ export type PendingFile = {
 	description: string;
 	editedFile?: File;
 	existingId?: number;
+	size?: number;
 };
 
 export type WorkQuery = Work & {
@@ -49,6 +51,7 @@ interface InputsFormModuleProps {
 	files: PendingFile[];
 	isRecording: boolean;
 	recordingTime: number;
+	recordingSize: number;
 	videoPreviewRef: React.RefObject<HTMLVideoElement | null>;
 	fileInputRef: React.RefObject<HTMLInputElement | null>;
 	onTitleChange: (value: string) => void;
@@ -74,6 +77,7 @@ export function InputsFormModule({
 	files,
 	isRecording,
 	recordingTime,
+	recordingSize,
 	videoPreviewRef,
 	fileInputRef,
 	onTitleChange,
@@ -198,24 +202,10 @@ export function InputsFormModule({
 						variant="outline"
 						className="flex-col h-auto py-4 gap-1 text-xs"
 						onClick={onToggleRecording}
+						disabled={isRecording}
 					>
-						{isRecording ? (
-							<>
-								<div className="flex items-center gap-1">
-									<span className="relative flex h-2.5 w-2.5">
-										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-										<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-									</span>
-									<span>{formatTime(recordingTime)}</span>
-								</div>
-								Detener
-							</>
-						) : (
-							<>
-								<Video className="h-5 w-5" />
-								Tomar video
-							</>
-						)}
+						<Video className="h-5 w-5" />
+						Grabar video
 					</Button>
 					<Button
 						type="button"
@@ -227,6 +217,10 @@ export function InputsFormModule({
 						Cargar archivos
 					</Button>
 				</div>
+
+				<p className="text-[10px] text-muted-foreground">
+					Imágenes hasta 10MB · Videos hasta 50MB (se detiene al llegar al límite)
+				</p>
 
 				{isRecording && (
 					<div className="relative rounded-lg overflow-hidden bg-black aspect-video">
@@ -242,8 +236,20 @@ export function InputsFormModule({
 								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
 								<span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
 							</span>
-							GRABANDO {formatTime(recordingTime)}
+							<span>
+								GRABANDO {formatTime(recordingTime)}{' '}
+								<span className="text-white/70">· {formatFileSize(recordingSize)}</span>
+							</span>
 						</div>
+						<Button
+							type="button"
+							variant="destructive"
+							className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 gap-1.5"
+							onClick={onToggleRecording}
+						>
+							<Square className="h-4 w-4 fill-current" />
+							Detener
+						</Button>
 					</div>
 				)}
 
@@ -302,7 +308,11 @@ export function InputsFormModule({
 										rows={2}
 									/>
 									<p className="text-[10px] text-muted-foreground">
-										{pending.file ? formatFileSize(pending.file.size) : 'Archivo existente'}
+										{pending.size != null
+											? formatFileSize(pending.size)
+											: pending.file
+												? formatFileSize(pending.file.size)
+												: 'Tamaño desconocido'}
 									</p>
 								</div>
 

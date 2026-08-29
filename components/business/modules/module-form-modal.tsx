@@ -60,6 +60,7 @@ export function ModuleFormModal({
 		removeAllFiles,
 		isRecording,
 		recordingTime,
+		recordingSize,
 		stopRecording,
 		toggleRecording,
 		videoPreviewRef,
@@ -142,6 +143,7 @@ export function ModuleFormModal({
 	};
 
 	const handleSubmit = async () => {
+		if (isSubmitting) return;
 		if (!user) {
 			toast({
 				variant: 'destructive',
@@ -246,22 +248,29 @@ export function ModuleFormModal({
 					.filter((f) => f.existingId)
 					.map(async (pending) => {
 						if (pending.editedFile || pending.file) {
-							if (pending.editedFile) {
-								const { success, error } = await deleteModuleFile(pending.existingId!);
-								if (!success) {
-									existingFileErrors.push({ name: pending.displayName, error });
-									return;
-								}
-							}
 							const fileToUpload = pending.editedFile || pending.file!;
-							const { error } = await uploadModuleFile(
+							const { data: uploaded, error } = await uploadModuleFile(
 								moduleId,
 								fileToUpload,
 								pending.description.trim() || null,
 								pending.displayName.trim() || null
 							);
-							if (error) {
-								existingFileErrors.push({ name: pending.displayName, error });
+							if (error || !uploaded) {
+								existingFileErrors.push({
+									name: pending.displayName,
+									error: error || 'No se pudo subir el reemplazo',
+								});
+								return;
+							}
+
+							const { success, error: deleteError } = await deleteModuleFile(pending.existingId!);
+							if (!success) {
+								const { error: rollbackError } = await deleteModuleFile(uploaded.id);
+								existingFileErrors.push({
+									name: pending.displayName,
+									error: deleteError,
+									...(!rollbackError ? {} : { rollbackError }),
+								});
 							}
 							return;
 						}
@@ -318,7 +327,12 @@ export function ModuleFormModal({
 		<>
 			<Dialog
 				open={isOpen}
-				onOpenChange={(next) => (onOpenChange ? onOpenChange(next) : setIsOpen(next))}
+				onOpenChange={(next) => {
+					if (!next && isRecording) {
+						stopRecording();
+					}
+					onOpenChange ? onOpenChange(next) : setIsOpen(next);
+				}}
 			>
 				<DialogContent className="min-w-0 w-[95vw] sm:max-w-3xl max-h-[92dvh] overflow-y-auto p-4 md:p-6">
 					<DialogHeader className="text-left">
@@ -352,6 +366,7 @@ export function ModuleFormModal({
 						files={files}
 						isRecording={isRecording}
 						recordingTime={recordingTime}
+						recordingSize={recordingSize}
 						videoPreviewRef={videoPreviewRef}
 						fileInputRef={fileInputRef}
 						onTitleChange={setTitle}
