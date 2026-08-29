@@ -79,6 +79,7 @@ export function ModuleTable({
 										<Button
 											variant="ghost"
 											size="icon"
+											aria-label="Editar módulo"
 											onClick={(e) => {
 												e.stopPropagation();
 												onEdit(module);
@@ -89,6 +90,7 @@ export function ModuleTable({
 										<Button
 											variant="ghost"
 											size="icon"
+											aria-label="Eliminar módulo"
 											className="hover:bg-destructive hover:text-destructive-foreground"
 											onClick={(e) => {
 												e.stopPropagation();

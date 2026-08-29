@@ -133,9 +133,8 @@ describe('formatTimeVideo', () => {
 		expect(formatTimeVideo(60.5)).toBe('01:00');
 	});
 
-	it('handles negative seconds without throwing (documents current behavior)', () => {
-		// NOTE: current implementation does not guard against negative input.
-		// This test documents the actual behavior rather than asserting correctness.
-		expect(() => formatTimeVideo(-5)).not.toThrow();
+	it('normalizes negative seconds to 00:00', () => {
+		expect(formatTimeVideo(-5)).toBe('00:00');
+		expect(formatTimeVideo(-0.5)).toBe('00:00');
 	});
 });

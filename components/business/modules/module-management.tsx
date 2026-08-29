@@ -55,7 +55,9 @@ export function ModuleManagement() {
 				description: translateError(error),
 			});
 		}
-		setModules(data ?? []);
+		if (!error) {
+			setModules(data ?? []);
+		}
 		setIsLoading(false);
 	}, []);
 

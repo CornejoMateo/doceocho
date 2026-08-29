@@ -78,7 +78,7 @@ export function LoadMoreModulesModal({
 			const { data, error } = await getUserModulesForMonth(
 				targetUserId,
 				Number(year),
-				Number(month)
+				Number(month) + 1
 			);
 			if (error) {
 				setError(translateError(error) || 'Error al cargar los módulos');

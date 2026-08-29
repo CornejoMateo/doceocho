@@ -78,7 +78,7 @@ export function ModuleDetailsModal({
 
 			if (cancelled) return;
 			if (error) {
-				console.error('Error cargando archivos del módulo:', error);
+				setError(translateError(error) || 'No se pudieron cargar los archivos del módulo.');
 				setFiles([]);
 				setIsLoading(false);
 				return;
@@ -171,7 +171,7 @@ export function ModuleDetailsModal({
 			link.href = url;
 			link.download = file.file_name || 'archivo';
 			link.click();
-			URL.revokeObjectURL(url);
+			setTimeout(() => URL.revokeObjectURL(url), 0);
 		} catch (err) {
 			toast({
 				variant: 'destructive',

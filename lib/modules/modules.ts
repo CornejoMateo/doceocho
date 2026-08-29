@@ -1,6 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { deleteModuleFile } from './modules-files';
 
 import { getLocalDate } from '@/utils/format-date';
 import { fromZonedTime } from 'date-fns-tz';
@@ -65,6 +64,7 @@ export async function listModules(): Promise<{ data: Module[] | null; error: any
 	}
 }
 
+// Mes basado en 1 (1 = enero, 12 = diciembre), como viene de getLocalDate().
 export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
@@ -197,47 +197,59 @@ export async function deleteModule(id: number): Promise<{ data: null; error: any
 
 	const { data: files, error: filesError } = await supabase
 		.from('modules_files')
-		.select('id')
+		.select('storage_path')
 		.eq('module_id', id);
 
 	if (filesError) {
 		return { data: null, error: filesError };
 	}
 
-	try {
-		await Promise.all(
-			(files ?? []).map(async (file) => {
-				const { success, error } = await deleteModuleFile(file.id);
-				if (!success) {
-					throw error;
-				}
-			})
-		);
-	} catch (error) {
+	// Borrar el módulo primero: el ON DELETE CASCADE elimina las filas de
+	// modules_files solas. Si el delete del módulo falla, no se tocó nada.
+	const { error } = await supabase.from(TABLE).delete().eq('id', id);
+	if (error) {
 		return { data: null, error };
 	}
 
-	const { error } = await supabase.from(TABLE).delete().eq('id', id);
-	return { data: null, error };
+	// Después del cascade las filas ya no existen y deleteModuleFile no puede
+	// usarse (su lookup de fila fallaría). Quitamos los objetos directamente
+	// del bucket con los storage_path guardados; es best-effort: si falla solo
+	// quedan objetos huérfanos, el módulo ya está eliminado.
+	const storagePaths = (files ?? []).map((f) => f.storage_path).filter(Boolean);
+	if (storagePaths.length > 0) {
+		const { error: deleteStorageError } = await supabase.storage
+			.from('modules')
+			.remove(storagePaths);
+		if (deleteStorageError) {
+			console.error('No se pudieron eliminar objetos de storage del módulo eliminado:', {
+				moduleId: id,
+				paths: storagePaths,
+				error: deleteStorageError,
+			});
+		}
+	}
+
+	return { data: null, error: null };
 }
 
+// monthOneBased: 1 = enero, 12 = diciembre.
 export async function getUserModulesForMonth(
 	userId: string,
 	year: number,
-	month: number
+	monthOneBased: number
 ): Promise<{ data: Module[] | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
 		const startOfMonth = fromZonedTime(
-			`${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00`,
+			`${year}-${String(monthOneBased).padStart(2, '0')}-01T00:00:00`,
 			TIMEZONE
 		).toISOString();
 
-		const lastDay = new Date(year, month + 1, 0).getDate();
+		const lastDay = new Date(year, monthOneBased, 0).getDate();
 
 		const endOfMonth = fromZonedTime(
-			`${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59:59.999`,
+			`${year}-${String(monthOneBased).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59:59.999`,
 			TIMEZONE
 		).toISOString();
 

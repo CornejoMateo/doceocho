@@ -228,7 +228,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 				audio: true,
 			});
 
-			if (!MediaRecorder || !window.MediaRecorder) {
+			if (typeof window === 'undefined' || typeof window.MediaRecorder === 'undefined') {
 				stream.getTracks().forEach((track) => track.stop());
 				toast({
 					variant: 'destructive',

@@ -447,6 +447,12 @@ export function ImageEditorDialog({
 								resetEditor();
 							}
 						}
+					} catch (error) {
+						toast({
+							variant: 'destructive',
+							title: 'No se pudo guardar la imagen',
+							description: translateError(error) || 'Intenta nuevamente.',
+						});
 					} finally {
 						setIsSaving(false);
 					}

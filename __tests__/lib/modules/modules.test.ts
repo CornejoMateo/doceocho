@@ -9,15 +9,10 @@ import {
 	updateModule,
 	deleteModule,
 } from '@/lib/modules/modules';
-import { deleteModuleFile } from '@/lib/modules/modules-files';
 import { getSupabaseClient } from '@/lib/supabase-client';
 
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
-}));
-
-jest.mock('@/lib/modules/modules-files', () => ({
-	deleteModuleFile: jest.fn(),
 }));
 
 jest.mock('@/utils/format-date', () => ({
@@ -40,12 +35,16 @@ function createSupabaseMock() {
 		lte: jest.fn(() => chain),
 	};
 
+	const storageRemove = jest.fn();
+
 	const supabase = {
 		from: jest.fn(() => chain),
-		storage: { from: jest.fn(() => ({ from: jest.fn(), upload: jest.fn(), remove: jest.fn() })) },
+		storage: {
+			from: jest.fn(() => ({ from: jest.fn(), upload: jest.fn(), remove: storageRemove })),
+		},
 	};
 
-	return { supabase, chain };
+	return { supabase, chain, storageRemove };
 }
 
 const MODULE_ROW = {
@@ -253,7 +252,7 @@ describe('modules lib', () => {
 				Promise.resolve({ data: [MODULE_ROW, { ...MODULE_ROW, id: 2, works: null }], error: null })
 			);
 
-			const result = await getUserModulesForMonth('user-1', 2026, 7);
+			const result = await getUserModulesForMonth('user-1', 2026, 8);
 
 			expect(chain.eq).toHaveBeenCalledWith('user_id', 'user-1');
 			expect((chain.gte as jest.Mock).mock.calls[0][1]).toBe('2026-08-01T03:00:00.000Z');
@@ -270,7 +269,7 @@ describe('modules lib', () => {
 
 			chain.order.mockReturnValue(Promise.resolve({ data: null, error: new Error('DB error') }));
 
-			const result = await getUserModulesForMonth('user-1', 2026, 7);
+			const result = await getUserModulesForMonth('user-1', 2026, 8);
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(new Error('DB error'));
@@ -372,32 +371,37 @@ describe('modules lib', () => {
 	});
 
 	describe('deleteModule', () => {
-		it('deletes each file and then the module row', async () => {
-			const { supabase, chain } = createSupabaseMock();
+		it('deletes the module row (cascade) and then removes storage objects', async () => {
+			const { supabase, chain, storageRemove } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			chain.select.mockReturnValue(chain);
-			chain.eq.mockReturnValueOnce(Promise.resolve({ data: [{ id: 1 }, { id: 2 }], error: null }));
-			(deleteModuleFile as jest.Mock).mockResolvedValue({ success: true, error: null });
+			chain.eq.mockReturnValueOnce(
+				Promise.resolve({
+					data: [{ storage_path: '5/a.jpg' }, { storage_path: '5/b.mp4' }],
+					error: null,
+				})
+			);
 			chain.delete.mockReturnValue(chain);
 			chain.eq.mockResolvedValueOnce({ data: null, error: null });
+			storageRemove.mockResolvedValue({ data: null, error: null });
 
 			const result = await deleteModule(5);
 
 			expect(supabase.from).toHaveBeenCalledWith('modules_files');
-			expect(chain.select).toHaveBeenCalledWith('id');
+			expect(chain.select).toHaveBeenCalledWith('storage_path');
 			expect(chain.eq).toHaveBeenCalledWith('module_id', 5);
-			expect(deleteModuleFile).toHaveBeenCalledTimes(2);
-			expect(deleteModuleFile).toHaveBeenCalledWith(1);
-			expect(deleteModuleFile).toHaveBeenCalledWith(2);
 			expect(supabase.from).toHaveBeenCalledWith('modules');
 			expect(chain.delete).toHaveBeenCalled();
+			expect(chain.eq).toHaveBeenCalledWith('id', 5);
+			expect(supabase.storage.from).toHaveBeenCalledWith('modules');
+			expect(storageRemove).toHaveBeenCalledWith(['5/a.jpg', '5/b.mp4']);
 			expect(result.data).toBeNull();
 			expect(result.error).toBeNull();
 		});
 
-		it('deletes the module row when it has no files', async () => {
-			const { supabase, chain } = createSupabaseMock();
+		it('deletes the module row without storage cleanup when it has no files', async () => {
+			const { supabase, chain, storageRemove } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			chain.select.mockReturnValue(chain);
@@ -407,13 +411,13 @@ describe('modules lib', () => {
 
 			const result = await deleteModule(5);
 
-			expect(deleteModuleFile).not.toHaveBeenCalled();
-			expect(chain.delete).toHaveBeenCalled();
+			expect(supabase.storage.from).not.toHaveBeenCalled();
+			expect(storageRemove).not.toHaveBeenCalled();
 			expect(result.error).toBeNull();
 		});
 
 		it('returns error and stops when listing files fails', async () => {
-			const { supabase, chain } = createSupabaseMock();
+			const { supabase, chain, storageRemove } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			chain.select.mockReturnValue(chain);
@@ -425,25 +429,45 @@ describe('modules lib', () => {
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(new Error('List failed'));
-			expect(deleteModuleFile).not.toHaveBeenCalled();
 			expect(chain.delete).not.toHaveBeenCalled();
+			expect(storageRemove).not.toHaveBeenCalled();
 		});
 
-		it('returns error when a file fails to delete and does not delete the module', async () => {
-			const { supabase, chain } = createSupabaseMock();
+		it('returns error and does not touch storage when the module delete fails', async () => {
+			const { supabase, chain, storageRemove } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			chain.select.mockReturnValue(chain);
-			chain.eq.mockReturnValueOnce(Promise.resolve({ data: [{ id: 1 }, { id: 2 }], error: null }));
-			(deleteModuleFile as jest.Mock)
-				.mockResolvedValueOnce({ success: true, error: null })
-				.mockResolvedValueOnce({ success: false, error: new Error('File delete failed') });
+			chain.eq.mockReturnValueOnce(
+				Promise.resolve({ data: [{ storage_path: '5/a.jpg' }], error: null })
+			);
+			chain.delete.mockReturnValue(chain);
+			chain.eq.mockResolvedValueOnce({ data: null, error: new Error('Delete failed') });
 
 			const result = await deleteModule(5);
 
 			expect(result.data).toBeNull();
-			expect(result.error).toEqual(new Error('File delete failed'));
-			expect(chain.delete).not.toHaveBeenCalled();
+			expect(result.error).toEqual(new Error('Delete failed'));
+			expect(supabase.storage.from).not.toHaveBeenCalled();
+			expect(storageRemove).not.toHaveBeenCalled();
+		});
+
+		it('still succeeds when storage cleanup fails (best-effort)', async () => {
+			const { supabase, chain, storageRemove } = createSupabaseMock();
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.select.mockReturnValue(chain);
+			chain.eq.mockReturnValueOnce(
+				Promise.resolve({ data: [{ storage_path: '5/a.jpg' }], error: null })
+			);
+			chain.delete.mockReturnValue(chain);
+			chain.eq.mockResolvedValueOnce({ data: null, error: null });
+			storageRemove.mockResolvedValue({ data: null, error: new Error('storage down') });
+
+			const result = await deleteModule(5);
+
+			expect(storageRemove).toHaveBeenCalledWith(['5/a.jpg']);
+			expect(result.error).toBeNull();
 		});
 	});
 });

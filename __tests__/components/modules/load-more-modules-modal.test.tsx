@@ -165,7 +165,7 @@ describe('LoadMoreModulesModal', () => {
 		render(<LoadMoreModulesModal {...defaultProps} user={{ uid: 'user-1' } as any} />);
 		fireEvent.click(screen.getByText('Cargar'));
 		await waitFor(() => {
-			expect(getUserModulesForMonth).toHaveBeenCalledWith('user-1', 2026, 7);
+			expect(getUserModulesForMonth).toHaveBeenCalledWith('user-1', 2026, 8);
 		});
 	});
 
@@ -188,7 +188,7 @@ describe('LoadMoreModulesModal', () => {
 
 		fireEvent.click(screen.getByText('Cargar'));
 		await waitFor(() => {
-			expect(getUserModulesForMonth).toHaveBeenCalledWith('u-9', 2026, 7);
+			expect(getUserModulesForMonth).toHaveBeenCalledWith('u-9', 2026, 8);
 		});
 	});
 

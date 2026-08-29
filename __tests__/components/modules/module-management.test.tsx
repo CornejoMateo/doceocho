@@ -220,12 +220,11 @@ describe('ModuleManagement', () => {
 	});
 
 	it('opens the edit form with the module when clicking edit', async () => {
-		const onRowClick = jest.fn();
 		await renderAndLoad();
 		fireEvent.click(screen.getByTestId('row-edit-2'));
 		expect(screen.getByTestId('form-modal')).toBeInTheDocument();
 		expect(screen.getByTestId('form-modal-target')).toHaveTextContent('Estructura');
-		expect(onRowClick).not.toHaveBeenCalled();
+		expect(screen.queryByTestId('details-modal')).not.toBeInTheDocument();
 	});
 
 	it('deletes a module after confirming and reloads the list', async () => {
