@@ -6,9 +6,12 @@ import {
 	CLAIM_FILE_TYPES,
 	MAX_FILE_SIZE_CLIENT,
 	MAX_FILE_SIZE_CLAIM,
+	MAX_MODULE_IMAGE_SIZE,
+	MAX_MODULE_VIDEO_SIZE,
 	formatDate,
 	formatFileSize,
 	getFileExtension,
+	getFileKind,
 	isDocument,
 	isImage,
 	isValidFileSize,
@@ -186,6 +189,26 @@ describe('file-upload-utils', () => {
 		});
 	});
 
+	describe('getFileKind', () => {
+		it('detects image files by extension', () => {
+			expect(getFileKind('foto.jpg')).toBe('image');
+			expect(getFileKind('FOTO.PNG')).toBe('image');
+			expect(getFileKind('plano.webp')).toBe('image');
+		});
+
+		it('detects video files by extension', () => {
+			expect(getFileKind('video.mp4')).toBe('video');
+			expect(getFileKind('rec.webm')).toBe('video');
+			expect(getFileKind('grabacion.MOV')).toBe('video');
+		});
+
+		it('returns file for anything else', () => {
+			expect(getFileKind('documento.pdf')).toBe('file');
+			expect(getFileKind('README')).toBe('file');
+			expect(getFileKind('imagen')).toBe('file');
+		});
+	});
+
 	describe('constants', () => {
 		it('contains expected image types', () => {
 			expect(IMAGE_TYPES).toContain('image/jpeg');
@@ -208,6 +231,33 @@ describe('file-upload-utils', () => {
 
 		it('video types should contain mp4', () => {
 			expect(VIDEO_TYPES).toContain('video/mp4');
+		});
+
+		it('module image limit should be 10MB and video limit 50MB', () => {
+			expect(MAX_MODULE_IMAGE_SIZE).toBe(10 * 1024 * 1024);
+			expect(MAX_MODULE_VIDEO_SIZE).toBe(50 * 1024 * 1024);
+		});
+
+		it('module image limit accepts files within the module limits', () => {
+			const smallImage = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
+			Object.defineProperty(smallImage, 'size', { value: 5 * 1024 * 1024 });
+
+			const smallVideo = new File(['vid'], 'clip.mp4', { type: 'video/mp4' });
+			Object.defineProperty(smallVideo, 'size', { value: 40 * 1024 * 1024 });
+
+			expect(isValidFileSize(smallImage, MAX_MODULE_IMAGE_SIZE)).toBe(true);
+			expect(isValidFileSize(smallVideo, MAX_MODULE_VIDEO_SIZE)).toBe(true);
+		});
+
+		it('module limits reject oversized images and videos', () => {
+			const oversizedImage = new File(['img'], 'photo.jpg', { type: 'image/jpeg' });
+			Object.defineProperty(oversizedImage, 'size', { value: 11 * 1024 * 1024 });
+
+			const oversizedVideo = new File(['vid'], 'clip.mp4', { type: 'video/mp4' });
+			Object.defineProperty(oversizedVideo, 'size', { value: 51 * 1024 * 1024 });
+
+			expect(isValidFileSize(oversizedImage, MAX_MODULE_IMAGE_SIZE)).toBe(false);
+			expect(isValidFileSize(oversizedVideo, MAX_MODULE_VIDEO_SIZE)).toBe(false);
 		});
 	});
 });
