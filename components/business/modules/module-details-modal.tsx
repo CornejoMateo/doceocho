@@ -40,8 +40,8 @@ interface ModuleDetailsModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	module: Module | null;
-	onEdit: (module: Module) => void;
-	onDelete: (module: Module) => void;
+	onEdit?: (module: Module) => void;
+	onDelete?: (module: Module) => void;
 }
 
 type ModuleFileWithUrl = ModuleFile & {
@@ -340,24 +340,28 @@ export function ModuleDetailsModal({
 					</div>
 
 					<div className="flex flex-col sm:flex-row gap-2 sm:justify-end pt-2">
-						<Button
-							type="button"
-							variant="outline"
-							className="w-full sm:w-auto"
-							onClick={() => onEdit(module)}
-						>
-							<Pencil className="h-4 w-4 mr-2" />
-							Editar
-						</Button>
-						<Button
-							type="button"
-							variant="destructive"
-							className="w-full sm:w-auto"
-							onClick={() => onDelete(module)}
-						>
-							<Trash2 className="h-4 w-4 mr-2" />
-							Eliminar
-						</Button>
+						{onEdit && (
+							<Button
+								type="button"
+								variant="outline"
+								className="w-full sm:w-auto"
+								onClick={() => onEdit(module)}
+							>
+								<Pencil className="h-4 w-4 mr-2" />
+								Editar
+							</Button>
+						)}
+						{onDelete && (
+							<Button
+								type="button"
+								variant="destructive"
+								className="w-full sm:w-auto"
+								onClick={() => onDelete(module)}
+							>
+								<Trash2 className="h-4 w-4 mr-2" />
+								Eliminar
+							</Button>
+						)}
 					</div>
 				</DialogContent>
 			</Dialog>

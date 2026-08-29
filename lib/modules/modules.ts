@@ -220,3 +220,48 @@ export async function deleteModule(id: number): Promise<{ data: null; error: any
 	const { error } = await supabase.from(TABLE).delete().eq('id', id);
 	return { data: null, error };
 }
+
+export async function getUserModulesForMonth(
+	userId: string,
+	year: number,
+	month: number
+): Promise<{ data: Module[] | null; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const startOfMonth = fromZonedTime(
+			`${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00`,
+			TIMEZONE
+		).toISOString();
+
+		const lastDay = new Date(year, month + 1, 0).getDate();
+
+		const endOfMonth = fromZonedTime(
+			`${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}T23:59:59.999`,
+			TIMEZONE
+		).toISOString();
+
+		const { data, error } = await supabase
+			.from(TABLE)
+			.select(`*, works:work_id (name, locality, address, hood, zone)`)
+			.eq('user_id', userId)
+			.gte('created_at', startOfMonth)
+			.lte('created_at', endOfMonth)
+			.order('created_at', { ascending: false });
+
+		if (error) return { data: null, error };
+
+		const modulesWithWorkNames = data.map((module) => ({
+			...module,
+			work_name: module.works?.name || null,
+		}));
+
+		return { data: modulesWithWorkNames, error: null };
+	} catch (error) {
+		console.error('Error inesperado en getUserModulesForMonth:', error);
+		return {
+			data: null,
+			error: error instanceof Error ? error : new Error('Error desconocido'),
+		};
+	}
+}

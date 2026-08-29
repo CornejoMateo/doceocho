@@ -33,6 +33,12 @@ const STATUS_CONFIG: Record<ModuleStatus, { label: string; className: string }> 
 	},
 };
 
+export function getModuleStatusLabel(status?: string | null): string {
+	return (
+		STATUS_CONFIG[(status as ModuleStatus) ?? 'not_send']?.label ?? STATUS_CONFIG.not_send.label
+	);
+}
+
 export function ModuleStatusBadge({
 	status,
 	className,
