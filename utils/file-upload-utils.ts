@@ -40,6 +40,10 @@ export const CLAIM_FILE_TYPES = IMAGE_TYPES;
 export const MAX_FILE_SIZE_CLIENT = 50 * 1024 * 1024; // 50MB
 export const MAX_FILE_SIZE_CLAIM = 10 * 1024 * 1024; // 10MB
 
+// Module file size limits
+export const MAX_MODULE_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB for images
+export const MAX_MODULE_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
+
 /**
  * Validates if a file type is supported
  */
