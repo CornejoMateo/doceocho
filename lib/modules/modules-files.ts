@@ -66,12 +66,6 @@ export async function uploadModuleFile(
 		const storageName = `${crypto.randomUUID()}.${fileExt}`;
 		const filePath = `${moduleId}/${storageName}`;
 
-		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
-
-		if (uploadError) {
-			return { data: null, error: uploadError };
-		}
-
 		const { data: fileRecord, error: dbError } = await supabase
 			.from(TABLE)
 			.insert({
@@ -83,12 +77,18 @@ export async function uploadModuleFile(
 			.select()
 			.single();
 
-		if (dbError) {
-			await supabase.storage.from(BUCKET).remove([filePath]);
+		if (dbError || !fileRecord) {
 			return { data: null, error: dbError };
 		}
 
-		return { data: fileRecord ?? null, error: null };
+		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+
+		if (uploadError) {
+			await supabase.from(TABLE).delete().eq('id', fileRecord.id);
+			return { data: null, error: uploadError };
+		}
+
+		return { data: fileRecord, error: null };
 	} catch (err) {
 		console.error('Unexpected error uploading module file:', err);
 		return { data: null, error: err };
@@ -141,30 +141,19 @@ export async function deleteModuleFile(fileId: number): Promise<{ success: boole
 			return { success: false, error: 'File record not found or missing storage path' };
 		}
 
-		const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
-
-		if (deleteDbError) {
-			return { success: false, error: deleteDbError };
-		}
-
 		const { error: deleteStorageError } = await supabase.storage
 			.from(BUCKET)
 			.remove([fileRecord.storage_path]);
 
 		if (deleteStorageError) {
-			const { error: reinsertError } = await createModuleFile({
-				storage_path: fileRecord.storage_path,
-				module_id: fileRecord.module_id,
-				file_name: fileRecord.file_name ?? null,
-				description: fileRecord.description ?? null,
-			});
-
-			if (reinsertError) {
-				console.error('Failed to restore file record after storage delete failure:', reinsertError);
-				return { success: false, error: { deleteStorageError, reinsertError } };
-			}
-
 			return { success: false, error: deleteStorageError };
+		}
+
+		const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
+
+		if (deleteDbError) {
+			console.error('Failed to delete file record after storage removal:', deleteDbError);
+			return { success: false, error: deleteDbError };
 		}
 
 		return { success: true, error: null };

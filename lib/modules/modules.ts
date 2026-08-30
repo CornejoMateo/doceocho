@@ -23,6 +23,11 @@ export type Module = {
 		hood?: string | null;
 		zone?: string | null;
 	} | null;
+	users?: {
+		name?: string | null;
+		last_name?: string | null;
+		username?: string | null;
+	} | null;
 };
 
 const TABLE = 'modules';
@@ -84,7 +89,9 @@ export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | n
 
 		const { data, error } = await supabase
 			.from(TABLE)
-			.select(`*, works:work_id (name, locality, address, hood, zone)`)
+			.select(
+				`*, works:work_id (name, locality, address, hood, zone), users (name, last_name, username)`
+			)
 			.gte('created_at', startOfMonth)
 			.lte('created_at', endOfMonth)
 			.order('created_at', { ascending: false });
@@ -112,18 +119,21 @@ export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | n
 	}
 }
 
-export async function listModulesPending(): Promise<{ data: Module[] | null; error: any }> {
+export async function listModulesPendingRejected(): Promise<{ data: Module[] | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
 		const { data, error } = await supabase
 			.from(TABLE)
-			.select(`*, works:work_id (name, locality, address, hood, zone)`)
-			.eq('status', 'pending')
+			.select(
+				`*, works:work_id (name, locality, address, hood, zone), users (name, last_name, username)`
+			)
+			.in('status', ['pending', 'rejected'])
+			.order('status', { ascending: true })
 			.order('created_at', { ascending: false });
 
 		if (error) {
-			console.error('Error en la consulta de módulos pendientes:', {
+			console.error('Error en la consulta de módulos pendientes y rechazados:', {
 				message: error.message,
 				details: error.details,
 			});
@@ -137,7 +147,7 @@ export async function listModulesPending(): Promise<{ data: Module[] | null; err
 
 		return { data: modulesWithWorkNames, error: null };
 	} catch (error) {
-		console.error('Error inesperado en listModulesPending:', error);
+		console.error('Error inesperado en listModulesPendingRejected:', error);
 		return {
 			data: null,
 			error: error instanceof Error ? error : new Error('Error desconocido'),
@@ -258,7 +268,6 @@ export async function deleteModule(id: number): Promise<{ data: null; error: any
 	return { data: null, error: null };
 }
 
-// monthOneBased: 1 = enero, 12 = diciembre.
 export async function getUserModulesForMonth(
 	userId: string,
 	year: number,
