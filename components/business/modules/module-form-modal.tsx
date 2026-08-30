@@ -288,16 +288,27 @@ export function ModuleFormModal({
 			const totalErrors = uploadResults.filter((r) => r.error).length + existingFileErrors.length;
 
 			if (totalErrors > 0) {
+				const failedUploads = uploadResults
+					.filter((r) => r.error)
+					.map((r) => ({ name: r.name, message: translateError(r.error) }));
+				const failedExisting = existingFileErrors.map((e) => ({
+					name: e.name,
+					message: translateError(e.error),
+				}));
+				const failed = [...failedUploads, ...failedExisting];
 				console.error('Errores procesando archivos del módulo:', {
-					uploadErrors: uploadResults.filter((r) => r.error),
-					existingFileErrors,
+					uploadErrors: failedUploads,
+					existingFileErrors: failedExisting,
 				});
 				toast({
 					variant: 'destructive',
 					title: isEditing
 						? 'Módulo actualizado, pero hubo errores con archivos'
 						: 'Módulo creado, pero hubo errores al subir archivos',
-					description: `${totalErrors} archivo(s) no se pudieron procesar.`,
+					description: `${totalErrors} archivo(s) no se pudieron procesar. ${failed
+						.slice(0, 3)
+						.map((f) => `${f.name}: ${f.message}`)
+						.join(' · ')}`,
 				});
 			} else {
 				toast({
