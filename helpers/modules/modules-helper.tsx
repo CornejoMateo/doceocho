@@ -14,6 +14,13 @@ export const getModuleWorkLabel = (module: Module): string => {
 	);
 };
 
+export const getModuleUserLabel = (module: Module): string => {
+	const u = module.users;
+	if (!u) return '—';
+	const fullName = [u.name, u.last_name].filter(Boolean).join(' ').trim();
+	return fullName || u.username || '—';
+};
+
 const STATUS_CONFIG: Record<ModuleStatus, { label: string; className: string }> = {
 	not_send: {
 		label: 'No enviado',
