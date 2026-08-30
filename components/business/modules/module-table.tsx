@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { Pencil, Trash2, Send } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Module } from '@/lib/modules/modules';
 import { getModuleWorkLabel } from '@/helpers/modules/modules-helper';
 import { getModuleUserLabel } from '@/helpers/modules/modules-helper';
@@ -100,7 +100,6 @@ export function ModuleTable({
 															onSend(module);
 														}}
 													>
-														<Send className="h-3 w-3" />
 														Solicitar Aprobación
 													</Button>
 												)}

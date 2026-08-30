@@ -237,29 +237,27 @@ describe('modules files lib', () => {
 	describe('uploadModuleFile', () => {
 		const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
 
-		it('uploads file and creates the db record', async () => {
+		it('creates the db record first so the storage insert policy passes, then uploads the file', async () => {
 			const { supabase, chain, storage } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
-			storage.upload.mockResolvedValue({ error: null });
-
-			const insertPromise = Promise.resolve({ data: FILE_RECORD, error: null });
 			chain.insert.mockReturnValue(chain);
 			chain.select.mockReturnValue(chain);
-			chain.single.mockReturnValue(insertPromise);
+			chain.single.mockReturnValue(Promise.resolve({ data: FILE_RECORD, error: null }));
+			storage.upload.mockResolvedValue({ error: null });
 
 			const result = await uploadModuleFile(3, file, 'Primera foto', 'Mi Foto');
 
-			expect(storage.upload).toHaveBeenCalledWith(
-				expect.stringMatching(/^3\/[0-9a-f-]{36}\.jpg$/),
-				file
-			);
 			expect(chain.insert).toHaveBeenCalledWith({
 				storage_path: expect.stringMatching(/^3\/[0-9a-f-]{36}\.jpg$/),
 				module_id: 3,
 				file_name: 'Mi Foto',
 				description: 'Primera foto',
 			});
+			expect(storage.upload).toHaveBeenCalledWith(
+				expect.stringMatching(/^3\/[0-9a-f-]{36}\.jpg$/),
+				file
+			);
 			expect(result.data).toEqual(FILE_RECORD);
 			expect(result.error).toBeNull();
 		});
@@ -317,9 +315,13 @@ describe('modules files lib', () => {
 			);
 		});
 
-		it('returns error and does not insert when storage upload fails', async () => {
+		it('deletes the inserted row when the storage upload fails (rollback)', async () => {
 			const { supabase, chain, storage } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.insert.mockReturnValue(chain);
+			chain.select.mockReturnValue(chain);
+			chain.single.mockReturnValueOnce(Promise.resolve({ data: FILE_RECORD, error: null }));
 
 			storage.upload.mockResolvedValue({ error: new Error('Storage error') });
 
@@ -327,18 +329,18 @@ describe('modules files lib', () => {
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(new Error('Storage error'));
-			expect(chain.insert).not.toHaveBeenCalled();
+			expect(storage.upload).toHaveBeenCalled();
+			expect(chain.delete).toHaveBeenCalledWith();
+			expect(chain.eq).toHaveBeenCalledWith('id', 7);
 		});
 
-		it('removes the uploaded blob when the db insert fails (rollback)', async () => {
+		it('does not upload when the db insert fails', async () => {
 			const { supabase, chain, storage } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
-			storage.upload.mockResolvedValue({ error: null });
-
 			chain.insert.mockReturnValue(chain);
 			chain.select.mockReturnValue(chain);
-			chain.single.mockReturnValue(
+			chain.single.mockReturnValueOnce(
 				Promise.resolve({ data: null, error: new Error('Insert failed') })
 			);
 
@@ -346,7 +348,7 @@ describe('modules files lib', () => {
 
 			expect(result.data).toBeNull();
 			expect(result.error).toEqual(new Error('Insert failed'));
-			expect(storage.remove).toHaveBeenCalledWith([expect.stringMatching(/^3\/.+\.jpg$/)]);
+			expect(storage.upload).not.toHaveBeenCalled();
 		});
 	});
 
@@ -413,7 +415,7 @@ describe('modules files lib', () => {
 	});
 
 	describe('deleteModuleFile', () => {
-		it('deletes the db row first and the storage object after, without downloading the blob', async () => {
+		it('removes the storage object first and then the db row, without downloading the blob', async () => {
 			const { supabase, chain, storage } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
@@ -431,6 +433,8 @@ describe('modules files lib', () => {
 			expect(supabase.from).toHaveBeenCalledWith('modules_files');
 			expect(chain.select).toHaveBeenCalledWith('*');
 			expect(storage.remove).toHaveBeenCalledWith(['3/uuid-1234.jpg']);
+			expect(chain.delete).toHaveBeenCalledWith();
+			expect(chain.eq).toHaveBeenCalledWith('id', 7);
 			expect(result.success).toBe(true);
 			expect(result.error).toBeNull();
 			expect(storage.download).not.toHaveBeenCalled();
@@ -477,13 +481,32 @@ describe('modules files lib', () => {
 			expect(result.error).toEqual(new Error('Fetch error'));
 		});
 
-		it('returns error and does not touch storage when the db delete fails', async () => {
+		it('returns error and keeps the db row when the storage delete fails', async () => {
 			const { supabase, chain, storage } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			chain.select.mockReturnValue(chain);
 			chain.eq.mockReturnValueOnce(chain);
 			chain.single.mockReturnValue(Promise.resolve({ data: FILE_RECORD, error: null }));
+
+			storage.remove.mockResolvedValue({ error: new Error('Storage delete error') });
+
+			const result = await deleteModuleFile(7);
+
+			expect(result.success).toBe(false);
+			expect(result.error).toEqual(new Error('Storage delete error'));
+			expect(chain.delete).not.toHaveBeenCalled();
+		});
+
+		it('removes storage and reports the error if the db row delete fails', async () => {
+			const { supabase, chain, storage } = createSupabaseMock();
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.select.mockReturnValue(chain);
+			chain.eq.mockReturnValueOnce(chain);
+			chain.single.mockReturnValue(Promise.resolve({ data: FILE_RECORD, error: null }));
+
+			storage.remove.mockResolvedValue({ error: null });
 
 			chain.delete.mockReturnValue(chain);
 			chain.eq.mockResolvedValueOnce({ error: new Error('DB delete error') });
@@ -492,66 +515,7 @@ describe('modules files lib', () => {
 
 			expect(result.success).toBe(false);
 			expect(result.error).toEqual(new Error('DB delete error'));
-			expect(storage.remove).not.toHaveBeenCalled();
-		});
-
-		it('reinserts the db row when the storage delete fails', async () => {
-			const { supabase, chain, storage } = createSupabaseMock();
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			chain.select.mockReturnValue(chain);
-			chain.eq.mockReturnValueOnce(chain);
-			chain.single.mockReturnValueOnce(Promise.resolve({ data: FILE_RECORD, error: null }));
-
-			chain.delete.mockReturnValue(chain);
-			chain.eq.mockResolvedValueOnce({ error: null });
-
-			storage.remove.mockResolvedValue({ error: new Error('Storage delete error') });
-
-			chain.insert.mockReturnValue(chain);
-			chain.select.mockReturnValue(chain);
-			chain.single.mockReturnValueOnce(
-				Promise.resolve({ data: { ...FILE_RECORD, id: 8 }, error: null })
-			);
-
-			const result = await deleteModuleFile(7);
-
-			expect(result.success).toBe(false);
-			expect(result.error).toEqual(new Error('Storage delete error'));
-			expect(chain.insert).toHaveBeenCalledWith({
-				storage_path: '3/uuid-1234.jpg',
-				module_id: 3,
-				file_name: 'Foto',
-				description: 'Primera foto',
-			});
-		});
-
-		it('reports both errors when the reinsert also fails', async () => {
-			const { supabase, chain, storage } = createSupabaseMock();
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			chain.select.mockReturnValue(chain);
-			chain.eq.mockReturnValueOnce(chain);
-			chain.single.mockReturnValueOnce(Promise.resolve({ data: FILE_RECORD, error: null }));
-
-			chain.delete.mockReturnValue(chain);
-			chain.eq.mockResolvedValueOnce({ error: null });
-
-			storage.remove.mockResolvedValue({ error: new Error('Storage delete error') });
-
-			chain.insert.mockReturnValue(chain);
-			chain.select.mockReturnValue(chain);
-			chain.single.mockReturnValueOnce(
-				Promise.resolve({ data: null, error: new Error('Reinsert failed') })
-			);
-
-			const result = await deleteModuleFile(7);
-
-			expect(result.success).toBe(false);
-			expect(result.error).toEqual({
-				deleteStorageError: new Error('Storage delete error'),
-				reinsertError: new Error('Reinsert failed'),
-			});
+			expect(storage.remove).toHaveBeenCalledWith(['3/uuid-1234.jpg']);
 		});
 	});
 });

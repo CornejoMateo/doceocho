@@ -1,6 +1,7 @@
 import {
 	listModules,
 	listModulesForCurrentMonth,
+	listModulesPendingRejected,
 	getModuleById,
 	getModulesByWorkId,
 	getModulesByUserId,
@@ -27,6 +28,7 @@ function createSupabaseMock() {
 		select: jest.fn(() => chain),
 		order: jest.fn(() => chain),
 		eq: jest.fn(() => chain),
+		in: jest.fn(() => chain),
 		insert: jest.fn(() => chain),
 		update: jest.fn(() => chain),
 		delete: jest.fn(() => chain),
@@ -118,6 +120,47 @@ describe('modules lib', () => {
 		});
 	});
 
+	describe('listModulesPendingRejected', () => {
+		it('filters only pending and rejected modules with the work name mapped, ordering pending first', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.order.mockReturnValueOnce(chain).mockReturnValueOnce(
+				Promise.resolve({
+					data: [MODULE_ROW, { ...MODULE_ROW, id: 2, status: 'rejected', works: null }],
+					error: null,
+				})
+			);
+
+			const result = await listModulesPendingRejected();
+
+			expect(supabase.from).toHaveBeenCalledWith('modules');
+			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('works:work_id'));
+			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('users'));
+			expect(chain.in).toHaveBeenCalledWith('status', ['pending', 'rejected']);
+			expect(chain.order).toHaveBeenCalledTimes(2);
+			expect(chain.order).toHaveBeenNthCalledWith(1, 'status', { ascending: true });
+			expect(chain.order).toHaveBeenNthCalledWith(2, 'created_at', { ascending: false });
+			expect(result.data?.[0].work_name).toBe('Obra Centro');
+			expect(result.data?.[1].work_name).toBeNull();
+			expect(result.error).toBeNull();
+		});
+
+		it('returns error on supabase error', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			chain.order
+				.mockReturnValueOnce(chain)
+				.mockReturnValueOnce(Promise.resolve({ data: null, error: new Error('DB error') }));
+
+			const result = await listModulesPendingRejected();
+
+			expect(result.data).toBeNull();
+			expect(result.error).toEqual(new Error('DB error'));
+		});
+	});
+
 	describe('listModulesForCurrentMonth', () => {
 		it('filters by the current month in Argentina timezone', async () => {
 			(getLocalDate as jest.Mock).mockReturnValue('2026-08-28');
@@ -130,6 +173,7 @@ describe('modules lib', () => {
 			const result = await listModulesForCurrentMonth();
 
 			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('works:work_id'));
+			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('users'));
 			expect(chain.gte).toHaveBeenCalledTimes(1);
 
 			const start = (chain.gte as jest.Mock).mock.calls[0][1];
