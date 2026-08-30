@@ -381,7 +381,7 @@ export function ClockIn() {
 					</TabsContent>
 
 					<TabsContent value="module" className="min-w-0">
-						<ModuleManagement />
+						<ModuleManagement users={users} />
 					</TabsContent>
 				</Tabs>
 			</div>
