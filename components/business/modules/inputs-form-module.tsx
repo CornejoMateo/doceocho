@@ -254,7 +254,7 @@ export function InputsFormModule({
 				)}
 
 				{files.length > 0 && (
-					<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 						{files.map((pending) => (
 							<div key={pending.id} className="border rounded-lg p-2 space-y-2 relative group">
 								<Button
