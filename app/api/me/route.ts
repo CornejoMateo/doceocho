@@ -17,11 +17,6 @@ export async function GET(req: Request) {
 		error,
 	} = await supabase.auth.getUser(token);
 
-	console.log('[API /me]', {
-		hasUser: !!user,
-		error,
-	});
-
 	if (error) {
 		console.error('[API /me] getUser()', error);
 	}

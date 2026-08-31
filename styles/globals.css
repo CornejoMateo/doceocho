@@ -41,38 +41,38 @@
 
 .dark {
 	/* Dark theme - DOCE OCHO Brand Colors (darker variants) */
-	--background: #3a3f36;
-	--foreground: #fbf7f0;
-	--card: #3a3f36;
-	--card-foreground: #fbf7f0;
-	--popover: #3a3f36;
-	--popover-foreground: #fbf7f0;
-	--primary: #4f5c4d;
-	--primary-foreground: #fbf7f0;
-	--secondary: #7d8573;
-	--secondary-foreground: #fbf7f0;
-	--muted: #6e5341;
-	--muted-foreground: #cec2a8;
-	--accent: #6e5341;
-	--accent-foreground: #fbf7f0;
-	--destructive: #6e5341;
-	--destructive-foreground: #fbf7f0;
-	--border: #6e5341;
-	--input: #6e5341;
-	--ring: #7d8573;
-	--chart-1: #4f5c4d;
-	--chart-2: #7d8573;
-	--chart-3: #6e5341;
-	--chart-4: #cec2a8;
-	--chart-5: #fbf7f0;
-	--sidebar: #3a3f36;
-	--sidebar-foreground: #fbf7f0;
-	--sidebar-primary: #fbf7f0;
-	--sidebar-primary-foreground: #4f5c4d;
-	--sidebar-accent: #7d8573;
-	--sidebar-accent-foreground: #fbf7f0;
-	--sidebar-border: #6e5341;
-	--sidebar-ring: #7d8573;
+	--background: #2a3328;
+	--foreground: #e8e4d9;
+	--card: #2a3328;
+	--card-foreground: #e8e4d9;
+	--popover: #2a3328;
+	--popover-foreground: #e8e4d9;
+	--primary: #6b7a65;
+	--primary-foreground: #1a1f1a;
+	--secondary: #8a9a83;
+	--secondary-foreground: #1a1f1a;
+	--muted: #4a5345;
+	--muted-foreground: #a8a49a;
+	--accent: #7a8a75;
+	--accent-foreground: #1a1f1a;
+	--destructive: #8b4a4a;
+	--destructive-foreground: #e8e4d9;
+	--border: #5a6355;
+	--input: #5a6355;
+	--ring: #6b7a65;
+	--chart-1: #6b7a65;
+	--chart-2: #8a9a83;
+	--chart-3: #7a8a75;
+	--chart-4: #a8a49a;
+	--chart-5: #e8e4d9;
+	--sidebar: #2a3328;
+	--sidebar-foreground: #e8e4d9;
+	--sidebar-primary: #6b7a65;
+	--sidebar-primary-foreground: #1a1f1a;
+	--sidebar-accent: #8a9a83;
+	--sidebar-accent-foreground: #1a1f1a;
+	--sidebar-border: #5a6355;
+	--sidebar-ring: #6b7a65;
 }
 
 /*
