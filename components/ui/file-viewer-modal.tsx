@@ -42,10 +42,10 @@ export function FileViewerModal({
 }: FileViewerModalProps) {
 	useEffect(() => {
 		function handleKeyDown(e: KeyboardEvent) {
-			if (e.key === 'ArrowLeft' && selectedIndex > 0) {
+			if (e.key === 'ArrowLeft' && selectedIndex !== null && selectedIndex > 0) {
 				onSelectedIndexChange(selectedIndex - 1);
 			}
-			if (e.key === 'ArrowRight' && selectedIndex < files.length - 1) {
+			if (e.key === 'ArrowRight' && selectedIndex !== null && selectedIndex < files.length - 1) {
 				onSelectedIndexChange(selectedIndex + 1);
 			}
 			if (e.key === 'Escape') {
@@ -79,7 +79,10 @@ export function FileViewerModal({
 
 	return (
 		<Dialog open onOpenChange={() => onSelectedIndexChange(null)}>
-			<DialogContent className="w-screen h-dvh max-w-none p-0 border-0 bg-black/90 flex items-center justify-center overflow-y-auto">
+			<DialogContent
+				showCloseButton={false}
+				className="w-screen h-[92dvh] max-w-none p-1 border-0 bg-black/90 flex items-center justify-center overflow-y-auto"
+			>
 				<VisuallyHidden.Root asChild>
 					<DialogTitle>Visor de archivos</DialogTitle>
 				</VisuallyHidden.Root>
@@ -162,7 +165,7 @@ export function FileViewerModal({
 							{currentFile.size && currentFile.uploadedAt ? ' • ' : ''}
 							{currentFile.uploadedAt ? formatDate(currentFile.uploadedAt) : ''}
 						</p>
-						<p className="text-xs text-white/50 mt-1">
+						<p className="text-xs mb-5 text-white/50 mt-1">
 							{selectedIndex + 1} de {files.length}
 						</p>
 					</div>

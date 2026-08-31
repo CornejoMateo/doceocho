@@ -1,4 +1,4 @@
-import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
+import { formatCreatedAt, formatSimpleTime, formatTimeVideo } from '@/utils/format-date';
 
 describe('formatCreatedAt', () => {
 	it('formats valid ISO date correctly', () => {
@@ -91,5 +91,50 @@ describe('formatSimpleTime', () => {
 
 	it('returns original string if format is unexpected', () => {
 		expect(formatSimpleTime('invalid')).toBe('invalid');
+	});
+});
+
+describe('formatTimeVideo', () => {
+	it('formats 0 seconds as 00:00', () => {
+		expect(formatTimeVideo(0)).toBe('00:00');
+	});
+
+	it('formats seconds under a minute correctly', () => {
+		expect(formatTimeVideo(5)).toBe('00:05');
+		expect(formatTimeVideo(45)).toBe('00:45');
+		expect(formatTimeVideo(59)).toBe('00:59');
+	});
+
+	it('formats exactly one minute as 01:00', () => {
+		expect(formatTimeVideo(60)).toBe('01:00');
+	});
+
+	it('formats minutes and seconds correctly', () => {
+		expect(formatTimeVideo(65)).toBe('01:05');
+		expect(formatTimeVideo(125)).toBe('02:05');
+		expect(formatTimeVideo(599)).toBe('09:59');
+	});
+
+	it('pads single-digit minutes with a leading zero', () => {
+		expect(formatTimeVideo(61)).toBe('01:01');
+	});
+
+	it('does not pad minutes beyond two digits when double-digit or higher', () => {
+		expect(formatTimeVideo(600)).toBe('10:00');
+		expect(formatTimeVideo(3600)).toBe('60:00'); // 1 hour, no hour rollover in this format
+	});
+
+	it('handles large durations (multiple hours) without truncating minutes', () => {
+		expect(formatTimeVideo(7325)).toBe('122:05'); // 2h 2m 5s
+	});
+
+	it('floors fractional seconds instead of rounding', () => {
+		expect(formatTimeVideo(59.9)).toBe('00:59');
+		expect(formatTimeVideo(60.5)).toBe('01:00');
+	});
+
+	it('normalizes negative seconds to 00:00', () => {
+		expect(formatTimeVideo(-5)).toBe('00:00');
+		expect(formatTimeVideo(-0.5)).toBe('00:00');
 	});
 });

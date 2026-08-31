@@ -7,8 +7,9 @@ create table public.modules (
   description text null,
   amount numeric null,
   work_id bigint null,
+  admin_description text null,
   constraint modules_pkey primary key (id),
-  constraint modules_work_id_fkey foreign KEY (work_id) references works (id) on update CASCADE
+  constraint modules_work_id_fkey foreign KEY (work_id) references works (id) on update CASCADE,
   constraint modules_user_id_fkey foreign KEY (user_id) references users (uid_user) on update CASCADE on delete set null
 ) TABLESPACE pg_default;
 

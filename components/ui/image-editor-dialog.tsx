@@ -12,12 +12,23 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { Camera, X, Undo, Download, Type, Pencil, RotateCw, Trash2, Move } from 'lucide-react';
+import {
+	Camera,
+	X,
+	Undo,
+	Download,
+	Type,
+	Pencil,
+	RotateCw,
+	Trash2,
+	Move,
+	Loader2,
+} from 'lucide-react';
 
 interface ImageEditorDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onImageReady: (imageFile: File) => boolean;
+	onImageReady: (imageFile: File) => boolean | Promise<boolean>;
 	initialFile?: File | null;
 }
 
@@ -163,6 +174,7 @@ export function ImageEditorDialog({
 	const [isCameraReady, setIsCameraReady] = useState(false);
 	const [mode, setMode] = useState<'draw' | 'text'>('draw');
 	const [textToInsert, setTextToInsert] = useState('');
+	const [isSaving, setIsSaving] = useState(false);
 	const [texts, setTexts] = useState<
 		Array<{
 			id: string;
@@ -414,23 +426,35 @@ export function ImageEditorDialog({
 				tempContext.restore();
 			});
 
+			setIsSaving(true);
+
 			tempCanvas.toBlob(
-				(blob) => {
-					if (!blob) {
+				async (blob) => {
+					try {
+						if (!blob) {
+							toast({
+								variant: 'destructive',
+								title: 'No se pudo generar la imagen',
+								description: 'Intenta nuevamente.',
+							});
+							return;
+						} else {
+							const defaultName = (initialFile?.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
+							const file = new File([blob], defaultName, { type: 'image/jpeg' });
+							const shouldCloseAndReset = await onImageReady(file);
+							if (shouldCloseAndReset) {
+								onOpenChange(false);
+								resetEditor();
+							}
+						}
+					} catch (error) {
 						toast({
 							variant: 'destructive',
-							title: 'No se pudo generar la imagen',
-							description: 'Intenta nuevamente.',
+							title: 'No se pudo guardar la imagen',
+							description: translateError(error) || 'Intenta nuevamente.',
 						});
-						return;
-					} else {
-						const defaultName = (initialFile?.name || 'image').replace(/\.[^/.]+$/, '') + '.jpg';
-						const file = new File([blob], defaultName, { type: 'image/jpeg' });
-						const shouldCloseAndReset = onImageReady(file);
-						if (shouldCloseAndReset) {
-							onOpenChange(false);
-							resetEditor();
-						}
+					} finally {
+						setIsSaving(false);
 					}
 				},
 				'image/jpeg',
@@ -646,15 +670,25 @@ export function ImageEditorDialog({
 							onOpenChange(false);
 							resetEditor();
 						}}
+						disabled={isSaving}
 						className="w-full sm:w-auto"
 					>
 						<X className="h-4 w-4 mr-2" />
 						Cancelar
 					</Button>
 					{imageSrc && (
-						<Button onClick={saveImage} className="w-full sm:w-auto">
-							<Download className="h-4 w-4 mr-2" />
-							Guardar y subir
+						<Button onClick={saveImage} disabled={isSaving} className="w-full sm:w-auto">
+							{isSaving ? (
+								<>
+									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									Guardando...
+								</>
+							) : (
+								<>
+									<Download className="h-4 w-4 mr-2" />
+									Guardar y subir
+								</>
+							)}
 						</Button>
 					)}
 				</DialogFooter>

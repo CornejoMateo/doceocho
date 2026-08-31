@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import QRScanner from './attendance-qr-scanner';
 import { listUsers, User } from '@/lib/users/users';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { ModuleManagement } from '../modules/module-management';
 
 export function ClockIn() {
 	const adminHistoryRef = useRef<{ loadHistory: () => Promise<void> }>(null);
@@ -238,8 +239,8 @@ export function ClockIn() {
 
 	return (
 		<div className="container mx-auto p-4 md:p-8">
-			<div className="grid gap-4 md:gap-6">
-				<Tabs defaultValue="hour">
+			<div className="grid gap-4 md:gap-6 min-w-0">
+				<Tabs defaultValue="hour" className="min-w-0">
 					<TabsList>
 						<TabsTrigger value="hour">Por hora</TabsTrigger>
 						{!isQR && <TabsTrigger value="module">Por módulo</TabsTrigger>}
@@ -379,18 +380,8 @@ export function ClockIn() {
 						)}
 					</TabsContent>
 
-					<TabsContent value="module">
-						<Card className="w-full">
-							<CardHeader>
-								<CardTitle>Fichaje por módulo</CardTitle>
-								<CardDescription>
-									Sección en construcción. Aquí iremos agregando la funcionalidad por módulo.
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<p className="text-sm text-muted-foreground">Por ahora no hay nada para mostrar.</p>
-							</CardContent>
-						</Card>
+					<TabsContent value="module" className="min-w-0">
+						<ModuleManagement users={users} />
 					</TabsContent>
 				</Tabs>
 			</div>
