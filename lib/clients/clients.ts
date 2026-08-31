@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 export type Client = {
 	id: number;
@@ -109,17 +110,23 @@ export async function createClientFolder(clientId: number, supabaseClient?: Supa
 export async function getClientsThisWeek(): Promise<{ data: Client[] | null; error: any }> {
 	const supabase = getSupabaseClient();
 
-	const now = new Date();
-	const startOfWeek = new Date(now);
-	startOfWeek.setDate(now.getDate() - now.getDay());
-	startOfWeek.setHours(0, 0, 0, 0);
+	const nowArgentina = toZonedTime(new Date(), 'America/Argentina/Buenos_Aires');
+
+	const dayOfWeek = nowArgentina.getDay();
+	const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+	const startOfWeekLocal = new Date(nowArgentina);
+	startOfWeekLocal.setDate(nowArgentina.getDate() - diffToMonday);
+	startOfWeekLocal.setHours(0, 0, 0, 0);
+
+	const startOfWeekUTC = fromZonedTime(startOfWeekLocal, 'America/Argentina/Buenos_Aires');
 
 	const { data, error } = await supabase
 		.from(TABLE)
 		.select(
 			'name, last_name, id, phone_number, locality, email, contact_method, referred_to, identity_number, created_at'
 		)
-		.gte('created_at', startOfWeek.toISOString())
+		.gte('created_at', startOfWeekUTC.toISOString())
 		.order('created_at', { ascending: false });
 
 	return { data, error };
