@@ -79,7 +79,10 @@ export function FileViewerModal({
 
 	return (
 		<Dialog open onOpenChange={() => onSelectedIndexChange(null)}>
-			<DialogContent className="w-screen h-[92dvh] max-w-none p-1 border-0 bg-black/90 flex items-center justify-center overflow-y-auto">
+			<DialogContent
+				showCloseButton={false}
+				className="w-screen h-[92dvh] max-w-none p-1 border-0 bg-black/90 flex items-center justify-center overflow-y-auto"
+			>
 				<VisuallyHidden.Root asChild>
 					<DialogTitle>Visor de archivos</DialogTitle>
 				</VisuallyHidden.Root>
