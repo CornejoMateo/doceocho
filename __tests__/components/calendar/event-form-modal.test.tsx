@@ -214,7 +214,7 @@ describe('Mode: create - EventFormModal', () => {
 				expect(onSave).toHaveBeenCalledWith(
 					expect.objectContaining({
 						work_id: 10,
-						work_location: '',
+						work_location: 'Palermo, Av. Santa Fe 1234',
 					})
 				);
 			});
