@@ -46,7 +46,9 @@ export function EventListItem({
 					</div>
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center gap-2">
-							<h4 className="text-sm font-medium text-foreground break-words">{event.title}</h4>
+							<h4 className="text-sm font-medium text-white dark:text-white break-words">
+								{event.title}
+							</h4>
 							{isOverdue && (
 								<div className="flex items-center gap-1 flex-shrink-0">
 									<div className="h-2 w-2 rounded-full bg-red-500" title="Evento atrasado" />
@@ -54,7 +56,9 @@ export function EventListItem({
 							)}
 						</div>
 						{event.client_name && (
-							<p className="text-xs text-muted-foreground break-words">{event.client_name}</p>
+							<p className="text-xs text-gray-200 dark:text-gray-200 break-words">
+								{event.client_name}
+							</p>
 						)}
 					</div>
 				</div>
@@ -72,7 +76,7 @@ export function EventListItem({
 					</div>
 				)}
 			</div>
-			<div className="space-y-1 text-xs text-muted-foreground">
+			<div className="space-y-1 text-xs text-gray-300 dark:text-gray-300">
 				<div className="flex items-center gap-1.5">
 					<Calendar className="h-3.5 w-3.5 flex-shrink-0" />
 					<span>
