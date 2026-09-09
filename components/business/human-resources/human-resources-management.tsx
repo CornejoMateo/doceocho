@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/provider/auth-provider';
 import { EmployeesTab } from '@/components/business/human-resources/employees/employees-tab';
+import { EvaluationsTab } from '@/components/business/human-resources/evaluations/evaluations-tab';
 
 // Placeholder for the tabs that are not implemented yet.
 function ComingSoonTab({ title, description }: { title: string; description: string }) {
@@ -57,10 +58,7 @@ export function HumanResourcesManagement() {
 				</TabsContent>
 
 				<TabsContent value="evaluations">
-					<ComingSoonTab
-						title="Evaluación de empleados"
-						description="Sección en construcción. Acá vamos a cargar las evaluaciones de desempeño."
-					/>
+					<EvaluationsTab />
 				</TabsContent>
 
 				<TabsContent value="vacations">
