@@ -40,12 +40,13 @@ export async function savePushSubscription(
  * Get all push subscriptions for a user
  */
 export async function getUserPushSubscriptions(
-	userId: string
+	userId: string,
+	supabase?: SupabaseClient
 ): Promise<{ data: PushSubscription[] | null; error?: string }> {
-	const supabase = getSupabaseClient();
+	const client = supabase ?? getSupabaseClient();
 
 	try {
-		const { data, error } = await supabase
+		const { data, error } = await client
 			.from('push_subscriptions')
 			.select('endpoint, p256dh, auth')
 			.eq('user_id', userId);

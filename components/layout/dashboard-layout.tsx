@@ -111,7 +111,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Fichar',
 				'Recursos Humanos',
 			],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Fichar'],
+			Taller: [
+				'Insumos',
+				'Clientes',
+				'Kanban',
+				'Calendario',
+				'Chat',
+				'Obras',
+				'Fichar',
+				'Recursos Humanos',
+			],
 			QR: ['Fichar'],
 		} as Record<UserRole, string[]>;
 	}, []);
