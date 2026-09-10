@@ -4,14 +4,7 @@ import { useMemo, useState } from 'react';
 import { Image } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-} from '@/components/ui/pagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 import { PhotoGalleryModal } from './images/photo-gallery-modal';
 import { SupplyFormDialog } from '@/components/business/stock/supplies-add-dialog';
@@ -225,59 +218,14 @@ export function StockManagement() {
 						/>
 					)}
 
-					{filteredStock.length > itemsPerPage && (
-						<div className="mt-4 flex items-center justify-between px-2">
-							<div className="text-sm text-muted-foreground">
-								Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, filteredStock.length)}-
-								{Math.min(currentPage * itemsPerPage, filteredStock.length)} de{' '}
-								{filteredStock.length} elementos
-							</div>
-
-							<Pagination className="mx-0 w-auto">
-								<PaginationContent>
-									<PaginationItem>
-										<PaginationPrevious
-											onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-											className={
-												currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-											}
-										/>
-									</PaginationItem>
-
-									{Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-										let pageNum = index + 1;
-										if (totalPages > 5) {
-											if (currentPage <= 3) pageNum = index + 1;
-											else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + index;
-											else pageNum = currentPage - 2 + index;
-										}
-										return (
-											<PaginationItem key={pageNum}>
-												<PaginationLink
-													isActive={currentPage === pageNum}
-													className="cursor-pointer"
-													onClick={() => setCurrentPage(pageNum)}
-												>
-													{pageNum}
-												</PaginationLink>
-											</PaginationItem>
-										);
-									})}
-
-									<PaginationItem>
-										<PaginationNext
-											onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-											className={
-												currentPage === totalPages
-													? 'pointer-events-none opacity-50'
-													: 'cursor-pointer'
-											}
-										/>
-									</PaginationItem>
-								</PaginationContent>
-							</Pagination>
-						</div>
-					)}
+					<PaginationControls
+						currentPage={currentPage}
+						totalPages={totalPages}
+						totalItems={filteredStock.length}
+						itemsPerPage={itemsPerPage}
+						onPageChange={setCurrentPage}
+						itemLabel="elementos"
+					/>
 				</>
 			)}
 		</div>
