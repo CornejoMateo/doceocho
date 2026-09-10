@@ -47,6 +47,7 @@ self.addEventListener('push', (event) => {
 		badge: '/icon-192.png',
 		vibrate: [100, 50, 100],
 		data: data.data || {},
+
 		// A tag per notification type, so a vacation alert does not replace a chat one.
 		tag: (data.data && data.data.type) || 'chat-notification',
 		requireInteraction: true,
