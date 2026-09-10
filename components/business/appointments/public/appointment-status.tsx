@@ -66,7 +66,7 @@ export function AppointmentStatus({ token }: { token: string }) {
 			<div className="flex items-start justify-between gap-3">
 				<div>
 					<p className="text-sm text-muted-foreground">Hola {appointment.clientName}</p>
-					<h2 className="text-xl font-semibold text-foreground capitalize">
+					<h2 className="text-xl font-semibold text-foreground">
 						{format(parseDateOnly(appointment.date), "EEEE d 'de' MMMM", { locale: es })}
 					</h2>
 					<p className="text-sm text-muted-foreground">

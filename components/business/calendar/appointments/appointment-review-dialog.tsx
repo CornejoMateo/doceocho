@@ -133,7 +133,7 @@ export function AppointmentReviewDialog({
 			<DialogContent className="w-[95vw] max-w-lg max-h-[95dvh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{appointment.client_name}</DialogTitle>
-					<DialogDescription className="capitalize">
+					<DialogDescription>
 						{format(parseDateOnly(appointment.date), "EEEE d 'de' MMMM", { locale: es })} ·{' '}
 						{startTime} a {endTime}
 					</DialogDescription>

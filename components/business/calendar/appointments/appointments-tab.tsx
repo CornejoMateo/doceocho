@@ -197,7 +197,7 @@ export function AppointmentsTab() {
 									<p className="text-sm font-medium text-foreground truncate">
 										{appointment.client_name}
 									</p>
-									<p className="text-sm text-muted-foreground capitalize">
+									<p className="text-sm text-muted-foreground">
 										{format(parseDateOnly(appointment.date), "EEEE d 'de' MMMM", { locale: es })} ·{' '}
 										{appointment.start_time.slice(0, 5)}
 									</p>

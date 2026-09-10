@@ -19,7 +19,9 @@ import {
 import { parseDateOnly } from '@/helpers/appointments/availability';
 
 function formatDayLabel(date: string): string {
-	return format(parseDateOnly(date), "EEEE d 'de' MMMM", { locale: es });
+	const dayName = format(parseDateOnly(date), "EEEE", { locale: es });
+	const rest = format(parseDateOnly(date), "d 'de' MMMM", { locale: es });
+	return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${rest}`;
 }
 
 export function PublicBooking() {
