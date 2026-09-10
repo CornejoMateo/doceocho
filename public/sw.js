@@ -47,7 +47,8 @@ self.addEventListener('push', (event) => {
 		badge: '/icon-192.png',
 		vibrate: [100, 50, 100],
 		data: data.data || {},
-		tag: 'chat-notification',
+		// A tag per notification type, so a vacation alert does not replace a chat one.
+		tag: (data.data && data.data.type) || 'chat-notification',
 		requireInteraction: true,
 		renotify: true,
 		actions: [
@@ -70,9 +71,12 @@ self.addEventListener('notificationclick', (event) => {
 	event.notification.close();
 
 	if (event.action === 'open' || event.action === '') {
+		// Each notification carries where it should open; chat stays the default.
+		const path = (event.notification.data && event.notification.data.url) || '/chat';
+
 		event.waitUntil(
 			self.clients.matchAll({ type: 'window' }).then((clientList) => {
-				const targetUrl = new URL('/chat', self.location.origin).href;
+				const targetUrl = new URL(path, self.location.origin).href;
 			for (const client of clientList) {
 				if (client.url.startsWith(self.location.origin) && 'focus' in client) {
 					return client.navigate(targetUrl).then(() => client.focus());
