@@ -1,3 +1,11 @@
+import { format, toZonedTime } from 'date-fns-tz';
+
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+
+export function getLocalDate(date: Date | string | number = new Date()): string {
+	return format(toZonedTime(new Date(date), ARGENTINA_TIME_ZONE), 'yyyy-MM-dd');
+}
+
 // The method we should always use to display timestampz data
 export const formatCreatedAt = (dateValue: unknown) => {
 	if (!dateValue) return 'N/A';

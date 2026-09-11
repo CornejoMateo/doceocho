@@ -1,12 +1,10 @@
 import { getSupabaseClient } from '../supabase-client';
 import { AttendanceEntryWithDate } from './attendance-entries';
-import { getAttendanceSettings } from './attendance-settings';
 
 export interface Attendance {
 	id: number;
 	date: string;
 	user_id: string;
-	description: string | null;
 }
 
 export interface UserAttendanceSummary {
@@ -14,51 +12,6 @@ export interface UserAttendanceSummary {
 	user_name: string;
 	total_hours: number;
 	entries: AttendanceEntryWithDate[];
-}
-
-export interface PaymentSummary {
-	user_id: string;
-	user_name: string;
-	daily: {
-		date: string;
-		regular_hours: number;
-		overtime_hours: number;
-		total_payment: number;
-	}[];
-	weekly: {
-		week_start: string;
-		week_end: string;
-		regular_hours: number;
-		overtime_hours: number;
-		total_payment: number;
-	}[];
-	monthly: {
-		month: string;
-		regular_hours: number;
-		overtime_hours: number;
-		total_payment: number;
-	}[];
-}
-
-/**
- * Create a new attendance record for the current user
- */
-export async function createAttendance(
-	date: string,
-	userId: string
-): Promise<{ data: Attendance | null; error: any }> {
-	const supabase = getSupabaseClient();
-
-	const { data, error } = await supabase
-		.from('attendance')
-		.insert({
-			date,
-			user_id: userId,
-		})
-		.select()
-		.single();
-
-	return { data, error };
 }
 
 /**
@@ -89,48 +42,6 @@ export async function getUserAttendanceHistory(
 		...entry,
 		attendance_date: entry.attendance.date,
 		user_id: entry.attendance.user_id,
-	})) as AttendanceEntryWithDate[];
-
-	return { data: entriesWithDate || null, error: null };
-}
-
-/**
- * Get all attendance entries with user info for admin
- */
-export async function getAllAttendanceHistory(): Promise<{
-	data: AttendanceEntryWithDate[] | null;
-	error: any;
-}> {
-	const supabase = getSupabaseClient();
-
-	const { data, error } = await supabase
-		.from('attendance_entries')
-		.select(
-			`
-			*,
-			attendance!inner (
-				date,
-				user_id,
-				users (
-					name,
-					last_name,
-					username
-				)
-			)
-		`
-		)
-		.order('entry_time', { ascending: false });
-
-	if (error) return { data: null, error };
-
-	const entriesWithDate = data?.map((entry: any) => ({
-		...entry,
-		attendance_date: entry.attendance.date,
-		user_id: entry.attendance.user_id,
-		user_name:
-			`${entry.attendance.users?.name || ''} ${entry.attendance.users?.last_name || ''}`.trim() ||
-			entry.attendance.users?.username ||
-			'Desconocido',
 	})) as AttendanceEntryWithDate[];
 
 	return { data: entriesWithDate || null, error: null };
@@ -188,151 +99,6 @@ export function calculateHoursWorked(entries: AttendanceEntryWithDate[]): number
 	});
 
 	return totalHours;
-}
-
-/**
- * Calculate payment summary for a user
- */
-export async function calculatePaymentSummary(
-	userId: string,
-	userName: string
-): Promise<{ data: PaymentSummary | null; error: any }> {
-	const { data: entries, error } = await getUserAttendanceHistory(userId);
-
-	if (error || !entries) {
-		return { data: null, error };
-	}
-
-	const { data: settings } = await getAttendanceSettings();
-	const priceHour = settings?.price_hour || 0;
-	const priceHourOvertime = settings?.price_hour_overtime || 0;
-
-	// Group entries by date
-	const entriesByDate: { [key: string]: AttendanceEntryWithDate[] } = {};
-	entries.forEach((entry: AttendanceEntryWithDate) => {
-		const key = entry.attendance_date;
-		if (!entriesByDate[key]) {
-			entriesByDate[key] = [];
-		}
-		entriesByDate[key].push(entry);
-	});
-
-	// Calculate daily payments
-	const daily: PaymentSummary['daily'] = [];
-	Object.keys(entriesByDate).forEach((date) => {
-		const dayEntries = entriesByDate[date];
-		const sortedEntries = dayEntries.sort(
-			(a, b) => new Date(a.entry_time).getTime() - new Date(b.entry_time).getTime()
-		);
-
-		let regularHours = 0;
-		let overtimeHours = 0;
-		const pendingRegularIn: AttendanceEntryWithDate[] = [];
-		const pendingOvertimeIn: AttendanceEntryWithDate[] = [];
-
-		for (const entry of sortedEntries) {
-			if (entry.type === 'regular_in') {
-				pendingRegularIn.push(entry);
-			} else if (entry.type === 'regular_out' && pendingRegularIn.length > 0) {
-				const matchingIn = pendingRegularIn.shift();
-				if (matchingIn) {
-					const startTime = new Date(matchingIn.entry_time).getTime();
-					const endTime = new Date(entry.entry_time).getTime();
-					const hours = (endTime - startTime) / (1000 * 60 * 60);
-					regularHours += hours;
-				}
-			} else if (entry.type === 'overtime_in') {
-				pendingOvertimeIn.push(entry);
-			} else if (entry.type === 'overtime_out' && pendingOvertimeIn.length > 0) {
-				const matchingIn = pendingOvertimeIn.shift();
-				if (matchingIn) {
-					const startTime = new Date(matchingIn.entry_time).getTime();
-					const endTime = new Date(entry.entry_time).getTime();
-					const hours = (endTime - startTime) / (1000 * 60 * 60);
-					overtimeHours += hours;
-				}
-			}
-		}
-
-		const totalPayment = regularHours * priceHour + overtimeHours * priceHourOvertime;
-		daily.push({
-			date,
-			regular_hours: Math.round(regularHours * 100) / 100,
-			overtime_hours: Math.round(overtimeHours * 100) / 100,
-			total_payment: Math.round(totalPayment * 100) / 100,
-		});
-	});
-
-	// Calculate weekly payments
-	const weekly: PaymentSummary['weekly'] = [];
-	const entriesByWeek: { [key: string]: { regular_hours: number; overtime_hours: number } } = {};
-
-	daily.forEach((day) => {
-		const date = new Date(day.date);
-		const weekStart = new Date(date);
-		weekStart.setDate(date.getDate() - date.getDay());
-		const weekKey = weekStart.toISOString().split('T')[0];
-
-		if (!entriesByWeek[weekKey]) {
-			entriesByWeek[weekKey] = { regular_hours: 0, overtime_hours: 0 };
-		}
-		entriesByWeek[weekKey].regular_hours += day.regular_hours;
-		entriesByWeek[weekKey].overtime_hours += day.overtime_hours;
-	});
-
-	Object.keys(entriesByWeek).forEach((weekStart) => {
-		const weekData = entriesByWeek[weekStart];
-		const weekEndDate = new Date(weekStart);
-		weekEndDate.setDate(weekEndDate.getDate() + 6);
-		const weekEnd = weekEndDate.toISOString().split('T')[0];
-
-		const totalPayment =
-			weekData.regular_hours * priceHour + weekData.overtime_hours * priceHourOvertime;
-		weekly.push({
-			week_start: weekStart,
-			week_end: weekEnd,
-			regular_hours: Math.round(weekData.regular_hours * 100) / 100,
-			overtime_hours: Math.round(weekData.overtime_hours * 100) / 100,
-			total_payment: Math.round(totalPayment * 100) / 100,
-		});
-	});
-
-	// Calculate monthly payments
-	const monthly: PaymentSummary['monthly'] = [];
-	const entriesByMonth: { [key: string]: { regular_hours: number; overtime_hours: number } } = {};
-
-	daily.forEach((day) => {
-		const monthKey = day.date.substring(0, 7); // YYYY-MM
-
-		if (!entriesByMonth[monthKey]) {
-			entriesByMonth[monthKey] = { regular_hours: 0, overtime_hours: 0 };
-		}
-		entriesByMonth[monthKey].regular_hours += day.regular_hours;
-		entriesByMonth[monthKey].overtime_hours += day.overtime_hours;
-	});
-
-	Object.keys(entriesByMonth).forEach((month) => {
-		const monthData = entriesByMonth[month];
-		const totalPayment =
-			monthData.regular_hours * priceHour + monthData.overtime_hours * priceHourOvertime;
-		monthly.push({
-			month,
-			regular_hours: Math.round(monthData.regular_hours * 100) / 100,
-			overtime_hours: Math.round(monthData.overtime_hours * 100) / 100,
-			total_payment: Math.round(totalPayment * 100) / 100,
-		});
-	});
-
-	return {
-		data: {
-			user_id: userId,
-			user_name: userName,
-			daily: daily.sort((a, b) => b.date.localeCompare(a.date)),
-			weekly: weekly.sort((a, b) => b.week_start.localeCompare(a.week_start)),
-			monthly: monthly.sort((a, b) => b.month.localeCompare(a.month)),
-		},
-		error: null,
-	};
 }
 
 /**

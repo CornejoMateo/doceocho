@@ -44,7 +44,7 @@ describe('CashBoxSummaryCard', () => {
 			/>
 		);
 
-		expect(screen.getAllByText('$0.00')).toHaveLength(4);
+		expect(screen.getAllByText('$0')).toHaveLength(4);
 	});
 
 	it('renders correctly with a negative current balance', () => {

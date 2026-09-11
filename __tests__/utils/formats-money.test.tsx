@@ -22,16 +22,16 @@ describe('money utils', () => {
 			expect(result).toContain('$');
 		});
 
-		it('returns $0.00 for null', () => {
-			expect(formatCurrency(null)).toBe('$0.00');
+		it('returns $0 for null', () => {
+			expect(formatCurrency(null)).toBe('$0');
 		});
 
-		it('returns $0.00 for undefined', () => {
-			expect(formatCurrency(undefined)).toBe('$0.00');
+		it('returns $0 for undefined', () => {
+			expect(formatCurrency(undefined)).toBe('$0');
 		});
 
-		it('returns $0.00 for zero', () => {
-			expect(formatCurrency(0)).toBe('$0.00');
+		it('returns $0 for zero', () => {
+			expect(formatCurrency(0)).toBe('$0');
 		});
 
 		it('formats negative values correctly', () => {
@@ -48,16 +48,16 @@ describe('money utils', () => {
 			expect(formatCurrencyUSD(99.99)).toContain('99,99');
 		});
 
-		it('returns empty string for null', () => {
-			expect(formatCurrencyUSD(null)).toBe('US$ 0.00');
+		it('returns US$ 0 for null', () => {
+			expect(formatCurrencyUSD(null)).toBe('US$ 0');
 		});
 
-		it('returns empty string for undefined', () => {
-			expect(formatCurrencyUSD(undefined)).toBe('US$ 0.00');
+		it('returns US$ 0 for undefined', () => {
+			expect(formatCurrencyUSD(undefined)).toBe('US$ 0');
 		});
 
-		it('returns empty string for zero', () => {
-			expect(formatCurrencyUSD(0)).toBe('US$ 0.00');
+		it('returns US$ 0 for zero', () => {
+			expect(formatCurrencyUSD(0)).toBe('US$ 0');
 		});
 	});
 

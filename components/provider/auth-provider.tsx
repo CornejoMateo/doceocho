@@ -7,7 +7,7 @@ import { UserRole } from '@/constants/users/user-role';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { clearChannelsCache } from '@/hooks/chat/use-chat-management';
 
-type SessionUser = {
+export type SessionUser = {
 	username: string;
 	name: string;
 	last_name: string;

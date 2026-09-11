@@ -6,13 +6,17 @@ import {
 	getLastAttendanceEntry,
 } from '@/lib/attendance/attendance-server';
 import { getCurrentUser } from '@/lib/auth';
+import { getLocalDate } from '@/utils/format-date';
 import { isWithinRadius } from '@/helpers/attendance/distance';
-import { TARGET_LOCATION } from '@/constants/attendance/attendance';
+import { verifyQRToken } from '@/lib/qr/qr-token';
+import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
+import { sendAttendanceCreatedNotification } from '@/lib/push/send-attendance-notification';
+import { getUserByUid } from '@/lib/users/users';
 
 export async function POST(req: NextRequest) {
 	try {
 		const user = await getCurrentUser();
-		const { isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
+		const { token, isOvertime, latitude, longitude, radiusMeters, lat, long } = await req.json();
 		const userId = user?.id;
 
 		if (!userId) {
@@ -23,6 +27,34 @@ export async function POST(req: NextRequest) {
 				},
 				{
 					status: 400,
+				}
+			);
+		}
+
+		if (!token || typeof token !== 'string') {
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'Token inválido',
+				},
+				{
+					status: 400,
+				}
+			);
+		}
+
+		try {
+			await verifyQRToken(token);
+		} catch (qrError) {
+			console.error(qrError);
+
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'QR inválido o expirado',
+				},
+				{
+					status: 401,
 				}
 			);
 		}
@@ -51,6 +83,18 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
+		if (typeof lat !== 'number' || typeof long !== 'number') {
+			return NextResponse.json(
+				{
+					success: false,
+					message: 'Ubicación de referencia inválida',
+				},
+				{
+					status: 400,
+				}
+			);
+		}
+
 		if (!isWithinRadius(latitude, longitude, lat, long, radiusMeters)) {
 			return NextResponse.json(
 				{
@@ -63,7 +107,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const today = new Date().toISOString().split('T')[0];
+		const today = getLocalDate();
 
 		let attendance;
 
@@ -111,10 +155,31 @@ export async function POST(req: NextRequest) {
 			entry_time: new Date().toISOString(),
 			latitude,
 			longitude,
+			description: null,
 		});
 
 		if (entryError) {
 			throw entryError;
+		}
+
+		try {
+			const supabase = await getServerSupabaseClient();
+			const { after } = await import('next/server');
+			after(async () => {
+				try {
+					const { data: userProfile } = await getUserByUid(user.id, supabase);
+					await sendAttendanceCreatedNotification(
+						supabase,
+						userProfile?.username ?? 'Usuario Taller',
+						entryType
+					);
+				} catch (error: any) {
+					console.error('Failed to send client notification:', error.message);
+				}
+			});
+		} catch (e) {
+			// Notification failure must never fail the attendance registration
+			console.error('Failed to schedule attendance notification:', e);
 		}
 
 		return NextResponse.json({

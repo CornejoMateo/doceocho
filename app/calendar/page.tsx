@@ -1,10 +1,10 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { CalendarView } from '@/components/business/calendar/calendar-view';
+import { CalendarManagement } from '@/components/business/calendar/calendar-management';
 
 export default function CalendarPage() {
 	return (
 		<DashboardLayout>
-			<CalendarView />
+			<CalendarManagement />
 		</DashboardLayout>
 	);
 }

@@ -71,7 +71,9 @@ export function CoordinatesHelpDialog({ open, onOpenChange }: CoordinatesHelpDia
 					</div>
 				</div>
 				<div className="flex justify-end">
-					<Button onClick={() => onOpenChange(false)}>Entendido</Button>
+					<Button type="button" onClick={() => onOpenChange(false)}>
+						Entendido
+					</Button>
 				</div>
 			</DialogContent>
 		</Dialog>

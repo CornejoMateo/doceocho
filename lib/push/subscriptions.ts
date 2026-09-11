@@ -40,12 +40,13 @@ export async function savePushSubscription(
  * Get all push subscriptions for a user
  */
 export async function getUserPushSubscriptions(
-	userId: string
+	userId: string,
+	supabase?: SupabaseClient
 ): Promise<{ data: PushSubscription[] | null; error?: string }> {
-	const supabase = getSupabaseClient();
+	const client = supabase ?? getSupabaseClient();
 
 	try {
-		const { data, error } = await supabase
+		const { data, error } = await client
 			.from('push_subscriptions')
 			.select('endpoint, p256dh, auth')
 			.eq('user_id', userId);
@@ -83,6 +84,28 @@ export async function deletePushSubscription(
 			.delete()
 			.eq('user_id', userId)
 			.eq('endpoint', endpoint);
+
+		if (error) {
+			return { success: false, error: error.message };
+		}
+
+		return { success: true };
+	} catch (error: any) {
+		return { success: false, error: error.message };
+	}
+}
+
+/**
+ * Delete a push subscription by endpoint only (for expired/invalid subscriptions)
+ */
+export async function deletePushSubscriptionByEndpoint(
+	endpoint: string,
+	supabase?: SupabaseClient
+): Promise<{ success: boolean; error?: string }> {
+	const client = supabase ?? getSupabaseClient();
+
+	try {
+		const { error } = await client.from('push_subscriptions').delete().eq('endpoint', endpoint);
 
 		if (error) {
 			return { success: false, error: error.message };

@@ -16,15 +16,15 @@ export function getEntryTypeLabel(type: string): string {
 export function getEntryTypeColor(type: string): string {
 	switch (type) {
 		case 'regular_in':
-			return 'text-green-600';
+			return 'text-green-500 dark:text-green-400';
 		case 'regular_out':
-			return 'text-red-600';
+			return 'text-red-500 dark:text-red-400';
 		case 'overtime_in':
-			return 'text-blue-600';
+			return 'text-blue-500 dark:text-blue-400';
 		case 'overtime_out':
-			return 'text-orange-600';
+			return 'text-orange-500 dark:text-orange-400';
 		default:
-			return 'text-gray-600';
+			return 'text-muted-foreground';
 	}
 }
 

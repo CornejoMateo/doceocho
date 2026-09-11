@@ -12,14 +12,7 @@ import { ChecklistModal } from '@/components/business/works/checklists/checklist
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo, useEffect } from 'react';
-import {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-} from '@/components/ui/pagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { DeleteWorkDialog } from '@/components/business/works/delete-work-dialog';
 import { WorkCardList } from '@/components/business/works/work-card-list';
 import { paginateAndFilter } from '@/utils/pagination';
@@ -94,7 +87,6 @@ export function WorksList({
 	};
 
 	const {
-		filteredData: filteredClients,
 		paginatedData: currentItems,
 		totalPages,
 		totalItems,
@@ -235,60 +227,14 @@ export function WorksList({
 			)}
 
 			{/* Pagination */}
-			{initialWorks.length > itemsPerPage && (
-				<div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 px-2 mt-6">
-					<div className="text-xs sm:text-sm text-muted-foreground">
-						Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}-
-						{Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} obras
-					</div>
-
-					<Pagination className="mx-0 w-auto">
-						<PaginationContent>
-							<PaginationItem>
-								<PaginationPrevious
-									onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-									className={
-										currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-									}
-								/>
-							</PaginationItem>
-
-							{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-								let pageNum = i + 1;
-								if (totalPages > 5) {
-									if (currentPage <= 3) {
-										pageNum = i + 1;
-									} else if (currentPage >= totalPages - 2) {
-										pageNum = totalPages - 4 + i;
-									} else {
-										pageNum = currentPage - 2 + i;
-									}
-								}
-								return (
-									<PaginationItem key={pageNum}>
-										<PaginationLink
-											isActive={currentPage === pageNum}
-											className="cursor-pointer"
-											onClick={() => setCurrentPage(pageNum)}
-										>
-											{pageNum}
-										</PaginationLink>
-									</PaginationItem>
-								);
-							})}
-
-							<PaginationItem>
-								<PaginationNext
-									onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-									className={
-										currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-									}
-								/>
-							</PaginationItem>
-						</PaginationContent>
-					</Pagination>
-				</div>
-			)}
+			<PaginationControls
+				currentPage={currentPage}
+				totalPages={totalPages}
+				totalItems={totalItems}
+				itemsPerPage={itemsPerPage}
+				onPageChange={setCurrentPage}
+				itemLabel="obras"
+			/>
 		</div>
 	);
 }

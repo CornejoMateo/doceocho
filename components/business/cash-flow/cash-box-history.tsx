@@ -5,7 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { History, Eye, ChevronUp, X, Search } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { History, Eye, ChevronUp, X, Search, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { CashBox, getCashBoxWithTransactions } from '@/lib/cash-flow/cash-flow';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatCreatedAt, formatTime } from '@/utils/format-date';
@@ -39,6 +44,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 	const [currentPage, setCurrentPage] = useState(1);
 	const [startDate, setStartDate] = useState<string>('');
 	const [endDate, setEndDate] = useState<string>('');
+	const [isStartCalendarOpen, setIsStartCalendarOpen] = useState(false);
+	const [isEndCalendarOpen, setIsEndCalendarOpen] = useState(false);
 	const [boxSearchTerms, setBoxSearchTerms] = useState<Record<number, string>>({});
 	const loadTransactions = async (boxId: number) => {
 		setLoadingBoxId(boxId);
@@ -107,8 +114,8 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 		if (!box.created_at) return true;
 
 		const boxDate = new Date(box.created_at);
-		const start = startDate ? new Date(startDate) : null;
-		const end = endDate ? new Date(endDate) : null;
+		const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+		const end = endDate ? new Date(endDate + 'T00:00:00') : null;
 
 		if (start && boxDate < start) return false;
 		if (end) {
@@ -158,23 +165,64 @@ export function CashBoxHistory({ cashBoxes, loading, onRefresh }: CashBoxHistory
 			<div className="flex flex-col sm:flex-row gap-3">
 				<div className="flex-1 space-y-2">
 					<Label>Desde:</Label>
-					<Input
-						type="date"
-						placeholder="Fecha inicio"
-						value={startDate}
-						onChange={(e) => setStartDate(e.target.value)}
-						className="w-full"
-					/>
+					<Popover open={isStartCalendarOpen} onOpenChange={setIsStartCalendarOpen}>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								className={cn(
+									'w-full text-left font-normal',
+									!startDate && 'text-muted-foreground'
+								)}
+							>
+								{startDate ? (
+									format(new Date(startDate + 'T00:00:00'), 'PPP', { locale: es })
+								) : (
+									<span>Fecha inicio</span>
+								)}
+								<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent className="w-auto p-0" align="start">
+							<Calendar
+								mode="single"
+								selected={startDate ? new Date(startDate + 'T00:00:00') : undefined}
+								onSelect={(date) => {
+									setStartDate(date ? format(date, 'yyyy-MM-dd') : '');
+									setIsStartCalendarOpen(false);
+								}}
+								locale={es}
+							/>
+						</PopoverContent>
+					</Popover>
 				</div>
 				<div className="flex-1 space-y-2">
 					<Label>Hasta:</Label>
-					<Input
-						type="date"
-						placeholder="Fecha fin"
-						value={endDate}
-						onChange={(e) => setEndDate(e.target.value)}
-						className="w-full"
-					/>
+					<Popover open={isEndCalendarOpen} onOpenChange={setIsEndCalendarOpen}>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								className={cn('w-full text-left font-normal', !endDate && 'text-muted-foreground')}
+							>
+								{endDate ? (
+									format(new Date(endDate + 'T00:00:00'), 'PPP', { locale: es })
+								) : (
+									<span>Fecha fin</span>
+								)}
+								<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent className="w-auto p-0" align="start">
+							<Calendar
+								mode="single"
+								selected={endDate ? new Date(endDate + 'T00:00:00') : undefined}
+								onSelect={(date) => {
+									setEndDate(date ? format(date, 'yyyy-MM-dd') : '');
+									setIsEndCalendarOpen(false);
+								}}
+								locale={es}
+							/>
+						</PopoverContent>
+					</Popover>
 				</div>
 			</div>
 			{(startDate || endDate) && (

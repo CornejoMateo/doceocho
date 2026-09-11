@@ -27,6 +27,8 @@ import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { CoordinatesHelpDialog } from './coordinates-help-dialog';
 import { HelpCircleIcon } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { formatCurrencyWithoutSymbol, formatNumber, parseArsToNumber } from '@/utils/formats-money';
 
 interface AttendanceSettingsProps {
 	open: boolean;
@@ -46,37 +48,43 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 		TARGET_LOCATION.longitude.toString()
 	);
 	const [adminLoading, setAdminLoading] = useState(false);
+	const [loadingSettings, setLoadingSettings] = useState(false);
 	const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
 	const loadSettings = useCallback(async () => {
-		const { data: settings } = await getAttendanceSettings();
-		if (settings?.square_meters) {
-			setAdminSquareMeters(settings.square_meters.toString());
-		} else {
-			setAdminSquareMeters(DEFAULT_RADIUS_METERS.toString());
-		}
-		if (settings?.price_hour !== null && settings?.price_hour !== undefined) {
-			setPriceHour(settings.price_hour.toString());
-		}
-		if (settings?.price_hour_overtime !== null && settings?.price_hour_overtime !== undefined) {
-			setPriceHourOvertime(settings.price_hour_overtime.toString());
-		}
-		if (settings?.target_latitude !== null && settings?.target_latitude !== undefined) {
-			setTargetLatitude(settings.target_latitude.toString());
-		} else {
-			setTargetLatitude(TARGET_LOCATION.latitude.toString());
-		}
-		if (settings?.target_longitude !== null && settings?.target_longitude !== undefined) {
-			setTargetLongitude(settings.target_longitude.toString());
-		} else {
-			setTargetLongitude(TARGET_LOCATION.longitude.toString());
+		setLoadingSettings(true);
+		try {
+			const { data: settings } = await getAttendanceSettings();
+			if (settings?.square_meters) {
+				setAdminSquareMeters(settings.square_meters.toString());
+			} else {
+				setAdminSquareMeters(DEFAULT_RADIUS_METERS.toString());
+			}
+			if (settings?.price_hour !== null && settings?.price_hour !== undefined) {
+				setPriceHour(formatCurrencyWithoutSymbol(settings.price_hour));
+			}
+			if (settings?.price_hour_overtime !== null && settings?.price_hour_overtime !== undefined) {
+				setPriceHourOvertime(formatCurrencyWithoutSymbol(settings.price_hour_overtime));
+			}
+			if (settings?.target_latitude !== null && settings?.target_latitude !== undefined) {
+				setTargetLatitude(settings.target_latitude.toString());
+			} else {
+				setTargetLatitude(TARGET_LOCATION.latitude.toString());
+			}
+			if (settings?.target_longitude !== null && settings?.target_longitude !== undefined) {
+				setTargetLongitude(settings.target_longitude.toString());
+			} else {
+				setTargetLongitude(TARGET_LOCATION.longitude.toString());
+			}
+		} finally {
+			setLoadingSettings(false);
 		}
 	}, []);
 
 	const handleAdminSave = async () => {
 		const radiusValue = parseInt(adminSquareMeters, 10);
-		const priceHourValue = parseFloat(priceHour);
-		const priceHourOvertimeValue = parseFloat(priceHourOvertime);
+		const priceHourValue = parseArsToNumber(priceHour);
+		const priceHourOvertimeValue = parseArsToNumber(priceHourOvertime);
 
 		if (isNaN(radiusValue) || radiusValue < DEFAULT_RADIUS_METERS) {
 			toast({
@@ -171,118 +179,122 @@ export function AttendanceSettings({ open, onOpenChange }: AttendanceSettingsPro
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4 py-4">
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-lg">Radio de Ubicación</CardTitle>
-								<CardDescription className="text-sm">
-									Configura el radio máximo en metros para permitir el fichaje
-								</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="admin-square-meters" className="text-sm">
-										Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
-									</Label>
-									<Input
-										id="admin-square-meters"
-										type="number"
-										value={adminSquareMeters}
-										onChange={(e) => setAdminSquareMeters(e.target.value)}
-										min={DEFAULT_RADIUS_METERS}
-										placeholder={DEFAULT_RADIUS_METERS.toString()}
-										className="text-base"
-									/>
-								</div>
-							</CardContent>
-						</Card>
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-lg">Precios por Hora</CardTitle>
-								<CardDescription className="text-sm">
-									Configura los precios por hora para calcular los pagos a fin de mes
-								</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="price-hour" className="text-sm">
-										Precio por hora normal
-									</Label>
-									<Input
-										id="price-hour"
-										type="number"
-										step="0.01"
-										value={priceHour}
-										onChange={(e) => setPriceHour(e.target.value)}
-										min="0"
-										placeholder={DEFAULT_PRICE_HOUR.toString()}
-										className="text-base"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="price-hour-overtime" className="text-sm">
-										Precio por hora extra
-									</Label>
-									<Input
-										id="price-hour-overtime"
-										type="number"
-										step="0.01"
-										value={priceHourOvertime}
-										onChange={(e) => setPriceHourOvertime(e.target.value)}
-										min="0"
-										placeholder={DEFAULT_PRICE_HOUR_OVERTIME.toString()}
-										className="text-base"
-									/>
-								</div>
-							</CardContent>
-						</Card>
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-lg flex items-center gap-2">
-									Ubicación Objetivo
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => setHelpDialogOpen(true)}
-										className="h-6 w-6"
-									>
-										<HelpCircleIcon className="h-4 w-4" />
-									</Button>
-								</CardTitle>
-								<CardDescription className="text-sm">
-									Configura las coordenadas GPS de la ubicación para validar el fichaje
-								</CardDescription>
-							</CardHeader>
-							<CardContent className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="target-latitude" className="text-sm">
-										Latitud
-									</Label>
-									<Input
-										id="target-latitude"
-										type="number"
-										step="any"
-										value={targetLatitude}
-										onChange={(e) => setTargetLatitude(e.target.value)}
-										placeholder={TARGET_LOCATION.latitude.toString()}
-										className="text-base"
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="target-longitude" className="text-sm">
-										Longitud
-									</Label>
-									<Input
-										id="target-longitude"
-										type="number"
-										step="any"
-										value={targetLongitude}
-										onChange={(e) => setTargetLongitude(e.target.value)}
-										placeholder={TARGET_LOCATION.longitude.toString()}
-										className="text-base"
-									/>
-								</div>
-							</CardContent>
-						</Card>
+						{loadingSettings ? (
+							<div className="flex items-center justify-center h-[200px]">
+								<Spinner className="h-6 w-6 text-muted-foreground" />
+							</div>
+						) : (
+							<>
+								<Card>
+									<CardHeader>
+										<CardTitle className="text-lg">Radio de Ubicación</CardTitle>
+										<CardDescription className="text-sm">
+											Configura el radio máximo en metros para permitir el fichaje
+										</CardDescription>
+									</CardHeader>
+									<CardContent className="space-y-4">
+										<div className="space-y-2">
+											<Label htmlFor="admin-square-meters" className="text-sm">
+												Radio en metros (por seguridad mínimo: {DEFAULT_RADIUS_METERS})
+											</Label>
+											<Input
+												id="admin-square-meters"
+												type="number"
+												value={adminSquareMeters}
+												onChange={(e) => setAdminSquareMeters(e.target.value)}
+												min={DEFAULT_RADIUS_METERS}
+												placeholder={DEFAULT_RADIUS_METERS.toString()}
+												className="text-base"
+											/>
+										</div>
+									</CardContent>
+								</Card>
+								<Card>
+									<CardHeader>
+										<CardTitle className="text-lg">Precios por Hora</CardTitle>
+										<CardDescription className="text-sm">
+											Configura los precios por hora para calcular los pagos a fin de mes
+										</CardDescription>
+									</CardHeader>
+									<CardContent className="space-y-4">
+										<div className="space-y-2">
+											<Label htmlFor="price-hour" className="text-sm">
+												Precio por hora normal
+											</Label>
+											<Input
+												id="price-hour"
+												type="text"
+												value={priceHour}
+												onChange={(e) => setPriceHour(formatNumber(e.target.value))}
+												placeholder={DEFAULT_PRICE_HOUR.toString()}
+												className="text-base"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="price-hour-overtime" className="text-sm">
+												Precio por hora extra
+											</Label>
+											<Input
+												id="price-hour-overtime"
+												type="text"
+												value={priceHourOvertime}
+												onChange={(e) => setPriceHourOvertime(formatNumber(e.target.value))}
+												placeholder={DEFAULT_PRICE_HOUR_OVERTIME.toString()}
+												className="text-base"
+											/>
+										</div>
+									</CardContent>
+								</Card>
+								<Card>
+									<CardHeader>
+										<CardTitle className="text-lg flex items-center gap-2">
+											Ubicación Objetivo
+											<Button
+												variant="ghost"
+												size="icon"
+												onClick={() => setHelpDialogOpen(true)}
+												className="h-6 w-6"
+											>
+												<HelpCircleIcon className="h-4 w-4" />
+											</Button>
+										</CardTitle>
+										<CardDescription className="text-sm">
+											Configura las coordenadas GPS de la ubicación para validar el fichaje
+										</CardDescription>
+									</CardHeader>
+									<CardContent className="space-y-4">
+										<div className="space-y-2">
+											<Label htmlFor="target-latitude" className="text-sm">
+												Latitud
+											</Label>
+											<Input
+												id="target-latitude"
+												type="number"
+												step="any"
+												value={targetLatitude}
+												onChange={(e) => setTargetLatitude(e.target.value)}
+												placeholder={TARGET_LOCATION.latitude.toString()}
+												className="text-base"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="target-longitude" className="text-sm">
+												Longitud
+											</Label>
+											<Input
+												id="target-longitude"
+												type="number"
+												step="any"
+												value={targetLongitude}
+												onChange={(e) => setTargetLongitude(e.target.value)}
+												placeholder={TARGET_LOCATION.longitude.toString()}
+												className="text-base"
+											/>
+										</div>
+									</CardContent>
+								</Card>
+							</>
+						)}
 					</div>
 					<DialogFooter>
 						<Button onClick={handleAdminSave} disabled={adminLoading} className="w-full">

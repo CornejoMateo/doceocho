@@ -86,6 +86,7 @@ serve(async (req) => {
         ${workZone ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Zona:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${escapeHtml(workZone)}</span></div>` : ''}
         ${workHood ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Barrio:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${escapeHtml(workHood)}</span></div>` : ''}
         ${event.description ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Descripción:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${escapeHtml(event.description)}</span></div>` : ''}
+        ${event.time ? `<div style=\"margin-bottom: 8px;\"><span style=\"font-size: 18px; font-weight: bold; color: #194236;\">Hora:</span> <span style=\"font-size: 16px; font-weight: normal; color: #222;\">${escapeHtml(event.time)}</span></div>` : ''}
       </div>
     `
 

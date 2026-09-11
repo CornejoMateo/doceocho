@@ -107,6 +107,17 @@ export async function getWorkById(id: number): Promise<{ data: Work | null; erro
 	return { data, error };
 }
 
+export async function getWorksByIds(ids: number[]): Promise<{ data: Work[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select('id, name, locality, address')
+		.in('id', ids);
+
+	return { data, error };
+}
+
 export async function createWork(
 	work: Omit<Work, 'id' | 'created_at'>,
 	supabaseClient?: SupabaseClient
@@ -309,7 +320,8 @@ export async function getWorksThisWeek(): Promise<{ data: Work[] | null; error: 
 
 	const nowArgentina = toZonedTime(new Date(), 'America/Argentina/Buenos_Aires');
 
-	const dayOfWeek = nowArgentina.getDay();
+	const dayOfWeek = nowArgentina.getDay(); // 0=domingo, 1=lunes...
+
 	const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
 	const startOfWeekLocal = new Date(nowArgentina);

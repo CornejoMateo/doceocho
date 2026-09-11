@@ -1,5 +1,7 @@
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
-import { AttendanceEntry, Attendance, AttendanceSettings } from './attendance';
+import { getLocalDate } from '@/utils/format-date';
+import { Attendance } from './attendance';
+import { AttendanceEntry } from '@/lib/attendance/attendance-entries';
 
 export async function createAttendanceEntry(
 	entry: AttendanceEntry
@@ -31,24 +33,6 @@ export async function createAttendance(
 		.single();
 
 	return { data, error };
-}
-
-export async function getAttendanceForToday(userId: string) {
-	const supabase = await getServerSupabaseClient();
-	const today = new Date().toISOString().split('T')[0];
-
-	const { data, error } = await supabase
-		.from('attendance')
-		.select('*')
-		.eq('date', today)
-		.eq('user_id', userId)
-		.maybeSingle();
-
-	if (error) {
-		throw error;
-	}
-
-	return data;
 }
 
 export async function getAttendanceByDate(

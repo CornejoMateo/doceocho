@@ -25,6 +25,7 @@ import {
 	LayoutList,
 	Trash2,
 	Clock,
+	Briefcase,
 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
@@ -67,6 +68,13 @@ const navigation = [
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
 	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
+	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
+	{
+		name: 'Recursos Humanos',
+		href: '/human-resources',
+		icon: Briefcase,
+		disabled: false,
+	},
 ] as const;
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -100,8 +108,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Obras',
 				'Chat',
 				'Reportes',
+				'Fichar',
+				'Recursos Humanos',
 			],
-			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras'],
+			Taller: [
+				'Insumos',
+				'Clientes',
+				'Kanban',
+				'Calendario',
+				'Chat',
+				'Obras',
+				'Fichar',
+				'Recursos Humanos',
+			],
+			QR: ['Fichar'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
