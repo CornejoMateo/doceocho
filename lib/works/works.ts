@@ -321,6 +321,7 @@ export async function getWorksThisWeek(): Promise<{ data: Work[] | null; error: 
 	const nowArgentina = toZonedTime(new Date(), 'America/Argentina/Buenos_Aires');
 
 	const dayOfWeek = nowArgentina.getDay(); // 0=domingo, 1=lunes...
+
 	const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
 	const startOfWeekLocal = new Date(nowArgentina);

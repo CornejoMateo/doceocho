@@ -2,6 +2,7 @@ import { getSupabaseClient } from '../supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
+
 export type Client = {
 	id: number;
 	created_at?: string;
