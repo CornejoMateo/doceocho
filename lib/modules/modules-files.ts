@@ -8,6 +8,8 @@ export type ModuleFile = {
 	module_id: number;
 	file_name?: string | null;
 	description?: string | null;
+	admin_description?: string | null;
+	status?: string | null;
 };
 
 const TABLE = 'modules_files';
