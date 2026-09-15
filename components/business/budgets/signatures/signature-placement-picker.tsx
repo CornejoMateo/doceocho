@@ -87,7 +87,7 @@ export function SignaturePlacementPicker({
 	};
 
 	return (
-		<div className="space-y-3">
+		<div className="space-y-3 w-full overflow-hidden">
 			<p className="text-sm text-muted-foreground">
 				Arrastrá sobre el documento para marcar dónde va la firma, o tocá un punto para ubicarla
 				ahí.
@@ -99,6 +99,7 @@ export function SignaturePlacementPicker({
 				onPageChange={setPage}
 				onRendered={(size) => setRenderedSize(size)}
 				pageAreaClassName="max-h-[55vh] overflow-x-hidden overflow-y-auto rounded-lg border border-border p-2"
+				className="w-full"
 				overlay={
 					<div
 						className="absolute inset-0 cursor-crosshair"

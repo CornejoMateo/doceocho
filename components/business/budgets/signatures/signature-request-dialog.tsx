@@ -147,7 +147,7 @@ export function SignatureRequestDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="w-[95vw] max-w-3xl max-h-[95dvh] overflow-y-auto">
+			<DialogContent className="w-[95vw] max-w-3xl max-h-[95dvh] overflow-y-auto overflow-x-hidden">
 				<DialogHeader>
 					<DialogTitle>Enviar a firmar</DialogTitle>
 					<DialogDescription>
@@ -156,7 +156,7 @@ export function SignatureRequestDialog({
 				</DialogHeader>
 
 				<div className="space-y-4">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex flex-col gap-2">
 						<div className="min-w-0">
 							<Label className="text-sm">Documento</Label>
 							<p className="text-xs text-muted-foreground truncate">

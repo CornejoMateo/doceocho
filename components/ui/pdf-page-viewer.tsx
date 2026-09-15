@@ -162,9 +162,12 @@ export function PdfPageViewer({
 				{error ? (
 					<p className="py-12 text-center text-sm text-destructive">{error}</p>
 				) : (
-					<div className="flex justify-center">
-						<div className="relative inline-block max-w-full">
-							<canvas ref={canvasRef} className="block max-w-full rounded border border-border" />
+					<div className="flex justify-center w-full">
+						<div className="relative w-full max-w-full">
+							<canvas
+								ref={canvasRef}
+								className="block w-full max-w-full rounded border border-border"
+							/>
 							{overlay}
 						</div>
 					</div>
