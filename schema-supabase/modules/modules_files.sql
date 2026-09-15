@@ -6,6 +6,7 @@ create table public.modules_files (
   file_name text null,
   description text null,
   admin_description text null,
+  status text null,
   constraint modules_files_pkey primary key (id),
   constraint modules_files_module_id_fkey foreign KEY (module_id) references modules (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;
@@ -93,3 +94,67 @@ USING (
           AND m.user_id = auth.uid()
     )
 );
+
+------ Triggers -----
+
+CREATE OR REPLACE FUNCTION public.modules_files_guard_review_columns()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_is_admin boolean;
+  v_is_owner boolean;
+BEGIN
+  IF auth.role() = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE uid_user = auth.uid()
+      AND role = 'Admin'
+  ) INTO v_is_admin;
+
+  IF v_is_admin THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.status IS NOT NULL
+       OR NEW.admin_description IS NOT NULL
+    THEN
+      RAISE EXCEPTION 'Solo un Admin puede aprobar, rechazar o modificar la devolución del archivo';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  IF NEW.admin_description IS DISTINCT FROM OLD.admin_description THEN
+    RAISE EXCEPTION 'Solo un Admin puede modificar la devolución del archivo';
+  END IF;
+
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    IF NEW.status IS NOT NULL THEN
+      RAISE EXCEPTION 'Solo un Admin puede aprobar o rechazar el archivo';
+    END IF;
+
+    SELECT EXISTS (
+      SELECT 1 FROM public.modules m
+      WHERE m.id = NEW.module_id
+        AND m.user_id = auth.uid()
+    ) INTO v_is_owner;
+
+    IF NOT v_is_owner THEN
+      RAISE EXCEPTION 'Solo el dueño del módulo puede reenviar el archivo a revisión';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_modules_files_guard_review_columns
+BEFORE INSERT OR UPDATE ON public.modules_files
+FOR EACH ROW
+EXECUTE FUNCTION public.modules_files_guard_review_columns();
