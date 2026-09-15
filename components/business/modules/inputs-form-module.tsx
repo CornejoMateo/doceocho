@@ -120,10 +120,9 @@ export function InputsFormModule({
 						>
 							<span className="truncate min-w-0 w-full">
 								{work
-									? [work.locality, work.address, work.hood, work.zone]
-											.filter(Boolean)
-											.join(' - ') || work.name
-									: 'Buscar obra por localidad, dirección, barrio o zona...'}
+									? work.name ||
+										[work.locality, work.address, work.hood, work.zone].filter(Boolean).join(' - ')
+									: 'Buscar obra por nombre, localidad, dirección, barrio o zona...'}
 							</span>
 							<ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
 						</Button>
@@ -144,8 +143,8 @@ export function InputsFormModule({
 										/>
 										<div className="flex flex-col min-w-0">
 											<span className="truncate">
-												{[w.locality, w.address, w.hood, w.zone].filter(Boolean).join(' - ') ||
-													w.name ||
+												{w.name ||
+													[w.locality, w.address, w.hood, w.zone].filter(Boolean).join(' - ') ||
 													`Obra #${w.id}`}
 											</span>
 										</div>
