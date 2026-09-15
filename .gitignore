@@ -35,3 +35,8 @@ coverage/
 
 # History
 .history
+
+# Opencode knowledge base
+.kb/
+.obsidian/
+context.md
