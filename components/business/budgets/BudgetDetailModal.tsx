@@ -20,6 +20,7 @@ import {
 import { formatCreatedAt } from '@/utils/format-date';
 import { BudgetStatusSelector } from '@/components/ui/budget-status-selector';
 import { getBudgetStatus } from '@/constants/budgets/budget-status';
+import { BudgetSignatureSection } from '@/components/business/budgets/signatures/budget-signature-section';
 
 interface BudgetDetailModalProps {
 	isOpen: boolean;
@@ -31,6 +32,7 @@ interface BudgetDetailModalProps {
 	onViewPdf: (budget: BudgetWithWork) => void;
 	onStatusChange: (budgetId: number, newStatus: string) => void;
 	onClose: () => void;
+	clientId: number;
 }
 
 export function BudgetDetailModal({
@@ -43,6 +45,7 @@ export function BudgetDetailModal({
 	onViewPdf,
 	onStatusChange,
 	onClose,
+	clientId,
 }: BudgetDetailModalProps) {
 	if (!budget) return null;
 
@@ -136,6 +139,8 @@ export function BudgetDetailModal({
 							</div>
 						</div>
 					</div>
+
+					<BudgetSignatureSection budget={budget} clientId={clientId} />
 
 					<div className="flex justify-end gap-2 pt-4 border-t">
 						<Button variant="outline" onClick={onClose}>

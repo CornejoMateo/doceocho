@@ -1,10 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Service-role client for the public booking endpoints.
- * The public page never talks to Supabase itself, so these tables need no
- * policies for the anon role: every public read is filtered down to free/busy
- * here on the server before it leaves.
+ * Service-role client for the public endpoints (appointments, budget signing).
+ * Those pages never talk to Supabase themselves, so their tables need no
+ * policies for the anon role: every public read is narrowed down here on the
+ * server before it leaves.
  */
 export function getServiceRoleClient(): SupabaseClient {
 	const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

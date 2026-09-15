@@ -38,6 +38,15 @@ if (typeof window !== 'undefined') {
 	if (!Element.prototype.scrollIntoView) {
 		Element.prototype.scrollIntoView = () => {};
 	}
+
+	// The PDF viewer measures its container with ResizeObserver, which jsdom lacks.
+	if (!globalThis.ResizeObserver) {
+		globalThis.ResizeObserver = class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		} as unknown as typeof ResizeObserver;
+	}
 }
 
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
