@@ -60,6 +60,15 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const { user } = useAuth();
 	const isAdmin = user?.role === 'Admin';
 
+	const listModalModule = useMemo(() => {
+		if (!listModal.module) return null;
+		return (
+			modules.find((m) => m.id === listModal.module!.id) ??
+			monthModules.find((m) => m.id === listModal.module!.id) ??
+			listModal.module
+		);
+	}, [listModal.module, modules, monthModules]);
+
 	const loadModules = useCallback(async () => {
 		setIsLoading(true);
 		const { data, error } = isAdmin
@@ -378,9 +387,16 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 			<ModuleDetailsModal
 				open={listModal.open}
 				onOpenChange={(open) => setListModal((prev) => ({ ...prev, open }))}
-				module={listModal.module}
+				module={listModalModule}
+				canReview={isAdmin}
 				onEdit={handleEdit}
 				onDelete={handleDelete}
+				onReviewed={() => {
+					loadModules();
+					if (isAdmin && monthOpen) {
+						loadMonthModules();
+					}
+				}}
 			/>
 
 			<ConfirmDialog
