@@ -83,6 +83,7 @@ BEGIN
   IF TG_OP = 'INSERT' THEN
     IF NEW.admin_description IS NOT NULL
        OR NEW.status IN ('approved', 'rejected')
+       OR NEW.amount IS NOT NULL
     THEN
       RAISE EXCEPTION 'Solo un Admin puede aprobar, rechazar o modificar la devolución del módulo';
     END IF;
@@ -92,6 +93,7 @@ BEGIN
          NEW.status IS DISTINCT FROM OLD.status
          AND NEW.status IN ('approved', 'rejected')
        )
+       OR NEW.amount IS DISTINCT FROM OLD.amount
     THEN
       RAISE EXCEPTION 'Solo un Admin puede aprobar, rechazar o modificar la devolución del módulo';
     END IF;
