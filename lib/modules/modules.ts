@@ -87,27 +87,45 @@ export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | n
 			TIMEZONE
 		).toISOString();
 
-		const { data, error } = await supabase
-			.from(TABLE)
-			.select(
-				`*, works:work_id (name, locality, address, hood, zone), users (name, last_name, username)`
-			)
-			.gte('created_at', startOfMonth)
-			.lte('created_at', endOfMonth)
-			.order('created_at', { ascending: false });
+		const selectQuery = `*, works:work_id (name, locality, address, hood, zone), users (name, last_name, username)`;
 
-		if (error) {
-			console.error('Error en la consulta de módulos del mes:', {
-				message: error.message,
-				details: error.details,
+		// Display both pending/rejected modules and modules created in the current month
+		const [pendingRejectedResult, currentMonthResult] = await Promise.all([
+			supabase.from(TABLE).select(selectQuery).in('status', ['pending', 'rejected']),
+			supabase
+				.from(TABLE)
+				.select(selectQuery)
+				.or('status.is.null,status.eq.not_send,status.eq.approved')
+				.gte('created_at', startOfMonth)
+				.lte('created_at', endOfMonth),
+		]);
+
+		if (pendingRejectedResult.error) {
+			console.error('Error en la consulta de módulos pendientes/rechazados del mes:', {
+				message: pendingRejectedResult.error.message,
+				details: pendingRejectedResult.error.details,
 			});
-			return { data: null, error };
+			return { data: null, error: pendingRejectedResult.error };
 		}
 
-		const modulesWithWorkNames = data.map((module) => ({
-			...module,
-			work_name: module.works?.name || null,
-		}));
+		if (currentMonthResult.error) {
+			console.error('Error en la consulta de módulos del mes:', {
+				message: currentMonthResult.error.message,
+				details: currentMonthResult.error.details,
+			});
+			return { data: null, error: currentMonthResult.error };
+		}
+
+		const combined = [...pendingRejectedResult.data, ...currentMonthResult.data];
+
+		const modulesWithWorkNames = combined
+			.map((module) => ({
+				...module,
+				work_name: module.works?.name || null,
+			}))
+			.sort(
+				(a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+			);
 
 		return { data: modulesWithWorkNames, error: null };
 	} catch (error) {
