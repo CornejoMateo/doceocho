@@ -29,6 +29,7 @@ function createSupabaseMock() {
 		order: jest.fn(() => chain),
 		eq: jest.fn(() => chain),
 		in: jest.fn(() => chain),
+		or: jest.fn(() => chain),
 		insert: jest.fn(() => chain),
 		update: jest.fn(() => chain),
 		delete: jest.fn(() => chain),
@@ -162,18 +163,34 @@ describe('modules lib', () => {
 	});
 
 	describe('listModulesForCurrentMonth', () => {
-		it('filters by the current month in Argentina timezone', async () => {
+		it('always includes pending/rejected modules and scopes approved/not_send/null modules to the current month', async () => {
 			(getLocalDate as jest.Mock).mockReturnValue('2026-08-28');
 
 			const { supabase, chain } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
-			chain.order.mockReturnValue(Promise.resolve({ data: [MODULE_ROW], error: null }));
+			const pendingModule = {
+				...MODULE_ROW,
+				id: 2,
+				status: 'pending',
+				created_at: '2026-01-01T00:00:00.000Z',
+				works: null,
+			};
+
+			// First resolved call in the chain is the pending/rejected query (no date filter),
+			// the second is the month-scoped query (approved/not_send/null).
+			chain.in.mockReturnValueOnce(Promise.resolve({ data: [pendingModule], error: null }));
+			chain.lte.mockReturnValueOnce(Promise.resolve({ data: [MODULE_ROW], error: null }));
 
 			const result = await listModulesForCurrentMonth();
 
+			expect(supabase.from).toHaveBeenCalledWith('modules');
 			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('works:work_id'));
 			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('users'));
+
+			expect(chain.in).toHaveBeenCalledWith('status', ['pending', 'rejected']);
+
+			expect(chain.or).toHaveBeenCalledWith('status.is.null,status.eq.not_send,status.eq.approved');
 			expect(chain.gte).toHaveBeenCalledTimes(1);
 
 			const start = (chain.gte as jest.Mock).mock.calls[0][1];
@@ -182,17 +199,20 @@ describe('modules lib', () => {
 			expect(start).toBe('2026-08-01T03:00:00.000Z');
 			expect(end).toBe('2026-09-01T02:59:59.999Z');
 			expect(new Date(start).getTime()).toBeLessThanOrEqual(new Date(end).getTime());
-			expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false });
 
-			expect(result.data).toEqual([{ ...MODULE_ROW, work_name: 'Obra Centro' }]);
+			// Results are merged from both queries and sorted by created_at desc.
+			expect(result.data).toEqual([
+				{ ...MODULE_ROW, work_name: 'Obra Centro' },
+				{ ...pendingModule, work_name: null },
+			]);
 			expect(result.error).toBeNull();
 		});
 
-		it('returns error on supabase error', async () => {
+		it('returns error on supabase error from the pending/rejected query', async () => {
 			const { supabase, chain } = createSupabaseMock();
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
-			chain.order.mockReturnValue(Promise.resolve({ data: null, error: new Error('DB error') }));
+			chain.in.mockReturnValueOnce(Promise.resolve({ data: null, error: new Error('DB error') }));
 
 			const result = await listModulesForCurrentMonth();
 
