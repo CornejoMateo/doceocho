@@ -12,7 +12,7 @@ export type ModuleFile = {
 	status?: string | null;
 };
 
-const TABLE = 'modules_files';
+export const TABLE = 'modules_files';
 const BUCKET = 'modules';
 
 export async function listModuleFiles(
@@ -163,4 +163,13 @@ export async function deleteModuleFile(fileId: number): Promise<{ success: boole
 		console.error('Unexpected error deleting module file:', err);
 		return { success: false, error: err };
 	}
+}
+
+// Helper function to derive the overall module status based on its files' statuses
+export function deriveModuleStatusFromFiles(
+	files: { status?: string | null }[]
+): 'approved' | 'pending' | 'rejected' {
+	if (files.some((f) => f.status === 'rejected')) return 'rejected';
+	if (files.some((f) => f.status !== 'approved')) return 'pending';
+	return 'approved';
 }

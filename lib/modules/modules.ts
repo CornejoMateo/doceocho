@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { deriveModuleStatusFromFiles, TABLE as MODULES_FILES_TABLE } from './modules-files';
 
 import { getLocalDate } from '@/utils/format-date';
 import { fromZonedTime } from 'date-fns-tz';
@@ -13,6 +14,7 @@ export type Module = {
 	status?: string | null;
 	title?: string | null;
 	description?: string | null;
+	admin_description?: string | null;
 	amount?: number | null;
 	work_id?: number | null;
 	work_name?: string | null;
@@ -30,7 +32,7 @@ export type Module = {
 	} | null;
 };
 
-const TABLE = 'modules';
+export const TABLE = 'modules';
 
 export async function listModules(): Promise<{ data: Module[] | null; error: any }> {
 	try {
@@ -329,4 +331,35 @@ export async function getUserModulesForMonth(
 			error: error instanceof Error ? error : new Error('Error desconocido'),
 		};
 	}
+}
+
+// Method to recompute and persist the module's aggregate status based on its files' statuses
+export async function syncModuleAggregateStatus(
+	supabase: SupabaseClient,
+	moduleId: number
+): Promise<{ success: boolean; error?: any }> {
+	const { data: siblingFiles, error: filesError } = await supabase
+		.from(MODULES_FILES_TABLE)
+		.select('status')
+		.eq('module_id', moduleId);
+
+	if (filesError) {
+		return { success: false, error: filesError };
+	}
+	if (!siblingFiles || siblingFiles.length === 0) {
+		return { success: true };
+	}
+
+	const derivedStatus = deriveModuleStatusFromFiles(siblingFiles);
+
+	const { error: moduleUpdateError } = await supabase
+		.from(TABLE)
+		.update({ status: derivedStatus })
+		.eq('id', moduleId);
+
+	if (moduleUpdateError) {
+		return { success: false, error: moduleUpdateError };
+	}
+
+	return { success: true };
 }
