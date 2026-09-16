@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, Settings, X, ChevronDown, ChevronUp } from 'lucide-react';
 import {
 	Module,
 	listModulesForCurrentMonth,
@@ -17,6 +17,7 @@ import { ModuleTable } from '@/components/business/modules/module-table';
 import { ModuleFormModal } from '@/components/business/modules/module-form-modal';
 import { ModuleDetailsModal } from '@/components/business/modules/module-details-modal';
 import { LoadMoreModulesModal } from '@/components/business/modules/load-more-modules-modal';
+import { ModulesSettings } from '@/components/business/modules/modules-settings';
 import { useAuth } from '@/components/provider/auth-provider';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,6 +30,7 @@ import {
 import { MODULE_STATUSES, ModuleStatus } from '@/constants/modules/module-status';
 import { getModuleStatusLabel, getModuleWorkLabel } from '@/helpers/modules/modules-helper';
 import { User } from '@/lib/users/users';
+import { notifyModuleSubmittedAction } from '@/actions/modules/notify-module-submitted';
 
 export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [modules, setModules] = useState<Module[]>([]);
@@ -55,6 +57,7 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [editOpen, setEditOpen] = useState(false);
 	const [editingModule, setEditingModule] = useState<Module | null>(null);
 	const [loadMoreOpen, setLoadMoreOpen] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState<ModuleStatus | 'all'>('all');
 	const { user } = useAuth();
@@ -169,10 +172,19 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 				title: 'Módulo enviado a revisión',
 				description: 'El módulo quedó pendiente de revisión.',
 			});
+			const submittedModule = sendConfirm.module;
 			setSendConfirm({ open: false, module: null });
 			loadModules();
 			if (isAdmin && monthOpen) {
 				loadMonthModules();
+			}
+
+			try {
+				notifyModuleSubmittedAction(submittedModule.id).catch((notifyError) => {
+					console.error('Failed to notify admins about module submission:', notifyError);
+				});
+			} catch (notifyError) {
+				console.error('Failed to notify admins about module submission:', notifyError);
 			}
 		}
 		setIsSending(false);
@@ -255,14 +267,28 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 					<p className="text-sm text-muted-foreground">{countText}</p>
 				</div>
 
-				<Button
-					size="sm"
-					className="min-w-0 w-full sm:w-auto gap-2"
-					onClick={() => setCreateOpen(true)}
-				>
-					<Plus className="h-4 w-4 shrink-0" />
-					<span>Nuevo módulo</span>
-				</Button>
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<Button
+						size="sm"
+						className="min-w-0 w-full sm:w-auto gap-2"
+						onClick={() => setCreateOpen(true)}
+					>
+						<Plus className="h-4 w-4 shrink-0" />
+						<span>Nuevo módulo</span>
+					</Button>
+					{isAdmin && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="min-w-0 w-full sm:w-auto gap-2"
+							onClick={() => setSettingsOpen(true)}
+							type="button"
+						>
+							<Settings className="h-4 w-4 shrink-0" />
+							<span>Configuración</span>
+						</Button>
+					)}
+				</div>
 			</div>
 
 			{isAdmin ? (
@@ -426,6 +452,8 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 				users={users}
 				user={isAdmin ? null : user}
 			/>
+
+			{isAdmin && <ModulesSettings open={settingsOpen} onOpenChange={setSettingsOpen} />}
 		</div>
 	);
 }
