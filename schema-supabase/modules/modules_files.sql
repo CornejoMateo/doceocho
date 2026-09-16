@@ -139,6 +139,10 @@ BEGIN
       RAISE EXCEPTION 'Solo un Admin puede aprobar o rechazar el archivo';
     END IF;
 
+    IF OLD.status IS DISTINCT FROM 'rejected' THEN
+      RAISE EXCEPTION 'Solo se pueden reenviar a revisión archivos rechazados';
+    END IF;
+
     SELECT EXISTS (
       SELECT 1 FROM public.modules m
       WHERE m.id = NEW.module_id
