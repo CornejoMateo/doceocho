@@ -13,6 +13,10 @@ jest.mock('@/lib/modules/modules-review-submit', () => ({
 	submitModuleReviewAction: jest.fn(),
 }));
 
+jest.mock('@/lib/modules/modules-settings', () => ({
+	getModulesSettings: jest.fn().mockResolvedValue({ data: null, error: null }),
+}));
+
 jest.mock('@/lib/modules/modules-files', () => ({
 	deriveModuleStatusFromFiles: jest.fn(),
 	listModuleFiles: jest.fn(),
@@ -95,7 +99,6 @@ describe('useModuleAdminReview', () => {
 		expect(result.current.pendingReviewIds.has(1)).toBe(false);
 		expect(result.current.reviewingFileId).toBeNull();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo aprobado' }));
-		// A per-file review must NOT refresh the parent's list (KB: module-admin-response-submission-pivot).
 		expect(onReviewed).not.toHaveBeenCalled();
 	});
 
@@ -253,7 +256,7 @@ describe('useModuleAdminReview', () => {
 
 		act(() => {
 			result.current.setModuleReviewText('approved');
-			result.current.changeAmountValue('123.45');
+			result.current.changeAmountValue('123,45');
 		});
 		await act(async () => {
 			await result.current.confirmAmountAndSubmit();

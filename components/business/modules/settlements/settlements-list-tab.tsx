@@ -120,7 +120,7 @@ export function SettlementsListTab() {
 										{formatCurrency(settlement.amount)}
 									</div>
 									<div className="text-xs text-gray-500">
-										{settlement.modules_count}{' '}
+										{settlement.modules_count ?? 0}{' '}
 										{settlement.modules_count === 1 ? 'módulo' : 'módulos'}
 									</div>
 								</div>

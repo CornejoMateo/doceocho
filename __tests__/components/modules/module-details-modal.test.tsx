@@ -5,10 +5,7 @@ import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 import { reviewModuleFileAction } from '@/lib/modules/modules-files-review';
 import { submitModuleReviewAction } from '@/lib/modules/modules-review-submit';
-import {
-	resubmitModuleFileAction,
-	syncModuleStatusAction,
-} from '@/lib/modules/modules-files-resubmit';
+import { resubmitAllRejectedFilesAction } from '@/lib/modules/modules-files-resubmit';
 
 jest.mock('@/lib/modules/modules-files', () => ({
 	TABLE: 'modules_files',
@@ -35,13 +32,16 @@ jest.mock('@/lib/modules/modules-files-review', () => ({
 	reviewModuleFileAction: jest.fn(),
 }));
 
+jest.mock('@/lib/modules/modules-settings', () => ({
+	getModulesSettings: jest.fn().mockResolvedValue({ data: null, error: null }),
+}));
+
 jest.mock('@/lib/modules/modules-review-submit', () => ({
 	submitModuleReviewAction: jest.fn(),
 }));
 
 jest.mock('@/lib/modules/modules-files-resubmit', () => ({
-	resubmitModuleFileAction: jest.fn(),
-	syncModuleStatusAction: jest.fn(),
+	resubmitAllRejectedFilesAction: jest.fn(),
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -144,8 +144,7 @@ describe('ModuleDetailsModal', () => {
 		(updateModuleFile as jest.Mock).mockResolvedValue({ error: null });
 		(reviewModuleFileAction as jest.Mock).mockResolvedValue({ success: true });
 		(submitModuleReviewAction as jest.Mock).mockResolvedValue({ success: true });
-		(resubmitModuleFileAction as jest.Mock).mockResolvedValue({ success: true });
-		(syncModuleStatusAction as jest.Mock).mockResolvedValue({ success: true });
+		(resubmitAllRejectedFilesAction as jest.Mock).mockResolvedValue({ success: true });
 	});
 
 	it('returns null when there is no module', () => {
@@ -303,10 +302,10 @@ describe('ModuleDetailsModal', () => {
 			const onReviewed = jest.fn();
 			render(<ModuleDetailsModal {...defaultProps} canReview onReviewed={onReviewed} />);
 			await waitFor(() => {
-				expect(screen.getByText('Enviar respuesta')).toBeInTheDocument();
+				expect(screen.getByText('Reenviar respuesta')).toBeInTheDocument();
 			});
 
-			fireEvent.click(screen.getByText('Enviar respuesta'));
+			fireEvent.click(screen.getByText('Reenviar respuesta'));
 			await waitFor(() => {
 				expect(screen.getByText('Cargar monto')).toBeInTheDocument();
 			});
@@ -334,10 +333,10 @@ describe('ModuleDetailsModal', () => {
 			const onReviewed = jest.fn();
 			render(<ModuleDetailsModal {...defaultProps} canReview onReviewed={onReviewed} />);
 			await waitFor(() => {
-				expect(screen.getByText('Enviar respuesta')).toBeInTheDocument();
+				expect(screen.getByText('Reenviar respuesta')).toBeInTheDocument();
 			});
 
-			fireEvent.click(screen.getByText('Enviar respuesta'));
+			fireEvent.click(screen.getByText('Reenviar respuesta'));
 
 			await waitFor(() => {
 				expect(submitModuleReviewAction).toHaveBeenCalledWith(3, null, null);
@@ -352,7 +351,7 @@ describe('ModuleDetailsModal', () => {
 	describe('owner correction flow', () => {
 		const rejectedModule = { ...moduleFixture, status: 'rejected' };
 
-		it('lets the owner resubmit a rejected file to review', async () => {
+		it('lets the owner request review for all rejected files at once', async () => {
 			(listModuleFiles as jest.Mock).mockResolvedValue({
 				data: [
 					{
@@ -373,10 +372,11 @@ describe('ModuleDetailsModal', () => {
 				expect(screen.getByText('Archivo rechazado')).toBeInTheDocument();
 			});
 
-			fireEvent.click(screen.getByText('Reenviar a revisión'));
+			expect(screen.queryByText('Reenviar a revisión')).not.toBeInTheDocument();
+			fireEvent.click(screen.getByText('Solicitar revisión'));
 
 			await waitFor(() => {
-				expect(resubmitModuleFileAction).toHaveBeenCalledWith(1);
+				expect(resubmitAllRejectedFilesAction).toHaveBeenCalledWith(3);
 			});
 			await waitFor(() => {
 				expect(onReviewed).toHaveBeenCalled();

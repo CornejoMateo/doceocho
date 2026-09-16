@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ModuleManagement } from '@/components/business/modules/module-management';
 import {
 	listModulesForCurrentMonth,
@@ -34,6 +34,9 @@ jest.mock('lucide-react', () => ({
 	X: () => <span data-testid="x-icon" />,
 	ChevronDown: () => <span data-testid="chevron-down-icon" />,
 	ChevronUp: () => <span data-testid="chevron-up-icon" />,
+	Settings: () => <span data-testid="settings-icon" />,
+	Wallet: () => <span data-testid="wallet-icon" />,
+	InfoIcon: () => <span data-testid="info-icon" />,
 }));
 
 jest.mock('@/components/ui/select', () => ({
@@ -126,6 +129,15 @@ jest.mock('@/components/business/modules/load-more-modules-modal', () => ({
 				data-user-uid={user?.uid ?? 'null'}
 			/>
 		) : null,
+}));
+
+jest.mock('@/components/business/modules/modules-settings', () => ({
+	ModulesSettings: ({ open }: any) => (open ? <div data-testid="modules-settings-modal" /> : null),
+}));
+
+jest.mock('@/components/business/modules/settlements/modules-settlements-modal', () => ({
+	ModulesSettlementsModal: ({ open }: any) =>
+		open ? <div data-testid="modules-settlements-modal" /> : null,
 }));
 
 jest.mock('@/components/ui/confirm-dialog', () => ({
@@ -381,7 +393,9 @@ describe('ModuleManagement admin', () => {
 	it('shows pending and rejected modules in the review table and never lists the month modules', async () => {
 		await renderAndLoadPending();
 
-		expect(screen.getByText('Listado de módulos')).toBeInTheDocument();
+		expect(
+			screen.getByText('Listado de módulos pendientes de revisión (y rechazados)')
+		).toBeInTheDocument();
 		expect(screen.getByText('2 módulo(s) pendiente(s) de revisión.')).toBeInTheDocument();
 		expect(screen.getByTestId('row-11')).toBeInTheDocument();
 		expect(screen.getByTestId('row-12')).toBeInTheDocument();
@@ -389,12 +403,18 @@ describe('ModuleManagement admin', () => {
 
 		expect(listModulesPendingRejected).toHaveBeenCalledTimes(1);
 		expect(listModulesForCurrentMonth).not.toHaveBeenCalled();
-		expect(screen.getByTestId('chevron-down-icon')).toBeInTheDocument();
+		const monthToggleButton = screen
+			.getByText('Ver módulos del mes actual')
+			.closest('button') as HTMLElement;
+		expect(within(monthToggleButton).getByTestId('chevron-down-icon')).toBeInTheDocument();
 
-		fireEvent.click(screen.getByText('Ver módulos del mes actual'));
+		fireEvent.click(monthToggleButton);
 		expect(listModulesForCurrentMonth).toHaveBeenCalledTimes(1);
-		expect(screen.queryByTestId('chevron-down-icon')).not.toBeInTheDocument();
-		expect(screen.getByTestId('chevron-up-icon')).toBeInTheDocument();
+		const toggledMonthButton = screen
+			.getByText('Ocultar módulos del mes actual')
+			.closest('button') as HTMLElement;
+		expect(within(toggledMonthButton).queryByTestId('chevron-down-icon')).not.toBeInTheDocument();
+		expect(within(toggledMonthButton).getByTestId('chevron-up-icon')).toBeInTheDocument();
 	});
 
 	it('hides the status filter for admins', async () => {

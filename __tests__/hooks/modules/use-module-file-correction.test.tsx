@@ -1,10 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { useModuleFileCorrection } from '@/hooks/modules/use-module-file-correction';
 import { uploadModuleFile, updateModuleFile, deleteModuleFile } from '@/lib/modules/modules-files';
-import {
-	resubmitModuleFileAction,
-	syncModuleStatusAction,
-} from '@/lib/modules/modules-files-resubmit';
+import { resubmitAllRejectedFilesAction } from '@/lib/modules/modules-files-resubmit';
 import { toast } from '@/components/ui/use-toast';
 
 jest.mock('@/lib/modules/modules-files', () => ({
@@ -15,8 +12,7 @@ jest.mock('@/lib/modules/modules-files', () => ({
 }));
 
 jest.mock('@/lib/modules/modules-files-resubmit', () => ({
-	resubmitModuleFileAction: jest.fn(),
-	syncModuleStatusAction: jest.fn(),
+	resubmitAllRejectedFilesAction: jest.fn(),
 }));
 
 jest.mock('@/lib/supabase-client', () => ({
@@ -39,26 +35,29 @@ const fileFixture = {
 	storage_path: 'a.jpg',
 	file_name: 'foto.jpg',
 	description: 'v1',
+	status: 'rejected',
 } as any;
 
 const replacementFile = () => new File(['x'], 'nuevo.jpg', { type: 'image/jpeg' });
 
 describe('useModuleFileCorrection', () => {
 	const patchFile = jest.fn();
-	const reload = jest.fn();
+	const replaceFile = jest.fn().mockResolvedValue(undefined);
 	const onReviewed = jest.fn();
 
 	beforeEach(() => {
 		jest.clearAllMocks();
+		replaceFile.mockResolvedValue(undefined);
 	});
 
-	const setup = () =>
+	const setup = (files: any[] = [fileFixture]) =>
 		renderHook(() =>
 			useModuleFileCorrection({
 				open: true,
 				moduleId,
+				files,
 				patchFile,
-				reload,
+				replaceFile,
 				onReviewed,
 			})
 		);
@@ -77,15 +76,14 @@ describe('useModuleFileCorrection', () => {
 
 		expect(updateModuleFile).toHaveBeenCalledWith(5, { description: 'New description' });
 		expect(patchFile).toHaveBeenCalledWith(5, { description: 'New description' });
-		expect(reload).not.toHaveBeenCalled();
+		expect(replaceFile).not.toHaveBeenCalled();
 		expect(onReviewed).not.toHaveBeenCalled();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo corregido' }));
 	});
 
-	it('replaces the file: uploads the new one, deletes the old one, syncs the status and notifies the parent', async () => {
+	it('replaces the file: uploads the new one, deletes the old one, splices it in locally without touching the module aggregate status, and notifies the parent', async () => {
 		(uploadModuleFile as jest.Mock).mockResolvedValue({ data: { id: 99 }, error: null });
 		(deleteModuleFile as jest.Mock).mockResolvedValue({ success: true, error: null });
-		(syncModuleStatusAction as jest.Mock).mockResolvedValue({ success: true, warning: null });
 		const { result } = setup();
 
 		act(() => {
@@ -98,8 +96,7 @@ describe('useModuleFileCorrection', () => {
 
 		expect(uploadModuleFile).toHaveBeenCalledWith(3, expect.any(File), 'v1', 'foto.jpg');
 		expect(deleteModuleFile).toHaveBeenCalledWith(5);
-		expect(syncModuleStatusAction).toHaveBeenCalledWith(3);
-		expect(reload).toHaveBeenCalled();
+		expect(replaceFile).toHaveBeenCalledWith(5, { id: 99 });
 		expect(onReviewed).toHaveBeenCalled();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo corregido' }));
 	});
@@ -120,41 +117,53 @@ describe('useModuleFileCorrection', () => {
 		// First attempt on the original file (fails) + rollback of the replacement just uploaded.
 		expect(deleteModuleFile).toHaveBeenNthCalledWith(1, 5);
 		expect(deleteModuleFile).toHaveBeenNthCalledWith(2, 99);
-		expect(reload).not.toHaveBeenCalled();
+		expect(replaceFile).not.toHaveBeenCalled();
 		expect(onReviewed).not.toHaveBeenCalled();
 		expect(toast).toHaveBeenCalledWith(
 			expect.objectContaining({ variant: 'destructive', title: 'Error al reemplazar el archivo' })
 		);
 	});
 
-	it('resubmits a corrected file to review and notifies the parent', async () => {
-		(resubmitModuleFileAction as jest.Mock).mockResolvedValue({ success: true, warning: null });
-		const { result } = setup();
+	it('resubmits all rejected files for the module via local patch, without a full reload', async () => {
+		(resubmitAllRejectedFilesAction as jest.Mock).mockResolvedValue({
+			success: true,
+			warning: null,
+		});
+		const { result } = setup([
+			fileFixture,
+			{ id: 6, module_id: 3, storage_path: 'b.jpg', status: 'rejected' },
+			{ id: 7, module_id: 3, storage_path: 'c.jpg', status: 'approved' },
+		]);
 
 		await act(async () => {
-			await result.current.resubmitFile(fileFixture);
+			await result.current.resubmitAllRejectedFiles();
 		});
 
-		expect(resubmitModuleFileAction).toHaveBeenCalledWith(5);
-		expect(reload).toHaveBeenCalled();
+		expect(resubmitAllRejectedFilesAction).toHaveBeenCalledWith(3);
+		expect(patchFile).toHaveBeenCalledWith(5, { status: null });
+		expect(patchFile).toHaveBeenCalledWith(6, { status: null });
+		expect(patchFile).not.toHaveBeenCalledWith(7, expect.anything());
+		expect(replaceFile).not.toHaveBeenCalled();
 		expect(onReviewed).toHaveBeenCalled();
-		expect(toast).toHaveBeenCalledWith(
-			expect.objectContaining({ title: 'Archivo reenviado a revisión' })
-		);
+		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Revisión solicitada' }));
 	});
 
-	it('does not reload or notify when the resubmit fails', async () => {
-		(resubmitModuleFileAction as jest.Mock).mockResolvedValue({ success: false, error: 'nope' });
+	it('does not patch files or notify when the module-wide resubmit fails', async () => {
+		(resubmitAllRejectedFilesAction as jest.Mock).mockResolvedValue({
+			success: false,
+			error: 'nope',
+		});
 		const { result } = setup();
 
 		await act(async () => {
-			await result.current.resubmitFile(fileFixture);
+			await result.current.resubmitAllRejectedFiles();
 		});
 
-		expect(reload).not.toHaveBeenCalled();
+		expect(patchFile).not.toHaveBeenCalled();
+		expect(replaceFile).not.toHaveBeenCalled();
 		expect(onReviewed).not.toHaveBeenCalled();
 		expect(toast).toHaveBeenCalledWith(
-			expect.objectContaining({ variant: 'destructive', title: 'Error al reenviar el archivo' })
+			expect.objectContaining({ variant: 'destructive', title: 'Error al solicitar la revisión' })
 		);
 	});
 });
