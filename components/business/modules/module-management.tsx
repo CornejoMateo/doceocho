@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { Plus, Search, Settings, X, ChevronDown, ChevronUp, InfoIcon } from 'lucide-react';
+import { Plus, Search, Settings, Wallet, X, ChevronDown, ChevronUp, InfoIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
 	Module,
@@ -19,6 +19,7 @@ import { ModuleFormModal } from '@/components/business/modules/module-form-modal
 import { ModuleDetailsModal } from '@/components/business/modules/module-details-modal';
 import { LoadMoreModulesModal } from '@/components/business/modules/load-more-modules-modal';
 import { ModulesSettings } from '@/components/business/modules/modules-settings';
+import { ModulesSettlementsModal } from '@/components/business/modules/settlements/modules-settlements-modal';
 import { useAuth } from '@/components/provider/auth-provider';
 import { Input } from '@/components/ui/input';
 import {
@@ -59,6 +60,7 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [editingModule, setEditingModule] = useState<Module | null>(null);
 	const [loadMoreOpen, setLoadMoreOpen] = useState(false);
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [settlementsOpen, setSettlementsOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState<ModuleStatus | 'all'>('all');
 	const [infoOpen, setInfoOpen] = useState(false);
@@ -285,6 +287,18 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 							variant="outline"
 							size="sm"
 							className="min-w-0 w-full sm:w-auto gap-2"
+							onClick={() => setSettlementsOpen(true)}
+							type="button"
+						>
+							<Wallet className="h-4 w-4 shrink-0" />
+							<span>Liquidaciones</span>
+						</Button>
+					)}
+					{isAdmin && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="min-w-0 w-full sm:w-auto gap-2"
 							onClick={() => setSettingsOpen(true)}
 							type="button"
 						>
@@ -502,6 +516,14 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 			/>
 
 			{isAdmin && <ModulesSettings open={settingsOpen} onOpenChange={setSettingsOpen} />}
+
+			{isAdmin && (
+				<ModulesSettlementsModal
+					open={settlementsOpen}
+					onOpenChange={setSettlementsOpen}
+					users={users}
+				/>
+			)}
 		</div>
 	);
 }
