@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { Plus, Search, Settings, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, Settings, X, ChevronDown, ChevronUp, InfoIcon } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
 	Module,
 	listModulesForCurrentMonth,
@@ -60,6 +61,7 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState<ModuleStatus | 'all'>('all');
+	const [infoOpen, setInfoOpen] = useState(false);
 	const { user } = useAuth();
 	const isAdmin = user?.role === 'Admin';
 
@@ -262,7 +264,9 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0">
 					<h2 className="text-lg mt-5 font-semibold">
-						{isAdmin ? 'Listado de módulos' : 'Módulos del mes actual'}
+						{isAdmin
+							? 'Listado de módulos pendientes de revisión (y rechazados)'
+							: 'Módulos del mes actual'}
 					</h2>
 					<p className="text-sm text-muted-foreground">{countText}</p>
 				</div>
@@ -400,6 +404,50 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 					</Button>
 				</>
 			)}
+
+			<Collapsible
+				open={infoOpen}
+				onOpenChange={setInfoOpen}
+				className="rounded-lg border bg-card text-card-foreground text-sm"
+			>
+				<CollapsibleTrigger asChild>
+					<button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left">
+						<InfoIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+						<span className="min-w-0 flex-1 font-medium tracking-tight break-words">
+							{isAdmin
+								? '¿Cómo funciona la aprobación de módulos?'
+								: '¿Cómo funciona la revisión de módulos?'}
+						</span>
+						{infoOpen ? (
+							<ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+						) : (
+							<ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+						)}
+					</button>
+				</CollapsibleTrigger>
+				<CollapsibleContent>
+					{isAdmin ? (
+						<p className="px-4 pb-3 leading-relaxed break-words text-muted-foreground">
+							Revisá cada archivo del módulo por separado: podés aprobarlo o rechazarlo, y
+							opcionalmente dejar un motivo. Cuando termines de revisar todos los archivos, apretá
+							“Enviar respuesta” para cerrar la revisión — si el resultado es aprobado, te va a
+							pedir cargar el monto del módulo (podés configurar un precio predeterminado desde
+							“Configuración”). Podés volver a cambiar de opinión sobre cualquier archivo en
+							cualquier momento, incluso después de haber enviado una respuesta — solo recordá
+							volver a apretar “Enviar respuesta” para que el cambio se refleje.
+						</p>
+					) : (
+						<p className="px-4 pb-3 leading-relaxed break-words text-muted-foreground">
+							Subís las fotos/archivos de tu módulo y quedan a la espera de que un Admin las revise.
+							El Admin va a aprobar o rechazar cada archivo por separado, y cuando termine de
+							revisar todos, te va a llegar una respuesta con el resultado. Si algún archivo queda
+							rechazado, vas a ver el motivo y vas a poder corregirlo (cambiar la imagen y/o la
+							descripción). Una vez que corregiste todo lo que necesitabas, apretá “Solicitar
+							revisión” para mandar todo de nuevo a aprobación.
+						</p>
+					)}
+				</CollapsibleContent>
+			</Collapsible>
 
 			<ModuleFormModal open={createOpen} onOpenChange={setCreateOpen} onCreated={handleSaved} />
 

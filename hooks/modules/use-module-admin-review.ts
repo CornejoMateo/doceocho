@@ -6,7 +6,9 @@ import { reviewModuleFileAction } from '@/lib/modules/modules-files-review';
 import { submitModuleReviewAction } from '@/lib/modules/modules-review-submit';
 import { deriveModuleStatusFromFiles } from '@/lib/modules/modules-files';
 import { Module } from '@/lib/modules/modules';
+import { getModulesSettings } from '@/lib/modules/modules-settings';
 import { ModuleFileWithUrl } from './use-module-details-files';
+import { formatCurrencyWithoutSymbol, parseArsToNumber } from '@/utils/formats-money';
 
 interface UseModuleAdminReviewOptions {
 	open: boolean;
@@ -14,6 +16,7 @@ interface UseModuleAdminReviewOptions {
 	files: ModuleFileWithUrl[];
 	patchFile: (id: number, patch: Partial<ModuleFileWithUrl>) => void;
 	onReviewed?: () => void;
+	onOpenChange?: (open: boolean) => void;
 }
 
 export function useModuleAdminReview({
@@ -22,6 +25,7 @@ export function useModuleAdminReview({
 	files,
 	patchFile,
 	onReviewed,
+	onOpenChange,
 }: UseModuleAdminReviewOptions) {
 	const moduleId = module?.id ?? null;
 	const [reviewingFileId, setReviewingFileId] = useState<number | null>(null);
@@ -37,10 +41,13 @@ export function useModuleAdminReview({
 	const [amountModalOpen, setAmountModalOpen] = useState(false);
 	const [amountValue, setAmountValue] = useState('');
 	const [amountError, setAmountError] = useState<string | null>(null);
+	const [loadingDefaultPrice, setLoadingDefaultPrice] = useState(false);
 
 	const closedRef = useRef(!open);
 
 	const currentModuleIdRef = useRef<number | null>(moduleId);
+
+	const amountRequestIdRef = useRef(0);
 
 	useEffect(() => {
 		closedRef.current = !open;
@@ -66,6 +73,8 @@ export function useModuleAdminReview({
 			setAmountModalOpen(false);
 			setAmountValue('');
 			setAmountError(null);
+			setLoadingDefaultPrice(false);
+			amountRequestIdRef.current += 1;
 		}
 	}, [open]);
 
@@ -76,8 +85,10 @@ export function useModuleAdminReview({
 	}, [open, moduleId]);
 
 	const startFileReview = (fileId: number) => {
+		const file = files.find((f) => f.id === fileId);
 		setReviewingFileId(fileId);
-		setReviewText('');
+
+		setReviewText(file?.admin_description ?? '');
 	};
 
 	const cancelFileReview = () => {
@@ -156,36 +167,64 @@ export function useModuleAdminReview({
 			});
 			return;
 		}
+		const derivedStatus = deriveModuleStatusFromFiles(files);
 		toast({
-			title: 'Respuesta enviada',
-			description: 'La respuesta general del módulo se guardó correctamente.',
+			title: derivedStatus === 'approved' ? 'Módulo aprobado' : 'Módulo rechazado',
+			description:
+				derivedStatus === 'approved'
+					? 'La respuesta general se envió y el módulo quedó aprobado.'
+					: 'La respuesta general se envió y el módulo quedó rechazado.',
 		});
+		amountRequestIdRef.current += 1;
 		setAmountModalOpen(false);
 		setAmountValue('');
 		setAmountError(null);
 		onReviewed?.();
+		onOpenChange?.(false);
 	};
 
-	const handleSendResponseClick = () => {
+	const handleSendResponseClick = async () => {
 		if (!module) return;
 		const derivedStatus = deriveModuleStatusFromFiles(files);
 		if (derivedStatus === 'approved') {
+			const requestId = ++amountRequestIdRef.current;
+			const requestModuleId = module.id;
+
 			setAmountValue('');
 			setAmountError(null);
 			setAmountModalOpen(true);
+			setLoadingDefaultPrice(true);
+
+			const { data, error } = await getModulesSettings();
+
+			if (
+				closedRef.current ||
+				currentModuleIdRef.current !== requestModuleId ||
+				amountRequestIdRef.current !== requestId
+			) {
+				return;
+			}
+
+			setLoadingDefaultPrice(false);
+
+			if (!error && data?.price_per_module != null) {
+				setAmountValue(formatCurrencyWithoutSymbol(data.price_per_module));
+			}
 			return;
 		}
 		submitModuleReview(null);
 	};
 
 	const cancelAmountModal = () => {
+		amountRequestIdRef.current += 1;
 		setAmountModalOpen(false);
 		setAmountValue('');
 		setAmountError(null);
+		setLoadingDefaultPrice(false);
 	};
 
 	const confirmAmountAndSubmit = () => {
-		const parsed = Number(amountValue);
+		const parsed = parseArsToNumber(amountValue);
 		if (!amountValue.trim() || Number.isNaN(parsed) || parsed <= 0) {
 			setAmountError('Ingresá un monto válido mayor a 0.');
 			return;
@@ -213,6 +252,7 @@ export function useModuleAdminReview({
 		amountModalOpen,
 		amountValue,
 		amountError,
+		loadingDefaultPrice,
 		changeAmountValue,
 		handleSendResponseClick,
 		cancelAmountModal,

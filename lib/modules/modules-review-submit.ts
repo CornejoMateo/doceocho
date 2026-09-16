@@ -4,6 +4,7 @@ import { requireCurrentUserAdmin } from '@/lib/auth/require-admin';
 import { deriveModuleStatusFromFiles } from '@/lib/modules/modules-files';
 import { TABLE as MODULES_TABLE } from '@/lib/modules/modules';
 import { TABLE as MODULES_FILES_TABLE } from '@/lib/modules/modules-files';
+import { sendModuleReviewedNotification } from '@/actions/push/send-module-notification';
 
 export async function submitModuleReviewAction(
 	moduleId: number,
@@ -62,16 +63,36 @@ export async function submitModuleReviewAction(
 			amount: derivedStatus === 'approved' ? (amount as number) : null,
 		};
 
-		const { error: updateError } = await adminSupabase
+		const { data: updatedModule, error: updateError } = await adminSupabase
 			.from(MODULES_TABLE)
 			.update(updatePayload)
-			.eq('id', moduleId);
+			.eq('id', moduleId)
+			.select('user_id, title')
+			.single();
 
 		if (updateError) {
 			return {
 				success: false,
 				error: updateError.message ?? 'No se pudo guardar la respuesta del módulo.',
 			};
+		}
+
+		if (updatedModule?.user_id) {
+			try {
+				const { after } = await import('next/server');
+				after(async () => {
+					try {
+						await sendModuleReviewedNotification(
+							adminSupabase,
+							updatedModule.user_id,
+							updatedModule.title ?? 'Sin título',
+							derivedStatus === 'approved' ? 'approved' : 'rejected'
+						);
+					} catch (error: any) {
+						console.error('Failed to send module reviewed notification:', error.message);
+					}
+				});
+			} catch (e) {}
 		}
 
 		return { success: true };

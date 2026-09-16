@@ -10,6 +10,8 @@ interface ModuleAdminResponseSectionProps {
 	isSubmitting: boolean;
 	allFilesReviewed: boolean;
 	hasPendingReviews: boolean;
+	hasAdminResponded: boolean;
+	hasUnsyncedFileChanges: boolean;
 	onSendResponse: () => void;
 }
 
@@ -19,6 +21,8 @@ export function ModuleAdminResponseSection({
 	isSubmitting,
 	allFilesReviewed,
 	hasPendingReviews,
+	hasAdminResponded,
+	hasUnsyncedFileChanges,
 	onSendResponse,
 }: ModuleAdminResponseSectionProps) {
 	return (
@@ -42,6 +46,18 @@ export function ModuleAdminResponseSection({
 					Esperando a que se confirmen las revisiones en curso...
 				</p>
 			)}
+			{hasAdminResponded && !hasUnsyncedFileChanges && (
+				<p className="text-xs text-muted-foreground">
+					Ya se envió una respuesta para este módulo. Si volvés a enviarla, se reemplaza por la
+					nueva.
+				</p>
+			)}
+			{hasUnsyncedFileChanges && (
+				<p className="text-xs font-medium text-destructive">
+					Hay cambios sin enviar — el estado mostrado en otras vistas puede estar desactualizado
+					hasta que reenvíes la respuesta.
+				</p>
+			)}
 			<div className="flex justify-end">
 				<Button
 					type="button"
@@ -51,7 +67,7 @@ export function ModuleAdminResponseSection({
 					disabled={!allFilesReviewed || isSubmitting || hasPendingReviews}
 				>
 					{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-					Enviar respuesta
+					{hasAdminResponded ? 'Reenviar respuesta' : 'Enviar respuesta'}
 				</Button>
 			</div>
 		</div>

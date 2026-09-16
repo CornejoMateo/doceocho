@@ -61,3 +61,10 @@ export function ModuleStatusBadge({
 		</Badge>
 	);
 }
+
+export const statusBackgroundClass = (file: { status?: string | null }) =>
+	file.status === 'rejected'
+		? 'bg-red-500/10'
+		: file.status === 'approved'
+			? 'bg-green-500/10'
+			: 'bg-muted/40';

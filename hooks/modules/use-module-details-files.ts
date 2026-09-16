@@ -33,6 +33,13 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 		setError(null);
 
 		const loadFiles = async () => {
+			setFiles((prev) => {
+				prev.forEach((f) => {
+					if (f.url) URL.revokeObjectURL(f.url);
+				});
+				return prev;
+			});
+
 			const { data, error } = await listModuleFiles(moduleId);
 
 			if (cancelled) return;
@@ -107,5 +114,36 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 		setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
 	}, []);
 
-	return { files, isLoading, error, reload, patchFile };
+	const replaceFile = useCallback(async (oldId: number, newFile: ModuleFile) => {
+		const supabase = getSupabaseClient();
+		let url = '';
+		let isImg = false;
+		let isVid = false;
+		let fileType = '';
+		let size: number | undefined;
+
+		try {
+			const { data: blob } = await supabase.storage.from('modules').download(newFile.storage_path);
+			const contentType = blob?.type || '';
+			const sourceName = newFile.file_name || newFile.storage_path;
+			const kind = getFileKind(sourceName);
+			url = blob ? URL.createObjectURL(blob) : '';
+			isImg = isImage(contentType) || kind === 'image';
+			isVid = isVideo(contentType) || kind === 'video';
+			fileType =
+				contentType || (kind === 'image' ? 'image/jpeg' : kind === 'video' ? 'video/mp4' : '');
+			size = blob?.size;
+		} catch (err) {
+			setError('Error al descargar el archivo: ' + (err as Error).message);
+		}
+
+		setFiles((prev) => {
+			const old = prev.find((f) => f.id === oldId);
+			if (old?.url) URL.revokeObjectURL(old.url);
+			const next = { ...newFile, url, isImg, isVid, fileType, size } as ModuleFileWithUrl;
+			return [...prev.filter((f) => f.id !== oldId), next];
+		});
+	}, []);
+
+	return { files, isLoading, error, reload, patchFile, replaceFile };
 }

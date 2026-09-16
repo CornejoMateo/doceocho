@@ -2,34 +2,38 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
-import { uploadModuleFile, updateModuleFile, deleteModuleFile } from '@/lib/modules/modules-files';
 import {
-	resubmitModuleFileAction,
-	syncModuleStatusAction,
-} from '@/lib/modules/modules-files-resubmit';
+	uploadModuleFile,
+	updateModuleFile,
+	deleteModuleFile,
+	ModuleFile,
+} from '@/lib/modules/modules-files';
+import { resubmitAllRejectedFilesAction } from '@/lib/modules/modules-files-resubmit';
 import { translateError } from '@/lib/error-translator';
 import { ModuleFileWithUrl } from './use-module-details-files';
 
 interface UseModuleFileCorrectionOptions {
 	open: boolean;
 	moduleId: number | null;
+	files: ModuleFileWithUrl[];
 	patchFile: (id: number, patch: Partial<ModuleFileWithUrl>) => void;
-	reload: () => void;
+	replaceFile: (oldId: number, newFile: ModuleFile) => Promise<void>;
 	onReviewed?: () => void;
 }
 
 export function useModuleFileCorrection({
 	open,
 	moduleId,
+	files,
 	patchFile,
-	reload,
+	replaceFile,
 	onReviewed,
 }: UseModuleFileCorrectionOptions) {
 	const [correctingFileId, setCorrectingFileId] = useState<number | null>(null);
 	const [correctionDescription, setCorrectionDescription] = useState('');
 	const [correctionFile, setCorrectionFile] = useState<File | null>(null);
 	const [isSavingCorrection, setIsSavingCorrection] = useState(false);
-	const [resubmittingFileId, setResubmittingFileId] = useState<number | null>(null);
+	const [isResubmittingAll, setIsResubmittingAll] = useState(false);
 
 	useEffect(() => {
 		if (!open) {
@@ -37,7 +41,7 @@ export function useModuleFileCorrection({
 			setCorrectionDescription('');
 			setCorrectionFile(null);
 			setIsSavingCorrection(false);
-			setResubmittingFileId(null);
+			setIsResubmittingAll(false);
 		}
 	}, [open]);
 
@@ -92,25 +96,14 @@ export function useModuleFileCorrection({
 				return;
 			}
 
-			const { success: syncSuccess, warning: syncWarning } = await syncModuleStatusAction(moduleId);
-			if (!syncSuccess || syncWarning) {
-				toast({
-					variant: 'destructive',
-					title: 'Atención',
-					description:
-						syncWarning ||
-						'El archivo se reemplazó, pero no se pudo actualizar el estado general del módulo.',
-				});
-			}
-
 			toast({
 				title: 'Archivo corregido',
 				description:
 					'El archivo se reemplazó correctamente y ya vuelve a estar pendiente de revisión.',
 			});
-			cancelFileCorrection();
 
-			reload();
+			await replaceFile(file.id, uploaded);
+			cancelFileCorrection();
 			onReviewed?.();
 		} else {
 			const { error } = await updateModuleFile(file.id, { description: trimmedDescription });
@@ -129,27 +122,32 @@ export function useModuleFileCorrection({
 			toast({
 				title: 'Archivo corregido',
 				description:
-					'Los cambios se guardaron. Recordá tocar "Reenviar a revisión" para que el admin lo vuelva a evaluar.',
+					'Los cambios se guardaron. Recordá tocar "Solicitar revisión" para que el admin lo vuelva a evaluar.',
 			});
 			cancelFileCorrection();
 		}
 	};
 
-	const resubmitFile = async (file: ModuleFileWithUrl) => {
-		setResubmittingFileId(file.id);
-		const { success, error, warning } = await resubmitModuleFileAction(file.id);
+	const resubmitAllRejectedFiles = async () => {
+		if (!moduleId) return;
+		const rejectedFileIds = files.filter((f) => f.status === 'rejected').map((f) => f.id);
+		setIsResubmittingAll(true);
+		const { success, error, warning } = await resubmitAllRejectedFilesAction(moduleId);
 		if (!success) {
 			toast({
 				variant: 'destructive',
-				title: 'Error al reenviar el archivo',
-				description: error || 'Ocurrió un error al reenviar el archivo a revisión.',
+				title: 'Error al solicitar la revisión',
+				description: error || 'Ocurrió un error al reenviar los archivos a revisión.',
 			});
-			setResubmittingFileId(null);
+			setIsResubmittingAll(false);
 			return;
 		}
+
+		rejectedFileIds.forEach((id) => patchFile(id, { status: null }));
 		toast({
-			title: 'Archivo reenviado a revisión',
-			description: 'El archivo vuelve a quedar pendiente de revisión por un administrador.',
+			title: 'Revisión solicitada',
+			description:
+				'Los archivos rechazados vuelven a quedar pendientes de revisión por un administrador.',
 		});
 		if (warning) {
 			toast({
@@ -158,8 +156,7 @@ export function useModuleFileCorrection({
 				description: warning,
 			});
 		}
-		setResubmittingFileId(null);
-		reload();
+		setIsResubmittingAll(false);
 		onReviewed?.();
 	};
 
@@ -170,10 +167,10 @@ export function useModuleFileCorrection({
 		correctionFile,
 		setCorrectionFile,
 		isSavingCorrection,
-		resubmittingFileId,
+		isResubmittingAll,
 		startFileCorrection,
 		cancelFileCorrection,
 		saveFileCorrection,
-		resubmitFile,
+		resubmitAllRejectedFiles,
 	};
 }

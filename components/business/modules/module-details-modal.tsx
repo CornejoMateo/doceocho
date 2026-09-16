@@ -46,9 +46,26 @@ export function ModuleDetailsModal({
 }: ModuleDetailsModalProps) {
 	const moduleId = module?.id ?? null;
 
-	const { files, isLoading, error, reload, patchFile } = useModuleDetailsFiles({ open, moduleId });
-	const review = useModuleAdminReview({ open, module, files, patchFile, onReviewed });
-	const correction = useModuleFileCorrection({ open, moduleId, patchFile, reload, onReviewed });
+	const { files, isLoading, error, reload, patchFile, replaceFile } = useModuleDetailsFiles({
+		open,
+		moduleId,
+	});
+	const review = useModuleAdminReview({
+		open,
+		module,
+		files,
+		patchFile,
+		onReviewed,
+		onOpenChange,
+	});
+	const correction = useModuleFileCorrection({
+		open,
+		moduleId,
+		files,
+		patchFile,
+		replaceFile,
+		onReviewed,
+	});
 
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -59,6 +76,9 @@ export function ModuleDetailsModal({
 	if (!module) return null;
 
 	const hasAdminResponded = module.status === 'approved' || module.status === 'rejected';
+
+	const hasUnsyncedFileChanges =
+		hasAdminResponded && files.length > 0 && deriveModuleStatusFromFiles(files) !== module.status;
 
 	const derivedModuleStatus =
 		canReview || hasAdminResponded
@@ -177,6 +197,8 @@ export function ModuleDetailsModal({
 									isSubmitting={review.isSubmittingModuleReview}
 									allFilesReviewed={review.allFilesReviewed}
 									hasPendingReviews={review.pendingReviewIds.size > 0}
+									hasAdminResponded={hasAdminResponded}
+									hasUnsyncedFileChanges={hasUnsyncedFileChanges}
 									onSendResponse={review.handleSendResponseClick}
 								/>
 							)}
@@ -221,6 +243,7 @@ export function ModuleDetailsModal({
 				value={review.amountValue}
 				error={review.amountError}
 				isSubmitting={review.isSubmittingModuleReview}
+				isLoadingDefault={review.loadingDefaultPrice}
 				onValueChange={review.changeAmountValue}
 				onCancel={review.cancelAmountModal}
 				onConfirm={review.confirmAmountAndSubmit}

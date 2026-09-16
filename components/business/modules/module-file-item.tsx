@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ModuleStatusBadge } from '@/helpers/modules/modules-helper';
+import { ModuleStatusBadge, statusBackgroundClass } from '@/helpers/modules/modules-helper';
 import { ModuleFileWithUrl } from '@/hooks/modules/use-module-details-files';
 import {
 	AlertTriangle,
@@ -10,7 +10,6 @@ import {
 	ClipboardCheck,
 	Download,
 	Loader2,
-	Send,
 	Upload,
 	X as XIcon,
 	Video,
@@ -32,13 +31,13 @@ export interface ModuleCorrectionPanelState {
 	correctionDescription: string;
 	correctionFile: File | null;
 	isSavingCorrection: boolean;
-	resubmittingFileId: number | null;
+	isResubmittingAll: boolean;
 	setCorrectionDescription: (value: string) => void;
 	setCorrectionFile: (file: File | null) => void;
 	startFileCorrection: (file: ModuleFileWithUrl) => void;
 	cancelFileCorrection: () => void;
 	saveFileCorrection: (file: ModuleFileWithUrl) => void;
-	resubmitFile: (file: ModuleFileWithUrl) => void;
+	resubmitAllRejectedFiles: () => void;
 }
 
 interface ModuleFileItemProps {
@@ -114,7 +113,9 @@ export function ModuleFileItem({
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="group flex items-center gap-3 rounded-lg border bg-muted/40 p-2 hover:ring-2 ring-primary transition-all">
+			<div
+				className={`group flex items-center gap-3 rounded-lg border p-2 hover:ring-2 ring-primary transition-all ${statusBackgroundClass}`}
+			>
 				{file.url ? (
 					<button
 						type="button"
@@ -139,7 +140,6 @@ export function ModuleFileItem({
 					</Button>
 				)}
 				{canReview &&
-					!file.status &&
 					review.reviewingFileId !== file.id &&
 					!review.pendingReviewIds.has(file.id) && (
 						<Button
@@ -287,24 +287,10 @@ export function ModuleFileItem({
 								size="sm"
 								className="gap-1"
 								onClick={() => correction.startFileCorrection(file)}
-								disabled={correction.resubmittingFileId === file.id}
+								disabled={correction.isResubmittingAll}
 							>
 								<Upload className="h-3.5 w-3.5" />
 								Corregir archivo
-							</Button>
-							<Button
-								type="button"
-								size="sm"
-								className="gap-1"
-								onClick={() => correction.resubmitFile(file)}
-								disabled={correction.resubmittingFileId === file.id}
-							>
-								{correction.resubmittingFileId === file.id ? (
-									<Loader2 className="h-4 w-4 animate-spin" />
-								) : (
-									<Send className="h-3.5 w-3.5" />
-								)}
-								Reenviar a revisión
 							</Button>
 						</div>
 					)}

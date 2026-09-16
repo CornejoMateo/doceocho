@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { ModuleFileWithUrl } from '@/hooks/modules/use-module-details-files';
-import { AlertCircle, Loader2, RotateCcw } from 'lucide-react';
+import { AlertCircle, Loader2, RotateCcw, Send } from 'lucide-react';
 import {
 	ModuleFileItem,
 	ModuleReviewPanelState,
@@ -84,6 +84,25 @@ export function ModuleFilesSection({
 							correction={correction}
 						/>
 					))}
+				</div>
+			)}
+
+			{!canReview && files.some((file) => file.status === 'rejected') && (
+				<div className="flex justify-end pt-1">
+					<Button
+						type="button"
+						size="sm"
+						className="gap-1.5"
+						onClick={correction.resubmitAllRejectedFiles}
+						disabled={correction.isResubmittingAll || correction.isSavingCorrection}
+					>
+						{correction.isResubmittingAll ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<Send className="h-4 w-4" />
+						)}
+						Solicitar revisión
+					</Button>
 				</div>
 			)}
 		</>
