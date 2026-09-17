@@ -27,8 +27,11 @@ export function ModuleAdminResponseSection({
 }: ModuleAdminResponseSectionProps) {
 	return (
 		<div className="flex flex-col gap-2 rounded-md border bg-muted/40 p-3 mt-2">
-			<label className="text-sm font-medium text-foreground">Respuesta general del módulo</label>
+			<label htmlFor="module-review-text" className="text-sm font-medium text-foreground">
+				Respuesta general del módulo +{' '}
+			</label>{' '}
 			<Textarea
+				id="module-review-text"
 				placeholder="Dejá una respuesta general para el dueño del módulo (opcional)"
 				value={moduleReviewText}
 				onChange={(e) => onModuleReviewTextChange(e.target.value)}

@@ -84,10 +84,15 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 				})
 			);
 
-			if (!cancelled) {
-				setFiles(withUrls);
-				setIsLoading(false);
+			if (cancelled) {
+				withUrls.forEach((file) => {
+					if (file.url) URL.revokeObjectURL(file.url);
+				});
+				return;
 			}
+
+			setFiles(withUrls);
+			setIsLoading(false);
 		};
 
 		loadFiles();
@@ -114,7 +119,8 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 		setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
 	}, []);
 
-	const replaceFile = useCallback(async (oldId: number, newFile: ModuleFile) => {
+	// Updates a file's content in place (same id - the row is UPDATEd, never deleted/recreated).
+	const replaceFile = useCallback(async (id: number, updatedFile: ModuleFile) => {
 		const supabase = getSupabaseClient();
 		let url = '';
 		let isImg = false;
@@ -123,9 +129,11 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 		let size: number | undefined;
 
 		try {
-			const { data: blob } = await supabase.storage.from('modules').download(newFile.storage_path);
+			const { data: blob } = await supabase.storage
+				.from('modules')
+				.download(updatedFile.storage_path);
 			const contentType = blob?.type || '';
-			const sourceName = newFile.file_name || newFile.storage_path;
+			const sourceName = updatedFile.file_name || updatedFile.storage_path;
 			const kind = getFileKind(sourceName);
 			url = blob ? URL.createObjectURL(blob) : '';
 			isImg = isImage(contentType) || kind === 'image';
@@ -138,10 +146,13 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 		}
 
 		setFiles((prev) => {
-			const old = prev.find((f) => f.id === oldId);
+			const old = prev.find((f) => f.id === id);
 			if (old?.url) URL.revokeObjectURL(old.url);
-			const next = { ...newFile, url, isImg, isVid, fileType, size } as ModuleFileWithUrl;
-			return [...prev.filter((f) => f.id !== oldId), next];
+			return prev.map((f) =>
+				f.id === id
+					? ({ ...updatedFile, url, isImg, isVid, fileType, size } as ModuleFileWithUrl)
+					: f
+			);
 		});
 	}, []);
 

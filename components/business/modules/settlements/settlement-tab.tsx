@@ -110,17 +110,17 @@ export function SettlementTab({ users, onLiquidated }: LiquidarTabProps) {
 				return;
 			}
 
-			for (const [userId, userAmount] of Object.entries(computedAmounts)) {
-				const { error: upsertError } = await upsertModulesMonthlySettlement({
-					user_id: userId,
-					year: yearNum,
-					month: monthNum,
-					amount: userAmount.amount,
-					modules_count: userAmount.count,
-				});
+			const inputs = Object.entries(computedAmounts).map(([userId, userAmount]) => ({
+				user_id: userId,
+				year: yearNum,
+				month: monthNum,
+				amount: userAmount.amount,
+				modules_count: userAmount.count,
+			}));
 
-				if (upsertError) throw upsertError;
-			}
+			const { error: upsertError } = await upsertModulesMonthlySettlement(inputs);
+
+			if (upsertError) throw upsertError;
 
 			toast({
 				title: 'Liquidación',

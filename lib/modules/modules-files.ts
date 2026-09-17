@@ -165,6 +165,72 @@ export async function deleteModuleFile(fileId: number): Promise<{ success: boole
 	}
 }
 
+export async function replaceModuleFileContent(
+	fileId: number,
+	moduleId: number,
+	newFile: File,
+	fileName?: string | null,
+	description?: string | null
+): Promise<{ data: ModuleFile | null; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const { data: currentRecord, error: fetchError } = await supabase
+			.from(TABLE)
+			.select('storage_path, status')
+			.eq('id', fileId)
+			.single();
+
+		if (fetchError || !currentRecord) {
+			return { data: null, error: fetchError || 'File record not found' };
+		}
+
+		const oldStoragePath = currentRecord.storage_path;
+
+		const fileExt = newFile.name.split('.').pop();
+		const storageName = `${crypto.randomUUID()}.${fileExt}`;
+		const newStoragePath = `${moduleId}/${storageName}`;
+
+		const { error: uploadError } = await supabase.storage
+			.from(BUCKET)
+			.upload(newStoragePath, newFile);
+
+		if (uploadError) {
+			return { data: null, error: uploadError };
+		}
+
+		const { data: updatedRecord, error: updateError } = await supabase
+			.from(TABLE)
+			.update({
+				storage_path: newStoragePath,
+				file_name: fileName?.trim() || newFile.name,
+				description: description || null,
+				...(currentRecord.status === 'rejected' ? { status: null } : {}),
+			})
+			.eq('id', fileId)
+			.select()
+			.single();
+
+		if (updateError || !updatedRecord) {
+			const { error: rollbackError } = await supabase.storage.from(BUCKET).remove([newStoragePath]);
+			if (rollbackError) {
+				console.error('Failed to roll back newly uploaded replacement file:', rollbackError);
+			}
+			return { data: null, error: updateError };
+		}
+
+		const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([oldStoragePath]);
+		if (cleanupError) {
+			console.error('Failed to delete old module file from storage (orphaned blob):', cleanupError);
+		}
+
+		return { data: updatedRecord, error: null };
+	} catch (err) {
+		console.error('Unexpected error replacing module file content:', err);
+		return { data: null, error: err };
+	}
+}
+
 // Helper function to derive the overall module status based on its files' statuses
 export function deriveModuleStatusFromFiles(
 	files: { status?: string | null }[]

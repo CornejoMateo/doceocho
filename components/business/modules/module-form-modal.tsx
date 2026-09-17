@@ -14,7 +14,12 @@ import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { translateError } from '@/lib/error-translator';
 import { createModule, updateModule, Module } from '@/lib/modules/modules';
-import { uploadModuleFile, deleteModuleFile, updateModuleFile } from '@/lib/modules/modules-files';
+import {
+	uploadModuleFile,
+	deleteModuleFile,
+	updateModuleFile,
+	replaceModuleFileContent,
+} from '@/lib/modules/modules-files';
 import { listWorks, Work } from '@/lib/works/works';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -171,6 +176,15 @@ export function ModuleFormModal({
 			return;
 		}
 
+		if (isEditing && moduleToEdit?.status === 'approved') {
+			toast({
+				variant: 'destructive',
+				title: 'Módulo aprobado',
+				description: 'Un módulo aprobado no se puede editar.',
+			});
+			return;
+		}
+
 		setIsSubmitting(true);
 
 		try {
@@ -249,27 +263,17 @@ export function ModuleFormModal({
 					.map(async (pending) => {
 						if (pending.editedFile || pending.file) {
 							const fileToUpload = pending.editedFile || pending.file!;
-							const { data: uploaded, error } = await uploadModuleFile(
+							const { data: replaced, error } = await replaceModuleFileContent(
+								pending.existingId!,
 								moduleId,
 								fileToUpload,
-								pending.description.trim() || null,
-								pending.displayName.trim() || null
+								pending.displayName.trim() || null,
+								pending.description.trim() || null
 							);
-							if (error || !uploaded) {
+							if (error || !replaced) {
 								existingFileErrors.push({
 									name: pending.displayName,
-									error: error || 'No se pudo subir el reemplazo',
-								});
-								return;
-							}
-
-							const { success, error: deleteError } = await deleteModuleFile(pending.existingId!);
-							if (!success) {
-								const { error: rollbackError } = await deleteModuleFile(uploaded.id);
-								existingFileErrors.push({
-									name: pending.displayName,
-									error: deleteError,
-									...(!rollbackError ? {} : { rollbackError }),
+									error: error || 'No se pudo reemplazar el archivo',
 								});
 							}
 							return;

@@ -152,12 +152,16 @@ export function useModuleAdminReview({
 
 	const submitModuleReview = async (amount: number | null) => {
 		if (!module) return;
+		const requestModuleId = module.id;
 		setIsSubmittingModuleReview(true);
 		const { success, error } = await submitModuleReviewAction(
-			module.id,
+			requestModuleId,
 			moduleReviewText.trim() || null,
 			amount
 		);
+
+		if (closedRef.current || currentModuleIdRef.current !== requestModuleId) return;
+
 		setIsSubmittingModuleReview(false);
 		if (!success) {
 			toast({

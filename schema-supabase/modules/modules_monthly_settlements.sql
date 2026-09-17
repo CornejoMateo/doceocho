@@ -8,7 +8,10 @@ create table public.modules_monthly_settlements (
   modules_count integer not null default 0,
   constraint modules_monthly_settlements_pkey primary key (id),
   constraint modules_monthly_settlements_user_year_month_unique unique (user_id, year, month),
-  constraint modules_monthly_settlements_user_id_fkey foreign KEY (user_id) references users (uid_user) on update CASCADE on delete CASCADE
+  constraint modules_monthly_settlements_user_id_fkey foreign KEY (user_id) references users (uid_user) on update CASCADE on delete CASCADE,
+  constraint modules_monthly_settlements_month_check CHECK (month >= 0 AND month <= 11),
+  constraint modules_monthly_settlements_amount_check CHECK (amount >= 0),
+  constraint modules_monthly_settlements_modules_count_check CHECK (modules_count >= 0)
 ) TABLESPACE pg_default;
 
 ------ INDEXES ------

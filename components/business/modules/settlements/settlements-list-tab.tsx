@@ -18,8 +18,8 @@ import {
 import { MONTHS } from '@/constants/attendance/settlements';
 import { Spinner } from '@/components/ui/spinner';
 
-const prevMonthDate = new Date();
-prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+const now = new Date();
+const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());

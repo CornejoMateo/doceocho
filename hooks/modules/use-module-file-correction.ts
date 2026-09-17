@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import {
-	uploadModuleFile,
 	updateModuleFile,
-	deleteModuleFile,
+	replaceModuleFileContent,
 	ModuleFile,
 } from '@/lib/modules/modules-files';
 import { resubmitAllRejectedFilesAction } from '@/lib/modules/modules-files-resubmit';
@@ -35,6 +34,24 @@ export function useModuleFileCorrection({
 	const [isSavingCorrection, setIsSavingCorrection] = useState(false);
 	const [isResubmittingAll, setIsResubmittingAll] = useState(false);
 
+	const closedRef = useRef(!open);
+
+	const currentModuleIdRef = useRef<number | null>(moduleId);
+
+	useEffect(() => {
+		closedRef.current = !open;
+	}, [open]);
+
+	useEffect(() => {
+		currentModuleIdRef.current = moduleId;
+	}, [moduleId]);
+
+	useEffect(() => {
+		return () => {
+			closedRef.current = true;
+		};
+	}, []);
+
 	useEffect(() => {
 		if (!open) {
 			setCorrectingFileId(null);
@@ -59,6 +76,8 @@ export function useModuleFileCorrection({
 	};
 
 	const saveFileCorrection = async (file: ModuleFileWithUrl) => {
+		const requestModuleId = moduleId;
+
 		setIsSavingCorrection(true);
 		const trimmedDescription = correctionDescription.trim() || null;
 
@@ -68,33 +87,25 @@ export function useModuleFileCorrection({
 				return;
 			}
 
-			const { data: uploaded, error: uploadError } = await uploadModuleFile(
+			const { data: updated, error: replaceError } = await replaceModuleFileContent(
+				file.id,
 				moduleId,
 				correctionFile,
-				trimmedDescription,
-				file.file_name
+				file.file_name,
+				trimmedDescription
 			);
-			if (uploadError || !uploaded) {
+			if (replaceError || !updated) {
+				if (closedRef.current || currentModuleIdRef.current !== requestModuleId) return;
 				toast({
 					variant: 'destructive',
 					title: 'Error al reemplazar el archivo',
-					description: translateError(uploadError) || 'No se pudo subir el archivo de reemplazo.',
+					description: translateError(replaceError) || 'No se pudo reemplazar el archivo.',
 				});
 				setIsSavingCorrection(false);
 				return;
 			}
 
-			const { success: deleteSuccess, error: deleteError } = await deleteModuleFile(file.id);
-			if (!deleteSuccess) {
-				await deleteModuleFile(uploaded.id);
-				toast({
-					variant: 'destructive',
-					title: 'Error al reemplazar el archivo',
-					description: translateError(deleteError) || 'No se pudo eliminar el archivo original.',
-				});
-				setIsSavingCorrection(false);
-				return;
-			}
+			if (closedRef.current || currentModuleIdRef.current !== requestModuleId) return;
 
 			toast({
 				title: 'Archivo corregido',
@@ -102,11 +113,14 @@ export function useModuleFileCorrection({
 					'El archivo se reemplazó correctamente y ya vuelve a estar pendiente de revisión.',
 			});
 
-			await replaceFile(file.id, uploaded);
+			await replaceFile(file.id, updated);
 			cancelFileCorrection();
 			onReviewed?.();
 		} else {
 			const { error } = await updateModuleFile(file.id, { description: trimmedDescription });
+
+			if (closedRef.current || currentModuleIdRef.current !== requestModuleId) return;
+
 			if (error) {
 				toast({
 					variant: 'destructive',

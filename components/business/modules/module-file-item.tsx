@@ -114,7 +114,7 @@ export function ModuleFileItem({
 	return (
 		<div className="flex flex-col gap-2">
 			<div
-				className={`group flex items-center gap-3 rounded-lg border p-2 hover:ring-2 ring-primary transition-all ${statusBackgroundClass}`}
+				className={`group flex items-center gap-3 rounded-lg border p-2 hover:ring-2 ring-primary transition-all ${statusBackgroundClass(file)}`}
 			>
 				{file.url ? (
 					<button

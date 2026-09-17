@@ -121,7 +121,10 @@ export function InputsFormModule({
 							<span className="truncate min-w-0 w-full">
 								{work
 									? work.name ||
-										[work.locality, work.address, work.hood, work.zone].filter(Boolean).join(' - ')
+										[work.locality, work.address, work.hood, work.zone]
+											.filter(Boolean)
+											.join(' - ') ||
+										`Obra #${work.id}`
 									: 'Buscar obra por nombre, localidad, dirección, barrio o zona...'}
 							</span>
 							<ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
