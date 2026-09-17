@@ -109,13 +109,25 @@ describe('ModuleTable', () => {
 		expect(defaultProps.onRowClick).toHaveBeenCalledWith(modules[0]);
 	});
 
-	it('calls onEdit when clicking edit and stops row propagation', () => {
+	it('calls onEdit when clicking edit on a non-approved module and stops row propagation', () => {
 		const onRowClick = jest.fn();
 		const onEdit = jest.fn();
 		render(<ModuleTable {...defaultProps} onRowClick={onRowClick} onEdit={onEdit} />);
-		fireEvent.click(screen.getAllByTestId('edit-icon')[0]);
-		expect(onEdit).toHaveBeenCalledWith(modules[0]);
+		// modules[1] (status: null) is the non-approved module, so its edit button stays enabled.
+		fireEvent.click(screen.getAllByTestId('edit-icon')[1]);
+		expect(onEdit).toHaveBeenCalledWith(modules[1]);
 		expect(onRowClick).not.toHaveBeenCalled();
+	});
+
+	it('disables the edit button and does not call onEdit for an approved module', () => {
+		const onEdit = jest.fn();
+		render(<ModuleTable {...defaultProps} onEdit={onEdit} />);
+		const desktop = screen.getByTestId('module-table-desktop');
+		// modules[0] has status: 'approved'
+		const editButtons = within(desktop).getAllByRole('button', { name: 'Editar módulo' });
+		expect(editButtons[0]).toBeDisabled();
+		fireEvent.click(editButtons[0]);
+		expect(onEdit).not.toHaveBeenCalled();
 	});
 
 	it('calls onDelete when clicking delete and stops row propagation', () => {

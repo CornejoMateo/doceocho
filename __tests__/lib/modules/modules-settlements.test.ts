@@ -177,16 +177,34 @@ describe('modules settlements lib', () => {
 	});
 
 	describe('upsertModulesMonthlySettlement', () => {
-		it('upserts a settlement on user, year and month conflict', async () => {
+		it('upserts a batch of settlements on user, year and month conflict in a single call', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			const input = buildInput();
-			chain.single = jest.fn().mockResolvedValue({ data: { id: 1, ...input }, error: null });
+			const inputs = [buildInput(), { ...buildInput(), user_id: 'user-2' }];
+			chain.select = jest
+				.fn()
+				.mockResolvedValue({
+					data: inputs.map((input, i) => ({ id: i + 1, ...input })),
+					error: null,
+				});
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
-			const result = await upsertModulesMonthlySettlement(input);
+			const result = await upsertModulesMonthlySettlement(inputs);
 
-			expect(chain.upsert).toHaveBeenCalledWith(input, { onConflict: 'user_id,year,month' });
-			expect(result.data).toEqual({ id: 1, ...input });
+			expect(chain.upsert).toHaveBeenCalledWith(inputs, { onConflict: 'user_id,year,month' });
+			expect(result.data).toEqual(inputs.map((input, i) => ({ id: i + 1, ...input })));
+		});
+
+		it('returns the error on failure without partial data', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			const inputs = [buildInput(), { ...buildInput(), user_id: 'user-2' }];
+			const error = { message: 'constraint violation' };
+			chain.select = jest.fn().mockResolvedValue({ data: null, error });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await upsertModulesMonthlySettlement(inputs);
+
+			expect(result.data).toBeNull();
+			expect(result.error).toEqual(error);
 		});
 	});
 

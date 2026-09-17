@@ -2,7 +2,6 @@ import { renderHook, act } from '@testing-library/react';
 import { useModuleAdminReview } from '@/hooks/modules/use-module-admin-review';
 import { reviewModuleFileAction } from '@/lib/modules/modules-files-review';
 import { submitModuleReviewAction } from '@/lib/modules/modules-review-submit';
-import { deriveModuleStatusFromFiles } from '@/lib/modules/modules-files';
 import { toast } from '@/components/ui/use-toast';
 
 jest.mock('@/lib/modules/modules-files-review', () => ({
@@ -15,11 +14,6 @@ jest.mock('@/lib/modules/modules-review-submit', () => ({
 
 jest.mock('@/lib/modules/modules-settings', () => ({
 	getModulesSettings: jest.fn().mockResolvedValue({ data: null, error: null }),
-}));
-
-jest.mock('@/lib/modules/modules-files', () => ({
-	deriveModuleStatusFromFiles: jest.fn(),
-	listModuleFiles: jest.fn(),
 }));
 
 jest.mock('@/lib/supabase-client', () => ({
@@ -48,10 +42,19 @@ const fileFixture = {
 	size: 10,
 } as any;
 
+const approvedFiles = [
+	{ ...fileFixture, id: 1, status: 'approved' },
+	{ ...fileFixture, id: 2, status: 'approved' },
+] as any;
+
+const rejectedFiles = [
+	{ ...fileFixture, id: 1, status: 'approved' },
+	{ ...fileFixture, id: 2, status: 'rejected' },
+] as any;
+
 describe('useModuleAdminReview', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		(deriveModuleStatusFromFiles as jest.Mock).mockReturnValue('rejected');
 		(submitModuleReviewAction as jest.Mock).mockResolvedValue({ success: true });
 	});
 
@@ -84,7 +87,6 @@ describe('useModuleAdminReview', () => {
 			result.current.submitFileReview(fileFixture, 'approved');
 		});
 
-		// While the request is in flight, the loading state is scoped to THIS file only.
 		expect(result.current.pendingReviewIds.get(1)).toBe('approved');
 
 		await act(async () => {
@@ -175,11 +177,10 @@ describe('useModuleAdminReview', () => {
 	});
 
 	it('opens the amount dialog when the derived outcome would be "approved"', () => {
-		(deriveModuleStatusFromFiles as jest.Mock).mockReturnValue('approved');
 		const patchFile = jest.fn();
 
 		const { result } = renderHook(() =>
-			useModuleAdminReview({ open: true, module: moduleFixture, files: [], patchFile })
+			useModuleAdminReview({ open: true, module: moduleFixture, files: approvedFiles, patchFile })
 		);
 
 		act(() => {
@@ -198,7 +199,7 @@ describe('useModuleAdminReview', () => {
 			useModuleAdminReview({
 				open: true,
 				module: moduleFixture,
-				files: [],
+				files: rejectedFiles,
 				patchFile,
 				onReviewed,
 			})
@@ -220,7 +221,7 @@ describe('useModuleAdminReview', () => {
 		const patchFile = jest.fn();
 
 		const { result } = renderHook(() =>
-			useModuleAdminReview({ open: true, module: moduleFixture, files: [], patchFile })
+			useModuleAdminReview({ open: true, module: moduleFixture, files: approvedFiles, patchFile })
 		);
 
 		act(() => {
@@ -235,7 +236,6 @@ describe('useModuleAdminReview', () => {
 	});
 
 	it('submits with a valid amount, closes the dialog and notifies the parent', async () => {
-		(deriveModuleStatusFromFiles as jest.Mock).mockReturnValue('approved');
 		const patchFile = jest.fn();
 		const onReviewed = jest.fn();
 
@@ -243,7 +243,7 @@ describe('useModuleAdminReview', () => {
 			useModuleAdminReview({
 				open: true,
 				module: moduleFixture,
-				files: [],
+				files: approvedFiles,
 				patchFile,
 				onReviewed,
 			})
@@ -268,7 +268,6 @@ describe('useModuleAdminReview', () => {
 	});
 
 	it('keeps the amount dialog open when the submission fails', async () => {
-		(deriveModuleStatusFromFiles as jest.Mock).mockReturnValue('approved');
 		(submitModuleReviewAction as jest.Mock).mockResolvedValue({ success: false, error: 'boom' });
 		const patchFile = jest.fn();
 		const onReviewed = jest.fn();
@@ -277,7 +276,7 @@ describe('useModuleAdminReview', () => {
 			useModuleAdminReview({
 				open: true,
 				module: moduleFixture,
-				files: [],
+				files: approvedFiles,
 				patchFile,
 				onReviewed,
 			})
@@ -298,6 +297,85 @@ describe('useModuleAdminReview', () => {
 			expect.objectContaining({ variant: 'destructive', title: 'Error al enviar la respuesta' })
 		);
 		expect(onReviewed).not.toHaveBeenCalled();
+	});
+
+	it('discards a stale module review response when the modal closed while it was in flight', async () => {
+		let resolveSubmit!: (v: any) => void;
+		(submitModuleReviewAction as jest.Mock).mockReturnValue(
+			new Promise((res) => {
+				resolveSubmit = res;
+			})
+		);
+		const patchFile = jest.fn();
+		const onReviewed = jest.fn();
+		const onOpenChange = jest.fn();
+
+		const { result, rerender } = renderHook(
+			({ open }) =>
+				useModuleAdminReview({
+					open,
+					module: moduleFixture,
+					files: rejectedFiles,
+					patchFile,
+					onReviewed,
+					onOpenChange,
+				}),
+			{ initialProps: { open: true } }
+		);
+
+		act(() => {
+			result.current.handleSendResponseClick();
+		});
+		expect(result.current.isSubmittingModuleReview).toBe(true);
+
+		rerender({ open: false });
+
+		await act(async () => {
+			resolveSubmit({ success: true });
+		});
+
+		expect(toast).not.toHaveBeenCalled();
+		expect(onReviewed).not.toHaveBeenCalled();
+		expect(onOpenChange).not.toHaveBeenCalled();
+	});
+
+	it('discards a stale module review response when a different module became active', async () => {
+		let resolveSubmit!: (v: any) => void;
+		(submitModuleReviewAction as jest.Mock).mockReturnValue(
+			new Promise((res) => {
+				resolveSubmit = res;
+			})
+		);
+		const patchFile = jest.fn();
+		const onReviewed = jest.fn();
+		const onOpenChange = jest.fn();
+
+		const { result, rerender } = renderHook(
+			({ module }) =>
+				useModuleAdminReview({
+					open: true,
+					module,
+					files: rejectedFiles,
+					patchFile,
+					onReviewed,
+					onOpenChange,
+				}),
+			{ initialProps: { module: moduleFixture } }
+		);
+
+		act(() => {
+			result.current.handleSendResponseClick();
+		});
+
+		rerender({ module: { ...moduleFixture, id: 99 } });
+
+		await act(async () => {
+			resolveSubmit({ success: true });
+		});
+
+		expect(toast).not.toHaveBeenCalled();
+		expect(onReviewed).not.toHaveBeenCalled();
+		expect(onOpenChange).not.toHaveBeenCalled();
 	});
 
 	it('exposes whether all files have already been reviewed', () => {

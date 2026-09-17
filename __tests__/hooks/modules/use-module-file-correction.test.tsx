@@ -1,13 +1,12 @@
 import { renderHook, act } from '@testing-library/react';
 import { useModuleFileCorrection } from '@/hooks/modules/use-module-file-correction';
-import { uploadModuleFile, updateModuleFile, deleteModuleFile } from '@/lib/modules/modules-files';
+import { updateModuleFile, replaceModuleFileContent } from '@/lib/modules/modules-files';
 import { resubmitAllRejectedFilesAction } from '@/lib/modules/modules-files-resubmit';
 import { toast } from '@/components/ui/use-toast';
 
 jest.mock('@/lib/modules/modules-files', () => ({
-	uploadModuleFile: jest.fn(),
 	updateModuleFile: jest.fn(),
-	deleteModuleFile: jest.fn(),
+	replaceModuleFileContent: jest.fn(),
 	listModuleFiles: jest.fn(),
 }));
 
@@ -81,9 +80,11 @@ describe('useModuleFileCorrection', () => {
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo corregido' }));
 	});
 
-	it('replaces the file: uploads the new one, deletes the old one, splices it in locally without touching the module aggregate status, and notifies the parent', async () => {
-		(uploadModuleFile as jest.Mock).mockResolvedValue({ data: { id: 99 }, error: null });
-		(deleteModuleFile as jest.Mock).mockResolvedValue({ success: true, error: null });
+	it('replaces the file content in place (same id, upload-then-update), resets status to null (was rejected), and notifies the parent', async () => {
+		(replaceModuleFileContent as jest.Mock).mockResolvedValue({
+			data: { id: 5, storage_path: 'new-path.jpg', status: null },
+			error: null,
+		});
 		const { result } = setup();
 
 		act(() => {
@@ -94,16 +95,21 @@ describe('useModuleFileCorrection', () => {
 			await result.current.saveFileCorrection(fileFixture);
 		});
 
-		expect(uploadModuleFile).toHaveBeenCalledWith(3, expect.any(File), 'v1', 'foto.jpg');
-		expect(deleteModuleFile).toHaveBeenCalledWith(5);
-		expect(replaceFile).toHaveBeenCalledWith(5, { id: 99 });
+		expect(replaceModuleFileContent).toHaveBeenCalledWith(5, 3, expect.any(File), 'foto.jpg', 'v1');
+		expect(replaceFile).toHaveBeenCalledWith(5, {
+			id: 5,
+			storage_path: 'new-path.jpg',
+			status: null,
+		});
 		expect(onReviewed).toHaveBeenCalled();
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo corregido' }));
 	});
 
-	it('rolls back the newly uploaded file when the original cannot be deleted', async () => {
-		(uploadModuleFile as jest.Mock).mockResolvedValue({ data: { id: 99 }, error: null });
-		(deleteModuleFile as jest.Mock).mockResolvedValue({ success: false, error: 'no-delete' });
+	it('shows an error and does not touch local state when the in-place replacement fails', async () => {
+		(replaceModuleFileContent as jest.Mock).mockResolvedValue({
+			data: null,
+			error: 'no-update',
+		});
 		const { result } = setup();
 
 		act(() => {
@@ -114,9 +120,7 @@ describe('useModuleFileCorrection', () => {
 			await result.current.saveFileCorrection(fileFixture);
 		});
 
-		// First attempt on the original file (fails) + rollback of the replacement just uploaded.
-		expect(deleteModuleFile).toHaveBeenNthCalledWith(1, 5);
-		expect(deleteModuleFile).toHaveBeenNthCalledWith(2, 99);
+		expect(replaceModuleFileContent).toHaveBeenCalledWith(5, 3, expect.any(File), 'foto.jpg', 'v1');
 		expect(replaceFile).not.toHaveBeenCalled();
 		expect(onReviewed).not.toHaveBeenCalled();
 		expect(toast).toHaveBeenCalledWith(

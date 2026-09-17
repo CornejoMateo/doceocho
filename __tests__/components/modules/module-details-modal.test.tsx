@@ -65,6 +65,12 @@ jest.mock('@/helpers/modules/modules-helper', () => ({
 		<span data-testid="status-badge">{status ?? 'not_send'}</span>
 	),
 	getModuleWorkLabel: (m: any) => m?.works?.name || m?.work_name || 'Sin obra',
+	statusBackgroundClass: (file: any) =>
+		file?.status === 'rejected'
+			? 'bg-red-500/10'
+			: file?.status === 'approved'
+				? 'bg-green-500/10'
+				: 'bg-muted/40',
 }));
 
 jest.mock('lucide-react', () => ({
