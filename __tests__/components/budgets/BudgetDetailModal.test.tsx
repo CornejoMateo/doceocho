@@ -2,6 +2,19 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { BudgetDetailModal } from '@/components/business/budgets/BudgetDetailModal';
 import { BudgetWithWork } from '@/lib/balances/balances';
 
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { uid: 'user-1', role: 'Admin' } }),
+}));
+
+// The signature section talks to Supabase on mount; this suite covers the modal itself.
+jest.mock('@/lib/budgets/budget-signatures', () => ({
+	getSignatureByBudgetId: jest.fn().mockResolvedValue({ data: null, error: null }),
+	cancelSignatureRequest: jest.fn(),
+	createSignatureRequest: jest.fn(),
+	uploadSignatureDocument: jest.fn(),
+	getDocumentUrl: jest.fn().mockResolvedValue(null),
+}));
+
 const mockBudget = {
 	id: 1,
 	created_at: '2024-06-15',
@@ -60,6 +73,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -78,6 +92,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -97,6 +112,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -120,6 +136,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -138,6 +155,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -162,6 +180,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -180,6 +199,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -199,6 +219,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -219,6 +240,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -237,6 +259,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -257,6 +280,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 
@@ -276,6 +300,7 @@ describe('BudgetDetailModal', () => {
 				onViewPdf={onViewPdf}
 				onStatusChange={onStatusChange}
 				onClose={onClose}
+				clientId={1}
 			/>
 		);
 

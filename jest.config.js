@@ -4,6 +4,8 @@ module.exports = {
 	setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
 	moduleNameMapper: {
 		'^@/(.*)$': '<rootDir>/$1',
+		// pdf.js is browser-only ESM; see __mocks__/pdfjs-dist.ts
+		'^pdfjs-dist$': '<rootDir>/__mocks__/pdfjs-dist.ts',
 	},
 	transform: {
 		'^.+\\.(js|jsx|ts|tsx)$': [

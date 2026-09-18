@@ -1,7 +1,7 @@
 import Image from 'next/image';
 
 /** Standalone shell for the public pages: no sidebar, no session, no app data. */
-export function PublicAppointmentsLayout({
+export function PublicPageLayout({
 	title,
 	subtitle,
 	children,

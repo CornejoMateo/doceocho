@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServiceRoleClient } from '@/lib/appointments/service-client';
+import { getServiceRoleClient } from '@/lib/get-service-role-client';
 import { normalizeTime } from '@/helpers/appointments/availability';
 
 export const dynamic = 'force-dynamic';

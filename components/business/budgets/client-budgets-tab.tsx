@@ -257,6 +257,7 @@ export function ClientBudgetsTab({
 				onViewPdf={handleViewPdf}
 				onStatusChange={handleStatusChange}
 				onClose={closeBudgetDetailModal}
+				clientId={clientId}
 			/>
 
 			<BudgetFormModal
