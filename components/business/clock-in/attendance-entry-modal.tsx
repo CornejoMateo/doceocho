@@ -242,7 +242,7 @@ export function AttendanceEntryModal({
 							</div>
 						) : (
 							(entry?.user_name || userName) && (
-								<div className="text-sm text-gray-500">
+								<div className="text-sm text-muted-foreground">
 									<p>Empleado: {entry?.user_name || userName}</p>
 								</div>
 							)
@@ -270,7 +270,7 @@ export function AttendanceEntryModal({
 						</div>
 
 						{isEditing && entry ? (
-							<div className="text-sm text-gray-500">
+							<div className="text-sm text-muted-foreground">
 								<p>Fecha: {formatCreatedAt(entry.attendance_date)}</p>
 							</div>
 						) : (

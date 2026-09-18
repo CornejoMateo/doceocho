@@ -11,14 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import {
-	Pagination,
-	PaginationContent,
-	PaginationItem,
-	PaginationLink,
-	PaginationNext,
-	PaginationPrevious,
-} from '@/components/ui/pagination';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { AlertTriangle, Plus, Trash2, CheckCircle, FileText } from 'lucide-react';
 import { Claim } from '@/lib/claims/claims';
 import { ClaimsAddDialog } from '@/components/business/claims/claims-add-dialog';
@@ -290,61 +283,14 @@ export function ClaimsManagement() {
 			</Card>
 
 			{/* Pagination */}
-			{totalItems > itemsPerPage && (
-				<div className="flex items-center justify-between px-2">
-					<div className="text-sm text-muted-foreground">
-						Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}-
-						{Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems}{' '}
-						{filterType === 'diario' ? 'actividades diarias' : 'reclamos'}
-					</div>
-
-					<Pagination className="mx-0 w-auto">
-						<PaginationContent>
-							<PaginationItem>
-								<PaginationPrevious
-									onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-									className={
-										currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-									}
-								/>
-							</PaginationItem>
-
-							{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-								let pageNum = i + 1;
-								if (totalPages > 5) {
-									if (currentPage <= 3) {
-										pageNum = i + 1;
-									} else if (currentPage >= totalPages - 2) {
-										pageNum = totalPages - 4 + i;
-									} else {
-										pageNum = currentPage - 2 + i;
-									}
-								}
-								return (
-									<PaginationItem key={pageNum}>
-										<PaginationLink
-											isActive={currentPage === pageNum}
-											className="cursor-pointer"
-											onClick={() => setCurrentPage(pageNum)}
-										>
-											{pageNum}
-										</PaginationLink>
-									</PaginationItem>
-								);
-							})}
-
-							<PaginationItem>
-								<PaginationNext
-									onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-									className={
-										currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
-									}
-								/>
-							</PaginationItem>
-						</PaginationContent>
-					</Pagination>
-				</div>
-			)}
+			<PaginationControls
+				currentPage={currentPage}
+				totalPages={totalPages}
+				totalItems={totalItems}
+				itemsPerPage={itemsPerPage}
+				onPageChange={setCurrentPage}
+				itemLabel={filterType === 'diario' ? 'actividades diarias' : 'reclamos'}
+			/>
 
 			{/* delete old claims */}
 			{user?.role === 'Admin' && (

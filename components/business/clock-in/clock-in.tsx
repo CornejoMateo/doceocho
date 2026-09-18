@@ -243,7 +243,11 @@ export function ClockIn() {
 				<Tabs defaultValue="hour" className="min-w-0">
 					<TabsList>
 						<TabsTrigger value="hour">Por hora</TabsTrigger>
-						{!isQR && <TabsTrigger value="module">Por módulo</TabsTrigger>}
+						{!isQR && (
+							<TabsTrigger value="module" disabled>
+								Por módulo
+							</TabsTrigger>
+						)}
 					</TabsList>
 
 					<TabsContent value="hour">

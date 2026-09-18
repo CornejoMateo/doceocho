@@ -194,11 +194,11 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 					{loading ? (
 						<div className="text-center py-8">
 							<Spinner className="mx-auto mb-2" />
-							<div className="text-sm text-gray-500">Cargando historial...</div>
+							<div className="text-sm text-muted-foreground">Cargando historial...</div>
 						</div>
 					) : error ? (
 						<div className="text-center py-6 space-y-3">
-							<div className="text-red-500 text-sm">{error}</div>
+							<div className="text-destructive text-sm">{error}</div>
 							<Button onClick={loadHistory} variant="outline" size="sm" type="button">
 								Reintentar
 							</Button>
@@ -229,14 +229,14 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 								{period === 'month' && (
 									<div className="flex gap-2 items-end">
 										<div className="space-y-1">
-											<label className="text-xs text-gray-500">Filtrar por fecha</label>
+											<label className="text-xs text-muted-foreground">Filtrar por fecha</label>
 											<input
 												type="date"
 												value={dateFilter ?? ''}
 												min={monthStart}
 												max={monthEnd}
 												onChange={(e) => handleDateChange(e.target.value)}
-												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto"
+												className="sm:ml-2 px-3 py-2 border rounded-md text-sm w-full sm:w-auto bg-background"
 											/>
 										</div>
 										{dateFilter && (
@@ -255,7 +255,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 							</div>
 
 							{summaries.length === 0 ? (
-								<div className="text-center py-6 text-gray-500 text-sm">
+								<div className="text-center py-6 text-muted-foreground text-sm">
 									No hay registros de asistencia del día de hoy o del mes actual.
 								</div>
 							) : (
@@ -274,10 +274,10 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 												<Button
 													onClick={() => handleUserSelect(summary.user_id)}
 													variant="ghost"
-													className="w-full flex justify-between items-center p-6 hover:bg-gray-50 hover:text-inherit cursor-pointer"
+													className="w-full flex justify-between items-center p-6 hover:bg-muted/50 hover:text-inherit cursor-pointer"
 													type="button"
 												>
-													<div className="text-left flex-1 text-black">
+													<div className="text-left flex-1">
 														<div className="flex items-center gap-2">
 															<div className="font-medium text-sm md:text-lg">
 																{summary.user_name}
@@ -288,20 +288,20 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 																</span>
 															)}
 														</div>
-														<div className="text-sm md:text-xs text-gray-500">
+														<div className="text-sm md:text-xs text-muted-foreground">
 															{summary.entries.length} registros
 														</div>
 													</div>
 													<div className="text-right flex-1">
-														<div className="font-bold text-base md:text-1xl text-blue-600">
+														<div className="font-bold text-base md:text-1xl text-primary">
 															{formatHours(summary.total_hours)}
 														</div>
-														<div className="text-xs text-gray-500">horas trabajadas</div>
+														<div className="text-xs text-muted-foreground">horas trabajadas</div>
 													</div>
 												</Button>
 
 												{selectedUser === summary.user_id && (
-													<div className="mt-2 p-4 bg-gray-50 border-t">
+													<div className="mt-2 p-4 bg-muted/50 border-t">
 														<div className="flex justify-between items-center mb-4 gap-2">
 															<h3 className="font-medium text-sm md:text-base">Registros</h3>
 														</div>
@@ -309,7 +309,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 															{summary.entries.map((entry: AttendanceEntryWithDate) => (
 																<div
 																	key={entry.id}
-																	className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-white rounded-lg gap-3"
+																	className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-card rounded-lg gap-3"
 																>
 																	<div className="min-w-0 flex-1">
 																		<div className="flex items-center gap-2">
@@ -328,12 +328,12 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 																			)}
 																		</div>
 
-																		<div className="text-xs md:text-sm text-gray-500">
+																		<div className="text-xs md:text-sm text-muted-foreground">
 																			{formatCreatedAt(entry.attendance_date)}
 																		</div>
 
 																		{entry.description && (
-																			<div className="mt-1.5 text-sm text-gray-600 break-words">
+																			<div className="mt-1.5 text-sm text-muted-foreground break-words">
 																				{entry.description}
 																			</div>
 																		)}
@@ -368,7 +368,7 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 																				variant="ghost"
 																				size="sm"
 																				onClick={() => handleDeleteEntry(entry)}
-																				className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+																				className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
 																				type="button"
 																			>
 																				<Trash2 className="h-4 w-4" />
@@ -423,17 +423,17 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 					</AlertDialogHeader>
 					{entryToDelete && (
 						<div className="px-6 pb-2">
-							<div className="bg-gray-50 rounded-lg p-3 text-sm">
+							<div className="bg-muted/50 rounded-lg p-3 text-sm">
 								<div className="flex items-center gap-2 mb-1">
 									<span className={`font-medium ${getEntryTypeColor(entryToDelete.type)}`}>
 										{getEntryTypeLabel(entryToDelete.type)}
 									</span>
-									<span className="text-gray-400">•</span>
-									<span className="text-gray-500">
+									<span className="text-muted-foreground">•</span>
+									<span className="text-muted-foreground">
 										{formatCreatedAt(entryToDelete.attendance_date)}
 									</span>
-									<span className="text-gray-400">•</span>
-									<span className="text-gray-500">
+									<span className="text-muted-foreground">•</span>
+									<span className="text-muted-foreground">
 										{format(
 											toZonedTime(new Date(entryToDelete.entry_time), ARGENTINA_TIME_ZONE),
 											'HH:mm',
@@ -442,7 +442,9 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 									</span>
 								</div>
 								{entryToDelete.description && (
-									<div className="text-gray-600 text-xs mt-1">{entryToDelete.description}</div>
+									<div className="text-muted-foreground text-xs mt-1">
+										{entryToDelete.description}
+									</div>
 								)}
 							</div>
 						</div>
