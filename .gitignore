@@ -35,5 +35,10 @@ coverage/
 
 # History
 .history
+
+# Opencode knowledge base
+.kb/
+.obsidian/
+context.md
 # pdf.js worker, copied from node_modules on predev/prebuild
 /public/pdf.worker.min.mjs
