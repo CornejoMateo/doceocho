@@ -2,7 +2,12 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { ModuleFormModal } from '@/components/business/modules/module-form-modal';
 import { createModule, updateModule } from '@/lib/modules/modules';
 import { listWorks } from '@/lib/works/works';
-import { uploadModuleFile, deleteModuleFile, updateModuleFile } from '@/lib/modules/modules-files';
+import {
+	uploadModuleFile,
+	deleteModuleFile,
+	updateModuleFile,
+	replaceModuleFileContent,
+} from '@/lib/modules/modules-files';
 import { useModuleFiles } from '@/hooks/modules/use-module-files';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
@@ -20,6 +25,7 @@ jest.mock('@/lib/modules/modules-files', () => ({
 	uploadModuleFile: jest.fn(),
 	deleteModuleFile: jest.fn(),
 	updateModuleFile: jest.fn(),
+	replaceModuleFileContent: jest.fn(),
 }));
 
 jest.mock('@/components/provider/auth-provider', () => ({
@@ -177,6 +183,7 @@ describe('ModuleFormModal', () => {
 		(uploadModuleFile as jest.Mock).mockResolvedValue({ error: null });
 		(deleteModuleFile as jest.Mock).mockResolvedValue({ success: true, error: null });
 		(updateModuleFile as jest.Mock).mockResolvedValue({ error: null });
+		(replaceModuleFileContent as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	});
 
 	it('loads works when opened', async () => {
@@ -350,6 +357,113 @@ describe('ModuleFormModal', () => {
 			});
 		});
 		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Módulo actualizado' }));
+	});
+
+	it('replaces an existing file via replaceModuleFileContent', async () => {
+		mockOriginalIds.push(2);
+		mockHookFiles.push({
+			id: 'e2',
+			existingId: 2,
+			displayName: 'f2',
+			description: '',
+			file: imageFile,
+			isImage: true,
+		});
+		renderForm({
+			moduleToEdit: {
+				id: 3,
+				title: 'Fundaciones',
+				description: 'detalle',
+				work_id: 5,
+				works: { name: 'Obra Centro' },
+			},
+		});
+
+		await waitFor(() => {
+			expect(screen.getByTestId('fm-title')).toHaveValue('Fundaciones');
+		});
+		fireEvent.click(screen.getByTestId('fm-work'));
+		fireEvent.click(screen.getByText('Guardar cambios'));
+
+		await waitFor(() => {
+			expect(replaceModuleFileContent).toHaveBeenCalledWith(2, 3, imageFile, 'f2', null);
+		});
+		expect(uploadModuleFile).not.toHaveBeenCalled();
+		expect(deleteModuleFile).not.toHaveBeenCalled();
+		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Módulo actualizado' }));
+	});
+
+	it('reports an error when replaceModuleFileContent fails', async () => {
+		mockOriginalIds.push(2);
+		mockHookFiles.push({
+			id: 'e2',
+			existingId: 2,
+			displayName: 'f2',
+			description: '',
+			file: imageFile,
+			isImage: true,
+		});
+		(replaceModuleFileContent as jest.Mock).mockResolvedValue({
+			data: null,
+			error: { message: 'replace err' },
+		});
+		renderForm({
+			moduleToEdit: {
+				id: 3,
+				title: 'Fundaciones',
+				description: 'detalle',
+				work_id: 5,
+				works: { name: 'Obra Centro' },
+			},
+		});
+
+		await waitFor(() => {
+			expect(screen.getByTestId('fm-title')).toHaveValue('Fundaciones');
+		});
+		fireEvent.click(screen.getByTestId('fm-work'));
+		fireEvent.click(screen.getByText('Guardar cambios'));
+
+		await waitFor(() => {
+			expect(toast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					variant: 'destructive',
+					title: 'Módulo actualizado, pero hubo errores con archivos',
+				})
+			);
+		});
+	});
+
+	it('blocks editing an approved module and shows a destructive toast', async () => {
+		renderForm({
+			moduleToEdit: {
+				id: 3,
+				title: 'Fundaciones',
+				description: 'detalle',
+				work_id: 5,
+				status: 'approved',
+				works: { name: 'Obra Centro' },
+			},
+		});
+
+		await waitFor(() => {
+			expect(screen.getByTestId('fm-title')).toHaveValue('Fundaciones');
+		});
+		fireEvent.click(screen.getByTestId('fm-work'));
+		fireEvent.click(screen.getByText('Guardar cambios'));
+
+		await waitFor(() => {
+			expect(toast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					variant: 'destructive',
+					title: 'Módulo aprobado',
+					description: 'Un módulo aprobado no se puede editar.',
+				})
+			);
+		});
+		expect(updateModule).not.toHaveBeenCalled();
+		expect(uploadModuleFile).not.toHaveBeenCalled();
+		expect(replaceModuleFileContent).not.toHaveBeenCalled();
+		expect(deleteModuleFile).not.toHaveBeenCalled();
 	});
 
 	it('shows a destructive toast when creation fails', async () => {

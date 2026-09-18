@@ -21,9 +21,9 @@ jest.mock('@/utils/file-upload-utils', () => ({
 jest.mock('@/components/ui/popover', () => {
 	const React = require('react');
 	const { createContext, useContext, useState } = React;
-	const PopoverCtx = createContext<{ open: boolean; setOpen: (open: boolean) => void }>({
+	const PopoverCtx = createContext({
 		open: false,
-		setOpen: () => {},
+		setOpen: (_open: boolean) => {},
 	});
 	const Popover = ({ open, onOpenChange, children }: any) => {
 		const [internal] = useState(false);
@@ -151,13 +151,13 @@ describe('InputsFormModule', () => {
 	it('shows placeholder in the work trigger when no work is selected', () => {
 		render(<InputsFormModule {...baseProps} />);
 		expect(
-			screen.getByText('Buscar obra por localidad, dirección, barrio o zona...')
+			screen.getByText('Buscar obra por nombre, localidad, dirección, barrio o zona...')
 		).toBeInTheDocument();
 	});
 
 	it('shows the selected work details on the trigger', () => {
 		render(<InputsFormModule {...baseProps} work={workA as any} />);
-		expect(screen.getByText('Centro - Av 1')).toBeInTheDocument();
+		expect(screen.getByText('Obra Centro')).toBeInTheDocument();
 	});
 
 	it('fires onWorkPopoverOpenChange when toggling the work picker', () => {
@@ -168,9 +168,9 @@ describe('InputsFormModule', () => {
 
 	it('renders works and selects one when opened', () => {
 		render(<InputsFormModule {...baseProps} workPopoverOpen />);
-		expect(screen.getByText('Centro - Av 1')).toBeInTheDocument();
-		expect(screen.getByText('Norte - Zona 6')).toBeInTheDocument();
-		fireEvent.click(screen.getByText('Centro - Av 1'));
+		expect(screen.getByText('Obra Centro')).toBeInTheDocument();
+		expect(screen.getByText('Obra Norte')).toBeInTheDocument();
+		fireEvent.click(screen.getByText('Obra Centro'));
 		expect(baseProps.onWorkSelect).toHaveBeenCalledWith(workA);
 	});
 

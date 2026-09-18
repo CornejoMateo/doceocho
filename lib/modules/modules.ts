@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { deriveModuleStatusFromFiles, TABLE as MODULES_FILES_TABLE } from './modules-files';
 
 import { getLocalDate } from '@/utils/format-date';
 import { fromZonedTime } from 'date-fns-tz';
@@ -13,6 +14,7 @@ export type Module = {
 	status?: string | null;
 	title?: string | null;
 	description?: string | null;
+	admin_description?: string | null;
 	amount?: number | null;
 	work_id?: number | null;
 	work_name?: string | null;
@@ -30,7 +32,7 @@ export type Module = {
 	} | null;
 };
 
-const TABLE = 'modules';
+export const TABLE = 'modules';
 
 export async function listModules(): Promise<{ data: Module[] | null; error: any }> {
 	try {
@@ -87,27 +89,45 @@ export async function listModulesForCurrentMonth(): Promise<{ data: Module[] | n
 			TIMEZONE
 		).toISOString();
 
-		const { data, error } = await supabase
-			.from(TABLE)
-			.select(
-				`*, works:work_id (name, locality, address, hood, zone), users (name, last_name, username)`
-			)
-			.gte('created_at', startOfMonth)
-			.lte('created_at', endOfMonth)
-			.order('created_at', { ascending: false });
+		const selectQuery = `*, works:work_id (name, locality, address, hood, zone), users (name, last_name, username)`;
 
-		if (error) {
-			console.error('Error en la consulta de módulos del mes:', {
-				message: error.message,
-				details: error.details,
+		// Display both pending/rejected modules and modules created in the current month
+		const [pendingRejectedResult, currentMonthResult] = await Promise.all([
+			supabase.from(TABLE).select(selectQuery).in('status', ['pending', 'rejected']),
+			supabase
+				.from(TABLE)
+				.select(selectQuery)
+				.or('status.is.null,status.eq.not_send,status.eq.approved')
+				.gte('created_at', startOfMonth)
+				.lte('created_at', endOfMonth),
+		]);
+
+		if (pendingRejectedResult.error) {
+			console.error('Error en la consulta de módulos pendientes/rechazados del mes:', {
+				message: pendingRejectedResult.error.message,
+				details: pendingRejectedResult.error.details,
 			});
-			return { data: null, error };
+			return { data: null, error: pendingRejectedResult.error };
 		}
 
-		const modulesWithWorkNames = data.map((module) => ({
-			...module,
-			work_name: module.works?.name || null,
-		}));
+		if (currentMonthResult.error) {
+			console.error('Error en la consulta de módulos del mes:', {
+				message: currentMonthResult.error.message,
+				details: currentMonthResult.error.details,
+			});
+			return { data: null, error: currentMonthResult.error };
+		}
+
+		const combined = [...pendingRejectedResult.data, ...currentMonthResult.data];
+
+		const modulesWithWorkNames = combined
+			.map((module) => ({
+				...module,
+				work_name: module.works?.name || null,
+			}))
+			.sort(
+				(a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+			);
 
 		return { data: modulesWithWorkNames, error: null };
 	} catch (error) {
@@ -311,4 +331,35 @@ export async function getUserModulesForMonth(
 			error: error instanceof Error ? error : new Error('Error desconocido'),
 		};
 	}
+}
+
+// Method to recompute and persist the module's aggregate status based on its files' statuses
+export async function syncModuleAggregateStatus(
+	supabase: SupabaseClient,
+	moduleId: number
+): Promise<{ success: boolean; error?: any }> {
+	const { data: siblingFiles, error: filesError } = await supabase
+		.from(MODULES_FILES_TABLE)
+		.select('status')
+		.eq('module_id', moduleId);
+
+	if (filesError) {
+		return { success: false, error: filesError };
+	}
+	if (!siblingFiles || siblingFiles.length === 0) {
+		return { success: true };
+	}
+
+	const derivedStatus = deriveModuleStatusFromFiles(siblingFiles);
+
+	const { error: moduleUpdateError } = await supabase
+		.from(TABLE)
+		.update({ status: derivedStatus })
+		.eq('id', moduleId);
+
+	if (moduleUpdateError) {
+		return { success: false, error: moduleUpdateError };
+	}
+
+	return { success: true };
 }

@@ -35,7 +35,8 @@ CREATE POLICY "Modules insert"
 ON public.modules FOR INSERT
 TO authenticated
 WITH CHECK (
-    true
+    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
+    OR (user_id = auth.uid())
 );
 
 CREATE POLICY "Modules update"
@@ -50,6 +51,59 @@ CREATE POLICY "Modules delete"
 ON public.modules FOR DELETE
 TO authenticated
 USING (
-    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin') 
+    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
     OR ((user_id = auth.uid()))
 );
+
+------ Triggers -----
+
+CREATE OR REPLACE FUNCTION public.modules_guard_review_columns()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_is_admin boolean;
+BEGIN
+  IF auth.role() = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE uid_user = auth.uid()
+      AND role = 'Admin'
+  ) INTO v_is_admin;
+
+  IF v_is_admin THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.admin_description IS NOT NULL
+       OR NEW.status IN ('approved', 'rejected')
+       OR NEW.amount IS NOT NULL
+    THEN
+      RAISE EXCEPTION 'Solo un Admin puede aprobar, rechazar o modificar la devolución del módulo';
+    END IF;
+  ELSE
+    IF NEW.admin_description IS DISTINCT FROM OLD.admin_description
+       OR (
+         NEW.status IS DISTINCT FROM OLD.status
+         AND NEW.status IN ('approved', 'rejected')
+       )
+       OR NEW.amount IS DISTINCT FROM OLD.amount
+    THEN
+      RAISE EXCEPTION 'Solo un Admin puede aprobar, rechazar o modificar la devolución del módulo';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_modules_guard_review_columns
+BEFORE INSERT OR UPDATE ON public.modules
+FOR EACH ROW
+EXECUTE FUNCTION public.modules_guard_review_columns();

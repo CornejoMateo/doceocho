@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2 } from 'lucide-react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Module } from '@/lib/modules/modules';
@@ -27,6 +28,50 @@ interface ModuleTableProps {
 	onDelete: (module: Module) => void;
 	onSend: (module: Module) => void;
 	emptyText?: string;
+}
+
+function EditModuleButton({
+	module,
+	onEdit,
+	size,
+	className,
+}: {
+	module: Module;
+	onEdit: (module: Module) => void;
+	size: 'icon' | 'sm';
+	className: string;
+}) {
+	const isApproved = module.status === 'approved';
+
+	const button = (
+		<Button
+			variant="ghost"
+			size={size}
+			aria-label="Editar módulo"
+			className={className}
+			disabled={isApproved}
+			onClick={(e) => {
+				e.stopPropagation();
+				if (isApproved) return;
+				onEdit(module);
+			}}
+		>
+			<Pencil className="h-4 w-4" />
+		</Button>
+	);
+
+	if (!isApproved) return button;
+
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<span tabIndex={0} onClick={(e) => e.stopPropagation()} className="inline-flex">
+					{button}
+				</span>
+			</TooltipTrigger>
+			<TooltipContent>Un módulo aprobado no se puede editar.</TooltipContent>
+		</Tooltip>
+	);
 }
 
 export function ModuleTable({
@@ -107,17 +152,12 @@ export function ModuleTable({
 										</TableCell>
 										<TableCell className="text-center">
 											<div className="flex items-center justify-center gap-1">
-												<Button
-													variant="ghost"
+												<EditModuleButton
+													module={module}
+													onEdit={onEdit}
 													size="icon"
-													aria-label="Editar módulo"
-													onClick={(e) => {
-														e.stopPropagation();
-														onEdit(module);
-													}}
-												>
-													<Pencil className="h-4 w-4" />
-												</Button>
+													className=""
+												/>
 												<Button
 													variant="ghost"
 													size="icon"
@@ -154,18 +194,12 @@ export function ModuleTable({
 											<ModuleStatusBadge status={module.status} />
 										</div>
 										<div className="flex items-center gap-1 flex-shrink-0">
-											<Button
-												variant="ghost"
+											<EditModuleButton
+												module={module}
+												onEdit={onEdit}
 												size="sm"
 												className="h-8 w-8 p-0"
-												aria-label="Editar módulo"
-												onClick={(e) => {
-													e.stopPropagation();
-													onEdit(module);
-												}}
-											>
-												<Pencil className="h-4 w-4" />
-											</Button>
+											/>
 											<Button
 												variant="ghost"
 												size="sm"

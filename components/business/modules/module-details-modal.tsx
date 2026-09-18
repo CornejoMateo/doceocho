@@ -10,138 +10,82 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/components/ui/use-toast';
-import { ModuleStatusBadge } from '@/helpers/modules/modules-helper';
-import { getModuleWorkLabel } from '@/helpers/modules/modules-helper';
+import { getModuleWorkLabel, ModuleStatusBadge } from '@/helpers/modules/modules-helper';
 import { Module } from '@/lib/modules/modules';
-import { ModuleFile, listModuleFiles } from '@/lib/modules/modules-files';
+import { deriveModuleStatusFromFiles } from '@/lib/modules/modules-files';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { translateError } from '@/lib/error-translator';
-import {
-	formatDate,
-	getFileKind,
-	isImage,
-	isVideo,
-	FileViewerItem,
-} from '@/utils/file-upload-utils';
-import {
-	AlertCircle,
-	Download,
-	Loader2,
-	Pencil,
-	RotateCcw,
-	Trash2,
-	Video,
-	FileText,
-} from 'lucide-react';
+import { formatDate, FileViewerItem } from '@/utils/file-upload-utils';
+import { ClipboardCheck, Pencil, Trash2 } from 'lucide-react';
+import { useModuleDetailsFiles, ModuleFileWithUrl } from '@/hooks/modules/use-module-details-files';
+import { useModuleAdminReview } from '@/hooks/modules/use-module-admin-review';
+import { useModuleFileCorrection } from '@/hooks/modules/use-module-file-correction';
+import { ModuleFilesSection } from './module-files-section';
+import { ModuleAdminResponseSection } from './module-admin-response-section';
+import { ModuleAmountDialog } from './module-amount-dialog';
 
 interface ModuleDetailsModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	module: Module | null;
+	canReview?: boolean;
 	onEdit?: (module: Module) => void;
 	onDelete?: (module: Module) => void;
+	onReviewed?: () => void;
 }
-
-type ModuleFileWithUrl = ModuleFile & {
-	url: string;
-	isImg: boolean;
-	isVid: boolean;
-	fileType: string;
-	size?: number;
-};
 
 export function ModuleDetailsModal({
 	open,
 	onOpenChange,
 	module,
+	canReview = false,
 	onEdit,
 	onDelete,
+	onReviewed,
 }: ModuleDetailsModalProps) {
-	const [files, setFiles] = useState<ModuleFileWithUrl[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
+	const moduleId = module?.id ?? null;
+
+	const { files, isLoading, error, reload, patchFile, replaceFile } = useModuleDetailsFiles({
+		open,
+		moduleId,
+	});
+	const review = useModuleAdminReview({
+		open,
+		module,
+		files,
+		patchFile,
+		onReviewed,
+		onOpenChange,
+	});
+	const correction = useModuleFileCorrection({
+		open,
+		moduleId,
+		files,
+		patchFile,
+		replaceFile,
+		onReviewed,
+	});
+
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-	const [error, setError] = useState<string | null>(null);
-	const [reloadKey, setReloadKey] = useState(0);
-
 	useEffect(() => {
-		if (!open || !module) return;
-
-		let cancelled = false;
-		setIsLoading(true);
-		setError(null);
-
-		const loadFiles = async () => {
-			const { data, error } = await listModuleFiles(module.id);
-
-			if (cancelled) return;
-			if (error) {
-				setError(translateError(error) || 'No se pudieron cargar los archivos del módulo.');
-				setFiles([]);
-				setIsLoading(false);
-				return;
-			}
-
-			const supabase = getSupabaseClient();
-			const withUrls = await Promise.all(
-				(data ?? []).map(async (file) => {
-					try {
-						const { data: blob } = await supabase.storage
-							.from('modules')
-							.download(file.storage_path);
-						const contentType = blob?.type || '';
-						const sourceName = file.file_name || file.storage_path;
-						const kind = getFileKind(sourceName);
-						const fileType =
-							contentType ||
-							(kind === 'image' ? 'image/jpeg' : kind === 'video' ? 'video/mp4' : '');
-						return {
-							...file,
-							url: blob ? URL.createObjectURL(blob) : '',
-							isImg: isImage(contentType) || kind === 'image',
-							isVid: isVideo(contentType) || kind === 'video',
-							fileType,
-							size: blob?.size,
-						} as ModuleFileWithUrl;
-					} catch (err) {
-						setError('Error al descargar el archivo: ' + (err as Error).message);
-						return {
-							...file,
-							url: '',
-							isImg: false,
-							isVid: false,
-							fileType: '',
-						} as ModuleFileWithUrl;
-					}
-				})
-			);
-
-			if (!cancelled) {
-				setFiles(withUrls);
-				setIsLoading(false);
-			}
-		};
-
-		loadFiles();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [open, module, reloadKey]);
-
-	useEffect(() => {
-		if (!open) {
-			files.forEach((f) => {
-				if (f.url) URL.revokeObjectURL(f.url);
-			});
-			setFiles([]);
-			setSelectedIndex(null);
-		}
+		if (!open) setSelectedIndex(null);
 	}, [open]);
 
 	if (!module) return null;
+
+	const hasAdminResponded = module.status === 'approved' || module.status === 'rejected';
+
+	const hasUnsyncedFileChanges =
+		hasAdminResponded && files.length > 0 && deriveModuleStatusFromFiles(files) !== module.status;
+
+	const derivedModuleStatus =
+		canReview || hasAdminResponded
+			? files.length === 0
+				? (module.status ?? 'not_send')
+				: deriveModuleStatusFromFiles(files)
+			: (module.status ?? 'not_send');
 
 	const viewerFiles: FileViewerItem[] = files.map((f) => ({
 		id: f.id,
@@ -194,7 +138,7 @@ export function ModuleDetailsModal({
 
 					<div className="space-y-4 min-w-0">
 						<div className="flex items-center justify-between gap-2 flex-wrap">
-							<ModuleStatusBadge status={module.status} />
+							<ModuleStatusBadge status={derivedModuleStatus} />
 						</div>
 
 						<div className="flex items-center gap-2 flex-wrap">
@@ -220,121 +164,43 @@ export function ModuleDetailsModal({
 							)}
 						</div>
 
+						{!canReview && hasAdminResponded && module.admin_description && (
+							<div className="flex flex-col gap-1 rounded-md border bg-muted/40 p-3">
+								<span className="flex items-center gap-2 text-sm font-medium text-foreground">
+									<ClipboardCheck className="h-4 w-4 shrink-0" />
+									Respuesta del administrador
+								</span>
+								<p className="text-sm text-muted-foreground whitespace-pre-wrap">
+									{module.admin_description}
+								</p>
+							</div>
+						)}
+
 						<div className="grid gap-2">
-							<h4 className="text-sm font-medium text-foreground">Archivos ({files.length})</h4>
+							<ModuleFilesSection
+								error={error}
+								isLoading={isLoading}
+								files={files}
+								canReview={canReview}
+								hasAdminResponded={hasAdminResponded}
+								onOpenViewer={setSelectedIndex}
+								onDownload={handleDownload}
+								onRetry={reload}
+								review={review}
+								correction={correction}
+							/>
 
-							{error && (
-								<Alert variant="destructive" className="flex-1 min-w-0">
-									<AlertCircle className="h-4 w-4" />
-									<div className="flex items-start justify-between gap-2 min-w-0 flex-1">
-										<div className="min-w-0">
-											<AlertTitle>Error cargando algunos archivos</AlertTitle>
-											<AlertDescription className="whitespace-pre-wrap break-words">
-												{error}
-											</AlertDescription>
-										</div>
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											className="shrink-0"
-											onClick={() => setReloadKey((k) => k + 1)}
-										>
-											<RotateCcw className="h-3.5 w-3.5 mr-1" />
-											Reintentar
-										</Button>
-									</div>
-								</Alert>
-							)}
-
-							{isLoading ? (
-								<div className="flex items-center justify-center py-6">
-									<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-								</div>
-							) : files.length === 0 ? (
-								<p className="text-sm text-muted-foreground py-4">Este módulo no tiene archivos.</p>
-							) : (
-								<div className="flex flex-col gap-2">
-									{files.map((file, index) => {
-										const content = (
-											<>
-												<span className="block h-14 w-14 shrink-0 rounded-md overflow-hidden bg-muted">
-													{file.url && file.isImg ? (
-														<img
-															src={file.url}
-															alt={file.file_name || 'Archivo'}
-															className="w-full h-full object-cover"
-														/>
-													) : file.url && file.isVid ? (
-														<span className="w-full h-full flex items-center justify-center bg-black">
-															<video
-																src={file.url}
-																className="w-full h-full object-cover"
-																muted
-																playsInline
-															/>
-														</span>
-													) : (
-														<span className="w-full h-full flex items-center justify-center text-muted-foreground">
-															{file.isVid ? (
-																<Video className="h-5 w-5" />
-															) : (
-																<FileText className="h-5 w-5" />
-															)}
-														</span>
-													)}
-												</span>
-												<span className="flex flex-col min-w-0 flex-1 gap-0.5">
-													<span className="text-sm font-medium truncate">
-														{file.file_name || 'Archivo'}
-													</span>
-													{file.description ? (
-														<span className="text-xs text-muted-foreground whitespace-pre-wrap">
-															{file.description}
-														</span>
-													) : (
-														<span className="text-xs text-muted-foreground/60 italic">
-															Sin descripción
-														</span>
-													)}
-												</span>
-											</>
-										);
-
-										return (
-											<div
-												key={file.id}
-												className="group flex items-center gap-3 rounded-lg border bg-muted/40 p-2 hover:ring-2 ring-primary transition-all"
-											>
-												{file.url ? (
-													<button
-														type="button"
-														onClick={() => setSelectedIndex(index)}
-														className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer"
-													>
-														{content}
-													</button>
-												) : (
-													<div className="flex items-center gap-3 min-w-0 flex-1 text-left">
-														{content}
-													</div>
-												)}
-												{!file.url && (
-													<Button
-														type="button"
-														variant="outline"
-														size="icon"
-														className="shrink-0"
-														title="Descargar archivo"
-														onClick={() => handleDownload(file)}
-													>
-														<Download className="h-4 w-4" />
-													</Button>
-												)}
-											</div>
-										);
-									})}
-								</div>
+							{canReview && files.length > 0 && (
+								<ModuleAdminResponseSection
+									moduleReviewText={review.moduleReviewText}
+									onModuleReviewTextChange={review.setModuleReviewText}
+									isSubmitting={review.isSubmittingModuleReview}
+									allFilesReviewed={review.allFilesReviewed}
+									hasPendingReviews={review.pendingReviewIds.size > 0}
+									hasAdminResponded={hasAdminResponded}
+									hasUnsyncedFileChanges={hasUnsyncedFileChanges}
+									onSendResponse={review.handleSendResponseClick}
+								/>
 							)}
 						</div>
 					</div>
@@ -370,6 +236,17 @@ export function ModuleDetailsModal({
 				files={viewerFiles}
 				selectedIndex={selectedIndex}
 				onSelectedIndexChange={setSelectedIndex}
+			/>
+
+			<ModuleAmountDialog
+				open={review.amountModalOpen}
+				value={review.amountValue}
+				error={review.amountError}
+				isSubmitting={review.isSubmittingModuleReview}
+				isLoadingDefault={review.loadingDefaultPrice}
+				onValueChange={review.changeAmountValue}
+				onCancel={review.cancelAmountModal}
+				onConfirm={review.confirmAmountAndSubmit}
 			/>
 		</>
 	);

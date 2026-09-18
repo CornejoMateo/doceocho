@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { Plus, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, Settings, Wallet, X, ChevronDown, ChevronUp, InfoIcon } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
 	Module,
 	listModulesForCurrentMonth,
@@ -17,6 +18,8 @@ import { ModuleTable } from '@/components/business/modules/module-table';
 import { ModuleFormModal } from '@/components/business/modules/module-form-modal';
 import { ModuleDetailsModal } from '@/components/business/modules/module-details-modal';
 import { LoadMoreModulesModal } from '@/components/business/modules/load-more-modules-modal';
+import { ModulesSettings } from '@/components/business/modules/modules-settings';
+import { ModulesSettlementsModal } from '@/components/business/modules/settlements/modules-settlements-modal';
 import { useAuth } from '@/components/provider/auth-provider';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,6 +32,7 @@ import {
 import { MODULE_STATUSES, ModuleStatus } from '@/constants/modules/module-status';
 import { getModuleStatusLabel, getModuleWorkLabel } from '@/helpers/modules/modules-helper';
 import { User } from '@/lib/users/users';
+import { notifyModuleSubmittedAction } from '@/actions/modules/notify-module-submitted';
 
 export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [modules, setModules] = useState<Module[]>([]);
@@ -55,10 +59,22 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [editOpen, setEditOpen] = useState(false);
 	const [editingModule, setEditingModule] = useState<Module | null>(null);
 	const [loadMoreOpen, setLoadMoreOpen] = useState(false);
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [settlementsOpen, setSettlementsOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState<ModuleStatus | 'all'>('all');
+	const [infoOpen, setInfoOpen] = useState(false);
 	const { user } = useAuth();
 	const isAdmin = user?.role === 'Admin';
+
+	const listModalModule = useMemo(() => {
+		if (!listModal.module) return null;
+		return (
+			modules.find((m) => m.id === listModal.module!.id) ??
+			monthModules.find((m) => m.id === listModal.module!.id) ??
+			listModal.module
+		);
+	}, [listModal.module, modules, monthModules]);
 
 	const loadModules = useCallback(async () => {
 		setIsLoading(true);
@@ -160,10 +176,19 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 				title: 'Módulo enviado a revisión',
 				description: 'El módulo quedó pendiente de revisión.',
 			});
+			const submittedModule = sendConfirm.module;
 			setSendConfirm({ open: false, module: null });
 			loadModules();
 			if (isAdmin && monthOpen) {
 				loadMonthModules();
+			}
+
+			try {
+				notifyModuleSubmittedAction(submittedModule.id).catch((notifyError) => {
+					console.error('Failed to notify admins about module submission:', notifyError);
+				});
+			} catch (notifyError) {
+				console.error('Failed to notify admins about module submission:', notifyError);
 			}
 		}
 		setIsSending(false);
@@ -241,19 +266,47 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div className="min-w-0">
 					<h2 className="text-lg mt-5 font-semibold">
-						{isAdmin ? 'Listado de módulos' : 'Módulos del mes actual'}
+						{isAdmin
+							? 'Listado de módulos pendientes de revisión (y rechazados)'
+							: 'Módulos del mes actual'}
 					</h2>
 					<p className="text-sm text-muted-foreground">{countText}</p>
 				</div>
 
-				<Button
-					size="sm"
-					className="min-w-0 w-full sm:w-auto gap-2"
-					onClick={() => setCreateOpen(true)}
-				>
-					<Plus className="h-4 w-4 shrink-0" />
-					<span>Nuevo módulo</span>
-				</Button>
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<Button
+						size="sm"
+						className="min-w-0 w-full sm:w-auto gap-2"
+						onClick={() => setCreateOpen(true)}
+					>
+						<Plus className="h-4 w-4 shrink-0" />
+						<span>Nuevo módulo</span>
+					</Button>
+					{isAdmin && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="min-w-0 w-full sm:w-auto gap-2"
+							onClick={() => setSettlementsOpen(true)}
+							type="button"
+						>
+							<Wallet className="h-4 w-4 shrink-0" />
+							<span>Liquidaciones</span>
+						</Button>
+					)}
+					{isAdmin && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="min-w-0 w-full sm:w-auto gap-2"
+							onClick={() => setSettingsOpen(true)}
+							type="button"
+						>
+							<Settings className="h-4 w-4 shrink-0" />
+							<span>Configuración</span>
+						</Button>
+					)}
+				</div>
 			</div>
 
 			{isAdmin ? (
@@ -366,6 +419,50 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 				</>
 			)}
 
+			<Collapsible
+				open={infoOpen}
+				onOpenChange={setInfoOpen}
+				className="rounded-lg border bg-card text-card-foreground text-sm"
+			>
+				<CollapsibleTrigger asChild>
+					<button type="button" className="flex w-full items-center gap-3 px-4 py-3 text-left">
+						<InfoIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+						<span className="min-w-0 flex-1 font-medium tracking-tight break-words">
+							{isAdmin
+								? '¿Cómo funciona la aprobación de módulos?'
+								: '¿Cómo funciona la revisión de módulos?'}
+						</span>
+						{infoOpen ? (
+							<ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+						) : (
+							<ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+						)}
+					</button>
+				</CollapsibleTrigger>
+				<CollapsibleContent>
+					{isAdmin ? (
+						<p className="px-4 pb-3 leading-relaxed break-words text-muted-foreground">
+							Revisá cada archivo del módulo por separado: podés aprobarlo o rechazarlo, y
+							opcionalmente dejar un motivo. Cuando termines de revisar todos los archivos, apretá
+							“Enviar respuesta” para cerrar la revisión — si el resultado es aprobado, te va a
+							pedir cargar el monto del módulo (podés configurar un precio predeterminado desde
+							“Configuración”). Podés volver a cambiar de opinión sobre cualquier archivo en
+							cualquier momento, incluso después de haber enviado una respuesta — solo recordá
+							volver a apretar “Enviar respuesta” para que el cambio se refleje.
+						</p>
+					) : (
+						<p className="px-4 pb-3 leading-relaxed break-words text-muted-foreground">
+							Subís las fotos/archivos de tu módulo y quedan a la espera de que un Admin las revise.
+							El Admin va a aprobar o rechazar cada archivo por separado, y cuando termine de
+							revisar todos, te va a llegar una respuesta con el resultado. Si algún archivo queda
+							rechazado, vas a ver el motivo y vas a poder corregirlo (cambiar la imagen y/o la
+							descripción). Una vez que corregiste todo lo que necesitabas, apretá “Solicitar
+							revisión” para mandar todo de nuevo a aprobación.
+						</p>
+					)}
+				</CollapsibleContent>
+			</Collapsible>
+
 			<ModuleFormModal open={createOpen} onOpenChange={setCreateOpen} onCreated={handleSaved} />
 
 			<ModuleFormModal
@@ -378,9 +475,16 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 			<ModuleDetailsModal
 				open={listModal.open}
 				onOpenChange={(open) => setListModal((prev) => ({ ...prev, open }))}
-				module={listModal.module}
+				module={listModalModule}
+				canReview={isAdmin}
 				onEdit={handleEdit}
 				onDelete={handleDelete}
+				onReviewed={() => {
+					loadModules();
+					if (isAdmin && monthOpen) {
+						loadMonthModules();
+					}
+				}}
 			/>
 
 			<ConfirmDialog
@@ -410,6 +514,16 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 				users={users}
 				user={isAdmin ? null : user}
 			/>
+
+			{isAdmin && <ModulesSettings open={settingsOpen} onOpenChange={setSettingsOpen} />}
+
+			{isAdmin && (
+				<ModulesSettlementsModal
+					open={settlementsOpen}
+					onOpenChange={setSettlementsOpen}
+					users={users}
+				/>
+			)}
 		</div>
 	);
 }
