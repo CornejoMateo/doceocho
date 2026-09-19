@@ -46,7 +46,13 @@ export function EventListItem({
 					</div>
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center gap-2">
-							<h4 className="text-sm font-medium text-white dark:text-white break-words">
+							<h4
+								className={`text-sm font-medium break-words ${
+									isOverdue
+										? 'text-red-900 dark:text-red-100'
+										: 'text-foreground dark:text-secondary-foreground'
+								}`}
+							>
 								{event.title}
 							</h4>
 							{isOverdue && (
@@ -56,7 +62,13 @@ export function EventListItem({
 							)}
 						</div>
 						{event.client_name && (
-							<p className="text-xs text-gray-200 dark:text-gray-200 break-words">
+							<p
+								className={`text-xs break-words ${
+									isOverdue
+										? 'text-red-800 dark:text-red-200'
+										: 'text-foreground dark:text-secondary-foreground'
+								}`}
+							>
 								{event.client_name}
 							</p>
 						)}
@@ -68,7 +80,11 @@ export function EventListItem({
 							variant="ghost"
 							size="icon"
 							onClick={(e) => onDelete(event.id, e)}
-							className="h-6 w-6 -mr-2"
+							className={`h-6 w-6 -mr-2 ${
+								isOverdue
+									? 'text-red-900 dark:text-red-100'
+									: 'text-foreground dark:text-secondary-foreground'
+							}`}
 							aria-label="Eliminar evento"
 						>
 							<Trash2 className="h-3.5 w-3.5" />
@@ -76,7 +92,13 @@ export function EventListItem({
 					</div>
 				)}
 			</div>
-			<div className="space-y-1 text-xs text-gray-300 dark:text-gray-300">
+			<div
+				className={`space-y-1 text-xs ${
+					isOverdue
+						? 'text-red-800 dark:text-red-200'
+						: 'text-foreground dark:text-secondary-foreground'
+				}`}
+			>
 				<div className="flex items-center gap-1.5">
 					<Calendar className="h-3.5 w-3.5 flex-shrink-0" />
 					<span>
