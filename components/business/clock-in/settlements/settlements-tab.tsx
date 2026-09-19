@@ -281,7 +281,7 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 					<SelectContent>
 						<SelectItem value="all">Todos los empleados</SelectItem>
 						{users
-							.filter((user) => user.role !== 'Admin')
+							.filter((user) => user.role === 'Taller')
 							.map((user) => (
 								<SelectItem key={user.uid_user} value={user.uid_user}>
 									{user.name && user.last_name ? `${user.name} ${user.last_name}` : user.username}

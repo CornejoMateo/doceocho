@@ -9,7 +9,7 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LiquidarTab } from './settle-tab';
+import { LiquidarTab } from './settlements-tab';
 import { SettlementsListTab } from './settlements-list-tab';
 import { User } from '@/lib/users/users';
 
