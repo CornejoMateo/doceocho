@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { LiquidarTab } from '@/components/business/clock-in/settlements/settle-tab';
+import { LiquidarTab } from '@/components/business/clock-in/settlements/settlements-tab';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
 import { getAttendanceEntriesForMonth } from '@/lib/attendance/attendance-entries';
 import { upsertMonthlySettlement } from '@/lib/attendance/settlements';
