@@ -1,5 +1,5 @@
 import { PublicBooking } from '@/components/business/appointments/public/public-booking';
-import { PublicAppointmentsLayout } from '@/components/business/appointments/public/public-layout';
+import { PublicPageLayout } from '@/components/ui/public-page-layout';
 
 export const metadata = {
 	title: 'Pedir una cita | Doce Ocho',
@@ -8,11 +8,11 @@ export const metadata = {
 
 export default function PublicAppointmentsPage() {
 	return (
-		<PublicAppointmentsLayout
+		<PublicPageLayout
 			title="Pedir una cita"
 			subtitle="Elegí el día y el horario que te queden cómodos."
 		>
 			<PublicBooking />
-		</PublicAppointmentsLayout>
+		</PublicPageLayout>
 	);
 }

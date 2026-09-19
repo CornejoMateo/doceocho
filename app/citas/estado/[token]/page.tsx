@@ -1,5 +1,5 @@
 import { AppointmentStatus } from '@/components/business/appointments/public/appointment-status';
-import { PublicAppointmentsLayout } from '@/components/business/appointments/public/public-layout';
+import { PublicPageLayout } from '@/components/ui/public-page-layout';
 
 export const metadata = {
 	title: 'Estado de tu cita | Doce Ocho',
@@ -13,8 +13,8 @@ export default async function AppointmentStatusPage({
 	const { token } = await params;
 
 	return (
-		<PublicAppointmentsLayout title="Estado de tu cita">
+		<PublicPageLayout title="Estado de tu cita">
 			<AppointmentStatus token={token} />
-		</PublicAppointmentsLayout>
+		</PublicPageLayout>
 	);
 }
