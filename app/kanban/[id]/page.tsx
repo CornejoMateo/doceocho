@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
+import { ArrowLeft, Columns3, Plus, Settings, Users } from 'lucide-react';
 import {
 	DndContext,
 	DragEndEvent,
@@ -18,10 +18,17 @@ import { useBoard } from '@/hooks/kanban/use-board';
 import { moveCard } from '@/lib/kanban/cards';
 import { KanbanList } from '@/components/business/kanban/kanban-list';
 import { CardDetailModal } from '@/components/business/kanban/card-detail-modal';
-import { BoardSettingsModal } from '@/components/business/kanban/board-settings-modal';
+import {
+	BoardSettingsModal,
+	type BoardSettingsChanges,
+} from '@/components/business/kanban/board-settings-modal';
 import { BoardMembersModal } from '@/components/business/kanban/board-members-modal';
 import { ListCreationModal } from '@/components/business/kanban/list-creation-modal';
 import { KanbanCard as KanbanCardComponent } from '@/components/business/kanban/kanban-card';
+import { KanbanEmptyState } from '@/components/business/kanban/kanban-empty-state';
+import { BoardTemplateShortcuts } from '@/components/business/kanban/board-template-shortcuts';
+import { applyBoardTemplate } from '@/lib/kanban/board-templates';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -56,6 +63,24 @@ export default function BoardPage() {
 
 	const handleCreateList = async () => {
 		setIsListCreationModalOpen(true);
+	};
+
+	const handleApplyTemplate = async (templateId: string) => {
+		if (!boardId) return;
+
+		const { createdCount, failedNames } = await applyBoardTemplate(boardId, templateId);
+
+		if (failedNames.length > 0) {
+			toast({
+				variant: 'destructive',
+				title: 'Faltaron listas',
+				description: `No pudimos crear: ${failedNames.join(', ')}. Agregalas a mano.`,
+			});
+		} else {
+			toast({ title: `Se crearon ${createdCount} listas` });
+		}
+
+		fetchBoard();
 	};
 
 	const handleCreateListFromModal = async (name: string) => {
@@ -146,9 +171,7 @@ export default function BoardPage() {
 		handleCardMove(cardId, destinationListId, newPosition);
 	};
 
-	const handleSaveSettings = async (
-		changes: Partial<{ due_date_tolerance_yellow: number; due_date_tolerance_red: number }>
-	) => {
+	const handleSaveSettings = async (changes: BoardSettingsChanges) => {
 		const { data, error } = await updateBoard(changes);
 		if (error) {
 			toast({
@@ -163,41 +186,41 @@ export default function BoardPage() {
 
 	if (!boardId) {
 		return (
-			<div className="container mx-auto p-6">
+			<DashboardLayout>
 				<p className="text-destructive">ID de tablero inválido</p>
-			</div>
+			</DashboardLayout>
 		);
 	}
 
 	if (loading) {
 		return (
-			<div className="container mx-auto p-6">
+			<DashboardLayout>
 				<p className="text-muted-foreground">Cargando tablero...</p>
-			</div>
+			</DashboardLayout>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="container mx-auto p-6">
+			<DashboardLayout>
 				<p className="text-destructive">Error: {translateError(error)}</p>
-			</div>
+			</DashboardLayout>
 		);
 	}
 
 	if (!board) {
 		return (
-			<div className="container mx-auto p-6">
+			<DashboardLayout>
 				<p className="text-muted-foreground">Tablero no encontrado</p>
-			</div>
+			</DashboardLayout>
 		);
 	}
 
 	return (
-		<div className="h-screen flex flex-col bg-muted/30">
-			{/* Header */}
-			<div className="border-b bg-background">
-				<div className="container mx-auto px-6 py-4">
+		<DashboardLayout>
+			<div className="flex h-full min-h-0 flex-col">
+				{/* Header */}
+				<div className="mb-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-4">
 							<Button variant="ghost" size="icon" onClick={() => router.push('/kanban')}>
@@ -226,7 +249,7 @@ export default function BoardPage() {
 									variant="ghost"
 									size="icon"
 									onClick={() => setIsSettingsModalOpen(true)}
-									title="Configurar tolerancia de fecha"
+									title="Configuración del tablero"
 								>
 									<Settings className="h-5 w-5" />
 								</Button>
@@ -234,54 +257,71 @@ export default function BoardPage() {
 						</div>
 					</div>
 				</div>
-			</div>
 
-			{/* Board Content */}
-			<div className="flex-1 overflow-x-auto">
-				<div className="container mx-auto px-6 py-6">
-					<DndContext
-						sensors={sensors}
-						collisionDetection={closestCorners}
-						onDragStart={handleDragStart}
-						onDragEnd={handleDragEnd}
-					>
-						<div className="flex gap-4 h-full">
-							{lists.map((list) => (
-								<KanbanList
-									key={list.id}
-									list={list}
-									cards={list.cards || []}
-									onEditList={(name) => editList(list.id, { name })}
-									onDeleteList={() => handleDeleteList(list.id)}
-									onCreateCard={handleCreateCard}
-									onCardClick={handleCardClick}
-									onCardMove={handleCardMove}
-									dueDateToleranceYellow={board.due_date_tolerance_yellow ?? 2}
-									dueDateToleranceRed={board.due_date_tolerance_red ?? 0}
-								/>
-							))}
-							{/* Add List Button */}
-							{isAuthorized && (
-								<div className="w-72 flex-shrink-0">
-									<Button
-										variant="outline"
-										className="w-full h-12 border-dashed"
-										onClick={handleCreateList}
-									>
-										<Plus className="h-4 w-4 mr-2" />
-										Agregar lista
-									</Button>
-								</div>
-							)}
-						</div>
-						<DragOverlay>
-							{activeCard ? (
-								<div className="rotate-3 shadow-xl">
-									<KanbanCardComponent card={activeCard} onClick={() => {}} />
-								</div>
-							) : null}
-						</DragOverlay>
-					</DndContext>
+				{/* Board Content */}
+				<div className="min-h-0 flex-1 overflow-x-auto">
+					{lists.length === 0 ? (
+						<KanbanEmptyState
+							icon={Columns3}
+							title="Este tablero todavía no tiene listas"
+							description="Una lista es una etapa del trabajo. Lo más común es arrancar con tres: Por hacer, En proceso y Terminado. Después vas moviendo las tarjetas de una a otra."
+							action={
+								isAuthorized ? (
+									<div className="space-y-4">
+										<Button variant="outline" className="gap-2" onClick={handleCreateList}>
+											<Plus className="h-4 w-4" />
+											Crear la primera lista
+										</Button>
+										<BoardTemplateShortcuts onApply={handleApplyTemplate} />
+									</div>
+								) : undefined
+							}
+						/>
+					) : (
+						<DndContext
+							sensors={sensors}
+							collisionDetection={closestCorners}
+							onDragStart={handleDragStart}
+							onDragEnd={handleDragEnd}
+						>
+							<div className="flex h-full gap-4 pb-2">
+								{lists.map((list) => (
+									<KanbanList
+										key={list.id}
+										list={list}
+										cards={list.cards || []}
+										onEditList={(name) => editList(list.id, { name })}
+										onDeleteList={() => handleDeleteList(list.id)}
+										onCreateCard={handleCreateCard}
+										onCardClick={handleCardClick}
+										onCardMove={handleCardMove}
+										dueDateToleranceYellow={board.due_date_tolerance_yellow ?? 2}
+										dueDateToleranceRed={board.due_date_tolerance_red ?? 0}
+									/>
+								))}
+								{/* Add List Button */}
+								{isAuthorized && (
+									<div className="w-72 flex-shrink-0">
+										<Button
+											variant="outline"
+											className="h-12 w-full border-dashed"
+											onClick={handleCreateList}
+										>
+											<Plus className="h-4 w-4 mr-2" />
+											Agregar lista
+										</Button>
+									</div>
+								)}
+							</div>
+							<DragOverlay>
+								{activeCard ? (
+									<div className="rotate-3 shadow-xl">
+										<KanbanCardComponent card={activeCard} onClick={() => {}} />
+									</div>
+								) : null}
+							</DragOverlay>
+						</DndContext>
+					)}
 				</div>
 			</div>
 
@@ -315,6 +355,6 @@ export default function BoardPage() {
 				onOpenChange={setIsListCreationModalOpen}
 				onCreate={handleCreateListFromModal}
 			/>
-		</div>
+		</DashboardLayout>
 	);
 }

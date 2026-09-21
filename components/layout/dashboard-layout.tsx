@@ -142,7 +142,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const isRouteAllowed = (href: string) => {
 		if (!user?.role) return false;
 		const allowedNames = allowedByRole[user.role] ?? [];
-		const mainItem = navigation.find((item) => item.href === href);
+
+		// A module owns its sub-routes: /kanban/37 belongs to /kanban. The most
+		// specific match wins, so a nested route is never checked against '/'.
+		const mainItem = navigation
+			.filter((item) => item.href === href || href.startsWith(`${item.href}/`))
+			.sort((a, b) => b.href.length - a.href.length)[0];
+
 		return Boolean(mainItem && allowedNames.includes(mainItem.name));
 	};
 
