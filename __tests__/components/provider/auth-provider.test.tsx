@@ -2,10 +2,15 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 
 import { AuthProvider, useAuth } from '@/components/provider/auth-provider';
 import { getSupabaseClient } from '@/lib/supabase-client';
+import { toast } from '@/components/ui/use-toast';
 import { UI } from 'react-day-picker';
 
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
+}));
+
+jest.mock('@/components/ui/use-toast', () => ({
+	toast: jest.fn(),
 }));
 
 const mockRouter = {
@@ -57,9 +62,14 @@ beforeEach(() => {
 });
 
 describe('AuthProvider', () => {
-	it('starts with loading true and user null', () => {
+	it('starts with loading true and user null', async () => {
 		const { result } = renderHook(() => useAuth(), {
 			wrapper: AuthProvider,
+		});
+
+		const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+		await act(async () => {
+			await authCallback('TOKEN_REFRESHED', null);
 		});
 
 		expect(result.current.loading).toBe(true);
@@ -131,6 +141,7 @@ describe('AuthProvider', () => {
 
 		expect(global.fetch).toHaveBeenCalledWith('/api/me', {
 			headers: { Authorization: 'Bearer test-token' },
+			signal: expect.any(AbortSignal),
 		});
 	});
 
@@ -205,6 +216,11 @@ describe('AuthProvider', () => {
 
 			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+			await act(async () => {
+				await authCallback('TOKEN_REFRESHED', null);
+			});
+
 			let sessionUser;
 			await act(async () => {
 				sessionUser = await result.current.signIn('juan', 'password123');
@@ -248,6 +264,11 @@ describe('AuthProvider', () => {
 
 			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+			await act(async () => {
+				await authCallback('TOKEN_REFRESHED', null);
+			});
+
 			await act(async () => {
 				await expect(result.current.signIn('wrong', 'pass')).rejects.toThrow(
 					'Usuario no encontrado'
@@ -273,6 +294,11 @@ describe('AuthProvider', () => {
 
 			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
 
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+			await act(async () => {
+				await authCallback('TOKEN_REFRESHED', null);
+			});
+
 			await act(async () => {
 				await expect(result.current.signIn('juan', 'wrong')).rejects.toThrow(
 					'Usuario o contraseña incorrectos'
@@ -287,6 +313,11 @@ describe('AuthProvider', () => {
 			});
 
 			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+			await act(async () => {
+				await authCallback('TOKEN_REFRESHED', null);
+			});
 
 			await act(async () => {
 				await expect(result.current.signIn('juan', 'pass')).rejects.toThrow(
@@ -467,6 +498,66 @@ describe('AuthProvider', () => {
 	describe('useAuth', () => {
 		it('throws when used outside AuthProvider', () => {
 			expect(() => renderHook(() => useAuth())).toThrow('useAuth must be used within AuthProvider');
+		});
+	});
+
+	describe('auth timeout hang protection', () => {
+		it('unblocks the app and surfaces a destructive toast when getSession hangs forever', async () => {
+			jest.useFakeTimers();
+
+			try {
+				mockGetSession.mockReset();
+				// Simulate a degraded Supabase / flaky network: getSession() never settles.
+				mockGetSession.mockReturnValueOnce(new Promise(() => {}));
+
+				const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+				const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+
+				const callbackPromise = act(async () => {
+					await authCallback('SIGNED_IN', {
+						access_token: 'test-token',
+						user: { email: 'test@test.com' },
+					});
+				});
+
+				// Advance past AUTH_TIMEOUT_MS + 2000 (the outer defense-in-depth bound).
+				await act(async () => {
+					await jest.advanceTimersByTimeAsync(13000);
+				});
+
+				await callbackPromise;
+
+				await waitFor(() => {
+					expect(result.current).toBeDefined();
+					expect(result.current.loading).toBe(false);
+				});
+
+				expect(result.current.user).toBeNull();
+				expect(toast).toHaveBeenCalledWith(
+					expect.objectContaining({
+						variant: 'destructive',
+					})
+				);
+			} finally {
+				jest.useRealTimers();
+			}
+		});
+
+		it('does not toast on the normal fast no-session path', async () => {
+			const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+			const authCallback = mockOnAuthStateChange.mock.calls[0][0];
+
+			await act(async () => {
+				await authCallback('SIGNED_OUT', null);
+			});
+
+			await waitFor(() => {
+				expect(result.current.loading).toBe(false);
+			});
+
+			expect(toast).not.toHaveBeenCalled();
 		});
 	});
 });
