@@ -89,7 +89,12 @@ export function isRouteAllowedForRole(href: string, role: UserRole | undefined):
 	if (!role) return false;
 
 	const allowed = ALLOWED_MODULES_BY_ROLE[role] ?? [];
-	const item = NAVIGATION_ITEMS.find((candidate) => candidate.href === href);
+
+	// A module owns its sub-routes: /kanban/37 belongs to /kanban. The most
+	// specific match wins, so a nested route is never checked against '/'.
+	const item = NAVIGATION_ITEMS.filter(
+		(candidate) => candidate.href === href || href.startsWith(`${candidate.href}/`)
+	).sort((a, b) => b.href.length - a.href.length)[0];
 
 	return Boolean(item && allowed.includes(item.name));
 }
