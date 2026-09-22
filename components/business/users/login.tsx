@@ -22,7 +22,7 @@ export default function LoginPage() {
 		const map: Record<UserRole, string> = {
 			Admin: '/',
 			Taller: '/supplies',
-			QR: '/clock-in',
+			QR: '/employees',
 		};
 		return map[role] || '/';
 	};

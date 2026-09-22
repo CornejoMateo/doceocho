@@ -24,8 +24,8 @@ import {
 	MessageSquare,
 	LayoutList,
 	Trash2,
-	Clock,
 	Briefcase,
+	IdCardLanyard,
 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
@@ -54,7 +54,6 @@ import { cn } from '@/lib/utils';
 import type { UserRole } from '@/constants/users/user-role';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import { useChatUnread } from '../provider/chat-unread-provider';
-import { toast } from '@/components/ui/use-toast';
 
 const navigation = [
 	{ name: 'Panel', href: '/', icon: LayoutDashboard, disabled: false },
@@ -68,13 +67,7 @@ const navigation = [
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
 	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
-	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
-	{
-		name: 'Recursos Humanos',
-		href: '/human-resources',
-		icon: Briefcase,
-		disabled: false,
-	},
+	{ name: 'Empleados', href: '/employees', icon: IdCardLanyard, disabled: false },
 ] as const;
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -108,20 +101,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 				'Obras',
 				'Chat',
 				'Reportes',
-				'Fichar',
-				'Recursos Humanos',
+				'Empleados',
 			],
-			Taller: [
-				'Insumos',
-				'Clientes',
-				'Kanban',
-				'Calendario',
-				'Chat',
-				'Obras',
-				'Fichar',
-				'Recursos Humanos',
-			],
-			QR: ['Fichar'],
+			Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Empleados'],
+			QR: ['Empleados'],
 		} as Record<UserRole, string[]>;
 	}, []);
 
@@ -129,7 +112,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		return {
 			Admin: '/',
 			Taller: '/supplies',
-			QR: '/clock-in',
+			QR: '/employees',
 		} as Record<UserRole, string>;
 	}, []);
 
