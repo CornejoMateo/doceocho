@@ -20,6 +20,7 @@ import {
 	Users,
 } from 'lucide-react';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { useUsers } from '@/components/provider/users-provider';
 import { paginateAndFilter } from '@/utils/pagination';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
@@ -29,7 +30,6 @@ import {
 	getEmployeeFullName,
 	listEmployees,
 } from '@/lib/human-resources/employees';
-import { listUsers, User } from '@/lib/users/users';
 import { EMPLOYEES_PER_PAGE } from '@/constants/human-resources/employees';
 import { EmployeeFormDialog } from '@/components/business/human-resources/employees/employee-form-dialog';
 import { EmployeeDetailsDialog } from '@/components/business/human-resources/employees/employee-details-dialog';
@@ -66,16 +66,7 @@ export function EmployeesTab() {
 	);
 
 	// Users are only needed to link an employee with its system account.
-	const { data: users } = useOptimizedRealtime<User>(
-		'users',
-		async () => {
-			const { data, error: listError } = await listUsers();
-			if (listError) throw listError;
-			return data ?? [];
-		},
-		'users_cache',
-		true
-	);
+	const { users } = useUsers();
 
 	const linkedUserIds = useMemo(
 		() => employees.map((employee) => employee.user_id).filter((id): id is string => Boolean(id)),

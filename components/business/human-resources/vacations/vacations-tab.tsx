@@ -8,9 +8,9 @@ import { PaginationControls } from '@/components/ui/pagination-controls';
 import { CalendarDays, Clock, Plus } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { useUsers } from '@/components/provider/users-provider';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { listUsers, User } from '@/lib/users/users';
 import {
 	VacationRequest,
 	deleteVacationRequest,
@@ -53,16 +53,7 @@ export function VacationsTab() {
 	);
 
 	// Names are only needed on the admin list, and only admins can list users.
-	const { data: users } = useOptimizedRealtime<User>(
-		'users',
-		async () => {
-			const { data, error: listError } = await listUsers();
-			if (listError) throw listError;
-			return data ?? [];
-		},
-		'users_cache',
-		isAdmin
-	);
+	const { users } = useUsers();
 
 	const getRequesterName = (userId: string): string => {
 		const requester = users.find((candidate) => candidate.uid_user === userId);
