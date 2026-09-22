@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AddressLink } from '@/components/ui/address-link';
 import { PostItNote } from '@/components/ui/post-it-note';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PostItModal } from '@/components/ui/post-it-modal';
 import { ChecklistCompletionModal } from '@/components/business/works/checklists/checklist-completion-modal';
 import {
@@ -18,6 +19,8 @@ import {
 	Map,
 	Home,
 	Plus,
+	ExternalLink,
+	Loader2,
 } from 'lucide-react';
 import { statusConfig } from '@/constants/type-config';
 import { WorkWithProgress } from '@/lib/works/works';
@@ -33,6 +36,8 @@ interface WorkCardProps {
 	onOpenChecklist: (work: WorkWithProgress) => void;
 	onUpdateGeneralNote?: (workId: number, note: string) => Promise<void>;
 	onAddToCalendar?: (work: WorkWithProgress) => void;
+	onOpenClient?: (work: WorkWithProgress) => void;
+	loadingWorkId?: number | null;
 }
 
 export function WorkCard({
@@ -43,6 +48,8 @@ export function WorkCard({
 	onOpenChecklist,
 	onUpdateGeneralNote,
 	onAddToCalendar,
+	onOpenClient,
+	loadingWorkId,
 }: WorkCardProps) {
 	const [isPostItModalOpen, setIsPostItModalOpen] = useState(false);
 	const [isUpdatingNote, setIsUpdatingNote] = useState(false);
@@ -56,6 +63,9 @@ export function WorkCard({
 	const isAuthorized = user?.role === 'Admin';
 	const canSendNotifications = isAuthorized;
 	const canEditNotes = isAuthorized;
+
+	const isThisLoading = loadingWorkId === work.id;
+	const isAnyLoading = loadingWorkId != null;
 
 	const handleSaveGeneralNote = async (note: string) => {
 		if (!onUpdateGeneralNote) return;
@@ -82,7 +92,33 @@ export function WorkCard({
 							</div>
 
 							<div className="text-muted-foreground">
-								<span>{work.name || work.id}</span>
+								{onOpenClient && work.client_id ? (
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												onClick={() => onOpenClient(work)}
+												disabled={isAnyLoading}
+												aria-label={
+													isThisLoading
+														? 'Ver obras del cliente (cargando)'
+														: 'Ver obras del cliente'
+												}
+												className="cursor-pointer inline-flex items-center gap-1 text-left underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+											>
+												{work.name || work.id}
+												{isThisLoading ? (
+													<Loader2 className="h-3 w-3 text-muted-foreground flex-shrink-0 animate-spin" />
+												) : (
+													<ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+												)}
+											</button>
+										</TooltipTrigger>
+										<TooltipContent>Ver obras del cliente</TooltipContent>
+									</Tooltip>
+								) : (
+									<span>{work.name || work.id}</span>
+								)}
 							</div>
 						</div>
 
