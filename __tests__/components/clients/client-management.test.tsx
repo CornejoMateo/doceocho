@@ -18,9 +18,14 @@ jest.mock('@/hooks/clients/use-client-budgets-info', () => ({
 }));
 
 const mockUseSearchParams = jest.fn();
+const mockReplace = jest.fn();
 
+// Models the real router: replacing the URL drops the query string, which is
+// what keeps the dialog closed once the user has closed it.
 jest.mock('next/navigation', () => ({
 	useSearchParams: () => mockUseSearchParams(),
+	useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+	usePathname: () => '/clients',
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -129,6 +134,9 @@ describe('ClientManagement', () => {
 
 	it('keeps details dialog closed after closing and refreshing the client list', () => {
 		mockUseSearchParams.mockReturnValue(new URLSearchParams('clientId=1'));
+		mockReplace.mockImplementation(() =>
+			mockUseSearchParams.mockReturnValue(new URLSearchParams(''))
+		);
 		const { rerender } = render(<ClientManagement />);
 
 		expect(screen.getByTestId('client-details-dialog')).toBeInTheDocument();
@@ -150,5 +158,22 @@ describe('ClientManagement', () => {
 		rerender(<ClientManagement />);
 
 		expect(screen.queryByTestId('client-details-dialog')).not.toBeInTheDocument();
+	});
+
+	it('reopens the details dialog when the same client is opened again', () => {
+		mockUseSearchParams.mockReturnValue(new URLSearchParams('clientId=1'));
+		mockReplace.mockImplementation(() =>
+			mockUseSearchParams.mockReturnValue(new URLSearchParams(''))
+		);
+		const { rerender } = render(<ClientManagement />);
+
+		fireEvent.click(screen.getByText('Close'));
+		expect(screen.queryByTestId('client-details-dialog')).not.toBeInTheDocument();
+
+		// The global search sends the user to the very same client again.
+		mockUseSearchParams.mockReturnValue(new URLSearchParams('clientId=1'));
+		rerender(<ClientManagement />);
+
+		expect(screen.getByTestId('client-details-dialog')).toBeInTheDocument();
 	});
 });

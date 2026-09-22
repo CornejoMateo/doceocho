@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,8 @@ import { paginateAndFilter } from '@/utils/pagination';
 
 export function ClientManagement() {
 	const searchParams = useSearchParams();
+	const router = useRouter();
+	const pathname = usePathname();
 	const { toast } = useToast();
 	const { user } = useAuth();
 	const notIsAuthorized = user?.role === 'Taller';
@@ -84,6 +86,16 @@ export function ClientManagement() {
 			}
 		}
 	}, [searchParams, clients]);
+
+	// Closing the dialog clears the URL, so landing on the same client again reopens it.
+	const handleCloseViewDialog = () => {
+		setIsViewDialogOpen(false);
+		handledClientIdRef.current = null;
+
+		if (searchParams.get('clientId')) {
+			router.replace(pathname);
+		}
+	};
 
 	const handleEditClient = (client: Client) => {
 		setSelectedClient(client);
@@ -445,7 +457,7 @@ export function ClientManagement() {
 			<ClientDetailsDialog
 				client={viewingClient}
 				isOpen={isViewDialogOpen}
-				onClose={() => setIsViewDialogOpen(false)}
+				onClose={handleCloseViewDialog}
 				onEdit={handleEditFromView}
 				onClientUpdated={handleClientUpdated}
 			/>
