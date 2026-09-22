@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import {
@@ -146,6 +147,14 @@ export function EmployeesTab() {
 	};
 
 	const activeEmployees = employees.filter((employee) => employee.status === 'Activo').length;
+
+	if (loading && employees.length === 0) {
+		return (
+			<div className="flex justify-center py-8">
+				<Spinner className="h-6 w-6" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
