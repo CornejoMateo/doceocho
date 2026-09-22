@@ -88,24 +88,18 @@ export function ClientBalances({
 					const { data: totals } = await getTotalByBalanceId(balance.id);
 					const totalPaid = totals?.totalAmount || 0;
 					const totalPaidUSD = totals?.totalAmountUSD || 0;
-					const totalExtraArs = totals?.totalExtraAmount || 0;
-					const totalExtraUsd = totals?.totalExtraAmountUSD || 0;
 					const summary = calculateBalanceSummary({
 						budgetAmountArs: balance.balance_amount_ars,
 						budgetAmountUsd: balance.balance_amount_usd,
 						usdCurrent: balance.usd_current,
 						totalPaidArs: totalPaid,
 						totalPaidUsd: totalPaidUSD,
-						totalExtraArs,
-						totalExtraUsd,
 					});
 
 					return {
 						...balance,
 						totalPaid,
 						totalPaidUSD,
-						totalExtraArs,
-						totalExtraUsd,
 						remaining: summary.remainingArs,
 						remainingUSD: summary.remainingUsd,
 					};
@@ -169,18 +163,20 @@ export function ClientBalances({
 						className="w-full sm:w-auto whitespace-nowrap"
 					>
 						<Plus className="h-4 w-4 mr-2" />
-						Crear Saldo
+						Crear Cuenta Corriente
 					</Button>
 				)}
 			</div>
 
 			{isLoading ? (
-				<p className="text-sm text-muted-foreground text-center py-4">Cargando saldos...</p>
+				<p className="text-sm text-muted-foreground text-center py-4">
+					Cargando cuentas corrientes...
+				</p>
 			) : filteredBalances.length === 0 ? (
 				<p className="text-sm text-muted-foreground text-center py-4">
 					{searchTerm
-						? 'No se encontraron saldos que coincidan con la búsqueda.'
-						: 'No hay saldos registrados para este cliente.'}
+						? 'No se encontraron cuentas corrientes que coincidan con la búsqueda.'
+						: 'No hay cuentas corrientes registradas para este cliente.'}
 				</p>
 			) : (
 				<div className="space-y-3">
@@ -191,8 +187,6 @@ export function ClientBalances({
 							usdCurrent: balance.usd_current,
 							totalPaidArs: balance.totalPaid,
 							totalPaidUsd: balance.totalPaidUSD,
-							totalExtraArs: (balance as any).totalExtraArs,
-							totalExtraUsd: (balance as any).totalExtraUsd,
 						});
 
 						return (
@@ -215,7 +209,7 @@ export function ClientBalances({
 				totalItems={filteredBalances.length}
 				itemsPerPage={itemsPerPage}
 				onPageChange={setCurrentPage}
-				itemLabel="saldos"
+				itemLabel="cuentas corrientes"
 			/>
 
 			<BalanceDetailsModal
@@ -229,9 +223,9 @@ export function ClientBalances({
 			<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>¿Eliminar saldo?</AlertDialogTitle>
+						<AlertDialogTitle>¿Eliminar cuenta corriente?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Esta acción no se puede deshacer. Se eliminará permanentemente el saldo
+							Esta acción no se puede deshacer. Se eliminará permanentemente la cuenta corriente
 							{balanceToDelete?.budget?.folder_budget?.work &&
 								` de la obra en ${balanceToDelete.budget.folder_budget.work.locality}`}{' '}
 							y todas sus transacciones asociadas.

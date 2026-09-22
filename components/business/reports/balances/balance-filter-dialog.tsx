@@ -40,8 +40,10 @@ export function BalanceFilterDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="!sm:max-w-[500px]">
 				<DialogHeader>
-					<DialogTitle>Filtros de saldos</DialogTitle>
-					<DialogDescription>Filtra los saldos por tipo y rangos de monto</DialogDescription>
+					<DialogTitle>Filtros de cuentas corrientes</DialogTitle>
+					<DialogDescription>
+						Filtra las cuentas corrientes por tipo y rangos de monto
+					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4 py-4">
 					{/* Balance Type Filter */}

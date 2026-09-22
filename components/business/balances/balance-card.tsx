@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, Trash2, TrendingUp, StickyNote } from 'lucide-react';
+import { DollarSign, Trash2, StickyNote } from 'lucide-react';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
 import { BalanceSummary } from '@/helpers/balances/balance-calculations';
 import { BalanceWithBudget } from '@/lib/balances/balances';
@@ -71,11 +71,11 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 								</p>
 								<div className="flex flex-col">
 									<p className="text-xs sm:text-sm font-bold text-primary truncate">
-										{formatCurrency(summary.effectiveBudgetArs)}
+										{formatCurrency(summary.budgetArsCurrent)}
 									</p>
-									{(summary.budgetUsd > 0 || summary.totalExtraUsd > 0) && (
+									{summary.budgetUsd > 0 && (
 										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.effectiveBudgetUsd)}
+											{formatCurrencyUSD(summary.budgetUsd)}
 										</p>
 									)}
 								</div>
@@ -96,7 +96,7 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 								</div>
 							</div>
 							<div className="flex flex-col">
-								<p className="text-[10px] sm:text-xs text-muted-foreground mb-1 truncate">Saldo</p>
+								<p className="text-[10px] sm:text-xs text-muted-foreground mb-1 truncate">Monto</p>
 								<div className="flex flex-col">
 									<p className="text-xs sm:text-sm font-bold text-orange-600 truncate">
 										{formatCurrency(summary.remainingArs)}

@@ -24,10 +24,14 @@ import { AddTransactionSection } from './transactions/add-transaction';
 import { TransactionsTable } from './transactions/transactions-table';
 import { BalanceInformation } from './balance-information';
 import { NotesInput } from '@/components/ui/notes-input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTransactionCrud } from '@/hooks/balances/use-transaction-crud';
 import { useTransactionFiles } from '@/hooks/balances/use-transaction-files';
 import { TransactionFilesGallery } from './transactions/transaction-files-gallery';
+import { SettledReminderModal } from './settled-reminder-modal';
 
 interface BalanceDetailsModalProps {
 	balance: BalanceWithBudget | null;
@@ -112,10 +116,12 @@ export function BalanceDetailsModal({
 		handleUpdateTransaction,
 		totalPaid,
 		totalPaidUSD,
-		totalExtraArs,
-		totalExtraUsd,
 		summary,
 		work,
+		showSettledReminder,
+		isMarkingAsSettled,
+		dismissSettledReminder,
+		handleMarkAsSettled,
 	} = useTransactionCrud(
 		currentBalance,
 		isOpen,
@@ -133,14 +139,38 @@ export function BalanceDetailsModal({
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
 			<DialogContent className="!max-w-5xl !max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Detalle del saldo</DialogTitle>
+					<DialogTitle>Detalle de la cuenta corriente</DialogTitle>
 					<DialogDescription>
-						Información completa del saldo, pagos realizados y estado de la obra.
+						Información completa de la cuenta corriente, pagos realizados y estado de la obra.
 					</DialogDescription>
 				</DialogHeader>
 
 				{currentBalance && (
 					<div className="space-y-6">
+						<div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+							<div className="flex items-center gap-2">
+								<span className="text-sm font-medium">Estado: {summary.type}</span>
+								{currentBalance.is_settled && (
+									<Badge variant="secondary" className="gap-1">
+										<CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+										Saldado
+									</Badge>
+								)}
+							</div>
+							<Button
+								size="sm"
+								variant="outline"
+								onClick={handleMarkAsSettled}
+								disabled={currentBalance.is_settled === true || isMarkingAsSettled}
+							>
+								{currentBalance.is_settled
+									? 'Ya marcada como saldada'
+									: isMarkingAsSettled
+										? 'Guardando...'
+										: 'Marcar como saldado'}
+							</Button>
+						</div>
+
 						<BalanceInformation
 							balanceId={currentBalance.id}
 							work={work}
@@ -150,8 +180,6 @@ export function BalanceDetailsModal({
 							usdCurrent={currentBalance.usd_current}
 							totalPaid={totalPaid}
 							totalPaidUsd={totalPaidUSD}
-							totalExtraArs={totalExtraArs}
-							totalExtraUsd={totalExtraUsd}
 							summary={summary}
 							formatDate={formatCreatedAt}
 							onUpdated={refreshBalance}
@@ -159,7 +187,7 @@ export function BalanceDetailsModal({
 
 						<div className="border rounded-lg p-4">
 							<div className="flex items-center justify-between mb-3">
-								<h4 className="font-semibold">Notas del saldo</h4>
+								<h4 className="font-semibold">Notas de la cuenta corriente</h4>
 								{!isEditingNotes && (
 									<button
 										onClick={() => setIsEditingNotes(true)}
@@ -176,7 +204,7 @@ export function BalanceDetailsModal({
 									<NotesInput
 										value={balanceNotes}
 										onChange={setBalanceNotes}
-										placeholder="Agregar notas sobre este saldo (opcional)"
+										placeholder="Agregar notas sobre esta cuenta corriente (opcional)"
 										rows={3}
 										showLabel={false}
 									/>
@@ -228,15 +256,8 @@ export function BalanceDetailsModal({
 							onBankAccountIdChange={setBankAccountId}
 							bankAccountId={bankAccountId}
 							onCancel={resetTransactionForm}
-							onSave={
-								editingTransaction
-									? handleUpdateTransaction
-									: addingMode === 'extra'
-										? () => handleAddTransaction(true)
-										: () => handleAddTransaction()
-							}
+							onSave={editingTransaction ? handleUpdateTransaction : () => handleAddTransaction()}
 							onStartAddTransaction={() => setAddingMode('transaction')}
-							onStartAddExtra={() => setAddingMode('extra')}
 							saveDisabled={isSavingTransaction}
 							editingTransaction={editingTransaction ?? undefined}
 							selectedFiles={transactionFilesToUpload}
@@ -275,6 +296,13 @@ export function BalanceDetailsModal({
 				onDeleteFile={handleDeleteTransactionFile}
 				onClose={handleCloseGallery}
 				formatCreatedAt={formatCreatedAt}
+			/>
+
+			<SettledReminderModal
+				isOpen={showSettledReminder}
+				onOpenChange={(open) => !open && dismissSettledReminder()}
+				onConfirm={handleMarkAsSettled}
+				isConfirming={isMarkingAsSettled}
 			/>
 
 			<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

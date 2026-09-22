@@ -83,7 +83,7 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 		if (!selectedBudgetId) {
 			toast({
 				title: 'Error',
-				description: 'Debes seleccionar un presupuesto para asociar el saldo.',
+				description: 'Debes seleccionar un presupuesto para asociar la cuenta corriente.',
 				variant: 'destructive',
 			});
 			return;
@@ -166,8 +166,8 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 						</SelectContent>
 					</Select>
 					<p className="text-xs text-muted-foreground flex items-center gap-1">
-						Recordá que para poder asociar un saldo a un presupuesto, el mismo debe estar marcado
-						como vendido y/o elegido
+						Recordá que para poder asociar una cuenta corriente a un presupuesto, el mismo debe
+						estar marcado como vendido y/o elegido
 					</p>
 				</div>
 
@@ -246,7 +246,7 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 				</div>
 
 				<div className="space-y-2">
-					<Label htmlFor="balance_amount_ars">Monto del saldo en ARS</Label>
+					<Label htmlFor="balance_amount_ars">Monto de la cuenta corriente en ARS</Label>
 					<Input
 						id="balance_amount_ars"
 						name="balance_amount_ars"
@@ -265,7 +265,7 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 				</div>
 
 				<div className="space-y-2">
-					<Label htmlFor="balance_amount_usd">Monto del saldo en USD</Label>
+					<Label htmlFor="balance_amount_usd">Monto de la cuenta corriente en USD</Label>
 					<Input
 						id="balance_amount_usd"
 						name="balance_amount_usd"
@@ -281,7 +281,7 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 			<NotesInput
 				value={formData.notes || ''}
 				onChange={(value) => setFormData((prev) => ({ ...prev, notes: value ? value : null }))}
-				placeholder="Agregar notas sobre este saldo (opcional)"
+				placeholder="Agregar notas sobre esta cuenta corriente (opcional)"
 				rows={3}
 			/>
 
@@ -289,7 +289,7 @@ export function BalanceForm({ clientId, budgets, onSubmit, onCancel }: BalanceFo
 				<Button type="button" variant="outline" onClick={onCancel}>
 					Cancelar
 				</Button>
-				<Button type="submit">Crear saldo</Button>
+				<Button type="submit">Crear cuenta corriente</Button>
 			</div>
 		</form>
 	);
