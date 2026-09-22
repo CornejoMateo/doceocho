@@ -13,8 +13,9 @@ interface NeedsAttentionProps {
 
 /**
  * Everything blocked on an admin decision, in one place.
- * Only what actually needs attention is shown: a row of zeros teaches nothing
- * and pushes the useful part of the panel down.
+ * Every tile is always shown, even at zero: hiding the empty ones made the
+ * panel look like it only watched whatever happened to be pending, so nobody
+ * could tell what it covers.
  */
 export function NeedsAttention({ pending, isLoading }: NeedsAttentionProps) {
 	const tiles = [
@@ -45,7 +46,9 @@ export function NeedsAttention({ pending, isLoading }: NeedsAttentionProps) {
 			href: PENDING_ACTION_ROUTES.signatures,
 			tone: 'text-chart-3',
 		},
-	].filter((tile) => tile.count > 0);
+	];
+
+	const pendingCount = tiles.reduce((total, tile) => total + tile.count, 0);
 
 	if (isLoading) {
 		return (
@@ -55,23 +58,17 @@ export function NeedsAttention({ pending, isLoading }: NeedsAttentionProps) {
 		);
 	}
 
-	if (tiles.length === 0) {
-		return (
-			<Card className="flex items-center gap-3 p-4">
-				<CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
-				<div>
-					<p className="text-sm font-medium text-foreground">No hay nada esperándote</p>
-					<p className="text-xs text-muted-foreground">
-						Ninguna cita, pedido de vacaciones ni firma quedó sin resolver.
-					</p>
-				</div>
-			</Card>
-		);
-	}
-
 	return (
 		<div className="space-y-2">
-			<h3 className="text-sm font-medium text-muted-foreground">Necesita tu atención</h3>
+			<div className="flex items-center gap-2">
+				<h3 className="text-sm font-medium text-muted-foreground">Necesita tu atención</h3>
+				{pendingCount === 0 && (
+					<span className="flex items-center gap-1 text-xs text-green-600">
+						<CheckCircle2 className="h-3.5 w-3.5" />
+						No hay nada esperándote
+					</span>
+				)}
+			</div>
 			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{tiles.map((tile) => (
 					<AttentionTile

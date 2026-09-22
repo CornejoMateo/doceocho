@@ -10,8 +10,17 @@ describe('NeedsAttention', () => {
 		expect(screen.getByText('No hay nada esperándote')).toBeInTheDocument();
 	});
 
-	// A row of zeros teaches nothing and pushes the useful part of the panel down.
-	it('only shows what actually needs attention', () => {
+	// Hiding the empty ones made the panel look like it only watched whatever
+	// happened to be pending, so nobody could tell what it actually covers.
+	it('always shows every tile, so what the panel watches is discoverable', () => {
+		render(<NeedsAttention pending={none} isLoading={false} />);
+
+		expect(screen.getByText('citas esperando respuesta')).toBeInTheDocument();
+		expect(screen.getByText('pedidos de vacaciones sin resolver')).toBeInTheDocument();
+		expect(screen.getByText('presupuestos esperando firma')).toBeInTheDocument();
+	});
+
+	it('keeps showing the other tiles when only one has something pending', () => {
 		render(
 			<NeedsAttention
 				pending={{ appointments: 2, vacations: 0, signatures: 0 }}
@@ -20,8 +29,19 @@ describe('NeedsAttention', () => {
 		);
 
 		expect(screen.getByText('citas esperando respuesta')).toBeInTheDocument();
-		expect(screen.queryByText(/vacaciones/i)).not.toBeInTheDocument();
-		expect(screen.queryByText(/firma/i)).not.toBeInTheDocument();
+		expect(screen.getByText('pedidos de vacaciones sin resolver')).toBeInTheDocument();
+		expect(screen.getAllByRole('link')).toHaveLength(3);
+	});
+
+	it('drops the all-clear as soon as something is pending', () => {
+		render(
+			<NeedsAttention
+				pending={{ appointments: 0, vacations: 1, signatures: 0 }}
+				isLoading={false}
+			/>
+		);
+
+		expect(screen.queryByText('No hay nada esperándote')).not.toBeInTheDocument();
 	});
 
 	it('uses the singular for a single pending item', () => {
