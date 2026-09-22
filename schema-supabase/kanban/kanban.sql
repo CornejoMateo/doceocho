@@ -421,3 +421,6 @@ CREATE INDEX idx_kanban_lists_board ON kanban_lists(board_id);
 CREATE INDEX idx_cards_list_position ON kanban_cards(list_id, position);
 
 CREATE INDEX idx_files_card ON kanban_files(kanban_card_id);
+
+create index if not exists kanban_cards_title_trgm_idx on public.kanban_cards using gin (title gin_trgm_ops);
+create index if not exists kanban_cards_description_trgm_idx on public.kanban_cards using gin (description gin_trgm_ops);
