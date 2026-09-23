@@ -95,6 +95,7 @@ export function BalanceDetailsModal({
 		transactionFilesToUpload,
 		setTransactionFilesToUpload,
 		isSavingTransaction,
+		isDeletingTransaction,
 		transactionDate,
 		setTransactionDate,
 		transactionAmount,
@@ -301,81 +302,82 @@ export function BalanceDetailsModal({
 						</div>
 					</div>
 				)}
+
+				<TransactionFilesGallery
+					open={!!transactionForFiles}
+					transaction={transactionForFiles}
+					files={transactionFiles}
+					isLoadingFiles={isLoadingFiles}
+					isUploadingFiles={isUploadingFiles}
+					onUploadFiles={handleGalleryUpload}
+					onDeleteFile={handleDeleteTransactionFile}
+					onClose={handleCloseGallery}
+					formatCreatedAt={formatCreatedAt}
+				/>
+
+				<SettledReminderModal
+					isOpen={showSettledReminder}
+					onOpenChange={(open) => !open && dismissSettledReminder()}
+					onConfirm={handleMarkAsSettled}
+					isConfirming={isTogglingSettled}
+				/>
+
+				<AlertDialog open={isSettleConfirmOpen} onOpenChange={setIsSettleConfirmOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>
+								{currentBalance?.is_settled
+									? '¿Desmarcar esta cuenta corriente como saldada?'
+									: '¿Marcar esta cuenta corriente como saldada?'}
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								{currentBalance?.is_settled
+									? 'La cuenta corriente dejará de figurar como saldada.'
+									: 'La cuenta corriente pasará a figurar como saldada. Podés desmarcarla más adelante si es necesario.'}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={isTogglingSettled}>Cancelar</AlertDialogCancel>
+							<Button onClick={handleConfirmSettleToggle} disabled={isTogglingSettled}>
+								{isTogglingSettled
+									? 'Guardando...'
+									: currentBalance?.is_settled
+										? 'Desmarcar como saldado'
+										: 'Marcar como saldado'}
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+
+				<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
+							<AlertDialogDescription>
+								Esta acción no se puede deshacer. Se eliminará permanentemente la transacción
+								{transactionToDelete && (
+									<>
+										{' '}
+										de {formatCurrency(transactionToDelete.amount)} del{' '}
+										{formatCreatedAt(transactionToDelete.date)}
+									</>
+								)}
+								.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={isDeletingTransaction}>Cancelar</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={handleDeleteTransaction}
+								disabled={isDeletingTransaction}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							>
+								{isDeletingTransaction ? 'Eliminando...' : 'Eliminar'}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			</DialogContent>
-
-			<TransactionFilesGallery
-				open={!!transactionForFiles}
-				transaction={transactionForFiles}
-				files={transactionFiles}
-				isLoadingFiles={isLoadingFiles}
-				isUploadingFiles={isUploadingFiles}
-				onUploadFiles={handleGalleryUpload}
-				onDeleteFile={handleDeleteTransactionFile}
-				onClose={handleCloseGallery}
-				formatCreatedAt={formatCreatedAt}
-			/>
-
-			<SettledReminderModal
-				isOpen={showSettledReminder}
-				onOpenChange={(open) => !open && dismissSettledReminder()}
-				onConfirm={handleMarkAsSettled}
-				isConfirming={isTogglingSettled}
-			/>
-
-			<AlertDialog open={isSettleConfirmOpen} onOpenChange={setIsSettleConfirmOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>
-							{currentBalance?.is_settled
-								? '¿Desmarcar esta cuenta corriente como saldada?'
-								: '¿Marcar esta cuenta corriente como saldada?'}
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							{currentBalance?.is_settled
-								? 'La cuenta corriente dejará de figurar como saldada.'
-								: 'La cuenta corriente pasará a figurar como saldada. Podés desmarcarla más adelante si es necesario.'}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isTogglingSettled}>Cancelar</AlertDialogCancel>
-						<Button onClick={handleConfirmSettleToggle} disabled={isTogglingSettled}>
-							{isTogglingSettled
-								? 'Guardando...'
-								: currentBalance?.is_settled
-									? 'Desmarcar como saldado'
-									: 'Marcar como saldado'}
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-
-			<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
-						<AlertDialogDescription>
-							Esta acción no se puede deshacer. Se eliminará permanentemente la transacción
-							{transactionToDelete && (
-								<>
-									{' '}
-									de {formatCurrency(transactionToDelete.amount)} del{' '}
-									{formatCreatedAt(transactionToDelete.date)}
-								</>
-							)}
-							.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancelar</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={handleDeleteTransaction}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
-							Eliminar
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 		</Dialog>
 	);
 }

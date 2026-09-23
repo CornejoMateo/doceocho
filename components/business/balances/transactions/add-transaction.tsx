@@ -277,7 +277,7 @@ export function AddTransactionSection({
 					Cancelar
 				</Button>
 				<Button size="sm" onClick={onSave} disabled={saveDisabled}>
-					{isEditing ? 'Actualizar' : 'Guardar'}
+					{saveDisabled ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
 				</Button>
 			</div>
 		</div>

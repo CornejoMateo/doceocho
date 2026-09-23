@@ -41,6 +41,7 @@ export function useTransactionCrud(
 	const [editingTransaction, setEditingTransaction] = useState<BalanceTransaction | null>(null);
 	const [transactionFilesToUpload, setTransactionFilesToUpload] = useState<File[]>([]);
 	const [isSavingTransaction, setIsSavingTransaction] = useState(false);
+	const [isDeletingTransaction, setIsDeletingTransaction] = useState(false);
 	const [showSettledReminder, setShowSettledReminder] = useState(false);
 
 	const [isTogglingSettled, setIsTogglingSettled] = useState(false);
@@ -281,11 +282,18 @@ export function useTransactionCrud(
 
 		const beforeType = summary.type;
 
+		setIsDeletingTransaction(true);
+
+		const loadingToast = toast({
+			title: 'Eliminando transacción...',
+		});
+
 		try {
 			const { error } = await deleteTransaction(transactionToDelete.id);
 
 			if (error) {
-				toast({
+				loadingToast.update({
+					id: loadingToast.id,
 					variant: 'destructive',
 					title: 'Error al eliminar transacción',
 					description:
@@ -295,7 +303,8 @@ export function useTransactionCrud(
 				return;
 			}
 
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Transacción eliminada',
 				description: 'La transacción se ha eliminado exitosamente.',
 			});
@@ -304,7 +313,8 @@ export function useTransactionCrud(
 			detectSettledTransition(beforeType, freshTransactions);
 			onTransactionCreated?.();
 		} catch (error) {
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				variant: 'destructive',
 				title: 'Error inesperado',
 				description: translateError(error) || 'Ocurrió un error inesperado. Intente nuevamente.',
@@ -312,6 +322,7 @@ export function useTransactionCrud(
 		} finally {
 			setIsDeleteDialogOpen(false);
 			setTransactionToDelete(null);
+			setIsDeletingTransaction(false);
 		}
 	};
 
@@ -490,6 +501,7 @@ export function useTransactionCrud(
 		transactionFilesToUpload,
 		setTransactionFilesToUpload,
 		isSavingTransaction,
+		isDeletingTransaction,
 		transactionDate,
 		setTransactionDate,
 		transactionAmount,

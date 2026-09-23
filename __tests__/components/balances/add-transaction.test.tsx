@@ -123,7 +123,7 @@ describe('AddTransactionSection', () => {
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Guardar'));
+		fireEvent.click(screen.getByText('Guardando...'));
 		expect(onSave).not.toHaveBeenCalled();
 	});
 
@@ -142,7 +142,7 @@ describe('AddTransactionSection', () => {
 			<AddTransactionSection {...defaultProps} addingMode="transaction" saveDisabled={true} />
 		);
 
-		expect(screen.getByText('Guardar')).toBeDisabled();
+		expect(screen.getByText('Guardando...')).toBeDisabled();
 	});
 
 	it('shows payment method select for transactions', () => {
