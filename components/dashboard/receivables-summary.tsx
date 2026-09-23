@@ -36,7 +36,7 @@ export function ReceivablesSummary({ receivables, isLoading }: ReceivablesSummar
 								<p className="mt-1 text-xs text-muted-foreground">
 									{balancesCount === 0
 										? 'No hay cobros pendientes'
-										: `${balancesCount} ${balancesCount === 1 ? 'cobro' : 'cobros'} de ${clientsCount} ${clientsCount === 1 ? 'cliente' : 'clientes'}`}
+										: `${balancesCount} ${balancesCount === 1 ? 'cobro pendiente' : 'cobros pendientes'} de ${clientsCount} ${clientsCount === 1 ? 'cliente' : 'clientes'}`}
 								</p>
 							</>
 						)}
