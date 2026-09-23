@@ -148,10 +148,10 @@ export function BalanceDetailsModal({
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="!max-w-5xl !max-h-[90vh] overflow-y-auto">
-				<DialogHeader>
-					<DialogTitle>Detalle de la cuenta corriente</DialogTitle>
-					<DialogDescription>
+			<DialogContent className="w-[95vw] sm:w-full sm:max-w-5xl max-h-[92dvh] overflow-y-auto p-4 sm:p-6">
+				<DialogHeader className="text-left">
+					<DialogTitle className="text-lg sm:text-xl">Detalle de la cuenta corriente</DialogTitle>
+					<DialogDescription className="text-sm">
 						Información completa de la cuenta corriente, pagos realizados y estado de la obra.
 					</DialogDescription>
 				</DialogHeader>
@@ -161,16 +161,19 @@ export function BalanceDetailsModal({
 						<Spinner className="h-8 w-8 text-muted-foreground" />
 					</div>
 				) : (
-					<div className="space-y-6">
+					<div className="space-y-5 sm:space-y-6">
 						<div
-							className={`relative flex items-center justify-between gap-3 rounded-lg border p-3 ${
+							className={`relative flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${
 								currentBalance.is_settled ? 'border-green-500/40 bg-green-500/10' : ''
 							}`}
 						>
-							<span className="text-sm font-medium">Estado: {summary.type}</span>
+							<span className="text-base font-semibold sm:text-sm sm:font-medium">
+								Estado: {summary.type}
+							</span>
 							<Button
 								size="sm"
 								variant="outline"
+								className="h-10 w-full sm:h-8 sm:w-auto"
 								onClick={() => setIsSettleConfirmOpen(true)}
 								disabled={isTogglingSettled}
 							>
@@ -196,58 +199,21 @@ export function BalanceDetailsModal({
 							onUpdated={refreshBalance}
 						/>
 
-						<div className="border rounded-lg p-4">
-							<div className="flex items-center justify-between mb-3">
-								<h4 className="font-semibold">Notas de la cuenta corriente</h4>
-								{!isEditingNotes && (
-									<button
-										onClick={() => setIsEditingNotes(true)}
-										className="text-sm text-primary hover:underline"
-									>
-										{currentBalance.notes && String(currentBalance.notes).trim() !== ''
-											? 'Editar notas'
-											: 'Agregar notas'}
-									</button>
-								)}
+						<div className="rounded-lg border overflow-hidden">
+							<div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+								<h4 className="text-sm font-semibold sm:text-base">Transacciones</h4>
 							</div>
-							{isEditingNotes ? (
-								<div className="space-y-3">
-									<NotesInput
-										value={balanceNotes}
-										onChange={setBalanceNotes}
-										placeholder="Agregar notas sobre esta cuenta corriente (opcional)"
-										rows={3}
-										showLabel={false}
-									/>
-									<div className="flex justify-end gap-2">
-										<button
-											onClick={() => {
-												setIsEditingNotes(false);
-												setBalanceNotes(currentBalance.notes ?? '');
-											}}
-											className="px-4 py-2 text-sm border rounded-md hover:bg-secondary"
-										>
-											Cancelar
-										</button>
-										<button
-											onClick={handleUpdateBalanceNotes}
-											className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-										>
-											Guardar
-										</button>
-									</div>
-								</div>
-							) : (
-								<div>
-									{currentBalance.notes && currentBalance.notes.length > 0 ? (
-										<div className="text-sm text-muted-foreground whitespace-pre-wrap">
-											{currentBalance.notes}
-										</div>
-									) : (
-										<p className="text-sm text-muted-foreground italic">No hay notas agregadas</p>
-									)}
-								</div>
-							)}
+							<TransactionsTable
+								isLoading={isLoading}
+								transactions={transactions}
+								formatDate={formatCreatedAt}
+								onDeleteTransaction={(transaction) => {
+									setTransactionToDelete(transaction);
+									setIsDeleteDialogOpen(true);
+								}}
+								onEditTransaction={handleEditTransaction}
+								onViewFiles={handleViewTransactionFiles}
+							/>
 						</div>
 
 						<AddTransactionSection
@@ -280,18 +246,58 @@ export function BalanceDetailsModal({
 							}
 						/>
 
-						<div className="border rounded-lg">
-							<TransactionsTable
-								isLoading={isLoading}
-								transactions={transactions}
-								formatDate={formatCreatedAt}
-								onDeleteTransaction={(transaction) => {
-									setTransactionToDelete(transaction);
-									setIsDeleteDialogOpen(true);
-								}}
-								onEditTransaction={handleEditTransaction}
-								onViewFiles={handleViewTransactionFiles}
-							/>
+						<div className="border rounded-lg p-4">
+							<div className="flex items-center justify-between gap-2 mb-3">
+								<h4 className="font-semibold">Notas de la cuenta corriente</h4>
+								{!isEditingNotes && (
+									<button
+										onClick={() => setIsEditingNotes(true)}
+										className="shrink-0 text-sm text-primary hover:underline"
+									>
+										{currentBalance.notes && String(currentBalance.notes).trim() !== ''
+											? 'Editar notas'
+											: 'Agregar notas'}
+									</button>
+								)}
+							</div>
+							{isEditingNotes ? (
+								<div className="space-y-3">
+									<NotesInput
+										value={balanceNotes}
+										onChange={setBalanceNotes}
+										placeholder="Agregar notas sobre esta cuenta corriente (opcional)"
+										rows={3}
+										showLabel={false}
+									/>
+									<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+										<button
+											onClick={() => {
+												setIsEditingNotes(false);
+												setBalanceNotes(currentBalance.notes ?? '');
+											}}
+											className="w-full px-4 py-2 text-sm border rounded-md hover:bg-secondary sm:w-auto"
+										>
+											Cancelar
+										</button>
+										<button
+											onClick={handleUpdateBalanceNotes}
+											className="w-full px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 sm:w-auto"
+										>
+											Guardar
+										</button>
+									</div>
+								</div>
+							) : (
+								<div>
+									{currentBalance.notes && currentBalance.notes.length > 0 ? (
+										<div className="text-sm text-muted-foreground whitespace-pre-wrap">
+											{currentBalance.notes}
+										</div>
+									) : (
+										<p className="text-sm text-muted-foreground italic">No hay notas agregadas</p>
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 				)}
