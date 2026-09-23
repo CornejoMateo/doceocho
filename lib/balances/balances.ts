@@ -11,6 +11,7 @@ export type Balance = {
 	usd_current?: number | null;
 	client_id?: number | null;
 	notes?: string | null;
+	is_settled?: boolean;
 };
 
 export type BalanceWithBudget = Balance & {
@@ -223,6 +224,32 @@ export async function updateBalance(
 	const { data, error } = await supabase.from(TABLE).update(changes).eq('id', id).select().single();
 	return { data, error };
 }
+export async function markBalanceAsSettled(
+	id: number
+): Promise<{ data: Balance | null; error: any }> {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from(TABLE)
+		.update({ is_settled: true })
+		.eq('id', id)
+		.select()
+		.single();
+	return { data, error };
+}
+
+export async function unmarkBalanceAsSettled(
+	id: number
+): Promise<{ data: Balance | null; error: any }> {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from(TABLE)
+		.update({ is_settled: false })
+		.eq('id', id)
+		.select()
+		.single();
+	return { data, error };
+}
+
 export async function deleteBalance(id: number): Promise<{ data: null; error: any }> {
 	const supabase = getSupabaseClient();
 

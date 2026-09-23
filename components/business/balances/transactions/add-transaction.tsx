@@ -23,7 +23,7 @@ import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
 interface AddTransactionSectionProps {
-	addingMode: 'transaction' | 'extra' | null;
+	addingMode: 'transaction' | null;
 	transactionDate: Date;
 	onTransactionDateChange: (date: Date) => void;
 	transactionAmount: string;
@@ -41,7 +41,6 @@ interface AddTransactionSectionProps {
 	onCancel: () => void;
 	onSave: () => void;
 	onStartAddTransaction: () => void;
-	onStartAddExtra: () => void;
 	saveDisabled: boolean;
 	editingTransaction?: BalanceTransaction;
 	selectedFiles: File[];
@@ -68,7 +67,6 @@ export function AddTransactionSection({
 	onCancel,
 	onSave,
 	onStartAddTransaction,
-	onStartAddExtra,
 	saveDisabled,
 	editingTransaction,
 	selectedFiles,
@@ -104,15 +102,6 @@ export function AddTransactionSection({
 					<Plus className="h-4 w-4 mr-2" />
 					Agregar transacción
 				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					className="w-60 items-center flex justify-center"
-					onClick={onStartAddExtra}
-				>
-					<Plus className="h-4 w-4 mr-2" />
-					Agregar monto extra
-				</Button>
 			</div>
 		);
 	}
@@ -130,11 +119,7 @@ export function AddTransactionSection({
 		<div className="space-y-4 p-4 border rounded-lg min-w-0 overflow-hidden">
 			{' '}
 			<h3 className="text-sm font-semibold">
-				{isEditing
-					? 'Editar transacción'
-					: addingMode === 'extra'
-						? 'Nuevo monto extra'
-						: 'Nueva transacción'}
+				{isEditing ? 'Editar transacción' : 'Nueva transacción'}
 			</h3>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{' '}
@@ -198,25 +183,23 @@ export function AddTransactionSection({
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
-					{addingMode === 'transaction' && (
-						<div className="space-y-2">
-							<Label htmlFor="payment-method">Método de pago</Label>
-							<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-								<SelectTrigger id="payment-method">
-									<SelectValue placeholder="Seleccionar método" />
-								</SelectTrigger>
-								<SelectContent>
-									{PAYMENT_METHODS.map((method) => (
-										<SelectItem key={method.value} value={method.value}>
-											{method.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					)}
+					<div className="space-y-2">
+						<Label htmlFor="payment-method">Método de pago</Label>
+						<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+							<SelectTrigger id="payment-method">
+								<SelectValue placeholder="Seleccionar método" />
+							</SelectTrigger>
+							<SelectContent>
+								{PAYMENT_METHODS.map((method) => (
+									<SelectItem key={method.value} value={method.value}>
+										{method.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
-				{addingMode === 'transaction' && paymentMethod === 'bank_transfer' && (
+				{paymentMethod === 'bank_transfer' && (
 					<div className="space-y-2">
 						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
 						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>

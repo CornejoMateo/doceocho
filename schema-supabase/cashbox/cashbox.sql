@@ -268,11 +268,6 @@ as $$
 declare
     v_cash_box_id bigint;
 begin
-    -- if the transaction is an extra amount, then we don't need to create a cash box transaction
-    if coalesce(new.is_extra_amount, false) then
-        return new;
-    end if;
-
     -- Search for an open cash box
     select id
     into v_cash_box_id
