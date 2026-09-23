@@ -13,6 +13,28 @@ jest.mock('@/utils/format-date', () => ({
 	formatCreatedAt: jest.fn(() => '1 ene 2024'),
 }));
 
+// This suite covers how the form wires its fields. The date picker and the
+// client picker are shared components with their own tests, and both would
+// otherwise reach for Supabase.
+jest.mock('@/components/ui/date-picker', () => ({
+	DatePicker: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+		<input
+			type="date"
+			value={value}
+			onChange={(event) => onChange(event.target.value)}
+			aria-label="Fecha límite"
+		/>
+	),
+}));
+
+jest.mock('@/components/ui/client-select', () => ({
+	ClientSelect: () => <div data-testid="client-select" />,
+}));
+
+jest.mock('@/lib/works/works', () => ({
+	getWorksByClientId: jest.fn().mockResolvedValue({ data: [], error: null }),
+}));
+
 const mockCard: CardWithRelations = {
 	id: 1,
 	created_at: '2024-01-01T00:00:00Z',
@@ -24,6 +46,8 @@ const mockCard: CardWithRelations = {
 	priority: 'high',
 	completed_at: null,
 	color: null,
+	client_id: null,
+	work_id: null,
 	files: [],
 	list: { id: 1, name: 'To Do', created_at: '2024-01-01', board_id: 1 },
 };
@@ -144,6 +168,8 @@ describe('CardForm', () => {
 				description: 'A description',
 				due_date: '2024-12-31',
 				priority: 'high',
+				client_id: null,
+				work_id: null,
 			});
 		});
 		expect(onSaveSuccess).toHaveBeenCalled();

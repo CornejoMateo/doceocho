@@ -4,12 +4,24 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Plus, MoreVertical, Trash2 } from 'lucide-react';
+import { LayoutList, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { KanbanEmptyState } from '@/components/business/kanban/kanban-empty-state';
+import { applyBoardTemplate } from '@/lib/kanban/board-templates';
 import { useBoards } from '@/hooks/kanban/use-boards';
 import type { Board, BoardFormData } from '@/components/business/kanban/types';
 import { BoardCreationModal } from '@/components/business/kanban/board-creation-modal';
 import { BoardDeleteModal } from '@/components/business/kanban/board-delete-modal';
-import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
+import {
+	BoardSettingsModal,
+	type BoardSettingsChanges,
+} from '@/components/business/kanban/board-settings-modal';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { translateError } from '@/lib/error-translator';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -30,31 +42,51 @@ export default function KanbanPage() {
 		fetchBoards();
 	}, [fetchBoards]);
 
-	const handleCreateBoard = async (boardData: BoardFormData) => {
+	const handleCreateBoard = async (boardData: BoardFormData, templateId: string) => {
 		const { data, error } = await addBoard(boardData);
+
 		if (error) {
 			toast({
 				variant: 'destructive',
 				title: 'Error al crear tablero',
 				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
 			});
-		} else if (data) {
-			toast({ title: 'Tablero creado correctamente' });
+			return;
 		}
+
+		if (!data) return;
+
+		const { createdCount, failedNames } = await applyBoardTemplate(data.id, templateId);
+
+		// The board already exists; a template that only half applied is worth
+		// mentioning, but it is not a failure the user has to undo.
+		if (failedNames.length > 0) {
+			toast({
+				variant: 'destructive',
+				title: 'El tablero se creó, pero faltaron listas',
+				description: `No pudimos crear: ${failedNames.join(', ')}. Agregalas a mano.`,
+			});
+			return;
+		}
+
+		toast({
+			title: 'Tablero creado correctamente',
+			description:
+				createdCount > 0 ? `Se crearon ${createdCount} listas para que arranques.` : undefined,
+		});
 	};
 
 	const handleBoardClick = (boardId: number) => {
 		router.push(`/kanban/${boardId}`);
 	};
 
-	const handleEditBoard = (board: Board, e: React.MouseEvent) => {
-		e.stopPropagation();
+	const handleEditBoard = (board: Board) => {
 		setBoardToEdit(board);
 	};
 
-	const handleSaveBoardName = async (name: string) => {
+	const handleSaveBoardSettings = async (changes: BoardSettingsChanges) => {
 		if (boardToEdit) {
-			const { data, error } = await editBoard(boardToEdit.id, { name });
+			const { data, error } = await editBoard(boardToEdit.id, changes);
 			if (error) {
 				toast({
 					variant: 'destructive',
@@ -67,8 +99,7 @@ export default function KanbanPage() {
 		}
 	};
 
-	const handleDeleteBoard = (board: Board, e: React.MouseEvent) => {
-		e.stopPropagation();
+	const handleDeleteBoard = (board: Board) => {
 		setBoardToDelete(board);
 	};
 
@@ -118,19 +149,23 @@ export default function KanbanPage() {
 						<p className="text-destructive">Error: {translateError(error)}</p>
 					</div>
 				) : boards.length === 0 ? (
-					<div className="text-center py-12">
-						<p className="text-muted-foreground mb-4">No tienes tableros aún</p>
-						{isAuthorized && (
-							<Button
-								onClick={() => setIsCreateModalOpen(true)}
-								variant="outline"
-								className="gap-2"
-							>
-								<Plus className="h-4 w-4" />
-								Crear tu primer tablero
-							</Button>
-						)}
-					</div>
+					<KanbanEmptyState
+						icon={LayoutList}
+						title="Todavía no hay tableros"
+						description="Un tablero es un trabajo que querés seguir de principio a fin. Adentro creás listas (las etapas) y vas moviendo tarjetas de una a otra a medida que avanza."
+						action={
+							isAuthorized ? (
+								<Button
+									onClick={() => setIsCreateModalOpen(true)}
+									variant="outline"
+									className="gap-2"
+								>
+									<Plus className="h-4 w-4" />
+									Crear tu primer tablero
+								</Button>
+							) : undefined
+						}
+					/>
 				) : (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 						{boards.map((board) => (
@@ -143,25 +178,37 @@ export default function KanbanPage() {
 								<div className="flex items-start justify-between mb-2">
 									<h3 className="font-semibold text-lg">{board.name}</h3>
 									{isAuthorized && (
-										<div className="flex items-center gap-1">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-												onClick={(e) => handleDeleteBoard(board, e)}
-												title="Eliminar tablero"
-											>
-												<Trash2 className="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-6 w-6"
-												onClick={(e) => handleEditBoard(board, e)}
-												title="Editar nombre"
-											>
-												<MoreVertical className="h-4 w-4" />
-											</Button>
+										<div onClick={(event) => event.stopPropagation()}>
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-6 w-6"
+														aria-label={`Opciones de ${board.name}`}
+													>
+														<MoreVertical className="h-4 w-4" />
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuItem
+														onSelect={() => handleEditBoard(board)}
+														className="gap-2"
+													>
+														<Pencil className="h-4 w-4" />
+														Configuración
+													</DropdownMenuItem>
+													<DropdownMenuSeparator />
+													{/* Behind the menu so it is never one stray click away. */}
+													<DropdownMenuItem
+														onSelect={() => handleDeleteBoard(board)}
+														className="gap-2 text-destructive focus:text-destructive"
+													>
+														<Trash2 className="h-4 w-4" />
+														Eliminar tablero
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
 										</div>
 									)}
 								</div>
@@ -193,11 +240,11 @@ export default function KanbanPage() {
 			/>
 
 			{/* Board Edit Modal */}
-			<BoardEditModal
+			<BoardSettingsModal
 				board={boardToEdit}
 				open={boardToEdit !== null}
-				onOpenChange={(open) => !open && setBoardToEdit(null)}
-				onSave={handleSaveBoardName}
+				onOpenChange={(open: boolean) => !open && setBoardToEdit(null)}
+				onSave={handleSaveBoardSettings}
 			/>
 		</DashboardLayout>
 	);

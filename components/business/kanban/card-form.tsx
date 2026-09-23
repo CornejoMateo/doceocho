@@ -12,7 +12,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Clock, Paperclip, Loader2 } from 'lucide-react';
+import { ArrowUpRight, Clock, Loader2, Paperclip, Trash2 } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
@@ -20,6 +20,10 @@ import { useAuth } from '@/components/provider/auth-provider';
 import type { CardWithRelations } from '@/components/business/kanban/types';
 import type { Card } from '@/components/business/kanban/types';
 import { PRIORITY_OPTIONS, Priority } from '@/constants/kanban/priority';
+import Link from 'next/link';
+import { DatePicker } from '@/components/ui/date-picker';
+import { CardLinksFields, type CardLinks } from '@/components/business/kanban/card-links-fields';
+import { formatCardClientName, formatCardWorkName } from '@/helpers/kanban/card-links';
 
 export interface CardFormHandle {
 	requestClose: () => void;
@@ -48,6 +52,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	const [description, setDescription] = useState('');
 	const [dueDate, setDueDate] = useState('');
 	const [priority, setPriority] = useState<Priority>('none');
+	const [links, setLinks] = useState<CardLinks>({ clientId: null, workId: null });
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -68,8 +73,17 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 		setDescription(card.description || '');
 		setDueDate(card.due_date?.split('T')[0] || '');
 		setPriority(card.priority || 'none');
+		setLinks({ clientId: card.client_id ?? null, workId: card.work_id ?? null });
 		setHasUnsavedChanges(false);
-	}, [card.id, card.title, card.description, card.due_date, card.priority]);
+	}, [
+		card.id,
+		card.title,
+		card.description,
+		card.due_date,
+		card.priority,
+		card.client_id,
+		card.work_id,
+	]);
 
 	const handleTitleChange = (value: string) => {
 		setTitle(value);
@@ -91,6 +105,11 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 		setHasUnsavedChanges(true);
 	};
 
+	const handleLinksChange = (value: CardLinks) => {
+		setLinks(value);
+		setHasUnsavedChanges(true);
+	};
+
 	const handleSave = async () => {
 		try {
 			const result = await updateCard({
@@ -98,6 +117,8 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 				description: description || null,
 				due_date: dueDate || null,
 				priority,
+				client_id: links.clientId,
+				work_id: links.workId,
 			});
 			if (result === null) {
 				toast({
@@ -198,15 +219,40 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 						</div>
 
 						<div>
+							<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground">
+								De qué se trata
+							</h3>
+							{isAuthorized ? (
+								<CardLinksFields value={links} onChange={handleLinksChange} />
+							) : (
+								<div className="space-y-1 text-sm">
+									<p>{formatCardClientName(card.client) || 'Sin cliente'}</p>
+									<p className="text-muted-foreground">
+										{formatCardWorkName(card.work) || 'Sin obra'}
+									</p>
+								</div>
+							)}
+							{card.client_id && (
+								<Link
+									href={`/clients?clientId=${card.client_id}`}
+									className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+								>
+									Ver la ficha del cliente
+									<ArrowUpRight className="h-3 w-3" />
+								</Link>
+							)}
+						</div>
+
+						<div>
 							<h3 className="font-semibold mb-2 text-sm uppercase text-muted-foreground flex items-center gap-2">
 								<Clock className="h-4 w-4" />
 								Fecha límite
 							</h3>
 							{isAuthorized ? (
-								<Input
-									type="date"
+								<DatePicker
 									value={dueDate}
-									onChange={(e) => handleDueDateChange(e.target.value)}
+									onChange={handleDueDateChange}
+									placeholder="Sin fecha límite"
 									className="max-w-xs"
 								/>
 							) : (
@@ -285,12 +331,15 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 										</div>
 									</div>
 								) : (
+									/* Muted on purpose: destructive, rarely wanted, and a stray
+									   click here used to be one step from deleting the card. */
 									<Button
-										variant="destructive"
-										className="w-full"
+										variant="ghost"
+										className="w-full gap-2 text-muted-foreground hover:text-destructive"
 										size="sm"
 										onClick={() => setShowDeleteConfirm(true)}
 									>
+										<Trash2 className="h-4 w-4" />
 										Eliminar tarjeta
 									</Button>
 								)}

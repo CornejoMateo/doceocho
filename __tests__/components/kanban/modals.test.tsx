@@ -1,7 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardCreationModal } from '@/components/business/kanban/board-creation-modal';
-import { BoardEditModal } from '@/components/business/kanban/board-edit-modal';
 import { BoardSettingsModal } from '@/components/business/kanban/board-settings-modal';
 import { BoardDeleteModal } from '@/components/business/kanban/board-delete-modal';
 import { CardCreationModal } from '@/components/business/kanban/card-creation-modal';
@@ -32,11 +31,33 @@ describe('BoardCreationModal', () => {
 		await userEvent.type(screen.getByPlaceholderText('Ej: Proyecto Marketing'), 'New Board');
 		fireEvent.click(screen.getByText('Crear tablero'));
 
-		expect(onCreate).toHaveBeenCalledWith({
-			name: 'New Board',
-			description: undefined,
-			color: '#4F5C4D',
-		});
+		// A new board starts from a template, so its lists are created with it.
+		expect(onCreate).toHaveBeenCalledWith(
+			{
+				name: 'New Board',
+				description: undefined,
+				color: '#4F5C4D',
+			},
+			'simple'
+		);
+	});
+
+	it('passes the chosen template instead of the default one', async () => {
+		const onCreate = jest.fn();
+		render(<BoardCreationModal open={true} onOpenChange={jest.fn()} onCreate={onCreate} />);
+
+		await userEvent.type(screen.getByPlaceholderText('Ej: Proyecto Marketing'), 'Obra nueva');
+		fireEvent.click(screen.getByText('Producción de obra'));
+		fireEvent.click(screen.getByText('Crear tablero'));
+
+		expect(onCreate).toHaveBeenCalledWith(expect.anything(), 'production');
+	});
+
+	it('offers a blank option for people who want to build their own lists', () => {
+		render(<BoardCreationModal open={true} onOpenChange={jest.fn()} onCreate={jest.fn()} />);
+
+		expect(screen.getByText('En blanco')).toBeInTheDocument();
+		expect(screen.getByText('Por hacer → En proceso → Terminado')).toBeInTheDocument();
 	});
 
 	it('does not call onCreate when name is empty', () => {
@@ -63,45 +84,10 @@ describe('BoardCreationModal', () => {
 	});
 });
 
-describe('BoardEditModal', () => {
-	it('pre-fills board name', () => {
-		render(
-			<BoardEditModal board={mockBoard} open={true} onOpenChange={jest.fn()} onSave={jest.fn()} />
-		);
-
-		expect(screen.getByDisplayValue('Test Board')).toBeInTheDocument();
-	});
-
-	it('calls onSave with trimmed name', async () => {
-		const onSave = jest.fn();
-		render(
-			<BoardEditModal board={mockBoard} open={true} onOpenChange={jest.fn()} onSave={onSave} />
-		);
-
-		const input = screen.getByDisplayValue('Test Board');
-		await userEvent.clear(input);
-		await userEvent.type(input, 'Updated Board');
-		fireEvent.click(screen.getByText('Guardar'));
-
-		expect(onSave).toHaveBeenCalledWith('Updated Board');
-	});
-
-	it('does not call onSave when name is empty', () => {
-		render(
-			<BoardEditModal
-				board={{ ...mockBoard, name: '' }}
-				open={true}
-				onOpenChange={jest.fn()}
-				onSave={jest.fn()}
-			/>
-		);
-
-		expect(screen.getByText('Guardar')).toBeDisabled();
-	});
-});
-
 describe('BoardSettingsModal', () => {
-	it('pre-fills tolerance values from board', () => {
+	// Name, description and colour used to live in a separate modal; the board
+	// settings now cover everything about the board in one place.
+	it('pre-fills every board field', () => {
 		render(
 			<BoardSettingsModal
 				board={mockBoard}
@@ -111,11 +97,12 @@ describe('BoardSettingsModal', () => {
 			/>
 		);
 
+		expect(screen.getByDisplayValue('Test Board')).toBeInTheDocument();
 		expect(screen.getByDisplayValue('3')).toBeInTheDocument();
 		expect(screen.getByDisplayValue('1')).toBeInTheDocument();
 	});
 
-	it('calls onSave with tolerance values', () => {
+	it('saves the name together with the alert tolerances', () => {
 		const onSave = jest.fn();
 		render(
 			<BoardSettingsModal board={mockBoard} open={true} onOpenChange={jest.fn()} onSave={onSave} />
@@ -124,9 +111,41 @@ describe('BoardSettingsModal', () => {
 		fireEvent.click(screen.getByText('Guardar'));
 
 		expect(onSave).toHaveBeenCalledWith({
+			name: 'Test Board',
+			description: null,
+			color: '#fff',
 			due_date_tolerance_yellow: 3,
 			due_date_tolerance_red: 1,
 		});
+	});
+
+	it('saves an edited name', async () => {
+		const onSave = jest.fn();
+		render(
+			<BoardSettingsModal board={mockBoard} open={true} onOpenChange={jest.fn()} onSave={onSave} />
+		);
+
+		const input = screen.getByDisplayValue('Test Board');
+		await userEvent.clear(input);
+		await userEvent.type(input, 'Updated Board');
+		fireEvent.click(screen.getByText('Guardar'));
+
+		expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'Updated Board' }));
+	});
+
+	it('cannot be saved without a name', async () => {
+		render(
+			<BoardSettingsModal
+				board={mockBoard}
+				open={true}
+				onOpenChange={jest.fn()}
+				onSave={jest.fn()}
+			/>
+		);
+
+		await userEvent.clear(screen.getByDisplayValue('Test Board'));
+
+		expect(screen.getByText('Guardar')).toBeDisabled();
 	});
 
 	it('uses defaults when board is null', () => {

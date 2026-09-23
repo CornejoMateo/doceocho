@@ -1,6 +1,18 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { KanbanList } from '@/components/business/kanban/kanban-list';
 import { useAuth } from '@/components/provider/auth-provider';
+
+jest.mock('@/components/ui/dropdown-menu', () => ({
+	DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
+	DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
+	DropdownMenuContent: ({ children }: any) => <div data-testid="dropdown-content">{children}</div>,
+	DropdownMenuItem: ({ children, onSelect }: any) => (
+		<button type="button" onClick={onSelect}>
+			{children}
+		</button>
+	),
+	DropdownMenuSeparator: () => <hr />,
+}));
 
 jest.mock('@/components/provider/auth-provider', () => ({
 	useAuth: jest.fn(),
@@ -87,6 +99,8 @@ describe('KanbanList', () => {
 				priority: 'none' as const,
 				completed_at: null,
 				color: null,
+				client_id: null,
+				work_id: null,
 			},
 			{
 				id: 2,
@@ -99,6 +113,8 @@ describe('KanbanList', () => {
 				priority: 'none' as const,
 				completed_at: null,
 				color: null,
+				client_id: null,
+				work_id: null,
 			},
 		];
 
@@ -129,6 +145,8 @@ describe('KanbanList', () => {
 				priority: 'none' as const,
 				completed_at: null,
 				color: null,
+				client_id: null,
+				work_id: null,
 			},
 		];
 
@@ -156,10 +174,29 @@ describe('KanbanList', () => {
 		});
 	});
 
-	it('opens edit modal when menu button is clicked', () => {
+	// Renaming and deleting a list both sit behind the options menu now, so a
+	// stray click on the header cannot delete a list any more.
+	it('opens the edit modal from the options menu', () => {
 		render(<KanbanList list={mockList} cards={[]} {...defProps} />);
 
-		fireEvent.click(screen.getByRole('button', { name: /opciones de la lista/i }));
+		fireEvent.click(screen.getByText('Cambiar nombre'));
+
 		expect(screen.getAllByText('Editar nombre de la lista').length).toBeGreaterThan(0);
+	});
+
+	it('keeps deleting a list inside the options menu', () => {
+		render(<KanbanList list={mockList} cards={[]} {...defProps} />);
+
+		const menu = screen.getByTestId('dropdown-content');
+
+		expect(within(menu).getByText('Eliminar lista')).toBeInTheDocument();
+		expect(within(menu).getByText('Cambiar nombre')).toBeInTheDocument();
+	});
+
+	it('explains what a card is when the list is empty', () => {
+		render(<KanbanList list={mockList} cards={[]} {...defProps} />);
+
+		expect(screen.getByText('No hay tarjetas')).toBeInTheDocument();
+		expect(screen.getByText(/cada tarjeta es un trabajo/i)).toBeInTheDocument();
 	});
 });

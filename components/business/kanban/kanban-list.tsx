@@ -1,7 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MoreVertical, Plus, User, Trash2 } from 'lucide-react';
+import { MoreVertical, Pencil, Plus, StickyNote, Trash2, User } from 'lucide-react';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { KanbanEmptyState } from './kanban-empty-state';
 import { KanbanCard } from './kanban-card';
 import { useCards } from '@/hooks/kanban/use-cards';
 import { ListEditModal } from './list-edit-modal';
@@ -16,6 +24,7 @@ import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import type { Client } from '@/lib/clients/clients';
 import type { List, Card, CardFormData } from './types';
+import { ClientSelect } from '@/components/ui/client-select';
 
 function DroppableList({
 	listId,
@@ -155,21 +164,27 @@ export function KanbanList({
 
 	const handleCreateFromClient = async () => {
 		if (!selectedClient) return;
-		const client = clients.find((c) => c.id === selectedClient);
-		if (client) {
-			const title = `${client.name || ''} ${client.last_name || ''}`.trim();
-			const { data, error } = await addCard({ title });
-			if (error) {
-				toast({
-					variant: 'destructive',
-					title: 'Error al crear tarjeta',
-					description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
-				});
-			} else if (data) {
-				toast({ title: 'Tarjeta creada correctamente' });
-				onCreateCard({ title });
-			}
+
+		const client = clients.find((candidate) => candidate.id === selectedClient);
+		if (!client) return;
+
+		// The name seeds the title, but the link is what the system keeps.
+		const title = [client.last_name, client.name].filter(Boolean).join(' ').trim() || 'Sin nombre';
+		const newCard: CardFormData = { title, client_id: client.id };
+
+		const { data, error } = await addCard(newCard);
+
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error al crear tarjeta',
+				description: translateError(error) || 'Ocurrió un error, intenta de nuevo.',
+			});
+		} else if (data) {
+			toast({ title: 'Tarjeta creada correctamente' });
+			onCreateCard(newCard);
 		}
+
 		setShowCreateModal(false);
 	};
 
@@ -220,26 +235,33 @@ export function KanbanList({
 				<div className="flex items-center gap-1">
 					<span className="text-xs text-muted-foreground">{cardsToUse.length}</span>
 					{isAuthorized && (
-						<>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-6 w-6"
-								aria-label="Opciones de la lista"
-								onClick={handleEditList}
-							>
-								<MoreVertical className="h-4 w-4" />
-							</Button>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-								onClick={handleDeleteList}
-								title="Eliminar lista"
-							>
-								<Trash2 className="h-4 w-4" />
-							</Button>
-						</>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-6 w-6"
+									aria-label="Opciones de la lista"
+								>
+									<MoreVertical className="h-4 w-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem onSelect={handleEditList} className="gap-2">
+									<Pencil className="h-4 w-4" />
+									Cambiar nombre
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								{/* Behind the menu so it is never one stray click away. */}
+								<DropdownMenuItem
+									onSelect={handleDeleteList}
+									className="gap-2 text-destructive focus:text-destructive"
+								>
+									<Trash2 className="h-4 w-4" />
+									Eliminar lista
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					)}
 				</div>
 			</div>
@@ -255,9 +277,12 @@ export function KanbanList({
 						<p className="text-xs text-muted-foreground">Cargando...</p>
 					</div>
 				) : cardsToUse.length === 0 ? (
-					<div className="text-center py-4">
-						<p className="text-xs text-muted-foreground">No hay tarjetas</p>
-					</div>
+					<KanbanEmptyState
+						size="sm"
+						icon={StickyNote}
+						title="No hay tarjetas"
+						description="Cada tarjeta es un trabajo. Arrastralas entre listas para mover el avance."
+					/>
 				) : (
 					cardsToUse.map((card, index) => (
 						<SortableCard
@@ -312,18 +337,14 @@ export function KanbanList({
 						<div className="space-y-4">
 							<div>
 								<label className="text-sm font-medium mb-2 block">Seleccionar cliente</label>
-								<select
-									value={selectedClient || ''}
-									onChange={(e) => setSelectedClient(Number(e.target.value))}
-									className="w-full p-2 border rounded"
-								>
-									<option value="">Seleccionar...</option>
-									{clients.map((client) => (
-										<option key={client.id} value={client.id}>
-											{client.name} {client.last_name}
-										</option>
-									))}
-								</select>
+								<ClientSelect
+									value={selectedClient}
+									onValueChange={(clientId) => setSelectedClient(clientId)}
+									placeholder="Buscar cliente..."
+								/>
+								<p className="mt-2 text-xs text-muted-foreground">
+									La tarjeta queda vinculada al cliente, no solo con su nombre.
+								</p>
 							</div>
 							<div className="flex gap-2">
 								<Button
