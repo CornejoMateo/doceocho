@@ -421,7 +421,10 @@ export function WorksOpenings() {
 			<ClientDetailsDialog
 				client={selectedClientForDialog}
 				isOpen={isClientDialogOpen}
-				onClose={() => setIsClientDialogOpen(false)}
+				onClose={() => {
+					setIsClientDialogOpen(false);
+					setLoadingClientWorkId(null);
+				}}
 				initialTab="works"
 				onClientDataLoaded={() => setLoadingClientWorkId(null)}
 			/>

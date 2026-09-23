@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UserRole } from '@/constants/users/user-role';
@@ -97,6 +97,10 @@ async function fetchProfile(token: string): Promise<SessionUser | null> {
 			uid: json.data.uid_user || '',
 		};
 	} catch (err) {
+		if (err instanceof DOMException && err.name === 'AbortError') {
+			throw new AuthTimeoutError();
+		}
+
 		console.error('[API /me] fetch failed or timed out', err);
 		return null;
 	} finally {
@@ -110,8 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [initializing, setInitializing] = useState(true);
 	const supabase = getSupabaseClient();
 
+	const authRequestRef = useRef(0);
 	const router = useRouter();
 	const loadProfile = useCallback(async () => {
+		const requestId = ++authRequestRef.current;
+
 		const {
 			data: { session },
 			error,
@@ -131,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				hasUser: !!user,
 			});
 
-			if (!user) {
+			if (!user && authRequestRef.current === requestId) {
 				setUser(null);
 			}
 
@@ -141,13 +148,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		try {
 			const profile = await fetchProfile(session.access_token);
 
-			if (profile) {
-				setUser(profile);
-			} else {
+			if (!profile) {
 				console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
 				return;
 			}
+
+			if (authRequestRef.current === requestId) {
+				setUser(profile);
+			}
 		} catch (err) {
+			if (err instanceof AuthTimeoutError) {
+				throw err;
+			}
+
 			console.error('Error loading profile:', err);
 		}
 	}, [supabase]);
@@ -169,6 +182,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 						} catch (err) {
 							if (err instanceof AuthTimeoutError) {
 								console.error('[AUTH] loadProfile timed out', err);
+
+								authRequestRef.current++;
 
 								if (!cancelled) {
 									setUser(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/provider/auth-provider';
 import { useUsers } from '@/components/provider/users-provider';
@@ -15,6 +15,7 @@ import { EmployeesTabValue, TABS } from '@/constants/employees/employees';
 export function EmployeesManagement() {
 	const { user } = useAuth();
 	const searchParams = useSearchParams();
+	const router = useRouter();
 
 	const isAdmin = user?.role === 'Admin';
 	const { users } = useUsers();
@@ -23,11 +24,17 @@ export function EmployeesManagement() {
 
 	const visibleTabs = TABS.filter((tab) => tab.roles.includes(user.role as UserRole));
 	const requestedTab = searchParams.get('tab') ?? '';
-	const initialTab = visibleTabs.some((tab) => tab.value === requestedTab)
+	const activeTab = visibleTabs.some((tab) => tab.value === requestedTab)
 		? requestedTab
 		: 'fichajes';
 
 	const isVisible = (value: EmployeesTabValue) => visibleTabs.some((tab) => tab.value === value);
+
+	const setTab = (tab: string) => {
+		const params = new URLSearchParams(searchParams.toString());
+		params.set('tab', tab);
+		router.replace(`?${params.toString()}`, { scroll: false });
+	};
 
 	return (
 		<div className="space-y-6">
@@ -40,7 +47,7 @@ export function EmployeesManagement() {
 				</p>
 			</div>
 
-			<Tabs defaultValue={initialTab} className="min-w-0 space-y-6">
+			<Tabs value={activeTab} onValueChange={setTab} className="min-w-0 space-y-6">
 				{visibleTabs.length > 1 && (
 					<TabsList className="flex-wrap h-auto justify-start gap-1">
 						{visibleTabs.map((tab) => (
