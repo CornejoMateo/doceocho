@@ -62,32 +62,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 	const filteredNavigation = useMemo(() => getNavigationForRole(user?.role), [user?.role]);
 
-	const homeRouteByRole = useMemo(() => {
-		return {
-			Admin: '/',
-			Taller: '/supplies',
-			QR: '/clock-in',
-		} as Record<UserRole, string>;
-	}, []);
-
-	const filteredNavigation = useMemo(() => {
-		if (!user?.role) return navigation;
-		const allowedNames = allowedByRole[user.role] ?? [];
-		return navigation.filter((item) => allowedNames.includes(item.name));
-	}, [user?.role, allowedByRole]);
-
-	const isRouteAllowed = (href: string) => {
-		if (!user?.role) return false;
-		const allowedNames = allowedByRole[user.role] ?? [];
-
-		// A module owns its sub-routes: /kanban/37 belongs to /kanban. The most
-		// specific match wins, so a nested route is never checked against '/'.
-		const mainItem = navigation
-			.filter((item) => item.href === href || href.startsWith(`${item.href}/`))
-			.sort((a, b) => b.href.length - a.href.length)[0];
-
-		return Boolean(mainItem && allowedNames.includes(mainItem.name));
-	};
+	const isRouteAllowed = useCallback(
+		(href: string) => isRouteAllowedForRole(href, user?.role),
+		[user?.role]
+	);
 
 	const getHomeRoute = useMemo(() => {
 		if (!user?.role) return '/login';
