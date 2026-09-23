@@ -275,7 +275,7 @@ describe('WorksList', () => {
 		expect(createButtons.length).toBeGreaterThan(0);
 	});
 
-	it('hides "Saldos" button when onOpenBalance is not provided', () => {
+	it('hides "Cuentas corrientes" button when onOpenBalance is not provided', () => {
 		render(
 			<WorksList
 				works={mockWorks.slice(0, 1)}
@@ -285,10 +285,10 @@ describe('WorksList', () => {
 			/>
 		);
 
-		expect(screen.queryByText('Saldos')).not.toBeInTheDocument();
+		expect(screen.queryByText('Cuentas corrientes')).not.toBeInTheDocument();
 	});
 
-	it('renders "Saldos" button when onOpenBalance is provided', () => {
+	it('renders "Cuentas corrientes" button when onOpenBalance is provided', () => {
 		const onOpenBalance = jest.fn();
 		render(
 			<WorksList
@@ -301,10 +301,10 @@ describe('WorksList', () => {
 			/>
 		);
 
-		expect(screen.getByText('Saldos')).toBeInTheDocument();
+		expect(screen.getByText('Cuentas corrientes')).toBeInTheDocument();
 	});
 
-	it('shows "No hay saldos asociados" when the work has no balances', () => {
+	it('shows "No hay cuentas corrientes asociadas" when the work has no balances', () => {
 		const onOpenBalance = jest.fn();
 		render(
 			<WorksList
@@ -317,8 +317,8 @@ describe('WorksList', () => {
 			/>
 		);
 
-		expect(screen.getByText('Saldos de la obra')).toBeInTheDocument();
-		expect(screen.getByText('No hay saldos asociados')).toBeInTheDocument();
+		expect(screen.getByText('Cuentas corrientes de la obra')).toBeInTheDocument();
+		expect(screen.getByText('No hay cuentas corrientes asociadas')).toBeInTheDocument();
 	});
 
 	it('shows the balances associated with the work', () => {

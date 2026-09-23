@@ -17,6 +17,8 @@ jest.mock('@/lib/balances/balance_transactions', () => ({
 
 jest.mock('@/lib/balances/balances', () => ({
 	updateBalance: jest.fn(),
+	markBalanceAsSettled: jest.fn(),
+	unmarkBalanceAsSettled: jest.fn(),
 }));
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -34,12 +36,10 @@ jest.mock('@/helpers/balances/balance-calculations', () => ({
 		budgetArsCurrent: 0,
 		totalPaidArs: 0,
 		totalPaidUsd: 0,
-		totalExtraArs: 0,
-		totalExtraUsd: 0,
 		remainingArs: 0,
 		remainingUsd: 0,
 		progressPercentage: 0,
-		type: 'Cancelado',
+		type: 'Saldado',
 	})),
 }));
 
@@ -170,31 +170,6 @@ describe('useTransactionCrud', () => {
 		});
 
 		expect(mockUploadFiles).toHaveBeenCalledWith(1, [expect.any(File)]);
-	});
-
-	it('creates an extra amount successfully', async () => {
-		(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
-
-		const { result } = renderHook(() =>
-			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
-		);
-
-		await act(async () => {});
-
-		act(() => {
-			result.current.setTransactionAmount('500');
-			result.current.setQuoteUsd('1000');
-		});
-
-		await act(async () => {
-			await result.current.handleAddTransaction(true);
-		});
-
-		expect(createTransaction).toHaveBeenCalledWith(
-			expect.objectContaining({ is_extra_amount: true })
-		);
-		expect(result.current.isSavingTransaction).toBe(false);
-		expect(mockOnTransactionCreated).toHaveBeenCalled();
 	});
 
 	it('deletes a transaction successfully', async () => {
@@ -345,12 +320,12 @@ describe('useTransactionCrud', () => {
 		expect(result.current.transactionFilesToUpload).toEqual([]);
 	});
 
-	it('computes totalPaid and totalPaidUSD from regular transactions, excluding extras', async () => {
+	it('computes totalPaid and totalPaidUSD from all transactions', async () => {
 		(getTransactionsByBalanceId as jest.Mock).mockResolvedValue({
 			data: [
-				{ amount: 1000, usd_amount: 50, is_extra_amount: false },
-				{ amount: 2000, usd_amount: 100, is_extra_amount: false },
-				{ amount: 500, usd_amount: 25, is_extra_amount: true },
+				{ amount: 1000, usd_amount: 50 },
+				{ amount: 2000, usd_amount: 100 },
+				{ amount: 500, usd_amount: 25 },
 			],
 			error: null,
 		});
@@ -361,9 +336,126 @@ describe('useTransactionCrud', () => {
 
 		await act(async () => {});
 
-		expect(result.current.totalPaid).toBe(3000);
-		expect(result.current.totalPaidUSD).toBe(150);
-		expect(result.current.totalExtraArs).toBe(500);
-		expect(result.current.totalExtraUsd).toBe(25);
+		expect(result.current.totalPaid).toBe(3500);
+		expect(result.current.totalPaidUSD).toBe(175);
+	});
+
+	describe('loading and refetch behavior', () => {
+		const renderWithBalance = (balance: any) =>
+			renderHook(
+				({ balance: b }) => useTransactionCrud(b, true, mockUploadFiles, mockOnTransactionCreated),
+				{ initialProps: { balance } }
+			);
+
+		it('does not refetch when the parent passes a new balance object with the same id', async () => {
+			const { rerender } = renderWithBalance({ ...mockBalance });
+
+			await act(async () => {});
+			expect(getTransactionsByBalanceId).toHaveBeenCalledTimes(1);
+
+			// This is what refreshBalance() in balance-details-modal.tsx does after a
+			// mutation: getBalanceById -> setCurrentBalance(data) -> brand new object,
+			// same id. It must not trigger a second load.
+			await act(async () => {
+				rerender({ balance: { ...mockBalance } });
+			});
+
+			expect(getTransactionsByBalanceId).toHaveBeenCalledTimes(1);
+		});
+
+		it('loads transactions exactly twice for the full add-transaction flow', async () => {
+			(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 99 }, error: null });
+
+			const { result, rerender } = renderWithBalance({ ...mockBalance });
+
+			// 1st load: initial mount.
+			await act(async () => {});
+			expect(getTransactionsByBalanceId).toHaveBeenCalledTimes(1);
+
+			act(() => {
+				result.current.setTransactionAmount('500');
+				result.current.setQuoteUsd('1000');
+			});
+
+			// 2nd load: inside handleAddTransaction, required by detectSettledTransition.
+			await act(async () => {
+				await result.current.handleAddTransaction();
+			});
+
+			// Parent reacts to onTransactionCreated by re-fetching the balance.
+			await act(async () => {
+				rerender({ balance: { ...mockBalance } });
+			});
+
+			expect(getTransactionsByBalanceId).toHaveBeenCalledTimes(2);
+		});
+
+		it('still refetches when the balance id actually changes', async () => {
+			const { rerender } = renderWithBalance({ ...mockBalance });
+
+			await act(async () => {});
+			expect(getTransactionsByBalanceId).toHaveBeenCalledTimes(1);
+
+			await act(async () => {
+				rerender({ balance: { ...mockBalance, id: 2 } });
+			});
+
+			expect(getTransactionsByBalanceId).toHaveBeenCalledTimes(2);
+			expect(getTransactionsByBalanceId).toHaveBeenLastCalledWith(2);
+		});
+
+		it('keeps isInitialLoading true until the first load settles', async () => {
+			let resolveLoad: (value: any) => void = () => {};
+			(getTransactionsByBalanceId as jest.Mock).mockReturnValue(
+				new Promise((resolve) => {
+					resolveLoad = resolve;
+				})
+			);
+
+			const { result } = renderWithBalance({ ...mockBalance });
+
+			// First paint: totals/summary are still derived from an empty array, so the
+			// modal must be gated.
+			expect(result.current.isInitialLoading).toBe(true);
+
+			await act(async () => {
+				resolveLoad({ data: [{ id: 1, amount: 500, usd_amount: 5 }], error: null });
+			});
+
+			expect(result.current.isInitialLoading).toBe(false);
+		});
+
+		it('does not re-gate the whole modal while a later reload is in flight', async () => {
+			const { result } = renderWithBalance({ ...mockBalance });
+
+			await act(async () => {});
+			expect(result.current.isInitialLoading).toBe(false);
+
+			// Make the next load hang, simulating a reload triggered by a mutation.
+			let resolveReload: (value: any) => void = () => {};
+			(getTransactionsByBalanceId as jest.Mock).mockReturnValue(
+				new Promise((resolve) => {
+					resolveReload = resolve;
+				})
+			);
+
+			let pending: Promise<unknown> = Promise.resolve();
+			act(() => {
+				pending = result.current.loadTransactions();
+			});
+
+			// isLoading drives only the transactions table spinner; the modal-wide gate
+			// must stay open so the whole dialog does not flash on every mutation.
+			expect(result.current.isLoading).toBe(true);
+			expect(result.current.isInitialLoading).toBe(false);
+
+			await act(async () => {
+				resolveReload({ data: [], error: null });
+				await pending;
+			});
+
+			expect(result.current.isLoading).toBe(false);
+			expect(result.current.isInitialLoading).toBe(false);
+		});
 	});
 });

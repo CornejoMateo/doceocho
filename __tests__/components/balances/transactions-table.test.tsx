@@ -20,7 +20,6 @@ const mockTransactions = [
 		quote_usd: 1000,
 		payment_method: 'bank_transfer',
 		notes: 'Pago inicial',
-		is_extra_amount: false,
 		bank_account_id: 7,
 		bank_account: { id: 7, name: 'Cuenta Principal', bank: 'Santander' },
 	},
@@ -32,7 +31,6 @@ const mockTransactions = [
 		quote_usd: 1000,
 		payment_method: 'cash',
 		notes: 'Compra de insumos',
-		is_extra_amount: true,
 		bank_account_id: null,
 		bank_account: null,
 	},
@@ -79,13 +77,6 @@ describe('TransactionsTable', () => {
 		expect(screen.getByText('$10000')).toBeInTheDocument();
 		expect(screen.getByText('Transferencia bancaria')).toBeInTheDocument();
 		expect(screen.getByText('Efectivo')).toBeInTheDocument();
-	});
-
-	it('shows the Extra badge only for transactions marked as extra amount', () => {
-		renderTable();
-
-		// Solo la transacción #2 es extra, así que el badge debe aparecer una sola vez
-		expect(screen.getAllByText('Extra')).toHaveLength(1);
 	});
 
 	it('shows bank account details when present', () => {

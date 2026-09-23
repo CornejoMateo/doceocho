@@ -31,7 +31,7 @@ const mockBankAccounts = [
 ];
 
 const defaultProps = {
-	addingMode: null as 'transaction' | 'extra' | null,
+	addingMode: null as 'transaction' | null,
 	transactionDate: new Date('2024-06-15'),
 	onTransactionDateChange: jest.fn(),
 	transactionAmount: '',
@@ -49,7 +49,6 @@ const defaultProps = {
 	onCancel: jest.fn(),
 	onSave: jest.fn(),
 	onStartAddTransaction: jest.fn(),
-	onStartAddExtra: jest.fn(),
 	saveDisabled: false,
 	editingTransaction: undefined,
 	selectedFiles: [],
@@ -72,7 +71,6 @@ describe('AddTransactionSection', () => {
 		render(<AddTransactionSection {...defaultProps} />);
 
 		expect(screen.getByText('Agregar transacción')).toBeInTheDocument();
-		expect(screen.getByText('Agregar monto extra')).toBeInTheDocument();
 	});
 
 	it('calls onStartAddTransaction when transaction button is clicked', () => {
@@ -85,26 +83,12 @@ describe('AddTransactionSection', () => {
 		expect(onStartAddTransaction).toHaveBeenCalled();
 	});
 
-	it('calls onStartAddExtra when extra button is clicked', () => {
-		const onStartAddExtra = jest.fn();
-		render(<AddTransactionSection {...defaultProps} onStartAddExtra={onStartAddExtra} />);
-
-		fireEvent.click(screen.getByText('Agregar monto extra'));
-		expect(onStartAddExtra).toHaveBeenCalled();
-	});
-
 	it('renders form when adding a transaction', () => {
 		render(<AddTransactionSection {...defaultProps} addingMode="transaction" />);
 
 		expect(screen.getByText('Nueva transacción')).toBeInTheDocument();
 		expect(screen.getByText('Guardar')).toBeInTheDocument();
 		expect(screen.getByText('Cancelar')).toBeInTheDocument();
-	});
-
-	it('renders form when adding an extra amount', () => {
-		render(<AddTransactionSection {...defaultProps} addingMode="extra" />);
-
-		expect(screen.getByText('Nuevo monto extra')).toBeInTheDocument();
 	});
 
 	it('renders "Editar transacción" when editing', () => {
@@ -161,16 +145,10 @@ describe('AddTransactionSection', () => {
 		expect(screen.getByText('Guardar')).toBeDisabled();
 	});
 
-	it('shows payment method select only for transactions (not extras)', () => {
-		const { rerender } = render(
-			<AddTransactionSection {...defaultProps} addingMode="transaction" />
-		);
+	it('shows payment method select for transactions', () => {
+		render(<AddTransactionSection {...defaultProps} addingMode="transaction" />);
 
 		expect(screen.getByText('Método de pago')).toBeInTheDocument();
-
-		rerender(<AddTransactionSection {...defaultProps} addingMode="extra" />);
-
-		expect(screen.queryByText('Método de pago')).not.toBeInTheDocument();
 	});
 
 	it('shows selected files', () => {
@@ -303,14 +281,6 @@ describe('AddTransactionSection', () => {
 			);
 
 			expect(screen.getByText('Cuenta Bancaria')).toBeInTheDocument();
-		});
-
-		it('does not show bank account select in extra mode even with bank_transfer', () => {
-			render(
-				<AddTransactionSection {...defaultProps} addingMode="extra" paymentMethod="bank_transfer" />
-			);
-
-			expect(screen.queryByText('Cuenta Bancaria')).not.toBeInTheDocument();
 		});
 
 		it('renders bank account options from the realtime hook data', () => {
