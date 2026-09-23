@@ -86,3 +86,10 @@ ON public.supplies
 FOR UPDATE
 TO authenticated
 USING (true);
+
+------ INDEXES ------
+
+create index if not exists stock_supplies_code_trgm_idx on public.stock_supplies using gin (supply_code gin_trgm_ops);
+create index if not exists stock_supplies_description_trgm_idx on public.stock_supplies using gin (supply_description gin_trgm_ops);
+create index if not exists stock_supplies_brand_trgm_idx on public.stock_supplies using gin (supply_brand gin_trgm_ops);
+create index if not exists stock_supplies_category_trgm_idx on public.stock_supplies using gin (supply_category gin_trgm_ops);

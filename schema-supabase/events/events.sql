@@ -138,3 +138,9 @@ WITH CHECK (
         AND u.role = 'Admin'
   )
 );
+
+------ INDEXES ------
+
+create index if not exists events_title_trgm_idx on public.events using gin (title gin_trgm_ops);
+create index if not exists events_description_trgm_idx on public.events using gin (description gin_trgm_ops);
+create index if not exists events_client_name_trgm_idx on public.events using gin (client_name gin_trgm_ops);

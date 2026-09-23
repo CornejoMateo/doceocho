@@ -16,6 +16,8 @@ const baseCard = {
 	priority: 'none' as const,
 	completed_at: null,
 	color: null,
+	client_id: null,
+	work_id: null,
 	list: { id: 1, name: 'To Do', created_at: '2024-01-01', updated_at: '2024-01-01', board_id: 1 },
 	files: [],
 };
@@ -102,5 +104,30 @@ describe('KanbanCard', () => {
 		);
 		expect(screen.getByTestId('icon-red-alert')).toBeInTheDocument();
 		expect(screen.getByText('31 dic 2024')).toBeInTheDocument();
+	});
+
+	it('shows the linked client and work so the board reads without opening cards', () => {
+		render(
+			<KanbanCard
+				card={{
+					...baseCard,
+					client_id: 7,
+					work_id: 9,
+					client: { id: 7, name: 'Juan', last_name: 'Pérez' },
+					work: { id: 9, name: 'Cocina Pérez', locality: 'Córdoba', address: 'Colón 1234' },
+				}}
+				onClick={jest.fn()}
+			/>
+		);
+
+		expect(screen.getByText('Pérez Juan')).toBeInTheDocument();
+		expect(screen.getByText('Cocina Pérez')).toBeInTheDocument();
+	});
+
+	it('shows nothing extra when the card is not linked to anything', () => {
+		render(<KanbanCard card={baseCard} onClick={jest.fn()} />);
+
+		expect(screen.queryByText('Pérez Juan')).not.toBeInTheDocument();
+		expect(screen.getByText('Test Card')).toBeInTheDocument();
 	});
 });
