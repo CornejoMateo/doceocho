@@ -91,3 +91,10 @@ USING (
           AND u.role = 'Admin'
     )
 );
+
+------ INDEXES ------
+
+create index if not exists employees_name_trgm_idx on public.employees using gin (name gin_trgm_ops);
+create index if not exists employees_last_name_trgm_idx on public.employees using gin (last_name gin_trgm_ops);
+create index if not exists employees_position_trgm_idx on public.employees using gin (position gin_trgm_ops);
+create index if not exists employees_identity_number_trgm_idx on public.employees using gin (identity_number gin_trgm_ops);

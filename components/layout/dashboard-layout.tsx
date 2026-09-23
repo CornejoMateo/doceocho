@@ -2,31 +2,11 @@
 
 import type React from 'react';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import {
-	LayoutDashboard,
-	Package,
-	Users,
-	FileText,
-	ClipboardCheck,
-	Calendar,
-	BarChart3,
-	ChevronLeft,
-	ChevronRight,
-	X,
-	Lock,
-	AlertCircle,
-	DollarSign,
-	Settings,
-	MessageSquare,
-	LayoutList,
-	Trash2,
-	Clock,
-	Briefcase,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Lock, Settings, Trash2 } from 'lucide-react';
 import { clearCache } from '@/utils/cache';
 
 import {
@@ -51,31 +31,15 @@ import {
 import { usePushNotifications } from '@/hooks/push/use-push-notifications';
 import { PushNotificationSettings } from '@/components/business/chat/push-notification-settings';
 import { cn } from '@/lib/utils';
-import type { UserRole } from '@/constants/users/user-role';
+import {
+	getNavigationForRole,
+	HOME_ROUTE_BY_ROLE,
+	isRouteAllowedForRole,
+} from '@/constants/navigation/navigation';
+import { GlobalSearch } from '@/components/layout/global-search';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import { useChatUnread } from '../provider/chat-unread-provider';
 import { toast } from '@/components/ui/use-toast';
-
-const navigation = [
-	{ name: 'Panel', href: '/', icon: LayoutDashboard, disabled: false },
-	{ name: 'Insumos', href: '/supplies', icon: Package, disabled: false },
-	{ name: 'Clientes', href: '/clients', icon: Users, disabled: false },
-	{ name: 'Obras', href: '/works', icon: ClipboardCheck, disabled: false },
-	{ name: 'Kanban', href: '/kanban', icon: LayoutList, disabled: false },
-	{ name: 'Calendario', href: '/calendar', icon: Calendar, disabled: false },
-	{ name: 'Ajustes y Diario', href: '/claims', icon: AlertCircle, disabled: false },
-	{ name: 'Reportes de Presupuestos', href: '/budgets', icon: FileText, disabled: false },
-	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
-	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
-	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
-	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
-	{
-		name: 'Recursos Humanos',
-		href: '/human-resources',
-		icon: Briefcase,
-		disabled: false,
-	},
-] as const;
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -96,34 +60,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		unsubscribe,
 	} = usePushNotifications();
 
-	const allowedByRole = useMemo(() => {
-		return {
-			Admin: [
-				'Panel',
-				'Insumos',
-				'Clientes',
-				'Kanban',
-				'Calendario',
-				'Flujo de Fondos',
-				'Obras',
-				'Chat',
-				'Reportes',
-				'Fichar',
-				'Recursos Humanos',
-			],
-			Taller: [
-				'Insumos',
-				'Clientes',
-				'Kanban',
-				'Calendario',
-				'Chat',
-				'Obras',
-				'Fichar',
-				'Recursos Humanos',
-			],
-			QR: ['Fichar'],
-		} as Record<UserRole, string[]>;
-	}, []);
+	const filteredNavigation = useMemo(() => getNavigationForRole(user?.role), [user?.role]);
 
 	const homeRouteByRole = useMemo(() => {
 		return {
@@ -154,8 +91,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
 	const getHomeRoute = useMemo(() => {
 		if (!user?.role) return '/login';
-		return homeRouteByRole[user.role] || '/';
-	}, [user?.role, homeRouteByRole]);
+		return HOME_ROUTE_BY_ROLE[user.role] || '/';
+	}, [user?.role]);
 
 	useEffect(() => {
 		if (loading) return;
@@ -348,10 +285,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 							<ChevronLeft className="h-5 w-5" />
 						)}
 					</Button>
-					<div className="flex-1">
-						<h1 className="text-lg font-semibold text-foreground">Sistema de Gestión</h1>
+					<div className="flex-1 min-w-0">
+						<h1 className="hidden truncate text-lg font-semibold text-foreground md:block">
+							Sistema de Gestión
+						</h1>
 					</div>
 					<div className="flex items-center gap-2">
+						<GlobalSearch />
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
 								<Button variant="ghost" size="sm" className="opacity-30 hover:opacity-100">
