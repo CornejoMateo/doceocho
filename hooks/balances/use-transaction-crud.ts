@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
 	BalanceTransaction,
 	getTransactionsByBalanceId,
@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { format, set } from 'date-fns';
-import { parseArsToNumber } from '@/utils/formats-money';
+import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
 
 export function useTransactionCrud(
@@ -46,6 +46,8 @@ export function useTransactionCrud(
 
 	const [isTogglingSettled, setIsTogglingSettled] = useState(false);
 
+	const skipNextAutoCalcRef = useRef(false);
+
 	const [transactionDate, setTransactionDate] = useState<Date>(new Date());
 	const [transactionAmount, setTransactionAmount] = useState('');
 	const [paymentMethod, setPaymentMethod] = useState('');
@@ -62,18 +64,24 @@ export function useTransactionCrud(
 	}, [balance?.id, isOpen]);
 
 	useEffect(() => {
+		if (skipNextAutoCalcRef.current) {
+			skipNextAutoCalcRef.current = false;
+			return;
+		}
 		if (transactionAmount && quoteUsd && addingMode) {
 			const normalizedAmount = transactionAmount.replace(/\./g, '').replace(',', '.');
 			const normalizedQuote = quoteUsd.replace(/\./g, '').replace(',', '.');
 			const amountNumber = Number(normalizedAmount);
 			const rateNumber = Number(normalizedQuote);
 			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {
-				setUsdAmount((amountNumber / rateNumber).toFixed(3));
+				setUsdAmount(formatNumber((amountNumber / rateNumber).toFixed(3).replace('.', ',')));
 			}
 		} else {
-			setUsdAmount('');
+			if (!transactionAmount || !quoteUsd) {
+				setUsdAmount('');
+			}
 		}
-	}, [quoteUsd, transactionAmount, addingMode]);
+	}, [quoteUsd, transactionAmount, addingMode, editingTransaction]);
 
 	const loadTransactions = async (): Promise<BalanceTransactionWithBankAccount[]> => {
 		if (!balance) return [];
@@ -230,7 +238,7 @@ export function useTransactionCrud(
 				payment_method: paymentMethod || null,
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
-				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
 				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
 			});
 
@@ -374,6 +382,7 @@ export function useTransactionCrud(
 
 	const handleEditTransaction = (transaction: BalanceTransaction) => {
 		setEditingTransaction(transaction);
+		skipNextAutoCalcRef.current = true;
 		setTransactionDate(transaction.date ? new Date(transaction.date + 'T00:00:00') : new Date());
 		setTransactionAmount(
 			transaction.amount
