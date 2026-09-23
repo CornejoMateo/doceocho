@@ -66,7 +66,11 @@ describe('useTransactionCrud', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		mockToast = jest.fn();
+		mockToast = jest.fn().mockReturnValue({
+			id: 'mock-toast-id',
+			dismiss: jest.fn(),
+			update: jest.fn(),
+		});
 		(jest.requireMock('@/components/ui/use-toast').useToast as jest.Mock).mockReturnValue({
 			toast: mockToast,
 		});
