@@ -24,9 +24,8 @@ import { AddTransactionSection } from './transactions/add-transaction';
 import { TransactionsTable } from './transactions/transactions-table';
 import { BalanceInformation } from './balance-information';
 import { NotesInput } from '@/components/ui/notes-input';
-import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTransactionCrud } from '@/hooks/balances/use-transaction-crud';
 import { useTransactionFiles } from '@/hooks/balances/use-transaction-files';
@@ -47,6 +46,7 @@ export function BalanceDetailsModal({
 	onTransactionCreated,
 }: BalanceDetailsModalProps) {
 	const [currentBalance, setCurrentBalance] = useState(balance);
+	const [isSettleConfirmOpen, setIsSettleConfirmOpen] = useState(false);
 
 	useEffect(() => {
 		setCurrentBalance(balance);
@@ -80,6 +80,7 @@ export function BalanceDetailsModal({
 	const {
 		transactions,
 		isLoading,
+		isInitialLoading,
 		addingMode,
 		setAddingMode,
 		transactionToDelete,
@@ -119,9 +120,10 @@ export function BalanceDetailsModal({
 		summary,
 		work,
 		showSettledReminder,
-		isMarkingAsSettled,
+		isTogglingSettled,
 		dismissSettledReminder,
 		handleMarkAsSettled,
+		handleUnmarkAsSettled,
 	} = useTransactionCrud(
 		currentBalance,
 		isOpen,
@@ -135,6 +137,15 @@ export function BalanceDetailsModal({
 		}
 	};
 
+	const handleConfirmSettleToggle = async () => {
+		if (currentBalance?.is_settled) {
+			await handleUnmarkAsSettled();
+		} else {
+			await handleMarkAsSettled();
+		}
+		setIsSettleConfirmOpen(false);
+	};
+
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
 			<DialogContent className="!max-w-5xl !max-h-[90vh] overflow-y-auto">
@@ -145,28 +156,28 @@ export function BalanceDetailsModal({
 					</DialogDescription>
 				</DialogHeader>
 
-				{currentBalance && (
+				{!currentBalance || isInitialLoading ? (
+					<div className="flex items-center justify-center py-24">
+						<Spinner className="h-8 w-8 text-muted-foreground" />
+					</div>
+				) : (
 					<div className="space-y-6">
-						<div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-							<div className="flex items-center gap-2">
-								<span className="text-sm font-medium">Estado: {summary.type}</span>
-								{currentBalance.is_settled && (
-									<Badge variant="secondary" className="gap-1">
-										<CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-										Saldado
-									</Badge>
-								)}
-							</div>
+						<div
+							className={`relative flex items-center justify-between gap-3 rounded-lg border p-3 ${
+								currentBalance.is_settled ? 'border-green-500/40 bg-green-500/10' : ''
+							}`}
+						>
+							<span className="text-sm font-medium">Estado: {summary.type}</span>
 							<Button
 								size="sm"
 								variant="outline"
-								onClick={handleMarkAsSettled}
-								disabled={currentBalance.is_settled === true || isMarkingAsSettled}
+								onClick={() => setIsSettleConfirmOpen(true)}
+								disabled={isTogglingSettled}
 							>
-								{currentBalance.is_settled
-									? 'Ya marcada como saldada'
-									: isMarkingAsSettled
-										? 'Guardando...'
+								{isTogglingSettled
+									? 'Guardando...'
+									: currentBalance.is_settled
+										? 'Desmarcar como saldado'
 										: 'Marcar como saldado'}
 							</Button>
 						</div>
@@ -302,8 +313,35 @@ export function BalanceDetailsModal({
 				isOpen={showSettledReminder}
 				onOpenChange={(open) => !open && dismissSettledReminder()}
 				onConfirm={handleMarkAsSettled}
-				isConfirming={isMarkingAsSettled}
+				isConfirming={isTogglingSettled}
 			/>
+
+			<AlertDialog open={isSettleConfirmOpen} onOpenChange={setIsSettleConfirmOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{currentBalance?.is_settled
+								? '¿Desmarcar esta cuenta corriente como saldada?'
+								: '¿Marcar esta cuenta corriente como saldada?'}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{currentBalance?.is_settled
+								? 'La cuenta corriente dejará de figurar como saldada.'
+								: 'La cuenta corriente pasará a figurar como saldada. Podés desmarcarla más adelante si es necesario.'}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isTogglingSettled}>Cancelar</AlertDialogCancel>
+						<Button onClick={handleConfirmSettleToggle} disabled={isTogglingSettled}>
+							{isTogglingSettled
+								? 'Guardando...'
+								: currentBalance?.is_settled
+									? 'Desmarcar como saldado'
+									: 'Marcar como saldado'}
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
 				<AlertDialogContent>

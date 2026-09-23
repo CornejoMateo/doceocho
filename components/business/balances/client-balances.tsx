@@ -50,6 +50,8 @@ export function ClientBalances({
 	const [searchTerm, setSearchTerm] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [balancesWithTotals, setBalancesWithTotals] = useState<BalanceWithTotals[]>([]);
+
+	const [isCalculatingTotals, setIsCalculatingTotals] = useState(() => (balances?.length ?? 0) > 0);
 	const itemsPerPage = 2;
 
 	const {
@@ -79,33 +81,43 @@ export function ClientBalances({
 
 		const fetchTotals = async () => {
 			if (!balances || balances.length === 0) {
-				if (!cancelled) setBalancesWithTotals([]);
+				if (!cancelled) {
+					setBalancesWithTotals([]);
+					setIsCalculatingTotals(false);
+				}
 				return;
 			}
 
-			const balancesWithTotals = await Promise.all(
-				balances.map(async (balance) => {
-					const { data: totals } = await getTotalByBalanceId(balance.id);
-					const totalPaid = totals?.totalAmount || 0;
-					const totalPaidUSD = totals?.totalAmountUSD || 0;
-					const summary = calculateBalanceSummary({
-						budgetAmountArs: balance.balance_amount_ars,
-						budgetAmountUsd: balance.balance_amount_usd,
-						usdCurrent: balance.usd_current,
-						totalPaidArs: totalPaid,
-						totalPaidUsd: totalPaidUSD,
-					});
+			setIsCalculatingTotals(true);
 
-					return {
-						...balance,
-						totalPaid,
-						totalPaidUSD,
-						remaining: summary.remainingArs,
-						remainingUSD: summary.remainingUsd,
-					};
-				})
-			);
-			if (!cancelled) setBalancesWithTotals(balancesWithTotals);
+			try {
+				const balancesWithTotals = await Promise.all(
+					balances.map(async (balance) => {
+						const { data: totals } = await getTotalByBalanceId(balance.id);
+						const totalPaid = totals?.totalAmount || 0;
+						const totalPaidUSD = totals?.totalAmountUSD || 0;
+						const summary = calculateBalanceSummary({
+							budgetAmountArs: balance.balance_amount_ars,
+							budgetAmountUsd: balance.balance_amount_usd,
+							usdCurrent: balance.usd_current,
+							totalPaidArs: totalPaid,
+							totalPaidUsd: totalPaidUSD,
+							isSettled: balance.is_settled,
+						});
+
+						return {
+							...balance,
+							totalPaid,
+							totalPaidUSD,
+							remaining: summary.remainingArs,
+							remainingUSD: summary.remainingUsd,
+						};
+					})
+				);
+				if (!cancelled) setBalancesWithTotals(balancesWithTotals);
+			} finally {
+				if (!cancelled) setIsCalculatingTotals(false);
+			}
 		};
 
 		fetchTotals();
@@ -168,7 +180,7 @@ export function ClientBalances({
 				)}
 			</div>
 
-			{isLoading ? (
+			{isLoading || isCalculatingTotals ? (
 				<p className="text-sm text-muted-foreground text-center py-4">
 					Cargando cuentas corrientes...
 				</p>
@@ -187,6 +199,7 @@ export function ClientBalances({
 							usdCurrent: balance.usd_current,
 							totalPaidArs: balance.totalPaid,
 							totalPaidUsd: balance.totalPaidUSD,
+							isSettled: balance.is_settled,
 						});
 
 						return (

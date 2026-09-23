@@ -175,9 +175,9 @@ export function AddTransactionSection({
 					<Label htmlFor="usd-amount">Monto en USD</Label>
 					<Input
 						id="usd-amount"
-						type="number"
+						type="text"
 						value={usdAmount}
-						onChange={(e) => onUsdAmountChange(e.target.value)}
+						onChange={(e) => onUsdAmountChange(formatNumber(e.target.value))}
 					/>
 				</div>
 			</div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pencil, Info } from 'lucide-react';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
 import { BalanceSummary } from '@/helpers/balances/balance-calculations';

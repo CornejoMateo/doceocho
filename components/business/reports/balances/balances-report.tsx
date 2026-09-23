@@ -114,8 +114,9 @@ export function BalancesReport() {
 
 					const usdContractRef = Number(b.contract_date_usd) || 0;
 
-					const balanceType =
-						remainingArs > 0
+					const balanceType = b.is_settled
+						? BALANCE_TYPES.CANCELLED
+						: remainingArs > 0
 							? BALANCE_TYPES.DEBTOR
 							: remainingArs < 0
 								? BALANCE_TYPES.CREDITOR
