@@ -116,9 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	const authRequestRef = useRef(0);
 	const router = useRouter();
-	const loadProfile = useCallback(async () => {
-		const requestId = ++authRequestRef.current;
 
+	const loadProfile = useCallback(async (): Promise<SessionUser | null> => {
 		const {
 			data: { session },
 			error,
@@ -138,31 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				hasUser: !!user,
 			});
 
-			if (!user && authRequestRef.current === requestId) {
-				setUser(null);
-			}
-
-			return;
+			return null;
 		}
 
-		try {
-			const profile = await fetchProfile(session.access_token);
+		const profile = await fetchProfile(session.access_token);
 
-			if (!profile) {
-				console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
-				return;
-			}
-
-			if (authRequestRef.current === requestId) {
-				setUser(profile);
-			}
-		} catch (err) {
-			if (err instanceof AuthTimeoutError) {
-				throw err;
-			}
-
-			console.error('Error loading profile:', err);
+		if (!profile) {
+			console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
 		}
+
+		return profile;
 	}, [supabase]);
 
 	useEffect(() => {
@@ -173,19 +157,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		} = supabase.auth.onAuthStateChange(async (event, session) => {
 			if (cancelled) return;
 
+			const requestId = ++authRequestRef.current;
+			const isStale = () => cancelled || authRequestRef.current !== requestId;
+
 			try {
 				switch (event) {
 					case 'SIGNED_IN':
 					case 'INITIAL_SESSION':
 						try {
-							await withAuthTimeout(loadProfile(), AUTH_OUTER_TIMEOUT_MS);
+							const profile = await withAuthTimeout(loadProfile(), AUTH_OUTER_TIMEOUT_MS);
+
+							if (!isStale()) {
+								setUser(profile);
+							}
 						} catch (err) {
 							if (err instanceof AuthTimeoutError) {
 								console.error('[AUTH] loadProfile timed out', err);
 
-								authRequestRef.current++;
-
-								if (!cancelled) {
+								if (!isStale()) {
 									setUser(null);
 									toast({
 										title: 'Error',
@@ -194,10 +183,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 									});
 								}
 							} else {
-								throw err;
+								console.error('Error loading profile:', err);
 							}
 						} finally {
-							if (!cancelled) {
+							if (!isStale()) {
 								setLoading(false);
 							}
 						}
@@ -212,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 						break;
 				}
 			} finally {
-				if (!cancelled) {
+				if (!isStale()) {
 					setInitializing(false);
 				}
 			}
@@ -264,7 +253,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			if (!session) {
 				throw new Error('No se pudo obtener la sesión');
 			}
-			await loadProfile();
+			const profile = await loadProfile();
+			if (profile) setUser(profile);
 			return sessionUser;
 		} catch (err: any) {
 			throw err;
