@@ -3,7 +3,7 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/formats-money';
-import type { BalanceReportRow } from './balances-report';
+import type { BalanceReportRow } from './types';
 
 interface BalanceMobileCardProps {
 	row: BalanceReportRow;

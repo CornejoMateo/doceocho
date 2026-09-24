@@ -13,7 +13,7 @@ export type CashFlowTabValue =
 export const CASH_FLOW_TABS: { value: CashFlowTabValue; label: string }[] = [
 	{ value: 'summary', label: 'Resumen' },
 	{ value: 'incomes', label: 'Ingresos' },
-	{ value: 'expenses', label: 'Egresos' },
+	{ value: 'expenses', label: 'Gastos' },
 	{ value: 'collections', label: 'Cobros' },
 	{ value: 'payments', label: 'Pagos' },
 	{ value: 'fixed-expenses', label: 'Gastos fijos' },

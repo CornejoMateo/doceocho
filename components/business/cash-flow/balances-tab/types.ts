@@ -10,7 +10,6 @@ export interface BalanceReportRow {
 	balanceType: string;
 	balanceAmountArs: number;
 	usdContractRef: number;
-	usdCurrentToCancel: number | null;
 	balanceInUseUsd: number;
 }
 
