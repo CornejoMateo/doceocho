@@ -67,7 +67,7 @@ describe('NeedsAttention', () => {
 
 		expect(links.map((link) => link.getAttribute('href'))).toEqual([
 			'/calendar',
-			'/human-resources',
+			'/employees?tab=vacaciones',
 			'/clients',
 		]);
 	});

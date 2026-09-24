@@ -18,14 +18,6 @@ describe('helpers/dashboard/receivables', () => {
 		expect(result).toEqual({ totalArs: 100000, balancesCount: 2, clientsCount: 2 });
 	});
 
-	test('counts extras as more to collect, like the balances report does', () => {
-		const result = calculateReceivables([{ id: 1, balance_amount_ars: 100000, client_id: 10 }], {
-			1: { totalAmount: 100000, totalAmountUSD: 0, totalExtraAmount: 25000 },
-		});
-
-		expect(result.totalArs).toBe(25000);
-	});
-
 	test('leaves out accounts that are already settled', () => {
 		const result = calculateReceivables([{ id: 1, balance_amount_ars: 100000, client_id: 10 }], {
 			1: { totalAmount: 100000, totalAmountUSD: 0 },

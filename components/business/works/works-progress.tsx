@@ -43,6 +43,8 @@ import { toast } from '@/components/ui/use-toast';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { useLoadEventTypes } from '@/hooks/calendar/use-load-event-types';
 import { WorkWithProgress } from '@/lib/works/works';
+import { ClientDetailsDialog } from '@/components/business/clients/client-details-dialog';
+import { type Client } from '@/lib/clients/clients';
 
 export function WorksOpenings() {
 	const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +59,10 @@ export function WorksOpenings() {
 
 	const [isEventModalOpen, setIsEventModalOpen] = useState(false);
 	const [selectedWorkForEvent, setSelectedWorkForEvent] = useState<WorkWithProgress | null>(null);
+
+	const [isClientDialogOpen, setIsClientDialogOpen] = useState(false);
+	const [selectedClientForDialog, setSelectedClientForDialog] = useState<Client | null>(null);
+	const [loadingClientWorkId, setLoadingClientWorkId] = useState<number | null>(null);
 
 	const isAdmin = useMemo(() => {
 		return user?.role === 'Admin';
@@ -222,6 +228,20 @@ export function WorksOpenings() {
 		setIsEventModalOpen(true);
 	};
 
+	const handleOpenClient = (work: WorkWithProgress) => {
+		if (!work.client_id) return;
+		if (loadingClientWorkId !== null) return;
+
+		// Minimal client: the dialog re-fetches the full data by id
+		setSelectedClientForDialog({
+			id: work.client_id,
+			name: work.client_name,
+			last_name: work.client_last_name,
+		});
+		setIsClientDialogOpen(true);
+		setLoadingClientWorkId(work.id);
+	};
+
 	return (
 		<div className="space-y-6">
 			{/* Header */}
@@ -287,6 +307,8 @@ export function WorksOpenings() {
 								onOpenChecklist={openChecklist}
 								onUpdateGeneralNote={handleUpdateGeneralNote}
 								onAddToCalendar={handleAddToCalendar}
+								onOpenClient={handleOpenClient}
+								loadingWorkId={loadingClientWorkId}
 							/>
 						);
 					})}
@@ -394,6 +416,17 @@ export function WorksOpenings() {
 				refreshMaterials={refreshMaterials}
 				refreshItemsPredefined={refreshItemsPredefined}
 				isLoading={itemsPredefinedLoading}
+			/>
+
+			<ClientDetailsDialog
+				client={selectedClientForDialog}
+				isOpen={isClientDialogOpen}
+				onClose={() => {
+					setIsClientDialogOpen(false);
+					setLoadingClientWorkId(null);
+				}}
+				initialTab="works"
+				onClientDataLoaded={() => setLoadingClientWorkId(null)}
 			/>
 
 			<EventFormModal

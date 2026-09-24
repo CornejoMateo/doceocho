@@ -1,12 +1,11 @@
 import {
 	AlertCircle,
 	BarChart3,
-	Briefcase,
 	Calendar,
 	ClipboardCheck,
-	Clock,
 	DollarSign,
 	FileText,
+	IdCardLanyard,
 	LayoutDashboard,
 	LayoutList,
 	MessageSquare,
@@ -36,8 +35,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 	{ name: 'Reportes', href: '/reports', icon: BarChart3, disabled: false },
 	{ name: 'Flujo de Fondos', href: '/cash-flow', icon: DollarSign, disabled: false },
 	{ name: 'Chat', href: '/chat', icon: MessageSquare, disabled: false },
-	{ name: 'Fichar', href: '/clock-in', icon: Clock, disabled: false },
-	{ name: 'Recursos Humanos', href: '/human-resources', icon: Briefcase, disabled: false },
+	{ name: 'Empleados', href: '/employees', icon: IdCardLanyard, disabled: false },
 ];
 
 /**
@@ -55,26 +53,16 @@ export const ALLOWED_MODULES_BY_ROLE: Record<UserRole, string[]> = {
 		'Obras',
 		'Chat',
 		'Reportes',
-		'Fichar',
-		'Recursos Humanos',
+		'Empleados',
 	],
-	Taller: [
-		'Insumos',
-		'Clientes',
-		'Kanban',
-		'Calendario',
-		'Chat',
-		'Obras',
-		'Fichar',
-		'Recursos Humanos',
-	],
-	QR: ['Fichar'],
+	Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Empleados'],
+	QR: ['Empleados'],
 };
 
 export const HOME_ROUTE_BY_ROLE: Record<UserRole, string> = {
 	Admin: '/',
 	Taller: '/supplies',
-	QR: '/clock-in',
+	QR: '/employees',
 };
 
 export function getNavigationForRole(role: UserRole | undefined): NavigationItem[] {
@@ -90,8 +78,6 @@ export function isRouteAllowedForRole(href: string, role: UserRole | undefined):
 
 	const allowed = ALLOWED_MODULES_BY_ROLE[role] ?? [];
 
-	// A module owns its sub-routes: /kanban/37 belongs to /kanban. The most
-	// specific match wins, so a nested route is never checked against '/'.
 	const item = NAVIGATION_ITEMS.filter(
 		(candidate) => candidate.href === href || href.startsWith(`${candidate.href}/`)
 	).sort((a, b) => b.href.length - a.href.length)[0];

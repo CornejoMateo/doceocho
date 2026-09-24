@@ -3,8 +3,6 @@ import { normalizeMoney } from '@/utils/formats-money';
 export type BalanceTotals = {
 	totalAmount: number;
 	totalAmountUSD: number;
-	totalExtraAmount?: number | null;
-	totalExtraAmountUSD?: number | null;
 };
 
 export type ReceivableBalance = {
@@ -47,9 +45,8 @@ export function calculateReceivables(
 		const totals = totalsByBalanceId[balance.id];
 
 		const paid = totals?.totalAmount ?? 0;
-		const extra = totals?.totalExtraAmount ?? 0;
 		const budget = balance.balance_amount_ars ?? 0;
-		const remaining = normalizeMoney(budget + extra - paid);
+		const remaining = normalizeMoney(budget - paid);
 
 		if (remaining <= 0) continue;
 

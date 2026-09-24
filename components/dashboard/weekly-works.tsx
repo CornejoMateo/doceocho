@@ -32,7 +32,7 @@ export function WeeklyWorks() {
 
 			<div className="space-y-3 max-h-[500px] overflow-y-auto">
 				{loading ? (
-					<p className="text-sm text-muted-foreground">Cargando obras...</p>
+					<p className="text-sm text-muted-foreground text-center">Cargando obras...</p>
 				) : works.length > 0 ? (
 					works.map((work) => (
 						<div

@@ -10,7 +10,7 @@ describe('ReceivablesSummary', () => {
 			/>
 		);
 
-		expect(screen.getByText('3 saldos de 2 clientes')).toBeInTheDocument();
+		expect(screen.getByText('3 cobros pendientes de 2 clientes')).toBeInTheDocument();
 	});
 
 	it('uses the singular for a single account and client', () => {
@@ -21,7 +21,7 @@ describe('ReceivablesSummary', () => {
 			/>
 		);
 
-		expect(screen.getByText('1 saldo de 1 cliente')).toBeInTheDocument();
+		expect(screen.getByText('1 cobro pendiente de 1 cliente')).toBeInTheDocument();
 	});
 
 	it('says so plainly when there is nothing to collect', () => {
@@ -32,7 +32,7 @@ describe('ReceivablesSummary', () => {
 			/>
 		);
 
-		expect(screen.getByText('No hay saldos pendientes de cobro')).toBeInTheDocument();
+		expect(screen.getByText('No hay cobros pendientes')).toBeInTheDocument();
 	});
 
 	it('does not show a zero while it is still adding up', () => {

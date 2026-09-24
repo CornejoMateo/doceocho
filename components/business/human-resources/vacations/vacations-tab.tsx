@@ -3,14 +3,15 @@
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { CalendarDays, Clock, Plus } from 'lucide-react';
 import { useAuth } from '@/components/provider/auth-provider';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+import { useUsers } from '@/components/provider/users-provider';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { listUsers, User } from '@/lib/users/users';
 import {
 	VacationRequest,
 	deleteVacationRequest,
@@ -53,16 +54,7 @@ export function VacationsTab() {
 	);
 
 	// Names are only needed on the admin list, and only admins can list users.
-	const { data: users } = useOptimizedRealtime<User>(
-		'users',
-		async () => {
-			const { data, error: listError } = await listUsers();
-			if (listError) throw listError;
-			return data ?? [];
-		},
-		'users_cache',
-		isAdmin
-	);
+	const { users } = useUsers();
 
 	const getRequesterName = (userId: string): string => {
 		const requester = users.find((candidate) => candidate.uid_user === userId);
@@ -125,6 +117,14 @@ export function VacationsTab() {
 			setIsCancelling(false);
 		}
 	};
+
+	if (loading && requests.length === 0) {
+		return (
+			<div className="flex justify-center py-8">
+				<Spinner className="h-6 w-6" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
