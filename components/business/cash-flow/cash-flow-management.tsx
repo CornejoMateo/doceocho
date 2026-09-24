@@ -15,14 +15,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import {
-	DollarSign,
-	ArrowUpCircle,
-	ArrowDownCircle,
-	Plus,
-	RefreshCw,
-	Building2,
-} from 'lucide-react';
+import { DollarSign, ArrowUpCircle, ArrowDownCircle, Plus, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
 	CashBox,
@@ -33,20 +26,21 @@ import {
 	createCashBox,
 	closeCashBox,
 	deleteTransaction,
-	listActiveBankAccounts,
+	listBankAccounts,
 	listTransactions,
 } from '@/lib/cash-flow/cash-flow';
 import { CashBoxSummaryCard } from '@/components/business/cash-flow/cash-box-summary-card';
 import { CashBoxTransactions } from '@/components/business/cash-flow/cash-box-transactions';
 import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
 import { CashBoxHistory } from '@/components/business/cash-flow/cash-box-history';
-import { BankAccountsDialog } from '@/components/business/cash-flow/bank-accounts-dialog';
+import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts-tab';
 import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
 import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box-dialog';
 import { formatCurrency } from '@/utils/formats-money';
+import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 
 function CashFlowTransactionsRealtime({
 	cashBoxId,
@@ -74,7 +68,8 @@ function CashFlowTransactionsRealtime({
 
 export function CashFlowManagement() {
 	const { toast } = useToast();
-	const [activeTab, setActiveTab] = useState('current');
+	const [activeTab, setActiveTab] = useState<CashFlowTabValue>('summary');
+	const [summaryTab, setSummaryTab] = useState('current');
 
 	const [isOpenCashBoxDialogOpen, setIsOpenCashBoxDialogOpen] = useState(false);
 
@@ -98,16 +93,19 @@ export function CashFlowManagement() {
 	} = useOptimizedRealtime<BankAccount>(
 		'bank_accounts',
 		async () => {
-			const { data } = await listActiveBankAccounts();
+			const { data } = await listBankAccounts();
 			return data ?? [];
 		},
-		'active_bank_accounts_cache'
+		'all_bank_accounts_cache'
+	);
+	const activeBankAccounts = useMemo(
+		() => bankAccounts.filter((account) => account.is_active),
+		[bankAccounts]
 	);
 
 	const [transactions, setTransactions] = useState<TransactionWithBankAccount[]>([]);
 	const refreshTransactionsRef = useRef<(() => Promise<void>) | null>(null);
 	const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
-	const [isBankAccountsDialogOpen, setIsBankAccountsDialogOpen] = useState(false);
 	const [isCloseCashBoxDialogOpen, setIsCloseCashBoxDialogOpen] = useState(false);
 	const [isDeleteTransactionDialogOpen, setIsDeleteTransactionDialogOpen] = useState(false);
 	const [transactionToDelete, setTransactionToDelete] = useState<TransactionWithBankAccount | null>(
@@ -223,11 +221,6 @@ export function CashFlowManagement() {
 		}
 	};
 
-	const handleBankAccountsUpdated = async () => {
-		setIsBankAccountsDialogOpen(false);
-		await refreshBankAccounts();
-	};
-
 	return (
 		<div className="space-y-6">
 			{/* Header */}
@@ -236,99 +229,124 @@ export function CashFlowManagement() {
 					<h2 className="text-2xl font-bold text-foreground text-balance">Flujo de Fondos</h2>
 					<p className="text-muted-foreground mt-1">Gestión de ingresos, egresos y cajas</p>
 				</div>
-				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						onClick={() => setIsBankAccountsDialogOpen(true)}
-						className="gap-2"
-					>
-						<Building2 className="h-4 w-4" />
-						Cuentas Bancarias
-					</Button>
-				</div>
 			</div>
 
-			<Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-				<TabsList>
-					<TabsTrigger value="current">Caja Actual</TabsTrigger>
-					<TabsTrigger value="history">Historial</TabsTrigger>
-				</TabsList>
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => setActiveTab(value as CashFlowTabValue)}
+				className="space-y-6"
+			>
+				<div className="overflow-x-auto">
+					<TabsList className="w-max flex-nowrap">
+						{CASH_FLOW_TABS.map((tab) => (
+							<TabsTrigger key={tab.value} value={tab.value} className="shrink-0">
+								{tab.label}
+							</TabsTrigger>
+						))}
+					</TabsList>
+				</div>
 
-				<TabsContent value="current" className="space-y-6">
-					{loadingCashBoxes ? (
-						<Card className="p-12 bg-card border-border text-center">
-							<p className="text-muted-foreground">Cargando...</p>
-						</Card>
-					) : !openCashBox ? (
-						<Card className="p-12 bg-card border-border text-center">
-							<div className="flex flex-col items-center gap-4">
-								<div className="rounded-full bg-secondary p-4">
-									<DollarSign className="h-8 w-8 text-muted-foreground" />
-								</div>
-								<div>
-									<h3 className="text-lg font-semibold text-foreground">No hay caja abierta</h3>
-									<p className="text-muted-foreground mt-1">
-										Crea una nueva caja para comenzar a registrar movimientos
-									</p>
-								</div>
-								<Button onClick={() => setIsOpenCashBoxDialogOpen(true)}>
-									<Plus className="h-4 w-4" />
-									Crear Caja
-								</Button>
-							</div>
-						</Card>
-					) : (
-						<>
-							{/* Summary Card */}
-							{cashBoxSummary && <CashBoxSummaryCard summary={cashBoxSummary} />}
+				<TabsContent value="summary">
+					<Tabs value={summaryTab} onValueChange={setSummaryTab} className="space-y-6">
+						<TabsList>
+							<TabsTrigger value="current">Caja Actual</TabsTrigger>
+							<TabsTrigger value="history">Historial</TabsTrigger>
+						</TabsList>
 
-							{/* Action Buttons */}
-							<div className="grid gap-4 md:grid-cols-2">
-								<Button onClick={() => handleAddTransaction('income')} className="gap-2 h-12">
-									<ArrowUpCircle className="h-5 w-5" />
-									Registrar Ingreso
-								</Button>
-								<Button
-									onClick={() => handleAddTransaction('expense')}
-									variant="outline"
-									className="gap-2 h-12"
-								>
-									<ArrowDownCircle className="h-5 w-5" />
-									Registrar Egreso
-								</Button>
-							</div>
+						<TabsContent value="current" className="space-y-6">
+							{loadingCashBoxes ? (
+								<Card className="p-12 bg-card border-border text-center">
+									<p className="text-muted-foreground">Cargando...</p>
+								</Card>
+							) : !openCashBox ? (
+								<Card className="p-12 bg-card border-border text-center">
+									<div className="flex flex-col items-center gap-4">
+										<div className="rounded-full bg-secondary p-4">
+											<DollarSign className="h-8 w-8 text-muted-foreground" />
+										</div>
+										<div>
+											<h3 className="text-lg font-semibold text-foreground">No hay caja abierta</h3>
+											<p className="text-muted-foreground mt-1">
+												Crea una nueva caja para comenzar a registrar movimientos
+											</p>
+										</div>
+										<Button onClick={() => setIsOpenCashBoxDialogOpen(true)}>
+											<Plus className="h-4 w-4" />
+											Crear Caja
+										</Button>
+									</div>
+								</Card>
+							) : (
+								<>
+									{/* Summary Card */}
+									{cashBoxSummary && <CashBoxSummaryCard summary={cashBoxSummary} />}
 
-							{/* Close Cash Box Button */}
-							<div className="flex w-full justify-end">
-								<Button
-									onClick={() => setIsCloseCashBoxDialogOpen(true)}
-									variant="destructive"
-									className="w-full gap-2 md:w-auto"
-								>
-									<RefreshCw className="" />
-									Cerrar Caja
-								</Button>
-							</div>
+									{/* Action Buttons */}
+									<div className="grid gap-4 md:grid-cols-2">
+										<Button onClick={() => handleAddTransaction('income')} className="gap-2 h-12">
+											<ArrowUpCircle className="h-5 w-5" />
+											Registrar Ingreso
+										</Button>
+										<Button
+											onClick={() => handleAddTransaction('expense')}
+											variant="outline"
+											className="gap-2 h-12"
+										>
+											<ArrowDownCircle className="h-5 w-5" />
+											Registrar Egreso
+										</Button>
+									</div>
 
-							{/* Transactions List */}
-							{openCashBox && (
-								<CashBoxTransactions
-									transactions={transactions}
-									cashBoxCreatedAt={openCashBox.created_at || ''}
-									onDeleteTransaction={handleAskDeleteTransaction}
-								/>
+									{/* Close Cash Box Button */}
+									<div className="flex w-full justify-end">
+										<Button
+											onClick={() => setIsCloseCashBoxDialogOpen(true)}
+											variant="destructive"
+											className="w-full gap-2 md:w-auto"
+										>
+											<RefreshCw className="" />
+											Cerrar Caja
+										</Button>
+									</div>
+
+									{/* Transactions List */}
+									{openCashBox && (
+										<CashBoxTransactions
+											transactions={transactions}
+											cashBoxCreatedAt={openCashBox.created_at || ''}
+											onDeleteTransaction={handleAskDeleteTransaction}
+										/>
+									)}
+								</>
 							)}
-						</>
-					)}
+						</TabsContent>
+
+						<TabsContent value="history">
+							<CashBoxHistory
+								cashBoxes={cashBoxes}
+								loading={loadingCashBoxes}
+								onRefresh={refreshCashBoxes}
+							/>
+						</TabsContent>
+					</Tabs>
 				</TabsContent>
 
-				<TabsContent value="history">
-					<CashBoxHistory
-						cashBoxes={cashBoxes}
-						loading={loadingCashBoxes}
-						onRefresh={refreshCashBoxes}
+				<TabsContent value="bank-accounts">
+					<BankAccountsTab
+						bankAccounts={bankAccounts}
+						onBankAccountsUpdated={refreshBankAccounts}
 					/>
 				</TabsContent>
+
+				{CASH_FLOW_TABS.filter(
+					(tab) => tab.value !== 'summary' && tab.value !== 'bank-accounts'
+				).map((tab) => (
+					<TabsContent key={tab.value} value={tab.value}>
+						<Card className="p-12 bg-card border-border text-center">
+							<p className="text-muted-foreground">Próximamente</p>
+						</Card>
+					</TabsContent>
+				))}
 			</Tabs>
 
 			{/* Dialogs */}
@@ -337,7 +355,7 @@ export function CashFlowManagement() {
 				onOpenChange={setIsTransactionDialogOpen}
 				type={transactionType}
 				cashBoxId={openCashBox?.id || 0}
-				bankAccounts={bankAccounts}
+				bankAccounts={activeBankAccounts}
 				onTransactionCreated={handleTransactionCreated}
 			/>
 
@@ -351,13 +369,6 @@ export function CashFlowManagement() {
 					}}
 				/>
 			)}
-
-			<BankAccountsDialog
-				open={isBankAccountsDialogOpen}
-				onOpenChange={setIsBankAccountsDialogOpen}
-				bankAccounts={bankAccounts}
-				onBankAccountsUpdated={handleBankAccountsUpdated}
-			/>
 
 			<CloseCashBoxDialog
 				open={isCloseCashBoxDialogOpen}
