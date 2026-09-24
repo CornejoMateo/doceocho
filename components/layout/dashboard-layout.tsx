@@ -39,7 +39,6 @@ import {
 import { GlobalSearch } from '@/components/layout/global-search';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import { useChatUnread } from '../provider/chat-unread-provider';
-import { toast } from '@/components/ui/use-toast';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);

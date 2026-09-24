@@ -8,6 +8,15 @@ jest.mock('@/components/provider/auth-provider', () => ({
 	useAuth: jest.fn(),
 }));
 
+// The card links talk to Supabase; this suite is about the modal itself.
+jest.mock('@/components/ui/client-select', () => ({
+	ClientSelect: () => <div data-testid="client-select" />,
+}));
+
+jest.mock('@/lib/works/works', () => ({
+	getWorksByClientId: jest.fn().mockResolvedValue({ data: [], error: null }),
+}));
+
 const mockUpdateCard = jest.fn();
 const mockUploadFile = jest.fn();
 const mockRemoveCard = jest.fn();
@@ -24,6 +33,8 @@ const mockCard = {
 	priority: 'high',
 	completed_at: null,
 	color: null,
+	client_id: null,
+	work_id: null,
 	files: [
 		{
 			id: 10,
@@ -177,7 +188,7 @@ describe('CardDetailModal', () => {
 
 	it('renders the due date', () => {
 		renderModal();
-		expect(screen.getByDisplayValue('2024-12-31')).toBeInTheDocument();
+		expect(screen.getByText(/31 de diciembre de 2024/i)).toBeInTheDocument();
 	});
 
 	it('renders priority select', () => {

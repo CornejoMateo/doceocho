@@ -228,7 +228,7 @@ describe('FolderCard', () => {
 			.getAllByRole('button')
 			.find((b) => b.querySelector('.lucide-trash-2'));
 		expect(deleteButton).toBeDefined();
-		fireEvent.click(deleteButton as HTMLElement);
+		fireEvent.click(deleteButton!);
 		expect(onDeleteFolder).toHaveBeenCalledWith(1);
 	});
 });

@@ -73,7 +73,7 @@ export function TodayAttendance() {
 			</div>
 
 			{loading ? (
-				<p className="text-sm text-muted-foreground">Cargando fichajes...</p>
+				<p className="text-sm text-muted-foreground text-center">Cargando fichajes...</p>
 			) : summaries.length > 0 ? (
 				<div className="grid grid-cols-1 md:grid-cols-1 gap-3 max-h-[500px] overflow-y-auto">
 					{sortedSummaries.map((summary) => (

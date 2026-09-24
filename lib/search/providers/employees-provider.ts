@@ -18,7 +18,7 @@ function toResult(employee: EmployeeRow): SearchResult {
 		title: `${employee.last_name} ${employee.name}`.trim(),
 		subtitle: employee.position || undefined,
 		icon: Briefcase,
-		href: '/human-resources',
+		href: '/employees?tab=fichas',
 		keywords: employee.identity_number ? [employee.identity_number] : undefined,
 	};
 }

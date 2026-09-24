@@ -40,8 +40,8 @@ describe('constants/navigation', () => {
 			expect(isRouteAllowedForRole('/kanban', undefined)).toBe(false);
 		});
 
-		test('the QR device account only reaches the clock-in screen', () => {
-			expect(isRouteAllowedForRole('/clock-in', 'QR')).toBe(true);
+		test('the QR device account only reaches the employees screen', () => {
+			expect(isRouteAllowedForRole('/employees', 'QR')).toBe(true);
 			expect(isRouteAllowedForRole('/clients', 'QR')).toBe(false);
 		});
 	});

@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 import { Users, X, UserPlus } from 'lucide-react';
 import { getBoardMembers, addBoardMember, removeBoardMember } from '@/lib/kanban/board-members';
-import { listUsers } from '@/lib/users/users';
-import { getSupabaseClient } from '@/lib/supabase-client';
+import { useUsers } from '@/components/provider/users-provider';
 import type { BoardMember } from './types';
 import type { User } from '@/lib/users/users';
 import { toast } from '@/components/ui/use-toast';
@@ -18,9 +17,8 @@ interface BoardMembersModalProps {
 }
 
 export function BoardMembersModal({ boardId, open, onOpenChange }: BoardMembersModalProps) {
+	const { users, loading: usersLoading } = useUsers();
 	const [members, setMembers] = useState<BoardMember[]>([]);
-	const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-	const [memberUsers, setMemberUsers] = useState<Record<string, User>>({});
 	const [loading, setLoading] = useState(false);
 	const [addingUserId, setAddingUserId] = useState<string | null>(null);
 
@@ -34,35 +32,10 @@ export function BoardMembersModal({ boardId, open, onOpenChange }: BoardMembersM
 		if (!boardId) return;
 		setLoading(true);
 		try {
-			const [membersResult, usersResult] = await Promise.all([
-				getBoardMembers(boardId),
-				listUsers(),
-			]);
+			const membersResult = await getBoardMembers(boardId);
 
 			if (!membersResult.error && membersResult.data) {
 				setMembers(membersResult.data);
-
-				// Fetch user details for each member
-				const memberIds = membersResult.data.map((m) => m.user_id);
-				const supabase = getSupabaseClient();
-				const { data: usersData } = await supabase
-					.from('users')
-					.select('*')
-					.in('uid_user', memberIds);
-
-				const usersMap: Record<string, User> = {};
-				if (usersData) {
-					usersData.forEach((u: any) => {
-						usersMap[u.uid_user] = u;
-					});
-				}
-				setMemberUsers(usersMap);
-			}
-
-			if (!usersResult.error && usersResult.data) {
-				// Filter out users who are already members
-				const memberIds = membersResult.data?.map((m) => m.user_id) || [];
-				setAvailableUsers(usersResult.data.filter((u) => !memberIds.includes(u.uid_user)));
 			}
 		} catch (error) {
 			console.error('Error loading data:', error);
@@ -70,6 +43,25 @@ export function BoardMembersModal({ boardId, open, onOpenChange }: BoardMembersM
 			setLoading(false);
 		}
 	};
+
+	const memberIds = useMemo(() => members.map((member) => member.user_id), [members]);
+
+	const memberUsers = useMemo(() => {
+		const usersMap: Record<string, User> = {};
+		users.forEach((user) => {
+			if (memberIds.includes(user.uid_user)) {
+				usersMap[user.uid_user] = user;
+			}
+		});
+		return usersMap;
+	}, [users, memberIds]);
+
+	const availableUsers = useMemo(
+		() => users.filter((user) => !memberIds.includes(user.uid_user)),
+		[users, memberIds]
+	);
+
+	const isLoading = loading || usersLoading;
 
 	const handleAddMember = async (userId: string) => {
 		if (!boardId) return;
@@ -139,7 +131,7 @@ export function BoardMembersModal({ boardId, open, onOpenChange }: BoardMembersM
 				</DialogHeader>
 
 				<div className="flex-1 overflow-y-auto space-y-4">
-					{loading ? (
+					{isLoading ? (
 						<div className="text-center py-8">
 							<p className="text-muted-foreground">Cargando...</p>
 						</div>

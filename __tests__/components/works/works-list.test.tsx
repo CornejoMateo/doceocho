@@ -209,7 +209,7 @@ describe('WorksList', () => {
 		const buttons = screen.getAllByRole('button');
 		const trashButton = buttons.find((b) => b.querySelector('svg.lucide-trash-2') !== null);
 		expect(trashButton).toBeDefined();
-		fireEvent.click(trashButton as HTMLElement);
+		fireEvent.click(trashButton!);
 
 		expect(screen.getByText('Eliminar obra')).toBeInTheDocument();
 	});

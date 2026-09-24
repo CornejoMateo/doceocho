@@ -37,16 +37,19 @@ interface ClientDetailsDialogProps {
 	client: Client | null;
 	isOpen: boolean;
 	onClose: () => void;
-	onEdit: () => void;
+	onEdit?: () => void;
 	onClientUpdated?: () => void;
+	initialTab?: 'info' | 'works' | 'budgets' | 'balances' | 'images';
+	onClientDataLoaded?: () => void;
 }
 
 export function ClientDetailsDialog({
 	client,
 	isOpen,
 	onClose,
-	onEdit,
 	onClientUpdated,
+	initialTab,
+	onClientDataLoaded,
 }: ClientDetailsDialogProps) {
 	const [isWorkFormOpen, setIsWorkFormOpen] = useState(false);
 	const [isBalanceFormOpen, setIsBalanceFormOpen] = useState(false);
@@ -85,6 +88,7 @@ export function ClientDetailsDialog({
 		works,
 		isLoading: isLoadingWorks,
 		loadWorks,
+		clearWorks,
 		create,
 		remove,
 		update,
@@ -198,6 +202,16 @@ export function ClientDetailsDialog({
 		}
 	};
 
+	useEffect(() => {
+		if (!isOpen || !client?.id) return;
+
+		if (initialTab === 'works') {
+			loadWorks();
+		} else if (initialTab === 'budgets') {
+			loadBudgets();
+		}
+	}, [isOpen, client?.id, initialTab]);
+
 	// Update local client data when client prop changes or dialog opens
 	useEffect(() => {
 		if (client && isOpen) {
@@ -214,11 +228,13 @@ export function ClientDetailsDialog({
 						setClientData(freshClientData);
 						setCover(freshClientData.cover || '');
 					}
+					onClientDataLoaded?.();
 				} catch (error) {
 					console.error('Error loading fresh client data:', error);
 					// Fallback to prop data if fresh data fails
 					setClientData(client);
 					setCover(client.cover || '');
+					onClientDataLoaded?.();
 				}
 			};
 			loadFreshClientData();
@@ -242,6 +258,7 @@ export function ClientDetailsDialog({
 		setIsBalanceFormOpen(false);
 		setSelectedBalance(null);
 		setIsBalanceDetailsOpen(false);
+		clearWorks();
 	};
 
 	if (!clientData) return null;
@@ -307,7 +324,7 @@ export function ClientDetailsDialog({
 
 					<div className="border-t pt-2">
 						<Tabs
-							defaultValue={isAuthorized ? 'info' : 'images'}
+							defaultValue={initialTab ?? (isAuthorized ? 'info' : 'images')}
 							className="w-full "
 							onValueChange={handleTabChange}
 						>

@@ -269,4 +269,107 @@ describe('useOptimizedRealtime', () => {
 
 		expect(mockRemoveChannel).toHaveBeenCalled();
 	});
+
+	describe('users authorization gate', () => {
+		it('stays inert while not authorized', async () => {
+			const fetchFromDb = jest.fn().mockResolvedValue([{ id: 1, name: 'Admin' }]);
+
+			const { result } = renderHook(() =>
+				useOptimizedRealtime('users', fetchFromDb, 'users_cache', false)
+			);
+
+			expect(result.current.data).toEqual([]);
+			expect(result.current.loading).toBe(false);
+			expect(result.current.error).toBeNull();
+			expect(fetchFromDb).not.toHaveBeenCalled();
+			expect(mockChannel).not.toHaveBeenCalled();
+
+			await act(async () => {
+				result.current.refresh();
+			});
+
+			expect(fetchFromDb).not.toHaveBeenCalled();
+		});
+
+		it('does not crash and starts fetching when isAuthorized flips false -> true', async () => {
+			const fetchFromDb = jest.fn().mockResolvedValue([{ id: 1, name: 'Admin' }]);
+
+			const { result, rerender } = renderHook(
+				({ isAuthorized }: { isAuthorized: boolean }) =>
+					useOptimizedRealtime('users', fetchFromDb, 'users_cache', isAuthorized),
+				{ initialProps: { isAuthorized: false } }
+			);
+
+			expect(result.current.data).toEqual([]);
+			expect(fetchFromDb).not.toHaveBeenCalled();
+
+			// Same hook instance, gate flips: this used to throw a hook-order error.
+			await act(async () => {
+				rerender({ isAuthorized: true });
+			});
+
+			await waitFor(() => {
+				expect(result.current.data).toEqual([{ id: 1, name: 'Admin' }]);
+			});
+
+			expect(result.current.loading).toBe(false);
+			expect(fetchFromDb).toHaveBeenCalledTimes(1);
+			expect(mockChannel).toHaveBeenCalledWith('users-optimized-realtime');
+		});
+
+		it('does not crash and goes inert when isAuthorized flips true -> false', async () => {
+			const fetchFromDb = jest.fn().mockResolvedValue([{ id: 1, name: 'Admin' }]);
+
+			const { result, rerender } = renderHook(
+				({ isAuthorized }: { isAuthorized: boolean }) =>
+					useOptimizedRealtime('users', fetchFromDb, 'users_cache', isAuthorized),
+				{ initialProps: { isAuthorized: true } }
+			);
+
+			await waitFor(() => {
+				expect(result.current.data).toEqual([{ id: 1, name: 'Admin' }]);
+			});
+
+			// Same hook instance, gate closes (logout): this used to throw a hook-order error.
+			await act(async () => {
+				rerender({ isAuthorized: false });
+			});
+
+			expect(result.current.data).toEqual([]);
+			expect(result.current.loading).toBe(false);
+			expect(result.current.error).toBeNull();
+			expect(mockRemoveChannel).toHaveBeenCalled();
+		});
+
+		it('keeps the gated return values referentially stable across renders', () => {
+			const fetchFromDb = jest.fn().mockResolvedValue([]);
+
+			const { result, rerender } = renderHook(
+				({ isAuthorized }: { isAuthorized: boolean }) =>
+					useOptimizedRealtime('users', fetchFromDb, 'users_cache', isAuthorized),
+				{ initialProps: { isAuthorized: false } }
+			);
+
+			const firstData = result.current.data;
+			const firstRefresh = result.current.refresh;
+
+			rerender({ isAuthorized: false });
+
+			expect(result.current.data).toBe(firstData);
+			expect(result.current.refresh).toBe(firstRefresh);
+		});
+
+		it('does not gate non-users tables when isAuthorized is omitted', async () => {
+			const fetchFromDb = jest.fn().mockResolvedValue([{ id: 1, name: 'Client' }]);
+
+			const { result } = renderHook(() => useOptimizedRealtime('clients', fetchFromDb));
+
+			await waitFor(() => {
+				expect(result.current.data).toEqual([{ id: 1, name: 'Client' }]);
+			});
+
+			expect(fetchFromDb).toHaveBeenCalledTimes(1);
+			expect(mockChannel).toHaveBeenCalledWith('clients-optimized-realtime');
+		});
+	});
 });
