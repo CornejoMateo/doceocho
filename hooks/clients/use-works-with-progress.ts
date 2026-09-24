@@ -72,7 +72,7 @@ export function useWorksWithProgress() {
 				const hasNotes = hasNotesByWork.get(work.id) ?? false;
 
 				let newStatus = work.status;
-				if (total > 0) {
+				if (total > 0 && work.status !== 'paused') {
 					if (progress === 100 && work.status !== 'completed' && !hasNotes && !hasGeneralNotes) {
 						newStatus = 'completed';
 					} else if (progress > 0 && progress < 100 && work.status !== 'in_progress') {

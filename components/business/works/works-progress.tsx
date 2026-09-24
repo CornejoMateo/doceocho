@@ -95,6 +95,7 @@ export function WorksOpenings() {
 			pendingCount: works.filter((w) => w.status === 'pending').length,
 			inProgressCount: works.filter((w) => w.status === 'in_progress').length,
 			completedCount: works.filter((w) => w.status === 'completed').length,
+			pausedCount: works.filter((w) => w.status === 'paused').length,
 			totalCount: works.length,
 			withoutBudgetCount: works.filter((w) => !w.hasBudget).length,
 		};
@@ -278,13 +279,15 @@ export function WorksOpenings() {
 				onStatusFilterChange={handleStatusFilter}
 			/>
 
-			<div className="flex items-center justify-between gap-2">
-				<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-					<Switch checked={onlyWithoutBudget} onCheckedChange={setOnlyWithoutBudget} />
-					<span>Mostrar obras sin presupuesto</span>
-					<Badge variant="secondary">{stats.withoutBudgetCount}</Badge>
-				</label>
-			</div>
+			{statusFilter === 'all' && (
+				<div className="flex items-center justify-between gap-2">
+					<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+						<Switch checked={onlyWithoutBudget} onCheckedChange={setOnlyWithoutBudget} />
+						<span>Mostrar obras sin presupuesto</span>
+						<Badge variant="secondary">{stats.withoutBudgetCount}</Badge>
+					</label>
+				</div>
+			)}
 
 			{/* Installations list */}
 			{loading ? (

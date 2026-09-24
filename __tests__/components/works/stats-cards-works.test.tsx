@@ -8,7 +8,8 @@ describe('StatsCardsWorks', () => {
 		totalCount: 20,
 		pendingCount: 5,
 		inProgressCount: 8,
-		completedCount: 7,
+		completedCount: 4,
+		pausedCount: 2,
 	};
 
 	beforeEach(() => {
@@ -28,6 +29,8 @@ describe('StatsCardsWorks', () => {
 		expect(screen.getByText('Pendientes')).toBeInTheDocument();
 		expect(screen.getByText('En progreso')).toBeInTheDocument();
 		expect(screen.getByText('Finalizadas')).toBeInTheDocument();
+		expect(screen.getByText('En pausa')).toBeInTheDocument();
+		expect(screen.queryByText('Activas')).not.toBeInTheDocument();
 	});
 
 	it('renders correct counts', () => {
@@ -42,7 +45,8 @@ describe('StatsCardsWorks', () => {
 		expect(screen.getByText('20')).toBeInTheDocument();
 		expect(screen.getByText('5')).toBeInTheDocument();
 		expect(screen.getByText('8')).toBeInTheDocument();
-		expect(screen.getByText('7')).toBeInTheDocument();
+		expect(screen.getByText('4')).toBeInTheDocument();
+		expect(screen.getByText('2')).toBeInTheDocument();
 	});
 
 	it('highlights "Todas" card when filter is "all"', () => {
@@ -85,6 +89,9 @@ describe('StatsCardsWorks', () => {
 
 		fireEvent.click(screen.getByText('En progreso'));
 		expect(onStatusFilterChange).toHaveBeenCalledWith('in_progress');
+
+		fireEvent.click(screen.getByText('En pausa'));
+		expect(onStatusFilterChange).toHaveBeenCalledWith('paused');
 
 		fireEvent.click(screen.getByText('Finalizadas'));
 		expect(onStatusFilterChange).toHaveBeenCalledWith('completed');
