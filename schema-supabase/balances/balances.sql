@@ -12,6 +12,7 @@ create table public.balances (
   balance_amount_ars numeric null,
   balance_amount_usd numeric null,
   bank_account_id bigint null,
+  is_settled boolean not null default false,
   constraint balances_pkey primary key (id),
   constraint balances_budget_id_fkey foreign KEY (budget_id) references budgets (id) on update CASCADE,
   constraint balances_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete CASCADE
@@ -84,7 +85,6 @@ create table public.balance_transactions (
   usd_amount numeric null,
   notes text null,
   payment_method character varying null,
-  is_extra_amount boolean not null default false,  
   constraint balance_transactions_pkey primary key (id),
   constraint balance_transactions_balance_id_fkey foreign KEY (balance_id) references balances (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;

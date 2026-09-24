@@ -118,7 +118,7 @@ describe('BalanceForm', () => {
 		);
 
 		expect(screen.getByText('Presupuesto asociado')).toBeInTheDocument();
-		expect(screen.getByText('Crear saldo')).toBeInTheDocument();
+		expect(screen.getByText('Crear cuenta corriente')).toBeInTheDocument();
 		expect(screen.getByText('Cancelar')).toBeInTheDocument();
 	});
 
@@ -149,10 +149,10 @@ describe('BalanceForm', () => {
 		const select = screen.getByTestId('select-native');
 		fireEvent.change(select, { target: { value: '1' } });
 
-		const arsInput = screen.getByLabelText('Monto del saldo en ARS');
+		const arsInput = screen.getByLabelText('Monto de la cuenta corriente en ARS');
 		fireEvent.change(arsInput, { target: { value: '150000' } });
 
-		const submitButton = screen.getByText('Crear saldo');
+		const submitButton = screen.getByText('Crear cuenta corriente');
 		fireEvent.click(submitButton);
 
 		await waitFor(() => {
@@ -178,10 +178,14 @@ describe('BalanceForm', () => {
 		const select = screen.getByTestId('select-native');
 		fireEvent.change(select, { target: { value: '1' } });
 
-		const arsInput = screen.getByLabelText('Monto del saldo en ARS') as HTMLInputElement;
+		const arsInput = screen.getByLabelText(
+			'Monto de la cuenta corriente en ARS'
+		) as HTMLInputElement;
 		expect(arsInput.value).toBe('100.000');
 
-		const usdInput = screen.getByLabelText('Monto del saldo en USD') as HTMLInputElement;
+		const usdInput = screen.getByLabelText(
+			'Monto de la cuenta corriente en USD'
+		) as HTMLInputElement;
 		expect(usdInput.value).toBe('5000');
 	});
 
@@ -213,10 +217,10 @@ describe('BalanceForm', () => {
 		const select = screen.getByTestId('select-native');
 		fireEvent.change(select, { target: { value: '2' } });
 
-		const arsInput = screen.getByLabelText('Monto del saldo en ARS');
+		const arsInput = screen.getByLabelText('Monto de la cuenta corriente en ARS');
 		fireEvent.change(arsInput, { target: { value: '200000' } });
 
-		fireEvent.click(screen.getByText('Crear saldo'));
+		fireEvent.click(screen.getByText('Crear cuenta corriente'));
 
 		await waitFor(() => {
 			expect(onSubmit).toHaveBeenCalledWith(
@@ -243,10 +247,10 @@ describe('BalanceForm', () => {
 		const notesInput = screen.getByTestId('notes-input');
 		fireEvent.change(notesInput, { target: { value: 'Test notes' } });
 
-		const arsInput = screen.getByLabelText('Monto del saldo en ARS');
+		const arsInput = screen.getByLabelText('Monto de la cuenta corriente en ARS');
 		fireEvent.change(arsInput, { target: { value: '100000' } });
 
-		fireEvent.click(screen.getByText('Crear saldo'));
+		fireEvent.click(screen.getByText('Crear cuenta corriente'));
 
 		await waitFor(() => {
 			expect(onSubmit).toHaveBeenCalledWith(

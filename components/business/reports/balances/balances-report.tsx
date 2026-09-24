@@ -95,14 +95,10 @@ export function BalancesReport() {
 				balances.map(async (b) => {
 					const totalPaid = totals?.[b.id]?.totalAmount ?? 0;
 					const totalPaidUSD = totals?.[b.id]?.totalAmountUSD ?? 0;
-					const totalExtraArs = totals?.[b.id]?.totalExtraAmount ?? 0;
-					const totalExtraUsd = totals?.[b.id]?.totalExtraAmountUSD ?? 0;
 					const budgetUsd = b.balance_amount_usd ?? 0;
 					const budgetArs = b.balance_amount_ars ?? 0;
-					const effectiveBudgetArs = budgetArs + totalExtraArs;
-					const effectiveBudgetUsd = budgetUsd + totalExtraUsd;
-					const remainingArs = normalizeMoney(effectiveBudgetArs - totalPaid);
-					const remainingUsd = normalizeMoney(effectiveBudgetUsd - totalPaidUSD);
+					const remainingArs = normalizeMoney(budgetArs - totalPaid);
+					const remainingUsd = normalizeMoney(budgetUsd - totalPaidUSD);
 
 					const clientName =
 						`${b.client?.last_name ?? ''} ${b.client?.name ?? ''}`.trim() || DEFAULT_FALLBACK;
@@ -118,8 +114,9 @@ export function BalancesReport() {
 
 					const usdContractRef = Number(b.contract_date_usd) || 0;
 
-					const balanceType =
-						remainingArs > 0
+					const balanceType = b.is_settled
+						? BALANCE_TYPES.CANCELLED
+						: remainingArs > 0
 							? BALANCE_TYPES.DEBTOR
 							: remainingArs < 0
 								? BALANCE_TYPES.CREDITOR
@@ -142,7 +139,7 @@ export function BalancesReport() {
 						client: clientName,
 						work,
 						concept,
-						purchaseArs: effectiveBudgetArs,
+						purchaseArs: budgetArs,
 						deliveriesArs: totalPaid,
 						balanceType,
 						balanceAmountArs,
@@ -234,7 +231,7 @@ export function BalancesReport() {
 			{/* Tabs */}
 			<Tabs defaultValue="balances" className="space-y-4">
 				<TabsList className="bg-card border border-border">
-					<TabsTrigger value="balances">Saldos</TabsTrigger>
+					<TabsTrigger value="balances">Cuentas corrientes</TabsTrigger>
 					<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
 					<TabsTrigger value="other" disabled>
 						A definir
@@ -283,7 +280,9 @@ export function BalancesReport() {
 						{/* Mobile Card View */}
 						<div className="p-4 md:hidden space-y-3">
 							{loading ? (
-								<p className="text-center text-muted-foreground py-6">Cargando saldos...</p>
+								<p className="text-center text-muted-foreground py-6">
+									Cargando cuentas corrientes...
+								</p>
 							) : filteredRows.length === 0 ? (
 								<p className="text-center text-muted-foreground py-6">No hay resultados</p>
 							) : (
@@ -376,7 +375,7 @@ export function BalancesReport() {
 										{loading ? (
 											<TableRow>
 												<TableCell colSpan={8} className="text-center text-muted-foreground">
-													Cargando saldos...
+													Cargando cuentas corrientes...
 												</TableCell>
 											</TableRow>
 										) : filteredRows.length === 0 ? (

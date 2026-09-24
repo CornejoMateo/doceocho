@@ -215,7 +215,7 @@ export function ClientManagement() {
 								<li>Archivos subidos</li>
 								<li>Presupuestos</li>
 								<li>Obras</li>
-								<li>Saldos y transacciones</li>
+								<li>Cuentas corrientes y transacciones</li>
 							</ul>
 							<p className="mt-2 font-medium text-destructive">Esta acción no se puede deshacer.</p>
 						</div>

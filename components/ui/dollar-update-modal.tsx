@@ -158,7 +158,7 @@ export function DollarUpdateModal({
 						Actualizar Precios con Dólar Actual
 					</DialogTitle>
 					<DialogDescription>
-						Actualice los valores del saldo con el tipo de cambio oficial del día
+						Actualice los valores de la cuenta corriente con el tipo de cambio oficial del día
 					</DialogDescription>
 				</DialogHeader>
 
@@ -226,7 +226,7 @@ export function DollarUpdateModal({
 									</div>
 
 									<div className="flex justify-between items-center">
-										<span>Saldo restante:</span>
+										<span>Debe:</span>
 										<div className="text-right">
 											<div className="font-medium">
 												${(newValues.remainingInARS || 0).toLocaleString('es-AR')} → $

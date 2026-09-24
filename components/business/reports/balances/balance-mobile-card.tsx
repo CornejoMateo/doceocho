@@ -24,7 +24,7 @@ export function BalanceMobileCard({ row }: BalanceMobileCardProps) {
 				</div>
 				<div className="grid grid-cols-2 gap-2 text-sm">
 					<div>
-						<p className="text-muted-foreground text-xs">Fecha</p>
+						<p className="text-muted-foreground text-xs">Fecha de venta</p>
 						<p className="font-medium">{row.contractDate}</p>
 					</div>
 					<div>
@@ -40,7 +40,7 @@ export function BalanceMobileCard({ row }: BalanceMobileCardProps) {
 						<p className="font-medium">{formatCurrency(row.deliveriesArs)}</p>
 					</div>
 					<div className="col-span-2">
-						<p className="text-muted-foreground text-xs">Saldo</p>
+						<p className="text-muted-foreground text-xs">Monto</p>
 						<p className="font-medium">{formatCurrency(row.balanceAmountArs)}</p>
 					</div>
 				</div>

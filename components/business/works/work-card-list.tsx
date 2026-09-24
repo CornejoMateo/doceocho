@@ -240,16 +240,16 @@ export function WorkCardList({
 								<PopoverTrigger asChild>
 									<Button variant="outline" size="sm" className="w-full sm:w-auto">
 										<Wallet className="h-4 w-4 mr-2" />
-										Saldos
+										Cuentas corrientes
 									</Button>
 								</PopoverTrigger>
 								<PopoverContent align="end" className="p-1 w-72">
 									<div className="px-2 py-2 text-xs font-medium text-muted-foreground">
-										Saldos de la obra
+										Cuentas corrientes de la obra
 									</div>
 									{balances.length === 0 ? (
 										<div className="px-2 py-3 text-sm text-muted-foreground text-center">
-											No hay saldos asociados
+											No hay cuentas corrientes asociadas
 										</div>
 									) : (
 										<div className="max-h-64 overflow-y-auto">
@@ -257,7 +257,7 @@ export function WorkCardList({
 												const budget = balance.budget;
 												const label = budget
 													? [budget.number, budget.type].filter(Boolean).join(' · ')
-													: 'Saldo sin presupuesto';
+													: 'Cuenta corriente sin presupuesto';
 												return (
 													<button
 														key={balance.id}

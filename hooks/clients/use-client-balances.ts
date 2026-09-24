@@ -16,7 +16,8 @@ export function useClientBalances(clientId?: number) {
 			if (error) throw error;
 			return data ?? [];
 		},
-		clientId ? `balances_${clientId}` : undefined
+
+		clientId ? `balances_${clientId}` : 'balances_no_client'
 	);
 
 	const previousClientId = useRef(clientId);

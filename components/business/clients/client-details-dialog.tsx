@@ -104,8 +104,8 @@ export function ClientDetailsDialog({
 		if (!balance) {
 			toast({
 				variant: 'destructive',
-				title: 'Sin saldo',
-				description: 'Esta obra no tiene un saldo asociado.',
+				title: 'Sin cuenta corriente',
+				description: 'Esta obra no tiene una cuenta corriente asociada.',
 			});
 			return;
 		}
@@ -185,8 +185,8 @@ export function ClientDetailsDialog({
 			await createBalance(balanceData);
 
 			toast({
-				title: 'Saldo creado',
-				description: 'El saldo se ha creado exitosamente.',
+				title: 'Cuenta corriente creada',
+				description: 'La cuenta corriente se ha creado exitosamente.',
 			});
 
 			setIsBalanceFormOpen(false);
@@ -196,8 +196,8 @@ export function ClientDetailsDialog({
 			const errorMessage = translateError(error);
 			toast({
 				variant: 'destructive',
-				title: 'Error al crear el saldo',
-				description: errorMessage || 'Hubo un problema al crear el saldo.',
+				title: 'Error al crear la cuenta corriente',
+				description: errorMessage || 'Hubo un problema al crear la cuenta corriente.',
 			});
 		}
 	};
@@ -277,7 +277,7 @@ export function ClientDetailsDialog({
 						</Button>
 					</div>
 					<DialogDescription className="sr-only">
-						Información completa del cliente, obras, presupuestos y saldos
+						Información completa del cliente, obras, presupuestos y cuentas corrientes
 					</DialogDescription>
 				</DialogHeader>
 
@@ -335,7 +335,7 @@ export function ClientDetailsDialog({
 									{isAuthorized && (
 										<>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
-											<TabsTrigger value="balances">Saldos</TabsTrigger>
+											<TabsTrigger value="balances">Cuentas corrientes</TabsTrigger>
 										</>
 									)}
 									<TabsTrigger value="images">Archivos</TabsTrigger>
@@ -445,8 +445,10 @@ export function ClientDetailsDialog({
 			<Dialog open={isBalanceFormOpen} onOpenChange={setIsBalanceFormOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Nuevo saldo</DialogTitle>
-						<DialogDescription>Completa los campos para crear un nuevo saldo.</DialogDescription>
+						<DialogTitle>Nueva cuenta corriente</DialogTitle>
+						<DialogDescription>
+							Completa los campos para crear una nueva cuenta corriente.
+						</DialogDescription>
 					</DialogHeader>
 					<BalanceForm
 						clientId={client?.id || 0}

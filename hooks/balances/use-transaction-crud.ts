@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
 	BalanceTransaction,
 	getTransactionsByBalanceId,
@@ -9,11 +9,16 @@ import {
 	updateTransaction,
 	BalanceTransactionWithBankAccount,
 } from '@/lib/balances/balance_transactions';
-import { BalanceWithBudget, updateBalance } from '@/lib/balances/balances';
+import {
+	BalanceWithBudget,
+	updateBalance,
+	markBalanceAsSettled,
+	unmarkBalanceAsSettled,
+} from '@/lib/balances/balances';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { format, set } from 'date-fns';
-import { parseArsToNumber } from '@/utils/formats-money';
+import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
 
 export function useTransactionCrud(
@@ -26,7 +31,9 @@ export function useTransactionCrud(
 
 	const [transactions, setTransactions] = useState<BalanceTransactionWithBankAccount[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
-	const [addingMode, setAddingMode] = useState<'transaction' | 'extra' | null>(null);
+
+	const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+	const [addingMode, setAddingMode] = useState<'transaction' | null>(null);
 	const [transactionToDelete, setTransactionToDelete] = useState<BalanceTransaction | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -34,6 +41,12 @@ export function useTransactionCrud(
 	const [editingTransaction, setEditingTransaction] = useState<BalanceTransaction | null>(null);
 	const [transactionFilesToUpload, setTransactionFilesToUpload] = useState<File[]>([]);
 	const [isSavingTransaction, setIsSavingTransaction] = useState(false);
+	const [isDeletingTransaction, setIsDeletingTransaction] = useState(false);
+	const [showSettledReminder, setShowSettledReminder] = useState(false);
+
+	const [isTogglingSettled, setIsTogglingSettled] = useState(false);
+
+	const skipNextAutoCalcRef = useRef(false);
 
 	const [transactionDate, setTransactionDate] = useState<Date>(new Date());
 	const [transactionAmount, setTransactionAmount] = useState('');
@@ -48,24 +61,30 @@ export function useTransactionCrud(
 			loadTransactions();
 			setBalanceNotes(balance.notes ?? '');
 		}
-	}, [balance, isOpen]);
+	}, [balance?.id, isOpen]);
 
 	useEffect(() => {
+		if (skipNextAutoCalcRef.current) {
+			skipNextAutoCalcRef.current = false;
+			return;
+		}
 		if (transactionAmount && quoteUsd && addingMode) {
 			const normalizedAmount = transactionAmount.replace(/\./g, '').replace(',', '.');
 			const normalizedQuote = quoteUsd.replace(/\./g, '').replace(',', '.');
 			const amountNumber = Number(normalizedAmount);
 			const rateNumber = Number(normalizedQuote);
 			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {
-				setUsdAmount((amountNumber / rateNumber).toFixed(3));
+				setUsdAmount(formatNumber((amountNumber / rateNumber).toFixed(3).replace('.', ',')));
 			}
 		} else {
-			setUsdAmount('');
+			if (!transactionAmount || !quoteUsd) {
+				setUsdAmount('');
+			}
 		}
-	}, [quoteUsd, transactionAmount, addingMode]);
+	}, [quoteUsd, transactionAmount, addingMode, editingTransaction]);
 
-	const loadTransactions = async () => {
-		if (!balance) return;
+	const loadTransactions = async (): Promise<BalanceTransactionWithBankAccount[]> => {
+		if (!balance) return [];
 		try {
 			setIsLoading(true);
 			const { data, error } = await getTransactionsByBalanceId(balance.id);
@@ -79,18 +98,126 @@ export function useTransactionCrud(
 						'Hubo un problema al cargar las transacciones. Intente nuevamente.',
 				});
 				setTransactions([]);
-				return;
+				return [];
 			}
-			setTransactions(data || []);
+			const fetched = data || [];
+			setTransactions(fetched);
+			return fetched;
 		} catch (error) {
 			console.error('Error inesperado al cargar transacciones:', error);
+			return [];
 		} finally {
 			setIsLoading(false);
+			setHasLoadedOnce(true);
 		}
 	};
 
-	const handleAddTransaction = async (isExtra?: boolean) => {
+	const buildSummaryFromTransactions = (txs: BalanceTransactionWithBankAccount[]) => {
+		const paidArs = txs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+		const paidUsd = txs.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
+
+		return calculateBalanceSummary({
+			budgetAmountArs: balance?.balance_amount_ars,
+			budgetAmountUsd: balance?.balance_amount_usd,
+			budgetInitialArs: balance?.budget?.amount_ars,
+			usdCurrent: balance?.usd_current,
+			totalPaidArs: paidArs,
+			totalPaidUsd: paidUsd,
+			isSettled: balance?.is_settled,
+		});
+	};
+
+	const detectSettledTransition = (
+		beforeType: string,
+		freshTransactions: BalanceTransactionWithBankAccount[]
+	) => {
+		const afterType = buildSummaryFromTransactions(freshTransactions).type;
+
+		if (beforeType !== 'Saldado' && afterType === 'Saldado' && balance?.is_settled !== true) {
+			setShowSettledReminder(true);
+		}
+	};
+
+	const dismissSettledReminder = () => {
+		setShowSettledReminder(false);
+	};
+
+	const handleMarkAsSettled = async () => {
+		if (!balance) return;
+
+		setIsTogglingSettled(true);
+
+		try {
+			const { error } = await markBalanceAsSettled(balance.id);
+
+			if (error) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al marcar como saldado',
+					description:
+						translateError(error) || 'Hubo un problema al marcar la cuenta corriente como saldada.',
+				});
+				return;
+			}
+
+			toast({
+				title: 'Cuenta corriente saldada',
+				description: 'La cuenta corriente se marcó como saldada exitosamente.',
+			});
+
+			setShowSettledReminder(false);
+			onTransactionCreated?.();
+		} catch (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error inesperado',
+				description: translateError(error) || 'Ocurrió un error inesperado. Intente nuevamente.',
+			});
+		} finally {
+			setIsTogglingSettled(false);
+		}
+	};
+
+	const handleUnmarkAsSettled = async () => {
+		if (!balance) return;
+
+		setIsTogglingSettled(true);
+
+		try {
+			const { error } = await unmarkBalanceAsSettled(balance.id);
+
+			if (error) {
+				toast({
+					variant: 'destructive',
+					title: 'Error al desmarcar como saldado',
+					description:
+						translateError(error) ||
+						'Hubo un problema al desmarcar la cuenta corriente como saldada.',
+				});
+				return;
+			}
+
+			toast({
+				title: 'Cuenta corriente desmarcada',
+				description: 'La cuenta corriente se desmarcó como saldada exitosamente.',
+			});
+
+			onTransactionCreated?.();
+		} catch (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error inesperado',
+				description: translateError(error) || 'Ocurrió un error inesperado. Intente nuevamente.',
+			});
+		} finally {
+			setIsTogglingSettled(false);
+		}
+	};
+
+	const handleAddTransaction = async () => {
 		if (!balance || isSavingTransaction) return;
+
+		const beforeType = summary.type;
 
 		if (!quoteUsd) {
 			toast({
@@ -111,20 +238,17 @@ export function useTransactionCrud(
 				payment_method: paymentMethod || null,
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
-				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
 				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
-				...(isExtra ? { is_extra_amount: true } : {}),
 			});
 
 			if (error) {
 				toast({
 					variant: 'destructive',
-					title: isExtra ? 'Error al crear monto extra' : 'Error al crear transacción',
+					title: 'Error al crear transacción',
 					description:
 						translateError(error) ||
-						(isExtra
-							? 'Hubo un problema al crear el monto extra. Intente nuevamente.'
-							: 'Hubo un problema al crear la transacción. Intente nuevamente.'),
+						'Hubo un problema al crear la transacción. Intente nuevamente.',
 				});
 				return;
 			}
@@ -139,17 +263,16 @@ export function useTransactionCrud(
 			}
 
 			toast({
-				title: isExtra ? 'Monto extra creado' : 'Transacción creada',
+				title: 'Transacción creada',
 				description: fileUploadError
 					? 'Se creó, pero hubo un problema al subir los archivos adjuntos.'
-					: isExtra
-						? 'El monto extra se ha creado exitosamente.'
-						: 'La transacción se ha creado exitosamente.',
+					: 'La transacción se ha creado exitosamente.',
 				variant: fileUploadError ? 'destructive' : undefined,
 			});
 
 			resetTransactionForm();
-			await loadTransactions();
+			const freshTransactions = await loadTransactions();
+			detectSettledTransition(beforeType, freshTransactions);
 			onTransactionCreated?.();
 		} catch (error) {
 			toast({
@@ -165,11 +288,20 @@ export function useTransactionCrud(
 	const handleDeleteTransaction = async () => {
 		if (!transactionToDelete) return;
 
+		const beforeType = summary.type;
+
+		setIsDeletingTransaction(true);
+
+		const loadingToast = toast({
+			title: 'Eliminando transacción...',
+		});
+
 		try {
 			const { error } = await deleteTransaction(transactionToDelete.id);
 
 			if (error) {
-				toast({
+				loadingToast.update({
+					id: loadingToast.id,
 					variant: 'destructive',
 					title: 'Error al eliminar transacción',
 					description:
@@ -179,15 +311,18 @@ export function useTransactionCrud(
 				return;
 			}
 
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				title: 'Transacción eliminada',
 				description: 'La transacción se ha eliminado exitosamente.',
 			});
 
-			await loadTransactions();
+			const freshTransactions = await loadTransactions();
+			detectSettledTransition(beforeType, freshTransactions);
 			onTransactionCreated?.();
 		} catch (error) {
-			toast({
+			loadingToast.update({
+				id: loadingToast.id,
 				variant: 'destructive',
 				title: 'Error inesperado',
 				description: translateError(error) || 'Ocurrió un error inesperado. Intente nuevamente.',
@@ -195,6 +330,7 @@ export function useTransactionCrud(
 		} finally {
 			setIsDeleteDialogOpen(false);
 			setTransactionToDelete(null);
+			setIsDeletingTransaction(false);
 		}
 	};
 
@@ -246,6 +382,7 @@ export function useTransactionCrud(
 
 	const handleEditTransaction = (transaction: BalanceTransaction) => {
 		setEditingTransaction(transaction);
+		skipNextAutoCalcRef.current = true;
 		setTransactionDate(transaction.date ? new Date(transaction.date + 'T00:00:00') : new Date());
 		setTransactionAmount(
 			transaction.amount
@@ -266,13 +403,22 @@ export function useTransactionCrud(
 					})
 				: ''
 		);
-		setUsdAmount(transaction.usd_amount ? String(transaction.usd_amount) : '');
+		setUsdAmount(
+			transaction.usd_amount
+				? transaction.usd_amount.toLocaleString('es-AR', {
+						minimumFractionDigits: 0,
+						maximumFractionDigits: 3,
+					})
+				: ''
+		);
 		setTransactionFilesToUpload([]);
 		setAddingMode('transaction');
 	};
 
 	const handleUpdateTransaction = async () => {
 		if (!balance || !editingTransaction || isSavingTransaction) return;
+
+		const beforeType = summary.type;
 
 		setIsSavingTransaction(true);
 
@@ -283,7 +429,7 @@ export function useTransactionCrud(
 				payment_method: paymentMethod || null,
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
-				usd_amount: usdAmount ? parseFloat(usdAmount) : null,
+				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
 				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
 			});
 
@@ -316,7 +462,8 @@ export function useTransactionCrud(
 			});
 
 			resetTransactionForm();
-			await loadTransactions();
+			const freshTransactions = await loadTransactions();
+			detectSettledTransition(beforeType, freshTransactions);
 			onTransactionCreated?.();
 		} catch (error) {
 			toast({
@@ -329,13 +476,8 @@ export function useTransactionCrud(
 		}
 	};
 
-	const regularTransactions = transactions.filter((t) => !t.is_extra_amount);
-	const extraTransactions = transactions.filter((t) => t.is_extra_amount);
-
-	const totalPaid = regularTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-	const totalPaidUSD = regularTransactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
-	const totalExtraArs = extraTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-	const totalExtraUsd = extraTransactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
+	const totalPaid = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+	const totalPaidUSD = transactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
 
 	const summary = calculateBalanceSummary({
 		budgetAmountArs: balance?.balance_amount_ars,
@@ -344,8 +486,7 @@ export function useTransactionCrud(
 		usdCurrent: balance?.usd_current,
 		totalPaidArs: totalPaid,
 		totalPaidUsd: totalPaidUSD,
-		totalExtraArs,
-		totalExtraUsd,
+		isSettled: balance?.is_settled,
 	});
 
 	const work = balance?.budget?.folder_budget?.work;
@@ -353,6 +494,7 @@ export function useTransactionCrud(
 	return {
 		transactions,
 		isLoading,
+		isInitialLoading: !hasLoadedOnce,
 		addingMode,
 		setAddingMode,
 		transactionToDelete,
@@ -368,6 +510,7 @@ export function useTransactionCrud(
 		transactionFilesToUpload,
 		setTransactionFilesToUpload,
 		isSavingTransaction,
+		isDeletingTransaction,
 		transactionDate,
 		setTransactionDate,
 		transactionAmount,
@@ -391,9 +534,12 @@ export function useTransactionCrud(
 		handleUpdateTransaction,
 		totalPaid,
 		totalPaidUSD,
-		totalExtraArs,
-		totalExtraUsd,
 		summary,
 		work,
+		showSettledReminder,
+		isTogglingSettled,
+		dismissSettledReminder,
+		handleMarkAsSettled,
+		handleUnmarkAsSettled,
 	};
 }

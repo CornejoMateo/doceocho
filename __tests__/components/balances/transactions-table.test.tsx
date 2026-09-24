@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { TransactionsTable } from '@/components/business/balances/transactions/transactions-table';
 
 jest.mock('@/utils/formats-money', () => ({
@@ -20,7 +20,6 @@ const mockTransactions = [
 		quote_usd: 1000,
 		payment_method: 'bank_transfer',
 		notes: 'Pago inicial',
-		is_extra_amount: false,
 		bank_account_id: 7,
 		bank_account: { id: 7, name: 'Cuenta Principal', bank: 'Santander' },
 	},
@@ -32,7 +31,6 @@ const mockTransactions = [
 		quote_usd: 1000,
 		payment_method: 'cash',
 		notes: 'Compra de insumos',
-		is_extra_amount: true,
 		bank_account_id: null,
 		bank_account: null,
 	},
@@ -72,26 +70,23 @@ describe('TransactionsTable', () => {
 	it('renders transaction data (notes, amounts, payment method)', () => {
 		renderTable();
 
-		expect(screen.getByText('Pago inicial')).toBeInTheDocument();
-		expect(screen.getByText('Compra de insumos')).toBeInTheDocument();
-		expect(screen.getByText('$50000')).toBeInTheDocument();
-		expect(screen.getByText('USD 50')).toBeInTheDocument();
-		expect(screen.getByText('$10000')).toBeInTheDocument();
-		expect(screen.getByText('Transferencia bancaria')).toBeInTheDocument();
-		expect(screen.getByText('Efectivo')).toBeInTheDocument();
-	});
+		const table = within(screen.getByRole('table'));
 
-	it('shows the Extra badge only for transactions marked as extra amount', () => {
-		renderTable();
-
-		// Solo la transacción #2 es extra, así que el badge debe aparecer una sola vez
-		expect(screen.getAllByText('Extra')).toHaveLength(1);
+		expect(table.getByText('Pago inicial')).toBeInTheDocument();
+		expect(table.getByText('Compra de insumos')).toBeInTheDocument();
+		expect(table.getByText('$50000')).toBeInTheDocument();
+		expect(table.getByText('USD 50')).toBeInTheDocument();
+		expect(table.getByText('$10000')).toBeInTheDocument();
+		expect(table.getByText('Transferencia bancaria')).toBeInTheDocument();
+		expect(table.getByText('Efectivo')).toBeInTheDocument();
 	});
 
 	it('shows bank account details when present', () => {
 		renderTable();
 
-		expect(screen.getByText('Cuenta Principal - Santander')).toBeInTheDocument();
+		const table = within(screen.getByRole('table'));
+
+		expect(table.getByText('Cuenta Principal - Santander')).toBeInTheDocument();
 	});
 
 	it('does not show bank account details when transaction has no bank account', () => {
@@ -104,7 +99,10 @@ describe('TransactionsTable', () => {
 		const onEditTransaction = jest.fn();
 		renderTable({ onEditTransaction });
 
-		fireEvent.click(screen.getByRole('button', { name: 'Editar transacción del 2024-06-15' }));
+		const rows = within(screen.getByRole('table')).getAllByRole('row');
+		const firstTransactionRow = within(rows[1]);
+
+		fireEvent.click(firstTransactionRow.getByRole('button', { name: 'Editar transacción' }));
 
 		expect(onEditTransaction).toHaveBeenCalledWith(mockTransactions[0]);
 	});
@@ -113,7 +111,10 @@ describe('TransactionsTable', () => {
 		const onDeleteTransaction = jest.fn();
 		renderTable({ onDeleteTransaction });
 
-		fireEvent.click(screen.getByRole('button', { name: 'Eliminar transacción del 2024-07-01' }));
+		const rows = within(screen.getByRole('table')).getAllByRole('row');
+		const secondTransactionRow = within(rows[2]);
+
+		fireEvent.click(secondTransactionRow.getByRole('button', { name: 'Eliminar transacción' }));
 
 		expect(onDeleteTransaction).toHaveBeenCalledWith(mockTransactions[1]);
 	});

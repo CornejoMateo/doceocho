@@ -27,7 +27,7 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 		if (!balanceToDelete) return;
 
 		const loadingToast = toast({
-			title: 'Eliminando saldo...',
+			title: 'Eliminando cuenta corriente...',
 			description: 'Se están eliminando los archivos asociados. Esto puede tardar unos momentos.',
 		});
 
@@ -37,9 +37,10 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 			if (error) {
 				loadingToast.update({
 					variant: 'destructive',
-					title: 'Error al eliminar saldo',
+					title: 'Error al eliminar la cuenta corriente',
 					description:
-						translateError(error) || 'Hubo un problema al eliminar el saldo. Intente nuevamente.',
+						translateError(error) ||
+						'Hubo un problema al eliminar la cuenta corriente. Intente nuevamente.',
 				} as any);
 				return;
 			}
@@ -48,8 +49,8 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 			handleBalanceUpdate();
 
 			loadingToast.update({
-				title: 'Saldo eliminado',
-				description: 'El saldo se eliminó correctamente.',
+				title: 'Cuenta corriente eliminada',
+				description: 'La cuenta corriente se eliminó correctamente.',
 			} as any);
 
 			// Notify parent to reload budgets
@@ -59,10 +60,10 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 		} catch (error) {
 			loadingToast.update({
 				variant: 'destructive',
-				title: 'Error inesperado al eliminar saldo',
+				title: 'Error inesperado al eliminar la cuenta corriente',
 				description:
 					translateError(error) ||
-					'Ocurrió un error inesperado al eliminar el saldo. Intente nuevamente.',
+					'Ocurrió un error inesperado al eliminar la cuenta corriente. Intente nuevamente.',
 			} as any);
 		} finally {
 			setIsDeleteDialogOpen(false);

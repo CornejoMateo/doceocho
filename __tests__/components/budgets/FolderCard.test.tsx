@@ -4,8 +4,8 @@ import { BudgetFolderVM } from '@/components/business/reports/budgets/types';
 import { Work } from '@/lib/works/works';
 
 const mockWorks: Work[] = [
-	{ id: 1, address: 'Av. Siempre Viva', locality: 'Springfield' },
-	{ id: 2, address: 'Calle 123', locality: 'CABA' },
+	{ name: 'Obra 1', id: 1, address: 'Av. Siempre Viva', locality: 'Springfield' },
+	{ name: 'Obra 2', id: 2, address: 'Calle 123', locality: 'CABA' },
 ];
 
 const mockFolderWithWork: BudgetFolderVM = {
@@ -165,7 +165,7 @@ describe('FolderCard', () => {
 		const selectTrigger = screen.getByRole('combobox');
 		fireEvent.click(selectTrigger);
 
-		const option = screen.getByText('Av. Siempre Viva - Springfield');
+		const option = screen.getByText('Obra 1');
 		fireEvent.click(option);
 
 		fireEvent.click(screen.getByText('Asignar'));
