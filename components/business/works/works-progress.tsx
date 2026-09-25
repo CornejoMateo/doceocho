@@ -51,7 +51,7 @@ import {
 } from '@/lib/works/metrics';
 import { WorksFiltersBar } from '@/components/business/works/metrics/works-filters';
 import { createDefaultSpec, type ChartSpec } from '@/components/business/works/metrics/chart-model';
-import { describeFilters } from '@/components/business/works/metrics/filter-model';
+import { describeFilters } from '@/helpers/works/filter-model';
 import { WorksExportDialog } from '@/components/business/works/works-export-dialog';
 import { MetricsTab } from '@/components/business/works/metrics/metrics-tab';
 import { ClientDetailsDialog } from '@/components/business/clients/client-details-dialog';

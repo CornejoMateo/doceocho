@@ -54,3 +54,30 @@ export const POST_IT_CONSTANTS = {
 } as const;
 
 export type PostItColor = keyof typeof POST_IT_CONSTANTS.COLORS;
+
+export type SortKey =
+	| 'name'
+	| 'client'
+	| 'locality'
+	| 'hood'
+	| 'zone'
+	| 'architect'
+	| 'status'
+	| 'progress'
+	| 'created'
+	| 'completed'
+	| 'duration';
+
+export const COLUMNS: { key: SortKey; label: string; numeric?: boolean }[] = [
+	{ key: 'name', label: 'Nombre' },
+	{ key: 'client', label: 'Cliente' },
+	{ key: 'locality', label: 'Localidad' },
+	{ key: 'hood', label: 'Barrio' },
+	{ key: 'zone', label: 'Zona' },
+	{ key: 'architect', label: 'Arquitecto' },
+	{ key: 'status', label: 'Estado' },
+	{ key: 'progress', label: 'Avance', numeric: true },
+	{ key: 'created', label: 'Creada' },
+	{ key: 'completed', label: 'Finalizada' },
+	{ key: 'duration', label: 'Duración', numeric: true },
+];

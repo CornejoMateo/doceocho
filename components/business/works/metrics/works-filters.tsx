@@ -44,7 +44,7 @@ import {
 	decodePeriod,
 	encodePeriod,
 	getFilterChips,
-} from './filter-model';
+} from '@/helpers/works/filter-model';
 
 interface WorksFiltersBarProps {
 	filters: WorksFilters;

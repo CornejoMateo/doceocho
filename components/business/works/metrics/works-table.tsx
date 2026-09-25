@@ -23,7 +23,7 @@ import {
 	workCreated,
 	workDurationDays,
 	workTitle,
-} from './work-display';
+} from '@/helpers/works/work-display';
 import type { SortKey } from '@/constants/works/works-constants';
 import { COLUMNS } from '@/constants/works/works-constants';
 

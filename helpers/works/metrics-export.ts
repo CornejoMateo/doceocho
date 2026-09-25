@@ -1,11 +1,7 @@
 import { NO_DATA_LABEL, type Kpis, type RankedWork } from '@/lib/works/metrics';
 import type { MonthlyPoint } from '@/lib/works/metrics';
 import type { WorkWithProgress } from '@/lib/works/works';
-import {
-	workClient,
-	workCreated,
-	workTitle,
-} from '@/components/business/works/metrics/work-display';
+import { workClient, workCreated, workTitle } from '@/helpers/works/work-display';
 import {
 	formatDays,
 	formatNumber,

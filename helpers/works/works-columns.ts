@@ -1,9 +1,4 @@
-import {
-	workClient,
-	workCompleted,
-	workCreated,
-	workTitle,
-} from '@/components/business/works/metrics/work-display';
+import { workClient, workCompleted, workCreated, workTitle } from '@/helpers/works/work-display';
 import { formatDays } from '@/components/business/works/metrics/chart-model';
 import { NO_DATA_LABEL, STATUS_LABELS, getWorkDuration } from '@/lib/works/metrics';
 import type { WorkWithProgress } from '@/lib/works/works';

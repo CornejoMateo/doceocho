@@ -1,3 +1,4 @@
+import { formatMonth } from '@/components/business/works/metrics/chart-model';
 import {
 	MAX_HORIZONTAL_ROWS,
 	truncationNote,
@@ -116,5 +117,15 @@ describe('truncationNote', () => {
 			`Mostrando ${MAX_HORIZONTAL_ROWS} de ${MAX_HORIZONTAL_ROWS + 20}`
 		);
 		expect(truncationNote({ type: 'bar' }, 500)).toBeNull();
+	});
+});
+
+describe('month labels', () => {
+	it('formats YYYY-MM as short Spanish month, falling back to the raw value', () => {
+		expect(formatMonth('2026-09')).toBe('sep 2026');
+		expect(formatMonth('2026-01')).toBe('ene 2026');
+		expect(formatMonth('2026-12')).toBe('dic 2026');
+		expect(formatMonth('2026-13')).toBe('2026-13');
+		expect(formatMonth('x')).toBe('x');
 	});
 });
