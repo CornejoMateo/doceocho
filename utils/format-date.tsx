@@ -93,3 +93,27 @@ export const formatTimeVideo = (seconds: number) => {
 	const s = (totalSeconds % 60).toString().padStart(2, '0');
 	return `${m}:${s}`;
 };
+
+/** Formats a date-only 'YYYY-MM-DD' string as dd/mm/yyyy without using Date (avoids timezone day shifts). */
+export function formatDateOnly(value: string | null | undefined): string {
+	if (!value) return 'N/A';
+	const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+	if (!match) return 'N/A';
+	return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+/** Returns true when the value is a real calendar date in 'YYYY-MM-DD' form. */
+export function isValidDateOnly(value: string | null | undefined): boolean {
+	if (!value) return false;
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+	if (!match) return false;
+	const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])];
+	const check = new Date(Date.UTC(y, m - 1, d));
+	return check.getUTCFullYear() === y && check.getUTCMonth() === m - 1 && check.getUTCDate() === d;
+}
+
+// Builds a local Date for the given 'YYYY-MM-DD' (Argentina today) for the picker's upper bound
+export const parseToday = (value: string) => {
+	const [y, m, d] = value.split('-').map(Number);
+	return new Date(y, m - 1, d);
+};
