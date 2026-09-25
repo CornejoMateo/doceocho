@@ -40,6 +40,7 @@ import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box-dialog';
 import { formatCurrency } from '@/utils/formats-money';
+import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 
 function CashFlowTransactionsRealtime({
@@ -338,8 +339,13 @@ export function CashFlowManagement() {
 					/>
 				</TabsContent>
 
+				<TabsContent value="suppliers">
+					<SuppliersManagement />
+				</TabsContent>
+
 				{CASH_FLOW_TABS.filter(
-					(tab) => tab.value !== 'summary' && tab.value !== 'bank-accounts'
+					(tab) =>
+						tab.value !== 'summary' && tab.value !== 'bank-accounts' && tab.value !== 'suppliers'
 				).map((tab) => (
 					<TabsContent key={tab.value} value={tab.value}>
 						<Card className="p-12 bg-card border-border text-center">
