@@ -3,7 +3,6 @@
 import { createWork as createWorkDb } from '@/lib/works/works';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { sendWorkCreatedNotification } from '@/actions/push/send-work-notification';
-import { getCurrentUser } from '@/lib/auth';
 
 export async function createWorkAction(workData: {
 	name: string | null;
@@ -11,6 +10,7 @@ export async function createWorkAction(workData: {
 	address?: string | null;
 	client_id?: number | null;
 	status?: string | null;
+	completion_date?: string | null;
 	architect?: string | null;
 	general_note?: string | null;
 	balance_id?: string | null;

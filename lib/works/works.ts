@@ -3,6 +3,7 @@ import { getSupabaseClient } from '../supabase-client';
 import { ChecklistItem, deleteChecklist } from '@/lib/checklists/checklists';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { getLocalDate } from '@/utils/format-date';
 
 export type Work = {
 	id: number;
@@ -14,6 +15,7 @@ export type Work = {
 	client_name?: string | null;
 	client_last_name?: string | null;
 	status?: string | null;
+	completion_date?: string | null;
 	architect?: string | null;
 	general_note?: string | null;
 	balance_id?: string | null;
@@ -125,6 +127,7 @@ export async function createWork(
 	const supabase = supabaseClient ?? getSupabaseClient();
 	const payload = {
 		...work,
+		...(work.status ? buildWorkStatusChanges(work.status, work.completion_date) : {}),
 	};
 	const { data, error } = await supabase.from(TABLE).insert(payload).select().single();
 	return { data, error };
@@ -137,6 +140,24 @@ export async function updateWork(
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase.from(TABLE).update(changes).eq('id', id).select().single();
 	return { data, error };
+}
+
+export function buildWorkStatusChanges(
+	newStatus: string,
+	completionDate?: string | null
+): Pick<Work, 'status' | 'completion_date'> {
+	if (newStatus === 'completed') {
+		return { status: newStatus, completion_date: completionDate || getLocalDate() };
+	}
+	return { status: newStatus, completion_date: null };
+}
+
+export async function changeWorkStatus(
+	workId: number,
+	newStatus: string,
+	options: { completionDate?: string | null } = {}
+): Promise<{ data: Work | null; error: any }> {
+	return updateWork(workId, buildWorkStatusChanges(newStatus, options.completionDate));
 }
 
 export async function deleteWork(id: number): Promise<{ data: null; error: any }> {

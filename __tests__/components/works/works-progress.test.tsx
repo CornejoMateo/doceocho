@@ -22,7 +22,7 @@ const mockWorks: WorkWithProgress[] = Array.from({ length: 12 }, (_, i) => ({
 	client_name: `Cliente${i + 1}`,
 	client_last_name: 'Apellido',
 	status: i < 3 ? 'pending' : i < 7 ? 'in_progress' : 'completed',
-	progress: i * 10,
+	progress: Math.min(i * 10, 100),
 	created_at: '2024-06-15',
 	architect: '',
 	furniture: '',
@@ -143,12 +143,18 @@ describe('WorksOpenings (works-progress)', () => {
 		expect(screen.getByText('Pendientes')).toBeInTheDocument();
 		expect(screen.getByText('En progreso')).toBeInTheDocument();
 		expect(screen.getByText('Finalizadas')).toBeInTheDocument();
+		expect(screen.getByText('En pausa')).toBeInTheDocument();
+		expect(screen.queryByText('Activas')).not.toBeInTheDocument();
 	});
 
 	it('renders correct counts in stats', () => {
 		render(<WorksOpenings />);
 
 		expect(screen.getByText('12')).toBeInTheDocument();
+		const completedCard = screen
+			.getByText('Finalizadas')
+			.closest('[data-slot="card"]') as HTMLElement;
+		expect(within(completedCard).getByText('5')).toBeInTheDocument();
 		const pendingCard = screen.getByText('Pendientes').closest('[data-slot="card"]') as HTMLElement;
 		expect(within(pendingCard).getByText('3')).toBeInTheDocument();
 	});
@@ -172,6 +178,14 @@ describe('WorksOpenings (works-progress)', () => {
 			.getAllByTestId('work-card')
 			.filter((card) => card.textContent?.includes('Cliente1'));
 		expect(results.length).toBeGreaterThan(0);
+	});
+
+	it('shows all works by default (first page)', () => {
+		render(<WorksOpenings />);
+
+		const cards = screen.getAllByTestId('work-card');
+		expect(cards).toHaveLength(10);
+		expect(cards.some((c) => c.textContent?.includes('completed'))).toBe(true);
 	});
 
 	it('filters works by status', () => {
