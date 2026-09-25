@@ -4,6 +4,9 @@ import * as realtimeHook from '@/hooks/use-optimized-realtime';
 
 jest.mock('@/lib/cash-flow/cash-flow');
 jest.mock('@/hooks/use-optimized-realtime');
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: 'Admin' } }),
+}));
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: jest.fn() }),
 }));
