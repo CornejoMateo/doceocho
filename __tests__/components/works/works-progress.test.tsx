@@ -22,7 +22,7 @@ const mockWorks: WorkWithProgress[] = Array.from({ length: 12 }, (_, i) => ({
 	client_name: `Cliente${i + 1}`,
 	client_last_name: 'Apellido',
 	status: i < 3 ? 'pending' : i < 7 ? 'in_progress' : 'completed',
-	progress: i * 10,
+	progress: Math.min(i * 10, 100),
 	created_at: '2024-06-15',
 	architect: '',
 	furniture: '',

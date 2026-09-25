@@ -154,7 +154,7 @@ describe('useWorksWithProgress', () => {
 		expect(result.current.works[0].progress).toBe(100);
 	});
 
-	it('updates status to completed when progress is 100 and no notes', async () => {
+	it('does not auto-update status to completed when progress is 100 and no notes', async () => {
 		const works = [mockWork({ status: 'pending' })];
 		worksMock.listWorks.mockResolvedValue({ data: works, error: null });
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
@@ -177,11 +177,11 @@ describe('useWorksWithProgress', () => {
 
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
-		expect(result.current.works[0].status).toBe('completed');
-		expect(worksMock.updateWork).toHaveBeenCalledWith(1, { status: 'completed' });
+		expect(result.current.works[0].status).toBe('pending');
+		expect(worksMock.updateWork).not.toHaveBeenCalled();
 	});
 
-	it('updates status to in_progress when progress > 0 and < 100', async () => {
+	it('does not auto-update status to in_progress when progress > 0 and < 100', async () => {
 		const works = [mockWork({ status: 'pending' })];
 		worksMock.listWorks.mockResolvedValue({ data: works, error: null });
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
@@ -207,11 +207,11 @@ describe('useWorksWithProgress', () => {
 
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
-		expect(result.current.works[0].status).toBe('in_progress');
-		expect(worksMock.updateWork).toHaveBeenCalledWith(1, { status: 'in_progress' });
+		expect(result.current.works[0].status).toBe('pending');
+		expect(worksMock.updateWork).not.toHaveBeenCalled();
 	});
 
-	it('keeps completed status as in_progress when has notes', async () => {
+	it('does not auto-change completed status when has notes', async () => {
 		const works = [mockWork({ status: 'completed', general_note: null })];
 		worksMock.listWorks.mockResolvedValue({ data: works, error: null });
 		checklistsMock.getChecklistsByWorkIds.mockResolvedValue({
@@ -234,9 +234,9 @@ describe('useWorksWithProgress', () => {
 
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
-		expect(result.current.works[0].status).toBe('in_progress');
+		expect(result.current.works[0].status).toBe('completed');
 		expect(result.current.works[0].hasNotes).toBe(true);
-		expect(worksMock.updateWork).toHaveBeenCalledWith(1, { status: 'in_progress' });
+		expect(worksMock.updateWork).not.toHaveBeenCalled();
 	});
 
 	it('sets hasNotes from checklist notes', async () => {

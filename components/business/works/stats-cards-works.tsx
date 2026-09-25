@@ -11,7 +11,7 @@ interface StatsCardsWorksProps {
 		completedCount: number;
 		pausedCount: number;
 	};
-	statusFilter: StatusFilter;
+	statusFilter: StatusFilter | null;
 	onStatusFilterChange: (filter: StatusFilter) => void;
 }
 

@@ -3,7 +3,6 @@ import { getChecklistsByWorkIds, getItemsByChecklistIds } from '@/lib/checklists
 import { getFolderBudgetWorkIds } from '@/lib/budgets/folder_budgets';
 import { listWorks } from '@/lib/works/works';
 import { WorkWithProgress } from '@/lib/works/works';
-import { updateWork } from '@/lib/works/works';
 
 export function useWorksWithProgress() {
 	const [works, setWorks] = useState<WorkWithProgress[]>([]);
@@ -67,36 +66,17 @@ export function useWorksWithProgress() {
 					tasks.push(...clItems);
 				}
 				const progress = total ? Math.round((done / total) * 100) : 100;
-				const hasGeneralNotes = !!work.general_note?.trim();
 
 				const hasNotes = hasNotesByWork.get(work.id) ?? false;
 
-				let newStatus = work.status;
-				if (total > 0 && work.status !== 'paused') {
-					if (progress === 100 && work.status !== 'completed' && !hasNotes && !hasGeneralNotes) {
-						newStatus = 'completed';
-					} else if (progress > 0 && progress < 100 && work.status !== 'in_progress') {
-						newStatus = 'in_progress';
-					} else if (work.status === 'completed' && (hasNotes || hasGeneralNotes)) {
-						newStatus = 'in_progress';
-					}
-				}
-
 				return {
 					...work,
-					status: newStatus,
 					tasks,
 					hasNotes: hasNotes,
 					hasBudget: workIdsWithBudget.has(work.id),
 					progress,
 				};
 			});
-
-			const updatePromises = enriched
-				.filter((work) => work.status !== worksData.find((w) => w.id === work.id)?.status)
-				.map((work) => updateWork(work.id, { status: work.status }));
-
-			await Promise.all(updatePromises);
 
 			setWorks(enriched);
 		} finally {

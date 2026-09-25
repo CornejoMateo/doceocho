@@ -11,6 +11,7 @@ create table public.works (
   zone character varying null,
   hood character varying null,
   name text null,
+  completion_date date null,
   constraint works_pkey primary key (id),
   constraint works_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete CASCADE
 ) TABLESPACE pg_default;

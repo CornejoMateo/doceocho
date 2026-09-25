@@ -1,7 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Work } from '@/lib/works/works';
+import { Work, buildWorkStatusChanges } from '@/lib/works/works';
+import { WorkStatusChangeModal } from '@/components/business/works/work-status-change-modal';
 import {
 	MapPin,
 	Calendar,
@@ -51,6 +52,7 @@ export function WorkCardList({
 }: WorkCardProps) {
 	const [balancePopoverOpen, setBalancePopoverOpen] = useState(false);
 	const [isFilesDialogOpen, setIsFilesDialogOpen] = useState(false);
+	const [targetStatus, setTargetStatus] = useState<string | null>(null);
 	const { user } = useAuth();
 
 	const isAuthorized = user?.role === 'Admin';
@@ -119,8 +121,10 @@ export function WorkCardList({
 									<div className="flex items-center gap-1 text-[11px] sm:text-sm text-muted-foreground group">
 										<select
 											value={work.status || 'pending'}
-											onChange={async (e) => {
-												await handleUpdateWork(work.id, { status: e.target.value });
+											onChange={(e) => {
+												if (e.target.value !== (work.status || 'pending')) {
+													setTargetStatus(e.target.value);
+												}
 											}}
 											className="bg-transparent border-none focus:ring-0 focus:ring-offset-0 p-0.5 pr-5 sm:p-1 sm:pr-6 appearance-none focus:outline-none cursor-pointer hover:bg-muted rounded-md text-[11px] sm:text-sm"
 										>
@@ -292,6 +296,20 @@ export function WorkCardList({
 					</div>
 				</div>
 			</CardContent>
+
+			{canEdit && (
+				<WorkStatusChangeModal
+					open={targetStatus !== null}
+					onOpenChange={(open) => {
+						if (!open) setTargetStatus(null);
+					}}
+					currentStatus={work.status}
+					targetStatus={targetStatus}
+					onConfirm={(newStatus, completionDate) =>
+						handleUpdateWork(work.id, buildWorkStatusChanges(newStatus, completionDate))
+					}
+				/>
+			)}
 
 			<WorkFilesDialog work={work} open={isFilesDialogOpen} onOpenChange={setIsFilesDialogOpen} />
 		</Card>
