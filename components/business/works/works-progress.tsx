@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Loader2, Settings2 } from 'lucide-react';
+import { Loader2, Settings2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { ChecklistModal } from '@/components/business/works/checklists/checklist-modal';
@@ -18,7 +17,7 @@ import { listItemsPredefined } from '@/lib/checklists/items-predefined';
 import { type ItemsPredefined } from '@/lib/checklists/items-predefined';
 import { listMaterials } from '@/lib/checklists/materials';
 import { type Material } from '@/lib/checklists/materials';
-import { updateWorkGeneralNote } from '@/lib/works/works';
+import { updateWorkGeneralNote, changeWorkStatus } from '@/lib/works/works';
 import { type StatusFilter } from '@/constants/type-config';
 import { EmailNotificationModal } from '@/components/ui/email-notification-modal';
 import { WhatsAppNotificationModal } from '@/components/ui/whatsapp-notification-modal';
@@ -43,15 +42,29 @@ import { toast } from '@/components/ui/use-toast';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { useLoadEventTypes } from '@/hooks/calendar/use-load-event-types';
 import { WorkWithProgress } from '@/lib/works/works';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+	applyWorkFilters,
+	defaultFilters,
+	getFilterOptions,
+	type WorksFilters,
+} from '@/lib/works/metrics';
+import { WorksFiltersBar } from '@/components/business/works/metrics/works-filters';
+import { createDefaultSpec, type ChartSpec } from '@/components/business/works/metrics/chart-model';
+import { describeFilters } from '@/components/business/works/metrics/filter-model';
+import { WorksExportDialog } from '@/components/business/works/works-export-dialog';
+import { MetricsTab } from '@/components/business/works/metrics/metrics-tab';
 import { ClientDetailsDialog } from '@/components/business/clients/client-details-dialog';
 import { type Client } from '@/lib/clients/clients';
 
 export function WorksOpenings() {
-	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-	const [onlyWithoutBudget, setOnlyWithoutBudget] = useState(false);
+	// Single filter state shared by the list ("Obras") and the "Métricas" tab.
+	const [filters, setFilters] = useState<WorksFilters>(defaultFilters);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 10;
+	// Custom chart configuration lives here so it survives switching between tabs.
+	const [tab, setTab] = useState('works');
+	const [chartSpec, setChartSpec] = useState<ChartSpec>(createDefaultSpec);
 
 	const { user } = useAuth();
 	const { works, loading, reload } = useWorksWithProgress();
@@ -64,50 +77,49 @@ export function WorksOpenings() {
 	const [selectedClientForDialog, setSelectedClientForDialog] = useState<Client | null>(null);
 	const [loadingClientWorkId, setLoadingClientWorkId] = useState<number | null>(null);
 
-	const isAdmin = useMemo(() => {
+	const isAuthorized = useMemo(() => {
 		return user?.role === 'Admin';
 	}, [user?.role]);
 
-	const { filteredData, paginatedData, totalPages } = paginateAndFilter(
-		works,
-		searchQuery,
+	const options = useMemo(() => getFilterOptions(works), [works]);
+
+	const filteredWorks = useMemo(() => applyWorkFilters(works, filters), [works, filters]);
+
+	const { paginatedData, totalPages } = paginateAndFilter(
+		filteredWorks,
+		'',
 		currentPage,
 		itemsPerPage,
-		(item, search) => {
-			const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-
-			const matchesBudget = !onlyWithoutBudget || !item.hasBudget;
-
-			const matchesSearch =
-				!search ||
-				item.address?.toLowerCase().includes(search) ||
-				item.client_name?.toLowerCase().includes(search) ||
-				item.client_last_name?.toLowerCase().includes(search) ||
-				item.name?.toLowerCase().includes(search) ||
-				false;
-
-			return matchesStatus && matchesSearch && matchesBudget;
-		}
+		() => true
 	);
 
 	const stats = useMemo(() => {
+		const base = applyWorkFilters(works, { ...filters, statuses: [] });
 		return {
-			pendingCount: works.filter((w) => w.status === 'pending').length,
-			inProgressCount: works.filter((w) => w.status === 'in_progress').length,
-			completedCount: works.filter((w) => w.status === 'completed').length,
-			pausedCount: works.filter((w) => w.status === 'paused').length,
-			totalCount: works.length,
-			withoutBudgetCount: works.filter((w) => !w.hasBudget).length,
+			pendingCount: base.filter((w) => w.status === 'pending').length,
+			inProgressCount: base.filter((w) => w.status === 'in_progress').length,
+			completedCount: base.filter((w) => w.status === 'completed').length,
+			pausedCount: base.filter((w) => w.status === 'paused').length,
+			totalCount: base.length,
+			withoutBudgetCount: base.filter((w) => !w.hasBudget).length,
 		};
-	}, [works]);
+	}, [works, filters]);
+
+	// Card highlight: one selected status, "all" when none, nothing when several.
+	const statusFilter: StatusFilter | null =
+		filters.statuses.length === 0
+			? 'all'
+			: filters.statuses.length === 1
+				? (filters.statuses[0] as StatusFilter)
+				: null;
 
 	// Reset to page 1 when filters change
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [searchQuery, statusFilter, onlyWithoutBudget]);
+	}, [filters]);
 
 	const handleStatusFilter = (status: StatusFilter) => {
-		setStatusFilter(status);
+		setFilters((f) => ({ ...f, statuses: status === 'all' ? [] : [status] }));
 	};
 
 	const {
@@ -224,6 +236,22 @@ export function WorksOpenings() {
 		reload();
 	};
 
+	const handleChangeStatus = async (workId: number, newStatus: string, completionDate?: string) => {
+		const { error } = await changeWorkStatus(workId, newStatus, { completionDate });
+
+		if (error) {
+			toast({
+				variant: 'destructive',
+				title: 'Error',
+				description: translateError(error),
+			});
+			throw error;
+		}
+
+		toast({ title: 'Estado actualizado', description: 'El estado de la obra fue actualizado.' });
+		reload();
+	};
+
 	const handleAddToCalendar = (work: WorkWithProgress) => {
 		setSelectedWorkForEvent(work);
 		setIsEventModalOpen(true);
@@ -252,139 +280,172 @@ export function WorksOpenings() {
 						<h2 className="text-2xl font-bold text-foreground">Checklists de obras</h2>
 						<p className="text-muted-foreground mt-1">Seguimiento de instalaciones y tareas</p>
 					</div>
-					{isAdmin && (
+					{isAuthorized && (
 						<Button variant="outline" size="sm" onClick={() => setItemsPredefinedOpen(true)}>
 							<Settings2 className="h-4 w-4 mr-2" />
 							Items predefinidos
 						</Button>
 					)}
 				</div>
-
-				{/* Search Bar */}
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						type="text"
-						placeholder="Buscar por dirección, nombre o apellido del cliente..."
-						className="w-full pl-10"
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-				</div>
 			</div>
 
-			<StatsCardsWorks
-				stats={stats}
-				statusFilter={statusFilter}
-				onStatusFilterChange={handleStatusFilter}
-			/>
+			<Tabs value={tab} onValueChange={setTab} className="gap-4">
+				<TabsList>
+					<TabsTrigger value="works">Obras</TabsTrigger>
+					{isAuthorized && <TabsTrigger value="metrics">Métricas</TabsTrigger>}
+				</TabsList>
 
-			{statusFilter === 'all' && (
-				<div className="flex items-center justify-between gap-2">
-					<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
-						<Switch checked={onlyWithoutBudget} onCheckedChange={setOnlyWithoutBudget} />
-						<span>Mostrar obras sin presupuesto</span>
-						<Badge variant="secondary">{stats.withoutBudgetCount}</Badge>
-					</label>
-				</div>
-			)}
-
-			{/* Installations list */}
-			{loading ? (
-				<div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-					<Loader2 className="h-5 w-5 animate-spin" />
-					<span>Cargando obras</span>
-				</div>
-			) : paginatedData.length === 0 ? (
-				<p className="text-center py-12 text-muted-foreground">No hay obras para mostrar</p>
-			) : (
-				<div className="space-y-4">
-					{paginatedData.map((installation) => {
-						return (
-							<WorkCard
-								key={installation.id}
-								work={installation}
-								user={user}
-								onOpenEmail={openEmail}
-								onOpenWhatsApp={openWhatsApp}
-								onOpenChecklist={openChecklist}
-								onUpdateGeneralNote={handleUpdateGeneralNote}
-								onAddToCalendar={handleAddToCalendar}
-								onOpenClient={handleOpenClient}
-								loadingWorkId={loadingClientWorkId}
+				<WorksFiltersBar
+					filters={filters}
+					onChange={setFilters}
+					options={options}
+					resultCount={filteredWorks.length}
+					totalCount={works.length}
+					actions={
+						tab === 'works' ? (
+							<WorksExportDialog
+								works={filteredWorks}
+								totalWorks={works.length}
+								filtersDescription={describeFilters(filters, options)}
 							/>
-						);
-					})}
-				</div>
-			)}
+						) : undefined
+					}
+				/>
 
-			{/* Pagination */}
-			{totalPages > 1 && (
-				<div className="mt-8">
-					<Pagination>
-						<PaginationContent>
-							<PaginationItem>
-								<PaginationPrevious
-									href="#"
-									onClick={(e) => {
-										e.preventDefault();
-										if (currentPage > 1) setCurrentPage(currentPage - 1);
-									}}
-									className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+				<TabsContent value="metrics">
+					<MetricsTab
+						spec={chartSpec}
+						onSpecChange={setChartSpec}
+						allWorks={works}
+						works={filteredWorks}
+						loading={loading}
+						filters={filters}
+						options={options}
+						onFiltersChange={setFilters}
+					/>
+				</TabsContent>
+
+				<TabsContent value="works" className="space-y-6">
+					<StatsCardsWorks
+						stats={stats}
+						statusFilter={statusFilter}
+						onStatusFilterChange={handleStatusFilter}
+					/>
+
+					{filters.statuses.length === 0 && (
+						<div className="flex items-center justify-between gap-2">
+							<label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+								<Switch
+									checked={filters.hasBudget === 'without'}
+									onCheckedChange={(on) =>
+										setFilters((f) => ({ ...f, hasBudget: on ? 'without' : 'all' }))
+									}
 								/>
-							</PaginationItem>
+								<span>Mostrar obras sin presupuesto</span>
+								<Badge variant="secondary">{stats.withoutBudgetCount}</Badge>
+							</label>
+						</div>
+					)}
 
-							{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-								// Show first page, last page, current page, and pages around current
-								if (
-									page === 1 ||
-									page === totalPages ||
-									page === currentPage ||
-									page === currentPage - 1 ||
-									page === currentPage + 1
-								) {
-									return (
-										<PaginationItem key={page}>
-											<PaginationLink
-												href="#"
-												isActive={page === currentPage}
-												onClick={(e) => {
-													e.preventDefault();
-													setCurrentPage(page);
-												}}
-											>
-												{page}
-											</PaginationLink>
-										</PaginationItem>
-									);
-								}
-
-								// Show ellipsis for gaps
-								if (page === currentPage - 2 || page === currentPage + 2) {
-									return (
-										<PaginationItem key={`ellipsis-${page}`}>
-											<PaginationEllipsis />
-										</PaginationItem>
-									);
-								}
-
-								return null;
+					{/* Installations list */}
+					{loading ? (
+						<div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+							<Loader2 className="h-5 w-5 animate-spin" />
+							<span>Cargando obras</span>
+						</div>
+					) : paginatedData.length === 0 ? (
+						<p className="text-center py-12 text-muted-foreground">No hay obras para mostrar</p>
+					) : (
+						<div className="space-y-4">
+							{paginatedData.map((installation) => {
+								return (
+									<WorkCard
+										key={installation.id}
+										work={installation}
+										user={user}
+										onOpenEmail={openEmail}
+										onOpenWhatsApp={openWhatsApp}
+										onOpenChecklist={openChecklist}
+										onUpdateGeneralNote={handleUpdateGeneralNote}
+										onAddToCalendar={handleAddToCalendar}
+										onOpenClient={handleOpenClient}
+										onChangeStatus={handleChangeStatus}
+										loadingWorkId={loadingClientWorkId}
+									/>
+								);
 							})}
+						</div>
+					)}
 
-							<PaginationItem>
-								<PaginationNext
-									href="#"
-									onClick={(e) => {
-										e.preventDefault();
-										if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-									}}
-									className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-								/>
-							</PaginationItem>
-						</PaginationContent>
-					</Pagination>
-				</div>
-			)}
+					{/* Pagination */}
+					{totalPages > 1 && (
+						<div className="mt-8">
+							<Pagination>
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											href="#"
+											onClick={(e) => {
+												e.preventDefault();
+												if (currentPage > 1) setCurrentPage(currentPage - 1);
+											}}
+											className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+										/>
+									</PaginationItem>
+
+									{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+										// Show first page, last page, current page, and pages around current
+										if (
+											page === 1 ||
+											page === totalPages ||
+											page === currentPage ||
+											page === currentPage - 1 ||
+											page === currentPage + 1
+										) {
+											return (
+												<PaginationItem key={page}>
+													<PaginationLink
+														href="#"
+														isActive={page === currentPage}
+														onClick={(e) => {
+															e.preventDefault();
+															setCurrentPage(page);
+														}}
+													>
+														{page}
+													</PaginationLink>
+												</PaginationItem>
+											);
+										}
+
+										// Show ellipsis for gaps
+										if (page === currentPage - 2 || page === currentPage + 2) {
+											return (
+												<PaginationItem key={`ellipsis-${page}`}>
+													<PaginationEllipsis />
+												</PaginationItem>
+											);
+										}
+
+										return null;
+									})}
+
+									<PaginationItem>
+										<PaginationNext
+											href="#"
+											onClick={(e) => {
+												e.preventDefault();
+												if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+											}}
+											className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
+						</div>
+					)}
+				</TabsContent>
+			</Tabs>
 
 			<EmailNotificationModal
 				isOpen={activeModal === 'email'}
