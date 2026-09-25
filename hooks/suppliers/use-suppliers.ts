@@ -13,7 +13,13 @@ export function useSuppliers(enabled: boolean = true) {
 
 	const refresh = useCallback(async (): Promise<{ ok: boolean; message?: string }> => {
 		const id = ++requestId.current;
-		const { data, error } = await listSuppliers();
+		let data: Supplier[] | null = null;
+		let error: any = null;
+		try {
+			({ data, error } = await listSuppliers());
+		} catch (e) {
+			error = e;
+		}
 		if (id !== requestId.current) return { ok: true }; // stale response
 		if (error) {
 			const message =
