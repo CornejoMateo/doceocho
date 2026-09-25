@@ -35,7 +35,8 @@ export function useBalancesReport() {
 	} = useOptimizedRealtime<BalanceWithBudgetAndClient>(
 		'balances',
 		async () => {
-			const { data } = await listBalancesForReport();
+			const { data, error } = await listBalancesForReport();
+			if (error) throw error;
 			return data ?? [];
 		},
 		'balances_report_cache'
