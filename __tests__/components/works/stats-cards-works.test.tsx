@@ -99,4 +99,26 @@ describe('StatsCardsWorks', () => {
 		fireEvent.click(screen.getByText('Todas'));
 		expect(onStatusFilterChange).toHaveBeenCalledWith('all');
 	});
+
+	it('renders filter cards as toggle buttons with aria-pressed', () => {
+		render(
+			<StatsCardsWorks
+				stats={stats}
+				statusFilter="pending"
+				onStatusFilterChange={onStatusFilterChange}
+			/>
+		);
+
+		expect(screen.getByRole('group', { name: 'Filtrar obras por estado' })).toBeInTheDocument();
+		expect(screen.getAllByRole('button')).toHaveLength(5);
+		expect(screen.getByRole('button', { name: /Pendientes/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		const todas = screen.getByRole('button', { name: /Todas/ });
+		expect(todas).toHaveAttribute('aria-pressed', 'false');
+
+		fireEvent.click(todas);
+		expect(onStatusFilterChange).toHaveBeenCalledWith('all');
+	});
 });

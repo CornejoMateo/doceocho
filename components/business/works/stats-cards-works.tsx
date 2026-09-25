@@ -1,5 +1,4 @@
 import { AlertCircle, CheckCircle2, Clock, List, PauseCircle } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { StatusFilter } from '@/constants/type-config';
 
@@ -65,26 +64,31 @@ export function StatsCardsWorks({
 
 	return (
 		<div className="space-y-4">
-			<div className="grid gap-4 md:grid-cols-5">
+			<div role="group" aria-label="Filtrar obras por estado" className="grid gap-4 md:grid-cols-5">
 				{cards.map(({ filter, label, count, icon: Icon, ring, iconColor }) => (
-					<Card
+					<button
 						key={filter}
+						type="button"
+						aria-pressed={statusFilter === filter}
+						data-slot="card"
 						className={cn(
-							'p-6 bg-card border-border cursor-pointer transition-all hover:shadow-md',
+							'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border shadow-sm w-full text-left',
+							'p-6 border-border cursor-pointer transition-all hover:shadow-md',
+							'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
 							statusFilter === filter ? `ring-2 ${ring}` : ''
 						)}
 						onClick={() => onStatusFilterChange(filter)}
 					>
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm font-medium text-muted-foreground">{label}</p>
-								<p className="text-2xl font-bold text-foreground mt-2">{count}</p>
-							</div>
-							<div className={cn('rounded-lg bg-secondary p-3', iconColor)}>
-								<Icon className="h-6 w-6" />
-							</div>
-						</div>
-					</Card>
+						<span className="flex items-center justify-between">
+							<span className="block">
+								<span className="block text-sm font-medium text-muted-foreground">{label}</span>
+								<span className="block text-2xl font-bold text-foreground mt-2">{count}</span>
+							</span>
+							<span className={cn('block rounded-lg bg-secondary p-3', iconColor)}>
+								<Icon className="h-6 w-6" aria-hidden="true" />
+							</span>
+						</span>
+					</button>
 				))}
 			</div>
 		</div>
