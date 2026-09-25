@@ -7,7 +7,6 @@ import {
 	deleteTransaction,
 	getTotalByBalanceId,
 	getTotalsByBalanceIds,
-	getLastTransactionUSD,
 } from '@/lib/balances/balance_transactions';
 import { getSupabaseClient } from '@/lib/supabase-client';
 
@@ -364,31 +363,6 @@ describe('balance_transactions lib', () => {
 				2: { totalAmount: 300, totalAmountUSD: 15 },
 				3: { totalAmount: 0, totalAmountUSD: 0 },
 			});
-		});
-	});
-
-	describe('getLastTransactionUSD', () => {
-		it('returns the latest quote_usd for a balance', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			chain.single = jest.fn().mockResolvedValue({ data: { quote_usd: 980 }, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getLastTransactionUSD('5');
-
-			expect(chain.eq).toHaveBeenCalledWith('balance_id', '5');
-			expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false });
-			expect(chain.limit).toHaveBeenCalledWith(1);
-			expect(result.data).toBe(980);
-		});
-
-		it('returns null when no transaction found', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			chain.single = jest.fn().mockResolvedValue({ data: null, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getLastTransactionUSD('5');
-
-			expect(result.data).toBeNull();
 		});
 	});
 });
