@@ -301,7 +301,10 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={confirmDeactivate}
+							onClick={(e) => {
+								e.preventDefault();
+								void confirmDeactivate();
+							}}
 							disabled={loading}
 							className="bg-destructive text-destructive-foreground"
 						>
