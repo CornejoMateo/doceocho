@@ -145,6 +145,11 @@ export function columnStylesOf(
 	return out;
 }
 
+/** Header alignment for a column: autoTable applies columnStyles to body cells only. */
+export function headAlignOf(columns: PdfColumn[], index: number): 'left' | 'right' | 'center' {
+	return columns[index]?.align ?? 'left';
+}
+
 /** Bridges an ExportTable (from buildTableFromColumns) to PDF columns. */
 export function pdfColumnsOf(
 	table: Pick<ExportTable, 'headers' | 'aligns' | 'widths'> & Partial<Pick<ExportTable, 'weights'>>

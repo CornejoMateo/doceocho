@@ -7,6 +7,7 @@ import {
 	PDF_ALT_ROW_COLOR,
 	PDF_BRAND_COLOR,
 	footerOffset,
+	headAlignOf,
 	printableWidth,
 	resolveMargin,
 	columnStylesOf,
@@ -158,7 +159,14 @@ export async function generatePdf(spec: PdfDocument): Promise<PdfResult> {
 						s.columns.map((c) => c.header),
 						s.rows,
 						s.fontSize ?? tableFontSize(s.columns.length),
-						{ columnStyles: columnStylesOf(s.columns, contentW()) }
+						{
+							columnStyles: columnStylesOf(s.columns, contentW()),
+							// columnStyles never reach the head in autoTable: align headers like their column.
+							didParseCell: (data) => {
+								if (data.section === 'head')
+									data.cell.styles.halign = headAlignOf(s.columns, data.column.index);
+							},
+						}
 					);
 				break;
 			case 'image': {
