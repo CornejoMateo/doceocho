@@ -42,6 +42,8 @@ describe('isValidEmail', () => {
 		'"quoted"@example.com',
 		"o'neil@example.com",
 		'user@example.com?subject=x',
+		'us?er@example.com',
+		'user@exa?mple.com',
 		'user&x@example.com',
 		'a,b@example.com',
 		'a;b@example.com',
