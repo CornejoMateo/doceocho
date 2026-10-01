@@ -7,8 +7,11 @@ import {
 } from '@/lib/suppliers/account-summary';
 import { listBankAccounts, type BankAccount } from '@/lib/cash-flow/cash-flow';
 import { listPaymentMethods, type PaymentMethod } from '@/lib/payment-methods/payment-methods';
-import { listFilesByPurchaseSupplierId } from '@/lib/suppliers/files-purchases-suppliers';
-import { listFilesByPaymentSupplierIds } from '@/lib/suppliers/files-payments-suppliers';
+import { listFilesByPurchaseSupplierIds } from '@/lib/suppliers/files-purchases-suppliers';
+import {
+	listFilesByPaymentSupplierIds,
+	type FilePaymentSupplier,
+} from '@/lib/suppliers/files-payments-suppliers';
 
 export function useSupplierAccountDetail(supplierId: number | null, open: boolean) {
 	const { toast } = useToast();
@@ -19,6 +22,9 @@ export function useSupplierAccountDetail(supplierId: number | null, open: boolea
 	const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 	const [purchaseFileCounts, setPurchaseFileCounts] = useState<Map<number, number>>(new Map());
 	const [paymentFileCounts, setPaymentFileCounts] = useState<Map<number, number>>(new Map());
+	const [paymentFilesByPaymentId, setPaymentFilesByPaymentId] = useState<
+		Map<number, FilePaymentSupplier[]>
+	>(new Map());
 
 	const fetchRequestIdRef = useRef(0);
 
@@ -61,34 +67,47 @@ export function useSupplierAccountDetail(supplierId: number | null, open: boolea
 		if (!detail) {
 			setPurchaseFileCounts(new Map());
 			setPaymentFileCounts(new Map());
+			setPaymentFilesByPaymentId(new Map());
 			return;
 		}
 		let cancelled = false;
 		(async () => {
-			const purchaseEntries = await Promise.all(
-				detail.purchases.map(async (purchase) => {
-					const { data } = await listFilesByPurchaseSupplierId(purchase.id);
-					return [purchase.id, data?.length ?? 0] as const;
-				})
-			);
+			const purchaseIds = detail.purchases.map((purchase) => purchase.id);
+			const purchaseCounts = new Map<number, number>(purchaseIds.map((id) => [id, 0]));
+			if (purchaseIds.length > 0) {
+				const { data, error } = await listFilesByPurchaseSupplierIds(purchaseIds);
+				if (!error) {
+					for (const file of data ?? []) {
+						purchaseCounts.set(
+							file.purchase_supplier_id,
+							(purchaseCounts.get(file.purchase_supplier_id) ?? 0) + 1
+						);
+					}
+				}
+			}
+
 			const paymentIds = detail.purchases.flatMap((purchase) =>
 				purchase.payments.map((payment) => payment.id)
 			);
 			const paymentCounts = new Map<number, number>(paymentIds.map((id) => [id, 0]));
+			const paymentFiles = new Map<number, FilePaymentSupplier[]>();
 			if (paymentIds.length > 0) {
 				const { data, error } = await listFilesByPaymentSupplierIds(paymentIds);
 				if (!error) {
+					for (const id of paymentIds) paymentFiles.set(id, []);
 					for (const file of data ?? []) {
 						paymentCounts.set(
 							file.payment_supplier_id,
 							(paymentCounts.get(file.payment_supplier_id) ?? 0) + 1
 						);
+						paymentFiles.get(file.payment_supplier_id)?.push(file);
 					}
 				}
 			}
 			if (cancelled) return;
-			setPurchaseFileCounts(new Map(purchaseEntries));
+			setPurchaseFileCounts(purchaseCounts);
 			setPaymentFileCounts(paymentCounts);
+			setPaymentFilesByPaymentId(paymentFiles);
 		})();
 		return () => {
 			cancelled = true;
@@ -135,6 +154,7 @@ export function useSupplierAccountDetail(supplierId: number | null, open: boolea
 		activePaymentMethods,
 		purchaseFileCounts,
 		paymentFileCounts,
+		paymentFilesByPaymentId,
 		setPurchaseFileCount,
 		setPaymentFileCount,
 		fetchDetail,

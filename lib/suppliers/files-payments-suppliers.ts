@@ -163,54 +163,58 @@ export async function deleteFilePaymentSupplier(
 	}
 }
 
+const SIGNED_URL_EXPIRY_SECONDS = 3600;
+
+// One batched createSignedUrls call per gallery load instead of per-file blob downloads.
+export async function signUrlsForPaymentSupplierFiles(
+	files: FilePaymentSupplier[]
+): Promise<{ data: FileViewerItem[] | null; error: any }> {
+	if (files.length === 0) {
+		return { data: [], error: null };
+	}
+
+	const supabase = getSupabaseClient();
+	const { data: signed, error } = await supabase.storage.from(BUCKET).createSignedUrls(
+		files.map((file) => file.storage_path),
+		SIGNED_URL_EXPIRY_SECONDS
+	);
+
+	if (error) {
+		return { data: null, error };
+	}
+
+	const signedByPath = new Map((signed ?? []).map((entry) => [entry.path, entry]));
+
+	const data = files.reduce<FileViewerItem[]>((acc, row) => {
+		const entry = signedByPath.get(row.storage_path);
+		if (!entry || entry.error || !entry.signedUrl) {
+			console.error('Error signing url for file:', row.storage_path, entry?.error);
+			return acc;
+		}
+		const name = row.file_name || row.storage_path.split('/').pop() || 'archivo';
+		acc.push({
+			id: row.id,
+			url: entry.signedUrl,
+			name,
+			displayName: row.file_name || name,
+			description: row.description,
+			mimetype: null,
+			size: null,
+			uploadedAt: row.created_at || null,
+		});
+		return acc;
+	}, []);
+
+	return { data, error: null };
+}
+
 export async function listFilesWithUrlsByPaymentSupplierId(
 	paymentSupplierId: number
 ): Promise<{ data: FileViewerItem[] | null; error: any }> {
-	const supabase = getSupabaseClient();
-
 	const listResult = await listFilesByPaymentSupplierId(paymentSupplierId);
 	if (listResult.error) {
 		return { data: null, error: listResult.error };
 	}
 
-	const files = listResult.data || [];
-	if (files.length === 0) {
-		return { data: [], error: null };
-	}
-
-	const results = await Promise.all(
-		files.map(async (row): Promise<FileViewerItem | null> => {
-			try {
-				const { data: blob, error: downloadError } = await supabase.storage
-					.from(BUCKET)
-					.download(row.storage_path);
-
-				if (downloadError || !blob) {
-					console.error('Error downloading file:', row.storage_path, downloadError);
-					return null;
-				}
-
-				const url = URL.createObjectURL(blob);
-				const name = row.file_name || row.storage_path.split('/').pop() || 'archivo';
-				const displayName = row.file_name || name;
-
-				return {
-					id: row.id,
-					url,
-					name,
-					displayName,
-					description: row.description,
-					mimetype: blob.type || null,
-					size: blob.size,
-					uploadedAt: row.created_at || null,
-				};
-			} catch (err) {
-				console.error('Unexpected error processing file:', row.storage_path, err);
-				return null;
-			}
-		})
-	);
-
-	const data = results.filter((f): f is FileViewerItem => f !== null);
-	return { data, error: null };
+	return signUrlsForPaymentSupplierFiles(listResult.data ?? []);
 }

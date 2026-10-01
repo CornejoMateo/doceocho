@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -32,6 +32,7 @@ interface SupplierDetailsDialogProps {
 	supplierName: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onClosed?: (changed: boolean) => void;
 }
 
 export function SupplierDetailsDialog({
@@ -39,14 +40,23 @@ export function SupplierDetailsDialog({
 	supplierName,
 	open,
 	onOpenChange,
+	onClosed,
 }: SupplierDetailsDialogProps) {
 	const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<Set<number>>(new Set());
 	// Date-range filter (desde/hasta), applied to the purchases list and each purchase's payments.
 	const [filterFrom, setFilterFrom] = useState('');
 	const [filterTo, setFilterTo] = useState('');
+	const dirtyRef = useRef(false);
+	const markDirty = () => {
+		dirtyRef.current = true;
+	};
 
 	const accountDetail = useSupplierAccountDetail(supplierId, open);
-	const forms = usePurchasePaymentForms({ supplierId, fetchDetail: accountDetail.fetchDetail });
+	const forms = usePurchasePaymentForms({
+		supplierId,
+		fetchDetail: accountDetail.fetchDetail,
+		onChanged: markDirty,
+	});
 
 	const dropExpandedPurchaseId = (purchaseId: number) => {
 		setExpandedPurchaseIds((current) => {
@@ -59,6 +69,7 @@ export function SupplierDetailsDialog({
 	const deleteConfirmations = useDeleteConfirmations({
 		fetchDetail: accountDetail.fetchDetail,
 		dropExpandedPurchaseId,
+		onChanged: markDirty,
 	});
 
 	const filteredPurchases = useMemo(() => {
@@ -88,6 +99,8 @@ export function SupplierDetailsDialog({
 	const handleOpenChange = (nextOpen: boolean) => {
 		onOpenChange(nextOpen);
 		if (!nextOpen) {
+			onClosed?.(dirtyRef.current);
+			dirtyRef.current = false;
 			accountDetail.invalidateAndReset();
 			forms.resetOnClose();
 			setExpandedPurchaseIds(new Set());
@@ -180,6 +193,7 @@ export function SupplierDetailsDialog({
 													bankAccountById={accountDetail.bankAccountById}
 													paymentMethodById={accountDetail.paymentMethodById}
 													paymentFileCounts={accountDetail.paymentFileCounts}
+													paymentFilesByPaymentId={accountDetail.paymentFilesByPaymentId}
 													onEditPurchase={() => forms.handleEditPurchase(purchase)}
 													onDeletePurchase={() => deleteConfirmations.setPurchaseToDelete(purchase)}
 													onNewPayment={() => forms.handleNewPayment(purchase)}

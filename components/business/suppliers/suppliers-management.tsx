@@ -158,10 +158,11 @@ export function SuppliersManagement() {
 	};
 
 	const handleSupplierDetailsOpenChange = (open: boolean) => {
-		if (!open) {
-			setSelectedSupplier(null);
-			void fetchBalances();
-		}
+		if (!open) setSelectedSupplier(null);
+	};
+
+	const handleSupplierDetailsClosed = (changed: boolean) => {
+		if (changed) void fetchBalances();
 	};
 
 	const handleSaved = async () => {
@@ -338,6 +339,7 @@ export function SuppliersManagement() {
 				supplierName={selectedSupplier?.name ?? ''}
 				open={!!selectedSupplier}
 				onOpenChange={handleSupplierDetailsOpenChange}
+				onClosed={handleSupplierDetailsClosed}
 			/>
 		</div>
 	);

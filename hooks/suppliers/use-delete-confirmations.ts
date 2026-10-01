@@ -8,11 +8,13 @@ import { deletePaymentSupplier, type PaymentSupplier } from '@/lib/suppliers/pay
 interface UseDeleteConfirmationsArgs {
 	fetchDetail: () => Promise<void>;
 	dropExpandedPurchaseId: (purchaseId: number) => void;
+	onChanged?: () => void;
 }
 
 export function useDeleteConfirmations({
 	fetchDetail,
 	dropExpandedPurchaseId,
+	onChanged,
 }: UseDeleteConfirmationsArgs) {
 	const { toast } = useToast();
 
@@ -35,6 +37,7 @@ export function useDeleteConfirmations({
 			const { error, orphanedPaths } = await deletePurchaseSupplier(purchaseId);
 			if (error) throw error;
 			toast({ title: 'Compra eliminada' });
+			onChanged?.();
 			if (orphanedPaths && orphanedPaths.length > 0) {
 				toast({
 					title: 'Archivos pendientes de limpieza',
@@ -64,6 +67,7 @@ export function useDeleteConfirmations({
 			const { error, orphanedPaths } = await deletePaymentSupplier(paymentId);
 			if (error) throw error;
 			toast({ title: 'Pago eliminado' });
+			onChanged?.();
 			if (orphanedPaths && orphanedPaths.length > 0) {
 				toast({
 					title: 'Archivos pendientes de limpieza',

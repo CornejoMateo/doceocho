@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import {
 	AlertDialog,
@@ -19,18 +18,23 @@ import { translateError } from '@/lib/error-translator';
 import {
 	listFilesWithUrlsByPurchaseSupplierId,
 	deleteFilePurchaseSupplier,
+	signUrlsForPurchaseSupplierFiles,
+	type FilePurchaseSupplier,
 } from '@/lib/suppliers/files-purchases-suppliers';
 import {
 	listFilesWithUrlsByPaymentSupplierId,
 	deleteFilePaymentSupplier,
+	signUrlsForPaymentSupplierFiles,
+	type FilePaymentSupplier,
 } from '@/lib/suppliers/files-payments-suppliers';
-import { FileViewerItem, formatFileSize } from '@/utils/file-upload-utils';
+import { FileViewerItem, formatFileSize, getFileKind } from '@/utils/file-upload-utils';
 
 interface SupplierAttachmentsGalleryProps {
 	kind: 'purchase' | 'payment';
 	entityId: number;
 	label?: string;
 	onCountChange?: (count: number) => void;
+	preloadedFiles?: FilePurchaseSupplier[] | FilePaymentSupplier[];
 }
 
 export function SupplierAttachmentsGallery({
@@ -38,6 +42,7 @@ export function SupplierAttachmentsGallery({
 	entityId,
 	label,
 	onCountChange,
+	preloadedFiles,
 }: SupplierAttachmentsGalleryProps) {
 	const { toast } = useToast();
 	const [files, setFiles] = useState<FileViewerItem[]>([]);
@@ -45,50 +50,51 @@ export function SupplierAttachmentsGallery({
 	const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
 	const [fileToDelete, setFileToDelete] = useState<FileViewerItem | null>(null);
 	const [deleting, setDeleting] = useState(false);
-	const blobUrlsRef = useRef<string[]>([]);
-
+	const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(new Set());
 	const requestIdRef = useRef(0);
 
-	const revokeBlobUrls = useCallback((urls: string[]) => {
-		urls.forEach((url) => URL.revokeObjectURL(url));
-	}, []);
+	const fetchFromEntity = useCallback(async () => {
+		return kind === 'purchase'
+			? listFilesWithUrlsByPurchaseSupplierId(entityId)
+			: listFilesWithUrlsByPaymentSupplierId(entityId);
+	}, [kind, entityId]);
 
-	const loadFiles = useCallback(async () => {
-		const requestId = requestIdRef.current + 1;
-		requestIdRef.current = requestId;
-		const isCurrent = () => requestIdRef.current === requestId;
+	const loadFiles = useCallback(
+		async (opts?: { skipPreload?: boolean }) => {
+			const requestId = requestIdRef.current + 1;
+			requestIdRef.current = requestId;
+			const isCurrent = () => requestIdRef.current === requestId;
 
-		setLoading(true);
-		let next: FileViewerItem[] | null = null;
-		try {
-			const { data, error } =
-				kind === 'purchase'
-					? await listFilesWithUrlsByPurchaseSupplierId(entityId)
-					: await listFilesWithUrlsByPaymentSupplierId(entityId);
+			setLoading(true);
+			let next: FileViewerItem[] | null = null;
+			try {
+				const { data, error } =
+					preloadedFiles && !opts?.skipPreload
+						? kind === 'purchase'
+							? await signUrlsForPurchaseSupplierFiles(preloadedFiles as FilePurchaseSupplier[])
+							: await signUrlsForPaymentSupplierFiles(preloadedFiles as FilePaymentSupplier[])
+						: await fetchFromEntity();
 
-			if (error) throw error;
-			next = data ?? [];
-		} catch (error) {
-			if (isCurrent()) {
-				toast({
-					title: 'Error',
-					description: translateError(error) || 'No se pudieron cargar los archivos adjuntos.',
-					variant: 'destructive',
-				});
+				if (error) throw error;
+				next = data ?? [];
+			} catch (error) {
+				if (isCurrent()) {
+					toast({
+						title: 'Error',
+						description: translateError(error) || 'No se pudieron cargar los archivos adjuntos.',
+						variant: 'destructive',
+					});
+				}
+				next = [];
 			}
-			next = [];
-		}
-		if (!isCurrent()) {
-			if (next) revokeBlobUrls(next.map((file) => file.url));
-			return;
-		}
-
-		revokeBlobUrls(blobUrlsRef.current);
-		blobUrlsRef.current = next.map((file) => file.url);
-		setFiles(next);
-		setLoading(false);
-		onCountChange?.(next.length);
-	}, [kind, entityId, revokeBlobUrls, toast]);
+			if (!isCurrent()) return;
+			setBrokenImageIds(new Set());
+			setFiles(next);
+			setLoading(false);
+			onCountChange?.(next.length);
+		},
+		[preloadedFiles, kind, fetchFromEntity, toast]
+	);
 
 	useEffect(() => {
 		void loadFiles();
@@ -96,13 +102,6 @@ export function SupplierAttachmentsGallery({
 			requestIdRef.current += 1;
 		};
 	}, [loadFiles]);
-
-	useEffect(() => {
-		return () => {
-			revokeBlobUrls(blobUrlsRef.current);
-			blobUrlsRef.current = [];
-		};
-	}, [revokeBlobUrls]);
 
 	const confirmDelete = async () => {
 		if (!fileToDelete) return;
@@ -114,7 +113,8 @@ export function SupplierAttachmentsGallery({
 					: await deleteFilePaymentSupplier(fileToDelete.id);
 			if (!success) throw error;
 			toast({ title: 'Archivo eliminado' });
-			await loadFiles();
+			// Preloaded rows may now be stale, so refresh straight from the entity.
+			await loadFiles({ skipPreload: true });
 		} catch (error) {
 			toast({
 				title: 'Error',
@@ -148,6 +148,7 @@ export function SupplierAttachmentsGallery({
 						const chipTitle = file.size
 							? `${displayName} · ${formatFileSize(file.size)}`
 							: displayName;
+						const showImage = getFileKind(file.name) === 'image' && !brokenImageIds.has(file.id);
 						return (
 							<div key={file.id} className="relative inline-flex items-center">
 								<button
@@ -156,11 +157,13 @@ export function SupplierAttachmentsGallery({
 									onClick={() => setSelectedFileIndex(index)}
 									className="inline-flex max-w-[11rem] items-center gap-1.5 rounded-full border border-border bg-muted/50 py-1 pr-6 pl-1.5 text-xs transition-colors hover:bg-muted"
 								>
-									{file.mimetype?.startsWith('image/') ? (
+									{showImage ? (
 										<img
 											src={file.url}
 											alt={file.name}
+											loading="lazy"
 											className="h-5 w-5 shrink-0 rounded-full object-cover"
+											onError={() => setBrokenImageIds((current) => new Set(current).add(file.id))}
 										/>
 									) : (
 										<Paperclip

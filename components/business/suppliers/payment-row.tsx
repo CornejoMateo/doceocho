@@ -13,6 +13,7 @@ import { pluralArchivos } from '@/helpers/suppliers/suppliers';
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
+import type { FilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
 import { SupplierAttachmentsGallery } from '@/components/business/suppliers/supplier-attachments-gallery';
 
 interface PaymentRowProps {
@@ -20,6 +21,7 @@ interface PaymentRowProps {
 	bankAccountById: Map<number, BankAccount>;
 	paymentMethodById: Map<number, PaymentMethod>;
 	fileCount: number;
+	preloadedFiles?: FilePaymentSupplier[];
 	onEdit: () => void;
 	onDelete: () => void;
 	onCountChange: (count: number) => void;
@@ -30,6 +32,7 @@ export function PaymentRow({
 	bankAccountById,
 	paymentMethodById,
 	fileCount,
+	preloadedFiles,
 	onEdit,
 	onDelete,
 	onCountChange,
@@ -102,6 +105,7 @@ export function PaymentRow({
 				<SupplierAttachmentsGallery
 					kind="payment"
 					entityId={payment.id}
+					preloadedFiles={preloadedFiles}
 					onCountChange={onCountChange}
 				/>
 			</div>

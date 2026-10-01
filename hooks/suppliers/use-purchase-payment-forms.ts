@@ -25,9 +25,14 @@ export const NO_PAYMENT_METHOD = '__none__';
 interface UsePurchasePaymentFormsArgs {
 	supplierId: number | null;
 	fetchDetail: () => Promise<void>;
+	onChanged?: () => void;
 }
 
-export function usePurchasePaymentForms({ supplierId, fetchDetail }: UsePurchasePaymentFormsArgs) {
+export function usePurchasePaymentForms({
+	supplierId,
+	fetchDetail,
+	onChanged,
+}: UsePurchasePaymentFormsArgs) {
 	const { toast } = useToast();
 	const [view, setView] = useState<ViewState>('detail');
 
@@ -157,6 +162,7 @@ export function usePurchasePaymentForms({ supplierId, fetchDetail }: UsePurchase
 				});
 				if (error) throw error;
 				toast({ title: 'Compra actualizada' });
+				onChanged?.();
 				await returnToDetail();
 			} else {
 				const { data, error } = await createPurchaseSupplier({
@@ -182,6 +188,7 @@ export function usePurchasePaymentForms({ supplierId, fetchDetail }: UsePurchase
 				} else {
 					toast({ title: 'Compra creada' });
 				}
+				onChanged?.();
 				await returnToDetail();
 			}
 		} catch (error) {
@@ -222,6 +229,7 @@ export function usePurchasePaymentForms({ supplierId, fetchDetail }: UsePurchase
 				const { error } = await updatePaymentSupplier(editingPayment.id, payload);
 				if (error) throw error;
 				toast({ title: 'Pago actualizado' });
+				onChanged?.();
 				await returnToDetail();
 			} else {
 				const { data, error } = await createPaymentSupplier(payload);
@@ -244,6 +252,7 @@ export function usePurchasePaymentForms({ supplierId, fetchDetail }: UsePurchase
 				} else {
 					toast({ title: 'Pago creado' });
 				}
+				onChanged?.();
 				await returnToDetail();
 			}
 		} catch (error) {

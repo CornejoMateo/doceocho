@@ -17,6 +17,7 @@ import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summa
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
+import type { FilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
 import { SupplierAttachmentsGallery } from '@/components/business/suppliers/supplier-attachments-gallery';
 import { PaymentRow } from '@/components/business/suppliers/payment-row';
 
@@ -32,6 +33,7 @@ interface PurchaseCardProps {
 	bankAccountById: Map<number, BankAccount>;
 	paymentMethodById: Map<number, PaymentMethod>;
 	paymentFileCounts: Map<number, number>;
+	paymentFilesByPaymentId: Map<number, FilePaymentSupplier[]>;
 	onEditPurchase: () => void;
 	onDeletePurchase: () => void;
 	onNewPayment: () => void;
@@ -50,6 +52,7 @@ export function PurchaseCard({
 	bankAccountById,
 	paymentMethodById,
 	paymentFileCounts,
+	paymentFilesByPaymentId,
 	onEditPurchase,
 	onDeletePurchase,
 	onNewPayment,
@@ -184,6 +187,7 @@ export function PurchaseCard({
 										bankAccountById={bankAccountById}
 										paymentMethodById={paymentMethodById}
 										fileCount={paymentFileCounts.get(payment.id) ?? 0}
+										preloadedFiles={paymentFilesByPaymentId.get(payment.id)}
 										onEdit={() => onEditPayment(payment)}
 										onDelete={() => onDeletePayment(payment)}
 										onCountChange={(count) => onPaymentCountChange(payment.id, count)}
