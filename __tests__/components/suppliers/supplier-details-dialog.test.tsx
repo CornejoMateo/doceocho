@@ -24,12 +24,15 @@ import { translateError } from '@/lib/error-translator';
 import {
 	uploadFilePurchaseSupplier,
 	listFilesByPurchaseSupplierId,
+	listFilesByPurchaseSupplierIds,
 	listFilesWithUrlsByPurchaseSupplierId,
+	signUrlsForPurchaseSupplierFiles,
 } from '@/lib/suppliers/files-purchases-suppliers';
 import {
 	uploadFilePaymentSupplier,
 	listFilesByPaymentSupplierIds,
 	listFilesWithUrlsByPaymentSupplierId,
+	signUrlsForPaymentSupplierFiles,
 } from '@/lib/suppliers/files-payments-suppliers';
 
 const mockToast = jest.fn();
@@ -71,7 +74,9 @@ jest.mock('@/lib/suppliers/payments-suppliers', () => ({
 
 jest.mock('@/lib/suppliers/files-purchases-suppliers', () => ({
 	listFilesByPurchaseSupplierId: jest.fn(),
+	listFilesByPurchaseSupplierIds: jest.fn(),
 	listFilesWithUrlsByPurchaseSupplierId: jest.fn(),
+	signUrlsForPurchaseSupplierFiles: jest.fn(),
 	uploadFilePurchaseSupplier: jest.fn(),
 	downloadFilePurchaseSupplier: jest.fn(),
 	deleteFilePurchaseSupplier: jest.fn(),
@@ -80,6 +85,7 @@ jest.mock('@/lib/suppliers/files-purchases-suppliers', () => ({
 jest.mock('@/lib/suppliers/files-payments-suppliers', () => ({
 	listFilesByPaymentSupplierIds: jest.fn(),
 	listFilesWithUrlsByPaymentSupplierId: jest.fn(),
+	signUrlsForPaymentSupplierFiles: jest.fn(),
 	uploadFilePaymentSupplier: jest.fn(),
 	downloadFilePaymentSupplier: jest.fn(),
 	deleteFilePaymentSupplier: jest.fn(),
@@ -189,9 +195,12 @@ beforeEach(() => {
 	(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesByPurchaseSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
+	(listFilesByPurchaseSupplierIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesWithUrlsByPaymentSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
+	(signUrlsForPurchaseSupplierFiles as jest.Mock).mockResolvedValue({ data: [], error: null });
+	(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(uploadFilePurchaseSupplier as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	(uploadFilePaymentSupplier as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	(deletePurchaseSupplier as jest.Mock).mockResolvedValue({ error: null });
@@ -519,13 +528,162 @@ describe('SupplierDetailsDialog', () => {
 				},
 				error: null,
 			});
+			const paymentFileRow = {
+				id: 1,
+				created_at: '2026-01-20T00:00:00.000Z',
+				storage_path: 'payments/88/uuid-1.jpg',
+				payment_supplier_id: 88,
+				file_name: 'recibo.jpg',
+				description: null,
+			};
+			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
+				data: [paymentFileRow],
+				error: null,
+			});
+			(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({
+				data: [
+					{
+						id: 1,
+						url: 'https://signed/payments/88/uuid-1.jpg',
+						name: 'recibo.jpg',
+						displayName: 'recibo.jpg',
+						description: null,
+						mimetype: null,
+						size: null,
+						uploadedAt: '2026-01-20T00:00:00.000Z',
+					},
+				],
+				error: null,
+			});
+			openDialog();
+
+			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
+
+			await waitFor(() => expect(listFilesByPaymentSupplierIds).toHaveBeenCalledWith([88]));
+			await waitFor(() =>
+				expect(signUrlsForPaymentSupplierFiles).toHaveBeenCalledWith([paymentFileRow])
+			);
+			expect(listFilesWithUrlsByPurchaseSupplierId).toHaveBeenCalledWith(11);
+			expect(screen.getByText('Comprobantes de compra')).toBeInTheDocument();
+			expect(await screen.findByText('recibo.jpg')).toBeInTheDocument();
+			// The batch already preloaded the rows: no per-payment list query.
+			expect(listFilesWithUrlsByPaymentSupplierId).not.toHaveBeenCalled();
+		});
+
+		it('falls back to the payment gallery own live fetch when the batched payment file list errors', async () => {
+			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
+				data: {
+					...detail,
+					purchases: [
+						{
+							...purchase,
+							balanceArs: 2500,
+							payments: [
+								{
+									id: 88,
+									created_at: '2026-01-20',
+									amount_ars: 2500,
+									bank_account_id: null,
+									payment_method_id: null,
+									purchase_supplier_id: 11,
+									notes: null,
+								},
+							],
+						},
+					],
+				},
+				error: null,
+			});
+			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
+				data: null,
+				error: { message: 'batch failed' },
+			});
+			(listFilesWithUrlsByPaymentSupplierId as jest.Mock).mockResolvedValue({
+				data: [
+					{
+						id: 1,
+						url: 'https://signed/payments/88/uuid-1.jpg',
+						name: 'recibo.jpg',
+						displayName: 'recibo.jpg',
+						description: null,
+						mimetype: null,
+						size: null,
+						uploadedAt: '2026-01-20T00:00:00.000Z',
+					},
+				],
+				error: null,
+			});
 			openDialog();
 
 			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
 
 			await waitFor(() => expect(listFilesWithUrlsByPaymentSupplierId).toHaveBeenCalledWith(88));
-			expect(listFilesWithUrlsByPurchaseSupplierId).toHaveBeenCalledWith(11);
-			expect(screen.getByText('Comprobantes de compra')).toBeInTheDocument();
+			expect(await screen.findByText('recibo.jpg')).toBeInTheDocument();
+			// Preloading never succeeded, so the gallery never got raw rows to sign.
+			expect(signUrlsForPaymentSupplierFiles).not.toHaveBeenCalled();
+		});
+
+		it('self-corrects the "N archivos" badge once a signing failure drops a file from the gallery', async () => {
+			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
+				data: {
+					...detail,
+					purchases: [
+						{
+							...purchase,
+							balanceArs: 2500,
+							payments: [
+								{
+									id: 88,
+									created_at: '2026-01-20',
+									amount_ars: 2500,
+									bank_account_id: null,
+									payment_method_id: null,
+									purchase_supplier_id: 11,
+									notes: null,
+								},
+							],
+						},
+					],
+				},
+				error: null,
+			});
+			const rowA = {
+				id: 1,
+				created_at: '2026-01-20T00:00:00.000Z',
+				storage_path: 'payments/88/uuid-1.jpg',
+				payment_supplier_id: 88,
+				file_name: 'a.jpg',
+				description: null,
+			};
+			const rowB = { ...rowA, id: 2, storage_path: 'payments/88/uuid-2.jpg', file_name: 'b.jpg' };
+			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
+				data: [rowA, rowB],
+				error: null,
+			});
+			// Row B's signing failed and was silently dropped: only one item comes back.
+			(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({
+				data: [
+					{
+						id: 1,
+						url: 'https://signed/payments/88/uuid-1.jpg',
+						name: 'a.jpg',
+						displayName: 'a.jpg',
+						description: null,
+						mimetype: null,
+						size: null,
+						uploadedAt: '2026-01-20T00:00:00.000Z',
+					},
+				],
+				error: null,
+			});
+			openDialog();
+
+			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
+
+			expect(await screen.findByText('a.jpg')).toBeInTheDocument();
+			// The raw row count was 2, but the badge settles on the post-signing count of 1.
+			await waitFor(() => expect(screen.getByText(/· 1 archivo$/)).toBeInTheDocument());
+			expect(screen.queryByText(/· 2 archivos/)).not.toBeInTheDocument();
 		});
 
 		it('nests each payment gallery under its own payment row', async () => {
@@ -560,24 +718,31 @@ describe('SupplierDetailsDialog', () => {
 				},
 				error: null,
 			});
-			// Each payment gets its own file, so the tiles identify their owner.
-			(listFilesWithUrlsByPaymentSupplierId as jest.Mock).mockImplementation(
-				async (id: number) => ({
-					data: [
-						{
-							id: 1000 + id,
-							url: `blob:${id}`,
-							name: `recibo-${id}.jpg`,
-							displayName: `recibo-${id}.jpg`,
-							description: null,
-							mimetype: 'image/jpeg',
-							size: 1024,
-							uploadedAt: '2026-01-20T00:00:00.000Z',
-						},
-					],
-					error: null,
-				})
-			);
+			// Each payment gets its own file row, so the tiles identify their owner.
+			(listFilesByPaymentSupplierIds as jest.Mock).mockImplementation(async (ids: number[]) => ({
+				data: ids.map((id) => ({
+					id: 1000 + id,
+					created_at: '2026-01-20T00:00:00.000Z',
+					storage_path: `payments/${id}/uuid.jpg`,
+					payment_supplier_id: id,
+					file_name: `recibo-${id}.jpg`,
+					description: null,
+				})),
+				error: null,
+			}));
+			(signUrlsForPaymentSupplierFiles as jest.Mock).mockImplementation(async (files: any[]) => ({
+				data: files.map((f) => ({
+					id: f.id,
+					url: `https://signed/${f.storage_path}`,
+					name: f.file_name,
+					displayName: f.file_name,
+					description: f.description,
+					mimetype: null,
+					size: null,
+					uploadedAt: f.created_at,
+				})),
+				error: null,
+			}));
 			openDialog();
 
 			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
@@ -637,7 +802,7 @@ describe('SupplierDetailsDialog', () => {
 
 			await openDeleteConfirmation();
 
-			await waitFor(() => expect(listFilesByPurchaseSupplierId).toHaveBeenCalledWith(11));
+			await waitFor(() => expect(listFilesByPurchaseSupplierIds).toHaveBeenCalledWith([11]));
 
 			// The description is split by the amount <span>, so assert its full text.
 			const description = screen.getByText(/Se eliminará permanentemente la compra/);

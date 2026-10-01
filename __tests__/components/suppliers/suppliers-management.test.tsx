@@ -17,13 +17,27 @@ jest.mock('@/lib/suppliers/suppliers', () => ({
 }));
 jest.mock('@/lib/suppliers/account-summary', () => ({ getSuppliersAccountsSummary: jest.fn() }));
 jest.mock('@/lib/error-translator', () => ({ translateError: jest.fn(() => '') }));
-// The dialog's own data fetching/behavior is covered by supplier-details-dialog.test.tsx; here we
-// only need a stub that reports open/close so we can assert the balances refetch wiring.
+
 jest.mock('@/components/business/suppliers/supplier-details-dialog', () => ({
-	SupplierDetailsDialog: ({ open, onOpenChange }: any) =>
+	SupplierDetailsDialog: ({ open, onOpenChange, onClosed }: any) =>
 		open ? (
 			<div data-testid="supplier-details-dialog">
-				<button onClick={() => onOpenChange(false)}>Close dialog</button>
+				<button
+					onClick={() => {
+						onOpenChange(false);
+						onClosed?.(false);
+					}}
+				>
+					Close dialog (unchanged)
+				</button>
+				<button
+					onClick={() => {
+						onOpenChange(false);
+						onClosed?.(true);
+					}}
+				>
+					Close dialog (changed)
+				</button>
 			</div>
 		) : null,
 }));
@@ -248,15 +262,29 @@ describe('SuppliersManagement', () => {
 			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
 		});
 
-		it('refetches the accounts summary after the details dialog closes', async () => {
+		it('refetches the accounts summary after the details dialog closes with changes', async () => {
 			render(<SuppliersManagement />);
 			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
 
 			fireEvent.click(desktop().getByText('Vidrios del Sur'));
 			expect(screen.getByTestId('supplier-details-dialog')).toBeInTheDocument();
 
-			fireEvent.click(screen.getByText('Close dialog'));
+			fireEvent.click(screen.getByText('Close dialog (changed)'));
 			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(2));
+		});
+
+		it('does not refetch the accounts summary after the details dialog closes unchanged', async () => {
+			render(<SuppliersManagement />);
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
+
+			fireEvent.click(desktop().getByText('Vidrios del Sur'));
+			expect(screen.getByTestId('supplier-details-dialog')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Close dialog (unchanged)'));
+			await waitFor(() =>
+				expect(screen.queryByTestId('supplier-details-dialog')).not.toBeInTheDocument()
+			);
+			expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1);
 		});
 	});
 });

@@ -3,10 +3,12 @@ import { SupplierAttachmentsGallery } from '@/components/business/suppliers/supp
 import {
 	listFilesWithUrlsByPurchaseSupplierId,
 	deleteFilePurchaseSupplier,
+	signUrlsForPurchaseSupplierFiles,
 } from '@/lib/suppliers/files-purchases-suppliers';
 import {
 	listFilesWithUrlsByPaymentSupplierId,
 	deleteFilePaymentSupplier,
+	signUrlsForPaymentSupplierFiles,
 } from '@/lib/suppliers/files-payments-suppliers';
 
 const mockToast = jest.fn();
@@ -21,11 +23,13 @@ jest.mock('@/lib/error-translator', () => ({
 
 jest.mock('@/lib/suppliers/files-purchases-suppliers', () => ({
 	listFilesWithUrlsByPurchaseSupplierId: jest.fn(),
+	signUrlsForPurchaseSupplierFiles: jest.fn(),
 	deleteFilePurchaseSupplier: jest.fn(),
 }));
 
 jest.mock('@/lib/suppliers/files-payments-suppliers', () => ({
 	listFilesWithUrlsByPaymentSupplierId: jest.fn(),
+	signUrlsForPaymentSupplierFiles: jest.fn(),
 	deleteFilePaymentSupplier: jest.fn(),
 }));
 
@@ -38,37 +42,41 @@ jest.mock('@/components/ui/file-viewer-modal', () => ({
 
 const imageFile = {
 	id: 1,
-	url: 'blob:1',
+	url: 'https://signed/factura.jpg',
 	name: 'factura.jpg',
 	displayName: 'factura.jpg',
 	description: null,
-	mimetype: 'image/jpeg',
+	mimetype: null,
 	size: 2048,
 	uploadedAt: '2026-08-28T12:00:00.000Z',
 };
 
 const pdfFile = {
 	id: 2,
-	url: 'blob:2',
+	url: 'https://signed/recibo.pdf',
 	name: 'recibo.pdf',
 	displayName: 'recibo.pdf',
 	description: null,
-	mimetype: 'application/pdf',
+	mimetype: null,
 	size: 1024,
 	uploadedAt: '2026-09-01T10:00:00.000Z',
 };
 
-let createObjectURL: jest.Mock;
-let revokeObjectURL: jest.Mock;
+const purchaseFileRow = {
+	id: 5,
+	created_at: '2026-08-28T12:00:00.000Z',
+	storage_path: 'purchases/11/uuid-5.jpg',
+	purchase_supplier_id: 11,
+	file_name: 'factura.jpg',
+	description: null,
+};
 
 beforeEach(() => {
 	jest.clearAllMocks();
-	createObjectURL = jest.fn(() => 'blob:mock');
-	revokeObjectURL = jest.fn();
-	URL.createObjectURL = createObjectURL as any;
-	URL.revokeObjectURL = revokeObjectURL as any;
 	(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesWithUrlsByPaymentSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
+	(signUrlsForPurchaseSupplierFiles as jest.Mock).mockResolvedValue({ data: [], error: null });
+	(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(deleteFilePurchaseSupplier as jest.Mock).mockResolvedValue({ success: true, error: null });
 	(deleteFilePaymentSupplier as jest.Mock).mockResolvedValue({ success: true, error: null });
 });
@@ -97,6 +105,45 @@ describe('SupplierAttachmentsGallery', () => {
 		expect(screen.queryByTestId('file-viewer-modal')).not.toBeInTheDocument();
 		expect(await screen.findByText('¿Eliminar archivo?')).toBeInTheDocument();
 		expect(deleteFilePurchaseSupplier).not.toHaveBeenCalled();
+	});
+
+	it('renders images using a lazy-loaded img', async () => {
+		(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
+			data: [imageFile],
+			error: null,
+		});
+
+		render(<SupplierAttachmentsGallery kind="purchase" entityId={11} />);
+
+		const img = await screen.findByAltText('factura.jpg');
+		expect(img).toHaveAttribute('loading', 'lazy');
+		expect(img).toHaveAttribute('src', imageFile.url);
+	});
+
+	it('decides image vs. icon from the file name, not a mimetype field', async () => {
+		(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
+			data: [{ ...imageFile, mimetype: null }],
+			error: null,
+		});
+
+		render(<SupplierAttachmentsGallery kind="purchase" entityId={11} />);
+
+		expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
+	});
+
+	it('falls back to the paperclip icon when a signed image url fails to load', async () => {
+		(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
+			data: [imageFile],
+			error: null,
+		});
+
+		render(<SupplierAttachmentsGallery kind="purchase" entityId={11} />);
+
+		const img = await screen.findByAltText('factura.jpg');
+		fireEvent.error(img);
+
+		await waitFor(() => expect(screen.queryByAltText('factura.jpg')).not.toBeInTheDocument());
+		expect(screen.getByText('factura.jpg')).toBeInTheDocument();
 	});
 
 	it('loads the purchase list on mount and renders a chip per file', async () => {
@@ -201,33 +248,6 @@ describe('SupplierAttachmentsGallery', () => {
 		expect(listFilesWithUrlsByPurchaseSupplierId).toHaveBeenCalledTimes(1);
 	});
 
-	it('revokes the previous object urls when the list is reloaded after a delete', async () => {
-		(listFilesWithUrlsByPurchaseSupplierId as jest.Mock)
-			.mockResolvedValueOnce({ data: [imageFile], error: null })
-			.mockResolvedValueOnce({ data: [pdfFile], error: null });
-
-		render(<SupplierAttachmentsGallery kind="purchase" entityId={11} />);
-		fireEvent.click(await screen.findByRole('button', { name: 'Eliminar archivo' }));
-		fireEvent.click((await screen.findByText('Eliminar')).closest('button')!);
-
-		await screen.findByText('recibo.pdf');
-		expect(revokeObjectURL).toHaveBeenCalledWith('blob:1');
-	});
-
-	it('revokes the object urls on unmount', async () => {
-		(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
-			data: [imageFile],
-			error: null,
-		});
-
-		const { unmount } = render(<SupplierAttachmentsGallery kind="purchase" entityId={11} />);
-		await screen.findByAltText('factura.jpg');
-
-		unmount();
-
-		expect(revokeObjectURL).toHaveBeenCalledWith('blob:1');
-	});
-
 	it('surfaces a list error as a destructive toast and shows nothing', async () => {
 		(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
 			data: null,
@@ -281,7 +301,50 @@ describe('SupplierAttachmentsGallery', () => {
 
 		await waitFor(() => expect(screen.getByText('recibo.pdf')).toBeInTheDocument());
 		expect(screen.queryByAltText('factura.jpg')).not.toBeInTheDocument();
-		// The discarded response's object URL is revoked rather than leaked.
-		expect(revokeObjectURL).toHaveBeenCalledWith('blob:1');
+	});
+
+	describe('preloadedFiles', () => {
+		it('skips the list query and signs the given rows directly', async () => {
+			(signUrlsForPurchaseSupplierFiles as jest.Mock).mockResolvedValue({
+				data: [imageFile],
+				error: null,
+			});
+
+			render(
+				<SupplierAttachmentsGallery
+					kind="purchase"
+					entityId={11}
+					preloadedFiles={[purchaseFileRow]}
+				/>
+			);
+
+			expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
+			expect(signUrlsForPurchaseSupplierFiles).toHaveBeenCalledWith([purchaseFileRow]);
+			expect(listFilesWithUrlsByPurchaseSupplierId).not.toHaveBeenCalled();
+		});
+
+		it('refreshes straight from the entity after a delete, bypassing the (now stale) preloaded rows', async () => {
+			(signUrlsForPurchaseSupplierFiles as jest.Mock).mockResolvedValue({
+				data: [imageFile],
+				error: null,
+			});
+			(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
+				data: [],
+				error: null,
+			});
+
+			render(
+				<SupplierAttachmentsGallery
+					kind="purchase"
+					entityId={11}
+					preloadedFiles={[purchaseFileRow]}
+				/>
+			);
+			fireEvent.click(await screen.findByRole('button', { name: 'Eliminar archivo' }));
+			fireEvent.click((await screen.findByText('Eliminar')).closest('button')!);
+
+			await waitFor(() => expect(listFilesWithUrlsByPurchaseSupplierId).toHaveBeenCalledWith(11));
+			expect(await screen.findByText('No hay archivos adjuntos.')).toBeInTheDocument();
+		});
 	});
 });
