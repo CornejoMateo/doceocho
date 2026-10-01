@@ -9,7 +9,7 @@ import {
 import { Edit, MoreVertical, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatShortDate } from '@/utils/format-date';
-import { pluralArchivos } from '@/lib/suppliers/purchase-status';
+import { pluralArchivos } from '@/helpers/suppliers/suppliers';
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';

@@ -11,6 +11,24 @@ export type SupplierAccountSummary = {
 	balanceArs: number;
 };
 
+type SupplierAccountSummaryRow = {
+	supplier_id: number;
+	supplier_name: string;
+	total_purchases_ars: number | string;
+	total_payments_ars: number | string;
+	balance_ars: number | string;
+};
+
+function mapSupplierAccountSummaryRow(row: SupplierAccountSummaryRow): SupplierAccountSummary {
+	return {
+		supplier_id: Number(row.supplier_id),
+		supplier_name: row.supplier_name,
+		totalPurchasesArs: normalizeMoney(Number(row.total_purchases_ars)),
+		totalPaymentsArs: normalizeMoney(Number(row.total_payments_ars)),
+		balanceArs: normalizeMoney(Number(row.balance_ars)),
+	};
+}
+
 export type PurchaseSupplierWithPayments = PurchaseSupplier & {
 	payments: PaymentSupplier[];
 	totalPaidArs: number;
@@ -44,7 +62,7 @@ export async function getSuppliersAccountsSummary(): Promise<{
 	}
 
 	return {
-		data,
+		data: ((data ?? []) as SupplierAccountSummaryRow[]).map(mapSupplierAccountSummaryRow),
 		error: null,
 	};
 }

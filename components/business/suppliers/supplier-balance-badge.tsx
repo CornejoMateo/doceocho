@@ -19,7 +19,9 @@ export function SupplierBalanceBadge({ summary, loading, error }: SupplierBalanc
 	if (loading) return <Skeleton className="h-5 w-24" />;
 	if (error || !summary) return <span className="text-muted-foreground">—</span>;
 
-	const balance = normalizeMoney(summary.balanceArs);
+	const balance = normalizeMoney(Number(summary.balanceArs));
+	// NaN (e.g. a malformed row) must never silently read as "Al día".
+	if (!Number.isFinite(balance)) return <span className="text-muted-foreground">—</span>;
 	if (balance > 0) {
 		// Single string child (not "Debemos {x}") so tests can match the full text as one node.
 		return (

@@ -11,12 +11,8 @@ import {
 import { ChevronDown, ChevronRight, Edit, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatShortDate } from '@/utils/format-date';
-import {
-	purchaseStatus,
-	purchaseStatusBadgeClassName,
-	purchaseStatusLabel,
-	pluralArchivos,
-} from '@/lib/suppliers/purchase-status';
+import { purchaseStatus, pluralArchivos } from '@/helpers/suppliers/suppliers';
+import { purchaseStatusBadgeClassName, purchaseStatusLabel } from '@/constants/suppliers/suppliers';
 import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
