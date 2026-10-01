@@ -1,0 +1,216 @@
+import { getSupabaseClient } from '../supabase-client';
+import { FileViewerItem } from '../../utils/file-upload-utils';
+
+export type FilePaymentSupplier = {
+	id: number;
+	created_at: string;
+	storage_path: string;
+	payment_supplier_id: number;
+	file_name: string | null;
+	description: string | null;
+};
+
+const TABLE = 'files_payments_suppliers';
+const BUCKET = 'suppliers-files';
+
+export async function listFilesByPaymentSupplierId(
+	paymentSupplierId: number
+): Promise<{ data: FilePaymentSupplier[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select('*')
+		.eq('payment_supplier_id', paymentSupplierId)
+		.order('id', { ascending: true });
+
+	return { data, error };
+}
+
+/**
+ * Lists files for multiple payment_supplier_ids in a single query. Returns an
+ * array of FilePaymentSupplier objects for all matching rows, or an empty array
+ * if none match. If the input array is empty, returns an empty array without
+ * querying the database.
+ */
+export async function listFilesByPaymentSupplierIds(
+	paymentSupplierIds: number[]
+): Promise<{ data: FilePaymentSupplier[] | null; error: any }> {
+	if (paymentSupplierIds.length === 0) {
+		return { data: [], error: null };
+	}
+
+	const supabase = getSupabaseClient();
+
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select('*')
+		.in('payment_supplier_id', paymentSupplierIds)
+		.order('id', { ascending: true });
+
+	return { data, error };
+}
+
+export async function uploadFilePaymentSupplier(
+	paymentSupplierId: number,
+	file: File,
+	description?: string | null,
+	fileName?: string | null
+): Promise<{ data: FilePaymentSupplier | null; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const fileExt = file.name.split('.').pop();
+		const storageName = `${crypto.randomUUID()}.${fileExt}`;
+		const filePath = `payments/${paymentSupplierId}/${storageName}`;
+
+		const { data: fileRecord, error: dbError } = await supabase
+			.from(TABLE)
+			.insert({
+				storage_path: filePath,
+				payment_supplier_id: paymentSupplierId,
+				file_name: fileName?.trim() || file.name,
+				description: description || null,
+			})
+			.select()
+			.single();
+
+		if (dbError || !fileRecord) {
+			return { data: null, error: dbError };
+		}
+
+		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+
+		if (uploadError) {
+			await supabase.from(TABLE).delete().eq('id', fileRecord.id);
+			return { data: null, error: uploadError };
+		}
+
+		return { data: fileRecord, error: null };
+	} catch (err) {
+		console.error('Unexpected error uploading payment supplier file:', err);
+		return { data: null, error: err };
+	}
+}
+
+export async function downloadFilePaymentSupplier(
+	fileId: number
+): Promise<{ data: Blob | null; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const { data: fileRecord, error: fetchError } = await supabase
+			.from(TABLE)
+			.select('storage_path')
+			.eq('id', fileId)
+			.single();
+
+		if (fetchError) {
+			return { data: null, error: fetchError };
+		}
+
+		if (!fileRecord || !fileRecord.storage_path) {
+			return { data: null, error: 'File record not found or missing storage path' };
+		}
+
+		const { data, error } = await supabase.storage.from(BUCKET).download(fileRecord.storage_path);
+		return { data, error };
+	} catch (err) {
+		console.error('Unexpected error downloading payment supplier file:', err);
+		return { data: null, error: err };
+	}
+}
+
+export async function deleteFilePaymentSupplier(
+	fileId: number
+): Promise<{ success: boolean; error: any }> {
+	try {
+		const supabase = getSupabaseClient();
+
+		const { data: fileRecord, error: fetchError } = await supabase
+			.from(TABLE)
+			.select('*')
+			.eq('id', fileId)
+			.single();
+
+		if (fetchError) {
+			return { success: false, error: fetchError };
+		}
+
+		if (!fileRecord || !fileRecord.storage_path) {
+			return { success: false, error: 'File record not found or missing storage path' };
+		}
+
+		const { error: deleteStorageError } = await supabase.storage
+			.from(BUCKET)
+			.remove([fileRecord.storage_path]);
+
+		if (deleteStorageError) {
+			return { success: false, error: deleteStorageError };
+		}
+
+		const { error: deleteDbError } = await supabase.from(TABLE).delete().eq('id', fileId);
+
+		if (deleteDbError) {
+			console.error('Failed to delete file record after storage removal:', deleteDbError);
+			return { success: false, error: deleteDbError };
+		}
+
+		return { success: true, error: null };
+	} catch (err) {
+		console.error('Unexpected error deleting payment supplier file:', err);
+		return { success: false, error: err };
+	}
+}
+
+export async function listFilesWithUrlsByPaymentSupplierId(
+	paymentSupplierId: number
+): Promise<{ data: FileViewerItem[] | null; error: any }> {
+	const supabase = getSupabaseClient();
+
+	const listResult = await listFilesByPaymentSupplierId(paymentSupplierId);
+	if (listResult.error) {
+		return { data: null, error: listResult.error };
+	}
+
+	const files = listResult.data || [];
+	if (files.length === 0) {
+		return { data: [], error: null };
+	}
+
+	const results = await Promise.all(
+		files.map(async (row): Promise<FileViewerItem | null> => {
+			try {
+				const { data: blob, error: downloadError } = await supabase.storage
+					.from(BUCKET)
+					.download(row.storage_path);
+
+				if (downloadError || !blob) {
+					console.error('Error downloading file:', row.storage_path, downloadError);
+					return null;
+				}
+
+				const url = URL.createObjectURL(blob);
+				const name = row.file_name || row.storage_path.split('/').pop() || 'archivo';
+				const displayName = row.file_name || name;
+
+				return {
+					id: row.id,
+					url,
+					name,
+					displayName,
+					description: row.description,
+					mimetype: blob.type || null,
+					size: blob.size,
+					uploadedAt: row.created_at || null,
+				};
+			} catch (err) {
+				console.error('Unexpected error processing file:', row.storage_path, err);
+				return null;
+			}
+		})
+	);
+
+	const data = results.filter((f): f is FileViewerItem => f !== null);
+	return { data, error: null };
+}
