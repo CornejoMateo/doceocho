@@ -1,6 +1,10 @@
-import { getSupplierAccountDetail } from '@/lib/suppliers/account-summary';
+import {
+	getSupplierAccountDetail,
+	getSuppliersAccountsSummary,
+} from '@/lib/suppliers/account-summary';
 import { listPurchasesSuppliers } from '@/lib/suppliers/purchases-suppliers';
 import { listPaymentsSuppliersByPurchaseIds } from '@/lib/suppliers/payments-suppliers';
+import { getSupabaseClient } from '@/lib/supabase-client';
 
 jest.mock('@/lib/suppliers/purchases-suppliers', () => ({
 	listPurchasesSuppliers: jest.fn(),
@@ -8,6 +12,10 @@ jest.mock('@/lib/suppliers/purchases-suppliers', () => ({
 
 jest.mock('@/lib/suppliers/payments-suppliers', () => ({
 	listPaymentsSuppliersByPurchaseIds: jest.fn(),
+}));
+
+jest.mock('@/lib/supabase-client', () => ({
+	getSupabaseClient: jest.fn(),
 }));
 
 const PURCHASE = {
@@ -83,5 +91,52 @@ describe('getSupplierAccountDetail: balance rounding', () => {
 		expect(data?.purchases[0].totalPaidArs).toBe(150);
 		expect(data?.purchases[0].balanceArs).toBe(-50);
 		expect(data?.balanceArs).toBe(-50);
+	});
+});
+
+describe('getSuppliersAccountsSummary: snake_case RPC row mapping', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	it('maps snake_case numeric-string RPC rows to the camelCase SupplierAccountSummary shape', async () => {
+		(getSupabaseClient as jest.Mock).mockReturnValue({
+			rpc: jest.fn().mockResolvedValue({
+				data: [
+					{
+						supplier_id: 7,
+						supplier_name: 'Vidrios SA',
+						total_purchases_ars: '1200.5',
+						total_payments_ars: '600',
+						balance_ars: '600.5',
+					},
+				],
+				error: null,
+			}),
+		});
+
+		const { data, error } = await getSuppliersAccountsSummary();
+
+		expect(error).toBeNull();
+		expect(data).toEqual([
+			{
+				supplier_id: 7,
+				supplier_name: 'Vidrios SA',
+				totalPurchasesArs: 1200.5,
+				totalPaymentsArs: 600,
+				balanceArs: 600.5,
+			},
+		]);
+	});
+
+	it('returns the RPC error untouched instead of mapping rows', async () => {
+		(getSupabaseClient as jest.Mock).mockReturnValue({
+			rpc: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+		});
+
+		const { data, error } = await getSuppliersAccountsSummary();
+
+		expect(data).toBeNull();
+		expect(error).toEqual({ message: 'boom' });
 	});
 });

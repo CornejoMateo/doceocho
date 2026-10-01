@@ -262,5 +262,13 @@ describe('SuppliersTable', () => {
 			setup();
 			expect(screen.getAllByText('—').length).toBeGreaterThan(0);
 		});
+
+		it('shows "—" instead of "Al día" when balanceArs is not a finite number', () => {
+			setup({
+				balances: new Map([[1, summary({ supplier_id: 1, balanceArs: NaN })]]),
+			});
+			expect(screen.queryAllByText('Al día').length).toBe(0);
+			expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+		});
 	});
 });
