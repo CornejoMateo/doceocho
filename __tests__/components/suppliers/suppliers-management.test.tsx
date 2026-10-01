@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { useSuppliers } from '@/hooks/suppliers/use-suppliers';
 import { updateSupplier, deleteSupplier } from '@/lib/suppliers/suppliers';
+import { getSuppliersAccountsSummary } from '@/lib/suppliers/account-summary';
 import { useAuth } from '@/components/provider/auth-provider';
 
 const mockToast = jest.fn();
@@ -14,7 +15,18 @@ jest.mock('@/lib/suppliers/suppliers', () => ({
 	deleteSupplier: jest.fn(),
 	createSupplier: jest.fn(),
 }));
+jest.mock('@/lib/suppliers/account-summary', () => ({ getSuppliersAccountsSummary: jest.fn() }));
 jest.mock('@/lib/error-translator', () => ({ translateError: jest.fn(() => '') }));
+// The dialog's own data fetching/behavior is covered by supplier-details-dialog.test.tsx; here we
+// only need a stub that reports open/close so we can assert the balances refetch wiring.
+jest.mock('@/components/business/suppliers/supplier-details-dialog', () => ({
+	SupplierDetailsDialog: ({ open, onOpenChange }: any) =>
+		open ? (
+			<div data-testid="supplier-details-dialog">
+				<button onClick={() => onOpenChange(false)}>Close dialog</button>
+			</div>
+		) : null,
+}));
 
 const mk = (over: Record<string, any>) => ({
 	created_at: '',
@@ -58,6 +70,7 @@ describe('SuppliersManagement', () => {
 		(useAuth as jest.Mock).mockReturnValue({ user: { role: 'Admin' }, loading: false });
 		(updateSupplier as jest.Mock).mockResolvedValue({ data: {}, error: null });
 		(deleteSupplier as jest.Mock).mockResolvedValue({ error: null });
+		(getSuppliersAccountsSummary as jest.Mock).mockResolvedValue({ data: [], error: null });
 		mockHook();
 	});
 
@@ -226,6 +239,24 @@ describe('SuppliersManagement', () => {
 			);
 			expect(screen.getByRole('alertdialog')).toBeInTheDocument();
 			expect(refresh).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('supplier balances', () => {
+		it('fetches the accounts summary on mount', async () => {
+			render(<SuppliersManagement />);
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
+		});
+
+		it('refetches the accounts summary after the details dialog closes', async () => {
+			render(<SuppliersManagement />);
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
+
+			fireEvent.click(desktop().getByText('Vidrios del Sur'));
+			expect(screen.getByTestId('supplier-details-dialog')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Close dialog'));
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(2));
 		});
 	});
 });
