@@ -1,31 +1,37 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
-import { deletePurchaseSupplier } from '@/lib/suppliers/purchases-suppliers';
+import {
+	deletePurchaseSupplier,
+	type PurchaseSupplierWithBalance,
+} from '@/lib/suppliers/purchases-suppliers';
 import { deletePaymentSupplier, type PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 
+type MutationContext = { kind: 'purchase' | 'payment'; purchaseId: number };
+
 interface UseDeleteConfirmationsArgs {
-	fetchDetail: () => Promise<void>;
+	onSaved: (ctx: MutationContext) => void | Promise<void>;
 	dropExpandedPurchaseId: (purchaseId: number) => void;
+	dropPurchasePayments: (purchaseId: number) => void;
 	onChanged?: () => void;
 }
 
 export function useDeleteConfirmations({
-	fetchDetail,
+	onSaved,
 	dropExpandedPurchaseId,
+	dropPurchasePayments,
 	onChanged,
 }: UseDeleteConfirmationsArgs) {
 	const { toast } = useToast();
 
-	const [purchaseToDelete, setPurchaseToDelete] = useState<PurchaseSupplierWithPayments | null>(
+	const [purchaseToDelete, setPurchaseToDelete] = useState<PurchaseSupplierWithBalance | null>(
 		null
 	);
 	const [deletingPurchase, setDeletingPurchase] = useState(false);
 
 	const [paymentToDelete, setPaymentToDelete] = useState<{
 		payment: PaymentSupplier;
-		purchase: PurchaseSupplierWithPayments;
+		purchase: PurchaseSupplierWithBalance;
 	} | null>(null);
 	const [deletingPayment, setDeletingPayment] = useState(false);
 
@@ -46,7 +52,8 @@ export function useDeleteConfirmations({
 				});
 			}
 			dropExpandedPurchaseId(purchaseId);
-			await fetchDetail();
+			dropPurchasePayments(purchaseId);
+			await onSaved({ kind: 'purchase', purchaseId });
 		} catch (error) {
 			toast({
 				title: 'Error',
@@ -62,6 +69,7 @@ export function useDeleteConfirmations({
 	const confirmDeletePayment = async () => {
 		if (!paymentToDelete) return;
 		const paymentId = paymentToDelete.payment.id;
+		const purchaseId = paymentToDelete.purchase.id;
 		setDeletingPayment(true);
 		try {
 			const { error, orphanedPaths } = await deletePaymentSupplier(paymentId);
@@ -75,7 +83,7 @@ export function useDeleteConfirmations({
 						'El pago se eliminó, pero algunos archivos no se pudieron borrar del almacenamiento.',
 				});
 			}
-			await fetchDetail();
+			await onSaved({ kind: 'payment', purchaseId });
 		} catch (error) {
 			toast({
 				title: 'Error',

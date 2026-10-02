@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency, formatCurrencyWithoutSymbol, formatNumber } from '@/utils/formats-money';
-import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
+import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
@@ -23,7 +23,7 @@ import {
 
 interface PaymentFormProps {
 	editingPayment: PaymentSupplier | null;
-	activePurchaseForPayment: PurchaseSupplierWithPayments | null;
+	activePurchaseForPayment: PurchaseSupplierWithBalance | null;
 	paymentAmount: string;
 	onAmountChange: (value: string) => void;
 	remainingPurchaseBalance: number;

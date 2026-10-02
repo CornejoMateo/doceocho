@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import { FileViewerItem } from '../../utils/file-upload-utils';
+import { fetchAllPages, fetchByIdsInChunks } from './pagination';
 
 export type FilePurchaseSupplier = {
 	id: number;
@@ -31,19 +32,17 @@ export async function listFilesByPurchaseSupplierId(
 export async function listFilesByPurchaseSupplierIds(
 	purchaseSupplierIds: number[]
 ): Promise<{ data: FilePurchaseSupplier[] | null; error: any }> {
-	if (purchaseSupplierIds.length === 0) {
-		return { data: [], error: null };
-	}
-
-	const supabase = getSupabaseClient();
-
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select('*')
-		.in('purchase_supplier_id', purchaseSupplierIds)
-		.order('id', { ascending: true });
-
-	return { data, error };
+	return fetchByIdsInChunks(purchaseSupplierIds, (chunk) =>
+		fetchAllPages<FilePurchaseSupplier>((from, to) => {
+			const supabase = getSupabaseClient();
+			return supabase
+				.from(TABLE)
+				.select('*')
+				.in('purchase_supplier_id', chunk)
+				.order('id', { ascending: true })
+				.range(from, to);
+		})
+	);
 }
 
 export async function uploadFilePurchaseSupplier(

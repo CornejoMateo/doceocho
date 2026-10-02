@@ -10,10 +10,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatShortDate } from '@/utils/format-date';
-import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
+import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
 
 interface DeletePurchaseDialogProps {
-	purchaseToDelete: PurchaseSupplierWithPayments | null;
+	purchaseToDelete: PurchaseSupplierWithBalance | null;
 	deleting: boolean;
 	onCancel: () => void;
 	onConfirm: () => void;

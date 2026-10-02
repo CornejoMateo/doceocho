@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -10,22 +10,28 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus } from 'lucide-react';
-import { useSupplierAccountDetail } from '@/hooks/suppliers/use-supplier-account-detail';
+import { useSupplierAccountTotals } from '@/hooks/suppliers/use-supplier-account-totals';
+import { useSupplierPaymentOptions } from '@/hooks/suppliers/use-supplier-payment-options';
+import { useSupplierPurchasesTab } from '@/hooks/suppliers/use-supplier-purchases-tab';
+import { usePurchasePayments } from '@/hooks/suppliers/use-purchase-payments';
 import { usePurchasePaymentForms } from '@/hooks/suppliers/use-purchase-payment-forms';
 import { useDeleteConfirmations } from '@/hooks/suppliers/use-delete-confirmations';
-import { inDateRange, purchaseStatus } from '@/helpers/suppliers/suppliers';
+import { purchaseStatus } from '@/helpers/suppliers/suppliers';
 import { type PurchaseStatus } from '@/constants/suppliers/suppliers';
 import { SupplierAccountSummary } from '@/components/business/suppliers/supplier-account-summary';
 import { SupplierDateFilter } from '@/components/business/suppliers/supplier-date-filter';
-import { PurchaseCard } from '@/components/business/suppliers/purchase-card';
+import { SupplierPurchasesList } from '@/components/business/suppliers/supplier-purchases-list';
 import { PurchaseForm } from '@/components/business/suppliers/purchase-form';
 import { PaymentForm } from '@/components/business/suppliers/payment-form';
 import { DeletePurchaseDialog } from '@/components/business/suppliers/delete-purchase-dialog';
 import { DeletePaymentDialog } from '@/components/business/suppliers/delete-payment-dialog';
 
-export { purchaseStatus, inDateRange };
+export { purchaseStatus };
 export type { PurchaseStatus };
+
+type TabValue = 'pending' | 'paid';
 
 interface SupplierDetailsDialogProps {
 	supplierId: number | null;
@@ -42,8 +48,9 @@ export function SupplierDetailsDialog({
 	onOpenChange,
 	onClosed,
 }: SupplierDetailsDialogProps) {
+	const [activeTab, setActiveTab] = useState<TabValue>('pending');
 	const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<Set<number>>(new Set());
-	// Date-range filter (desde/hasta), applied to the purchases list and each purchase's payments.
+	// Date-range filter (desde/hasta), applied to both tabs via the RPC.
 	const [filterFrom, setFilterFrom] = useState('');
 	const [filterTo, setFilterTo] = useState('');
 	const dirtyRef = useRef(false);
@@ -51,10 +58,44 @@ export function SupplierDetailsDialog({
 		dirtyRef.current = true;
 	};
 
-	const accountDetail = useSupplierAccountDetail(supplierId, open);
+	const totals = useSupplierAccountTotals(supplierId, open);
+	const paymentOptions = useSupplierPaymentOptions(open);
+	const pendingTab = useSupplierPurchasesTab({
+		supplierId,
+		status: 'pending',
+		from: filterFrom,
+		to: filterTo,
+		isCurrentTab: activeTab === 'pending',
+	});
+	const paidTab = useSupplierPurchasesTab({
+		supplierId,
+		status: 'paid',
+		from: filterFrom,
+		to: filterTo,
+		isCurrentTab: activeTab === 'paid',
+	});
+	const purchasePayments = usePurchasePayments();
+
+	const currentTab = activeTab === 'pending' ? pendingTab : paidTab;
+	const otherTab = activeTab === 'pending' ? paidTab : pendingTab;
+
+	// Refetches totals + the visible tab's list; the other tab lazily refetches next time it's entered.
+	const refreshAfterMutation = async ({
+		kind,
+		purchaseId,
+	}: {
+		kind: 'purchase' | 'payment';
+		purchaseId: number;
+	}) => {
+		const tasks: Promise<unknown>[] = [totals.fetchTotals(), currentTab.refetchFirstPage()];
+		if (kind === 'payment') tasks.push(purchasePayments.loadPayments(purchaseId));
+		otherTab.invalidate();
+		await Promise.all(tasks);
+	};
+
 	const forms = usePurchasePaymentForms({
 		supplierId,
-		fetchDetail: accountDetail.fetchDetail,
+		onSaved: refreshAfterMutation,
 		onChanged: markDirty,
 	});
 
@@ -67,17 +108,11 @@ export function SupplierDetailsDialog({
 	};
 
 	const deleteConfirmations = useDeleteConfirmations({
-		fetchDetail: accountDetail.fetchDetail,
+		onSaved: refreshAfterMutation,
 		dropExpandedPurchaseId,
+		dropPurchasePayments: purchasePayments.dropPurchase,
 		onChanged: markDirty,
 	});
-
-	const filteredPurchases = useMemo(() => {
-		if (!accountDetail.detail) return [];
-		return accountDetail.detail.purchases.filter((purchase) =>
-			inDateRange(purchase.created_at, filterFrom, filterTo)
-		);
-	}, [accountDetail.detail, filterFrom, filterTo]);
 
 	const toggleExpanded = (purchaseId: number) => {
 		setExpandedPurchaseIds((current) => {
@@ -86,6 +121,7 @@ export function SupplierDetailsDialog({
 				next.delete(purchaseId);
 			} else {
 				next.add(purchaseId);
+				purchasePayments.ensureLoaded(purchaseId);
 			}
 			return next;
 		});
@@ -101,14 +137,53 @@ export function SupplierDetailsDialog({
 		if (!nextOpen) {
 			onClosed?.(dirtyRef.current);
 			dirtyRef.current = false;
-			accountDetail.invalidateAndReset();
+			totals.invalidateAndReset();
+			pendingTab.reset();
+			paidTab.reset();
+			purchasePayments.resetAll();
 			forms.resetOnClose();
 			setExpandedPurchaseIds(new Set());
 			clearFilters();
+			setActiveTab('pending');
 		}
 	};
 
-	const { detail, loadingDetail } = accountDetail;
+	const hasDateFilter = !!(filterFrom || filterTo);
+	const { totals: accountTotals, loadingTotals } = totals;
+	const noPurchasesAtAll =
+		!!accountTotals && accountTotals.pendingCount === 0 && accountTotals.paidCount === 0;
+
+	const renderTab = (status: TabValue, tab: typeof pendingTab) => (
+		<SupplierPurchasesList
+			status={status}
+			purchases={tab.purchases}
+			loading={tab.loading}
+			loadingMore={tab.loadingMore}
+			hasMore={tab.hasMore}
+			onLoadMore={tab.loadMore}
+			hasDateFilter={hasDateFilter}
+			fileCounts={tab.fileCounts}
+			expandedPurchaseIds={expandedPurchaseIds}
+			onToggleExpand={toggleExpanded}
+			paymentsByPurchaseId={purchasePayments.paymentsByPurchaseId}
+			loadingPurchaseIds={purchasePayments.loadingPurchaseIds}
+			errorByPurchaseId={purchasePayments.errorByPurchaseId}
+			onRetryPayments={purchasePayments.loadPayments}
+			bankAccountById={paymentOptions.bankAccountById}
+			paymentMethodById={paymentOptions.paymentMethodById}
+			paymentFileCounts={purchasePayments.paymentFileCounts}
+			paymentFilesByPaymentId={purchasePayments.paymentFilesByPaymentId}
+			onEditPurchase={forms.handleEditPurchase}
+			onDeletePurchase={deleteConfirmations.setPurchaseToDelete}
+			onNewPayment={forms.handleNewPayment}
+			onEditPayment={forms.handleEditPayment}
+			onDeletePayment={(purchase, payment) =>
+				deleteConfirmations.setPaymentToDelete({ payment, purchase })
+			}
+			onPurchaseCountChange={tab.setFileCount}
+			onPaymentCountChange={purchasePayments.setPaymentFileCount}
+		/>
+	);
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -121,18 +196,18 @@ export function SupplierDetailsDialog({
 						</DialogHeader>
 
 						<div className="space-y-4">
-							{loadingDetail ? (
+							{loadingTotals && !accountTotals ? (
 								<Card className="p-8 text-center text-muted-foreground">Cargando...</Card>
-							) : !detail ? (
+							) : !accountTotals ? (
 								<Card className="p-8 text-center text-muted-foreground">
 									No se pudo cargar la cuenta corriente.
 								</Card>
 							) : (
 								<>
 									<SupplierAccountSummary
-										totalPurchasesArs={detail.totalPurchasesArs}
-										totalPaymentsArs={detail.totalPaymentsArs}
-										balanceArs={detail.balanceArs}
+										totalPurchasesArs={accountTotals.totalPurchasesArs}
+										totalPaymentsArs={accountTotals.totalPaymentsArs}
+										balanceArs={accountTotals.balanceArs}
 									/>
 
 									<div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between">
@@ -153,7 +228,7 @@ export function SupplierDetailsDialog({
 										</Button>
 									</div>
 
-									{detail.purchases.length === 0 ? (
+									{noPurchasesAtAll ? (
 										<Card className="space-y-3 p-6 text-center text-sm text-muted-foreground">
 											<p>Este proveedor no tiene compras registradas.</p>
 											<Button
@@ -165,51 +240,20 @@ export function SupplierDetailsDialog({
 												Registrar primera compra
 											</Button>
 										</Card>
-									) : filteredPurchases.length === 0 ? (
-										<Card className="space-y-3 p-6 text-center text-sm text-muted-foreground">
-											<p>No hay compras en el rango de fechas seleccionado.</p>
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												className="min-h-11 sm:min-h-9"
-												onClick={clearFilters}
-											>
-												Limpiar filtro
-											</Button>
-										</Card>
 									) : (
-										<div className="space-y-3">
-											{filteredPurchases.map((purchase) => (
-												<PurchaseCard
-													key={purchase.id}
-													purchase={purchase}
-													expanded={expandedPurchaseIds.has(purchase.id)}
-													onToggleExpand={() => toggleExpanded(purchase.id)}
-													purchaseFileCount={accountDetail.purchaseFileCounts.get(purchase.id) ?? 0}
-													visiblePayments={purchase.payments.filter((payment) =>
-														inDateRange(payment.created_at, filterFrom, filterTo)
-													)}
-													bankAccountById={accountDetail.bankAccountById}
-													paymentMethodById={accountDetail.paymentMethodById}
-													paymentFileCounts={accountDetail.paymentFileCounts}
-													paymentFilesByPaymentId={accountDetail.paymentFilesByPaymentId}
-													onEditPurchase={() => forms.handleEditPurchase(purchase)}
-													onDeletePurchase={() => deleteConfirmations.setPurchaseToDelete(purchase)}
-													onNewPayment={() => forms.handleNewPayment(purchase)}
-													onEditPayment={(payment) => forms.handleEditPayment(purchase, payment)}
-													onDeletePayment={(payment) =>
-														deleteConfirmations.setPaymentToDelete({ payment, purchase })
-													}
-													onPurchaseCountChange={(count) =>
-														accountDetail.setPurchaseFileCount(purchase.id, count)
-													}
-													onPaymentCountChange={(paymentId, count) =>
-														accountDetail.setPaymentFileCount(paymentId, count)
-													}
-												/>
-											))}
-										</div>
+										<Tabs
+											value={activeTab}
+											onValueChange={(value) => setActiveTab(value as TabValue)}
+										>
+											<TabsList>
+												<TabsTrigger value="pending">
+													Pendientes ({accountTotals.pendingCount})
+												</TabsTrigger>
+												<TabsTrigger value="paid">Pagadas ({accountTotals.paidCount})</TabsTrigger>
+											</TabsList>
+											<TabsContent value="pending">{renderTab('pending', pendingTab)}</TabsContent>
+											<TabsContent value="paid">{renderTab('paid', paidTab)}</TabsContent>
+										</Tabs>
 									)}
 								</>
 							)}
@@ -229,7 +273,7 @@ export function SupplierDetailsDialog({
 						stagedFiles={forms.stagedPurchaseFiles}
 						onStagedChange={forms.setStagedPurchaseFiles}
 						onSubmit={forms.handleSubmitPurchase}
-						onCancel={() => void forms.returnToDetail()}
+						onCancel={forms.cancelForm}
 					/>
 				)}
 
@@ -243,17 +287,17 @@ export function SupplierDetailsDialog({
 						paymentExceedsBalance={forms.paymentExceedsBalance}
 						paymentBankAccountId={forms.paymentBankAccountId}
 						onBankAccountChange={forms.setPaymentBankAccountId}
-						activeBankAccounts={accountDetail.activeBankAccounts}
+						activeBankAccounts={paymentOptions.activeBankAccounts}
 						paymentMethodIdValue={forms.paymentMethodIdValue}
 						onPaymentMethodChange={forms.setPaymentMethodIdValue}
-						activePaymentMethods={accountDetail.activePaymentMethods}
+						activePaymentMethods={paymentOptions.activePaymentMethods}
 						paymentNotes={forms.paymentNotes}
 						onNotesChange={forms.setPaymentNotes}
 						isSubmitting={forms.isSubmittingPayment}
 						stagedFiles={forms.stagedPaymentFiles}
 						onStagedChange={forms.setStagedPaymentFiles}
 						onSubmit={forms.handleSubmitPayment}
-						onCancel={() => void forms.returnToDetail()}
+						onCancel={forms.cancelForm}
 					/>
 				)}
 

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { fetchAllPages, fetchByIdsInChunks } from './pagination';
 
 export type PaymentSupplier = {
 	id: number;
@@ -33,18 +34,18 @@ export async function listPaymentsSuppliersByPurchaseIds(purchaseIds: number[]):
 	data: PaymentSupplier[] | null;
 	error: any;
 }> {
-	if (purchaseIds.length === 0) {
-		return { data: [], error: null };
-	}
-
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select('*')
-		.in('purchase_supplier_id', purchaseIds)
-		.order('created_at', { ascending: false });
-
-	return { data, error };
+	return fetchByIdsInChunks(purchaseIds, (chunk) =>
+		fetchAllPages<PaymentSupplier>((from, to) => {
+			const supabase = getSupabaseClient();
+			return supabase
+				.from(TABLE)
+				.select('*')
+				.in('purchase_supplier_id', chunk)
+				.order('created_at', { ascending: false })
+				.order('id', { ascending: false })
+				.range(from, to);
+		})
+	);
 }
 
 export async function createPaymentSupplier(

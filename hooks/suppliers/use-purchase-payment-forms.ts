@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { formatCurrencyWithoutSymbol, parseArsToNumber } from '@/utils/formats-money';
-import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
 import {
 	createPurchaseSupplier,
 	updatePurchaseSupplier,
+	type PurchaseSupplierWithBalance,
 } from '@/lib/suppliers/purchases-suppliers';
 import {
 	createPaymentSupplier,
@@ -22,28 +22,30 @@ export type ViewState = 'detail' | 'purchase-form' | 'payment-form';
 export const NO_BANK_ACCOUNT = '__none__';
 export const NO_PAYMENT_METHOD = '__none__';
 
+type MutationContext = { kind: 'purchase' | 'payment'; purchaseId: number };
+
 interface UsePurchasePaymentFormsArgs {
 	supplierId: number | null;
-	fetchDetail: () => Promise<void>;
+	onSaved: (ctx: MutationContext) => void | Promise<void>;
 	onChanged?: () => void;
 }
 
 export function usePurchasePaymentForms({
 	supplierId,
-	fetchDetail,
+	onSaved,
 	onChanged,
 }: UsePurchasePaymentFormsArgs) {
 	const { toast } = useToast();
 	const [view, setView] = useState<ViewState>('detail');
 
-	const [editingPurchase, setEditingPurchase] = useState<PurchaseSupplierWithPayments | null>(null);
+	const [editingPurchase, setEditingPurchase] = useState<PurchaseSupplierWithBalance | null>(null);
 	const [purchaseAmount, setPurchaseAmount] = useState('');
 	const [purchaseNotes, setPurchaseNotes] = useState('');
 	const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 	const [stagedPurchaseFiles, setStagedPurchaseFiles] = useState<StagedFile[]>([]);
 
 	const [activePurchaseForPayment, setActivePurchaseForPayment] =
-		useState<PurchaseSupplierWithPayments | null>(null);
+		useState<PurchaseSupplierWithBalance | null>(null);
 	const [editingPayment, setEditingPayment] = useState<PaymentSupplier | null>(null);
 	const [paymentAmount, setPaymentAmount] = useState('');
 	const [paymentBankAccountId, setPaymentBankAccountId] = useState(NO_BANK_ACCOUNT);
@@ -72,10 +74,16 @@ export function usePurchasePaymentForms({
 		resetFormState();
 	};
 
-	const returnToDetail = async () => {
+	// Cancel never mutated anything, so it never needs to refetch.
+	const cancelForm = () => {
 		setView('detail');
 		resetFormState();
-		await fetchDetail();
+	};
+
+	const returnToDetail = async (ctx: MutationContext) => {
+		setView('detail');
+		resetFormState();
+		await onSaved(ctx);
 	};
 
 	const handleNewPurchase = () => {
@@ -86,7 +94,7 @@ export function usePurchasePaymentForms({
 		setView('purchase-form');
 	};
 
-	const handleEditPurchase = (purchase: PurchaseSupplierWithPayments) => {
+	const handleEditPurchase = (purchase: PurchaseSupplierWithBalance) => {
 		setEditingPurchase(purchase);
 		setPurchaseAmount(formatCurrencyWithoutSymbol(purchase.amount_ars));
 		setPurchaseNotes(purchase.notes ?? '');
@@ -94,7 +102,7 @@ export function usePurchasePaymentForms({
 		setView('purchase-form');
 	};
 
-	const handleNewPayment = (purchase: PurchaseSupplierWithPayments) => {
+	const handleNewPayment = (purchase: PurchaseSupplierWithBalance) => {
 		setActivePurchaseForPayment(purchase);
 		setEditingPayment(null);
 		setPaymentAmount('');
@@ -105,7 +113,7 @@ export function usePurchasePaymentForms({
 		setView('payment-form');
 	};
 
-	const handleEditPayment = (purchase: PurchaseSupplierWithPayments, payment: PaymentSupplier) => {
+	const handleEditPayment = (purchase: PurchaseSupplierWithBalance, payment: PaymentSupplier) => {
 		setActivePurchaseForPayment(purchase);
 		setEditingPayment(payment);
 		setPaymentAmount(formatCurrencyWithoutSymbol(payment.amount_ars));
@@ -163,7 +171,7 @@ export function usePurchasePaymentForms({
 				if (error) throw error;
 				toast({ title: 'Compra actualizada' });
 				onChanged?.();
-				await returnToDetail();
+				await returnToDetail({ kind: 'purchase', purchaseId: editingPurchase.id });
 			} else {
 				const { data, error } = await createPurchaseSupplier({
 					amount_ars: parsedAmount,
@@ -189,7 +197,7 @@ export function usePurchasePaymentForms({
 					toast({ title: 'Compra creada' });
 				}
 				onChanged?.();
-				await returnToDetail();
+				await returnToDetail({ kind: 'purchase', purchaseId: data.id });
 			}
 		} catch (error) {
 			toast({
@@ -230,7 +238,7 @@ export function usePurchasePaymentForms({
 				if (error) throw error;
 				toast({ title: 'Pago actualizado' });
 				onChanged?.();
-				await returnToDetail();
+				await returnToDetail({ kind: 'payment', purchaseId: activePurchaseForPayment.id });
 			} else {
 				const { data, error } = await createPaymentSupplier(payload);
 				if (error || !data) throw error;
@@ -253,7 +261,7 @@ export function usePurchasePaymentForms({
 					toast({ title: 'Pago creado' });
 				}
 				onChanged?.();
-				await returnToDetail();
+				await returnToDetail({ kind: 'payment', purchaseId: activePurchaseForPayment.id });
 			}
 		} catch (error) {
 			toast({
@@ -303,6 +311,7 @@ export function usePurchasePaymentForms({
 		remainingPurchaseBalance,
 		paymentExceedsBalance,
 		resetOnClose,
+		cancelForm,
 		returnToDetail,
 		handleNewPurchase,
 		handleEditPurchase,

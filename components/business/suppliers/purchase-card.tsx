@@ -13,7 +13,7 @@ import { formatCurrency } from '@/utils/formats-money';
 import { formatShortDate } from '@/utils/format-date';
 import { purchaseStatus, pluralArchivos } from '@/helpers/suppliers/suppliers';
 import { purchaseStatusBadgeClassName, purchaseStatusLabel } from '@/constants/suppliers/suppliers';
-import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
+import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
@@ -21,15 +21,18 @@ import type { FilePaymentSupplier } from '@/lib/suppliers/files-payments-supplie
 import { SupplierAttachmentsGallery } from '@/components/business/suppliers/supplier-attachments-gallery';
 import { PaymentRow } from '@/components/business/suppliers/payment-row';
 
-const purchaseProgressPct = (purchase: PurchaseSupplierWithPayments) =>
+const purchaseProgressPct = (purchase: PurchaseSupplierWithBalance) =>
 	Math.min(100, Math.max(0, (purchase.totalPaidArs / purchase.amount_ars) * 100));
 
 interface PurchaseCardProps {
-	purchase: PurchaseSupplierWithPayments;
+	purchase: PurchaseSupplierWithBalance;
 	expanded: boolean;
 	onToggleExpand: () => void;
 	purchaseFileCount: number;
-	visiblePayments: PaymentSupplier[];
+	payments: PaymentSupplier[] | undefined;
+	paymentsLoading: boolean;
+	paymentsError: any;
+	onRetryPayments: () => void;
 	bankAccountById: Map<number, BankAccount>;
 	paymentMethodById: Map<number, PaymentMethod>;
 	paymentFileCounts: Map<number, number>;
@@ -48,7 +51,10 @@ export function PurchaseCard({
 	expanded,
 	onToggleExpand,
 	purchaseFileCount,
-	visiblePayments,
+	payments,
+	paymentsLoading,
+	paymentsError,
+	onRetryPayments,
 	bankAccountById,
 	paymentMethodById,
 	paymentFileCounts,
@@ -170,17 +176,28 @@ export function PurchaseCard({
 					</div>
 
 					<div className="space-y-2">
-						<p className="text-sm font-medium">Pagos ({purchase.payments.length})</p>
+						<p className="text-sm font-medium">Pagos{payments ? ` (${payments.length})` : ''}</p>
 
-						{purchase.payments.length === 0 ? (
+						{paymentsLoading ? (
+							<p className="text-xs text-muted-foreground">Cargando pagos...</p>
+						) : paymentsError ? (
+							<div className="space-y-2">
+								<p className="text-xs text-destructive">No se pudieron cargar los pagos.</p>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="min-h-11 sm:min-h-9"
+									onClick={onRetryPayments}
+								>
+									Reintentar
+								</Button>
+							</div>
+						) : !payments || payments.length === 0 ? (
 							<p className="text-xs text-muted-foreground">Sin pagos registrados.</p>
-						) : visiblePayments.length === 0 ? (
-							<p className="text-xs text-muted-foreground">
-								No hay pagos en el rango de fechas seleccionado.
-							</p>
 						) : (
 							<ol className="space-y-2 border-l-2 border-border pl-5">
-								{visiblePayments.map((payment) => (
+								{payments.map((payment) => (
 									<PaymentRow
 										key={payment.id}
 										payment={payment}

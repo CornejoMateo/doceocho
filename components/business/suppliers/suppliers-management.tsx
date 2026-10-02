@@ -65,7 +65,13 @@ export function SuppliersManagement() {
 	const fetchBalances = async () => {
 		const requestId = ++balancesRequestIdRef.current;
 		setBalancesLoading(true);
-		const { data, error } = await getSuppliersAccountsSummary();
+		let result: Awaited<ReturnType<typeof getSuppliersAccountsSummary>>;
+		try {
+			result = await getSuppliersAccountsSummary();
+		} catch (err) {
+			result = { data: null, error: err };
+		}
+		const { data, error } = result;
 		if (requestId !== balancesRequestIdRef.current) return;
 		if (error) {
 			setBalancesError(true);

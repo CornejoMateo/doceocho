@@ -1,5 +1,3 @@
-import { listPurchasesSuppliers, type PurchaseSupplier } from './purchases-suppliers';
-import { listPaymentsSuppliersByPurchaseIds, type PaymentSupplier } from './payments-suppliers';
 import { getSupabaseClient } from '../supabase-client';
 import { normalizeMoney } from '../../utils/formats-money';
 
@@ -29,19 +27,31 @@ function mapSupplierAccountSummaryRow(row: SupplierAccountSummaryRow): SupplierA
 	};
 }
 
-export type PurchaseSupplierWithPayments = PurchaseSupplier & {
-	payments: PaymentSupplier[];
-	totalPaidArs: number;
-	balanceArs: number;
-};
-
-export type SupplierAccountDetail = {
-	supplier_id: number;
-	purchases: PurchaseSupplierWithPayments[];
+export type SupplierAccountTotals = {
 	totalPurchasesArs: number;
 	totalPaymentsArs: number;
 	balanceArs: number;
+	pendingCount: number;
+	paidCount: number;
 };
+
+type SupplierAccountTotalsRow = {
+	total_purchases_ars: number | string;
+	total_payments_ars: number | string;
+	balance_ars: number | string;
+	pending_count: number | string;
+	paid_count: number | string;
+};
+
+function mapSupplierAccountTotalsRow(row: SupplierAccountTotalsRow): SupplierAccountTotals {
+	return {
+		totalPurchasesArs: normalizeMoney(Number(row.total_purchases_ars)),
+		totalPaymentsArs: normalizeMoney(Number(row.total_payments_ars)),
+		balanceArs: normalizeMoney(Number(row.balance_ars)),
+		pendingCount: Number(row.pending_count),
+		paidCount: Number(row.paid_count),
+	};
+}
 
 /**
  * Aggregates, per supplier, the total purchased amount, total paid amount, and
@@ -68,60 +78,34 @@ export async function getSuppliersAccountsSummary(): Promise<{
 }
 
 /**
- * Returns a single supplier's purchases, each enriched with its payments and a
- * computed balance, for the detail-dialog UI to consume. Lib-only, no React.
+ * Supplier-wide totals and pending/paid counts, independent of any date filter.
  */
-export async function getSupplierAccountDetail(supplierId: number): Promise<{
-	data: SupplierAccountDetail | null;
+export async function getSupplierAccountTotals(supplierId: number): Promise<{
+	data: SupplierAccountTotals | null;
 	error: any;
 }> {
-	const purchasesRes = await listPurchasesSuppliers(supplierId);
-	if (purchasesRes.error) return { data: null, error: purchasesRes.error };
-
-	const purchases = purchasesRes.data ?? [];
-
-	const paymentsRes = await listPaymentsSuppliersByPurchaseIds(
-		purchases.map((purchase) => purchase.id)
-	);
-	if (paymentsRes.error) return { data: null, error: paymentsRes.error };
-
-	const payments = paymentsRes.data ?? [];
-
-	// purchase_supplier_id -> payments
-	const paymentsByPurchase = new Map<number, PaymentSupplier[]>();
-	for (const payment of payments) {
-		const current = paymentsByPurchase.get(payment.purchase_supplier_id) ?? [];
-		current.push(payment);
-		paymentsByPurchase.set(payment.purchase_supplier_id, current);
-	}
-
-	let totalPurchasesArs = 0;
-	let totalPaymentsArs = 0;
-
-	const purchasesWithPayments: PurchaseSupplierWithPayments[] = purchases.map((purchase) => {
-		const purchasePayments = paymentsByPurchase.get(purchase.id) ?? [];
-
-		const totalPaidArs = normalizeMoney(purchasePayments.reduce((sum, p) => sum + p.amount_ars, 0));
-
-		totalPurchasesArs += purchase.amount_ars;
-		totalPaymentsArs += totalPaidArs;
-
-		return {
-			...purchase,
-			payments: purchasePayments,
-			totalPaidArs,
-			balanceArs: normalizeMoney(purchase.amount_ars - totalPaidArs),
-		};
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase.rpc('get_supplier_account_totals', {
+		p_supplier_id: supplierId,
 	});
 
-	return {
-		data: {
-			supplier_id: supplierId,
-			purchases: purchasesWithPayments,
-			totalPurchasesArs: normalizeMoney(totalPurchasesArs),
-			totalPaymentsArs: normalizeMoney(totalPaymentsArs),
-			balanceArs: normalizeMoney(totalPurchasesArs - totalPaymentsArs),
-		},
-		error: null,
-	};
+	if (error) {
+		return { data: null, error };
+	}
+
+	const row = ((data ?? []) as SupplierAccountTotalsRow[])[0];
+	if (!row) {
+		return {
+			data: {
+				totalPurchasesArs: 0,
+				totalPaymentsArs: 0,
+				balanceArs: 0,
+				pendingCount: 0,
+				paidCount: 0,
+			},
+			error: null,
+		};
+	}
+
+	return { data: mapSupplierAccountTotalsRow(row), error: null };
 }

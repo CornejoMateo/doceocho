@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
 	Table,
 	TableBody,
@@ -58,6 +58,7 @@ export function PaymentMethodsConfig() {
 
 	const [name, setName] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const isSubmittingRef = useRef(false);
 
 	const visibleMethods = useMemo(
 		() => (showInactive ? methods : methods.filter((m) => m.is_active)),
@@ -114,6 +115,7 @@ export function PaymentMethodsConfig() {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (isSubmitting || isSubmittingRef.current) return;
 		const trimmedName = name.trim();
 		if (!trimmedName) {
 			toast({
@@ -123,6 +125,7 @@ export function PaymentMethodsConfig() {
 			});
 			return;
 		}
+		isSubmittingRef.current = true;
 		setIsSubmitting(true);
 		try {
 			if (editingMethod) {
@@ -150,6 +153,7 @@ export function PaymentMethodsConfig() {
 				variant: 'destructive',
 			});
 		} finally {
+			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
 	};
@@ -226,7 +230,7 @@ export function PaymentMethodsConfig() {
 										/>
 										<Label htmlFor="show-inactive-payment-methods">Mostrar inactivos</Label>
 									</div>
-									<Button onClick={handleAdd} className="gap-2">
+									<Button onClick={handleAdd} className="gap-2" disabled={actionLoading}>
 										<Plus className="h-4 w-4" />
 										Nuevo
 									</Button>

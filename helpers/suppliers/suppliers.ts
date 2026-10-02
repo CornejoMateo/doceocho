@@ -1,5 +1,4 @@
 import { normalizeMoney } from '@/utils/formats-money';
-import { getLocalDate } from '@/utils/format-date';
 import { PurchaseStatus } from '@/constants/suppliers/suppliers';
 
 /** True when the error is a unique violation on the tax_id index. */
@@ -19,13 +18,6 @@ export function purchaseStatus(purchase: {
 	if (balance === 0) return 'pagada';
 	if (purchase.totalPaidArs > 0) return 'parcial';
 	return 'pendiente';
-}
-
-export function inDateRange(dateStr: string, filterFrom: string, filterTo: string): boolean {
-	const day = getLocalDate(dateStr);
-	if (filterFrom && day < filterFrom) return false;
-	if (filterTo && day > filterTo) return false;
-	return true;
 }
 
 export const pluralArchivos = (count: number) => `${count} ${count === 1 ? 'archivo' : 'archivos'}`;

@@ -131,3 +131,143 @@ $$;
 
 REVOKE ALL ON FUNCTION public.delete_purchase_supplier(bigint) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.delete_purchase_supplier(bigint) TO authenticated;
+
+BEGIN;
+
+--- RPC: paginated purchase listing by payment status
+
+CREATE OR REPLACE FUNCTION public.list_supplier_purchases(
+  p_supplier_id bigint,
+  p_status text,
+  p_from date DEFAULT NULL,
+  p_to date DEFAULT NULL,
+  p_limit int DEFAULT 20,
+  p_offset int DEFAULT 0
+)
+RETURNS TABLE (
+  id bigint,
+  created_at timestamp with time zone,
+  amount_ars numeric,
+  supplier_id bigint,
+  notes text,
+  total_paid_ars numeric,
+  balance_ars numeric,
+  total_count bigint
+)
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+STABLE
+AS $$
+DECLARE
+  v_limit int := LEAST(GREATEST(COALESCE(p_limit, 20), 1), 100);
+  v_offset int := GREATEST(COALESCE(p_offset, 0), 0);
+BEGIN
+  IF p_status NOT IN ('pending', 'paid') THEN
+    RAISE EXCEPTION 'Estado inválido: % (debe ser pending o paid)', p_status;
+  END IF;
+
+  RETURN QUERY
+  WITH payments_agg AS (
+    SELECT
+      ps.purchase_supplier_id,
+      SUM(ps.amount_ars) AS total_paid_ars
+    FROM public.payments_suppliers ps
+    WHERE ps.purchase_supplier_id IN (
+      -- aliased: unqualified cols would clash with the OUT params id/supplier_id
+      SELECT pp.id FROM public.purchases_suppliers pp WHERE pp.supplier_id = p_supplier_id
+    )
+    GROUP BY ps.purchase_supplier_id
+  ),
+  filtered AS (
+    SELECT
+      p.id,
+      p.created_at,
+      p.amount_ars,
+      p.supplier_id,
+      p.notes,
+      COALESCE(pa.total_paid_ars, 0) AS total_paid_ars,
+      p.amount_ars - COALESCE(pa.total_paid_ars, 0) AS balance_ars
+    FROM public.purchases_suppliers p
+    LEFT JOIN payments_agg pa ON pa.purchase_supplier_id = p.id
+    WHERE p.supplier_id = p_supplier_id
+      AND (p_from IS NULL OR (p.created_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date >= p_from)
+      AND (p_to IS NULL OR (p.created_at AT TIME ZONE 'America/Argentina/Buenos_Aires')::date <= p_to)
+      AND (
+        (p_status = 'pending' AND p.amount_ars - COALESCE(pa.total_paid_ars, 0) > 0)
+        OR (p_status = 'paid' AND p.amount_ars - COALESCE(pa.total_paid_ars, 0) <= 0)
+      )
+  )
+  SELECT
+    f.id,
+    f.created_at,
+    f.amount_ars,
+    f.supplier_id,
+    f.notes,
+    f.total_paid_ars,
+    f.balance_ars,
+    COUNT(*) OVER() AS total_count
+  FROM filtered f
+  ORDER BY f.created_at DESC, f.id DESC
+  LIMIT v_limit
+  OFFSET v_offset;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.list_supplier_purchases(bigint, text, date, date, int, int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_supplier_purchases(bigint, text, date, date, int, int) TO authenticated;
+
+COMMIT;
+
+BEGIN;
+
+--- RPC: supplier account totals, independent of date filters
+
+CREATE OR REPLACE FUNCTION public.get_supplier_account_totals(p_supplier_id bigint)
+RETURNS TABLE (
+  total_purchases_ars numeric,
+  total_payments_ars numeric,
+  balance_ars numeric,
+  pending_count bigint,
+  paid_count bigint
+)
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+STABLE
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH payments_agg AS (
+    SELECT
+      ps.purchase_supplier_id,
+      SUM(ps.amount_ars) AS total_paid_ars
+    FROM public.payments_suppliers ps
+    WHERE ps.purchase_supplier_id IN (
+      -- aliased for consistency: keeps every column reference unambiguous
+      SELECT pp.id FROM public.purchases_suppliers pp WHERE pp.supplier_id = p_supplier_id
+    )
+    GROUP BY ps.purchase_supplier_id
+  ),
+  purchases_with_balance AS (
+    SELECT
+      p.amount_ars,
+      p.amount_ars - COALESCE(pa.total_paid_ars, 0) AS balance_ars
+    FROM public.purchases_suppliers p
+    LEFT JOIN payments_agg pa ON pa.purchase_supplier_id = p.id
+    WHERE p.supplier_id = p_supplier_id
+  )
+  SELECT
+    COALESCE(SUM(pwb.amount_ars), 0) AS total_purchases_ars,
+    COALESCE(SUM(pwb.amount_ars - pwb.balance_ars), 0) AS total_payments_ars,
+    COALESCE(SUM(pwb.balance_ars), 0) AS balance_ars,
+    COUNT(*) FILTER (WHERE pwb.balance_ars > 0) AS pending_count,
+    COUNT(*) FILTER (WHERE pwb.balance_ars <= 0) AS paid_count
+  FROM purchases_with_balance pwb;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_supplier_account_totals(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_supplier_account_totals(bigint) TO authenticated;
+
+COMMIT;

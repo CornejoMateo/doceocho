@@ -4,14 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/utils/formats-money';
-import type { PurchaseSupplierWithPayments } from '@/lib/suppliers/account-summary';
+import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
 import {
 	SupplierFileAttachments,
 	type StagedFile,
 } from '@/components/business/suppliers/supplier-file-attachments';
 
 interface PurchaseFormProps {
-	editingPurchase: PurchaseSupplierWithPayments | null;
+	editingPurchase: PurchaseSupplierWithBalance | null;
 	supplierName: string;
 	purchaseAmount: string;
 	onAmountChange: (value: string) => void;
