@@ -34,6 +34,7 @@ import { CashBoxTransactions } from '@/components/business/cash-flow/cash-box-tr
 import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
 import { CashBoxHistory } from '@/components/business/cash-flow/cash-box-history';
 import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts-tab';
+import { PaymentMethodsConfig } from '@/components/business/cash-flow/payment-methods-config';
 import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
 import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
@@ -249,10 +250,13 @@ export function CashFlowManagement() {
 
 				<TabsContent value="summary">
 					<Tabs value={summaryTab} onValueChange={setSummaryTab} className="space-y-6">
-						<TabsList>
-							<TabsTrigger value="current">Caja Actual</TabsTrigger>
-							<TabsTrigger value="history">Historial</TabsTrigger>
-						</TabsList>
+						<div className="flex items-center justify-between">
+							<TabsList>
+								<TabsTrigger value="current">Caja Actual</TabsTrigger>
+								<TabsTrigger value="history">Historial</TabsTrigger>
+							</TabsList>
+							<PaymentMethodsConfig />
+						</div>
 
 						<TabsContent value="current" className="space-y-6">
 							{loadingCashBoxes ? (

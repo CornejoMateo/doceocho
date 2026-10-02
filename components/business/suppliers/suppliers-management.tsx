@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,6 +17,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/components/provider/auth-provider';
 import { useSuppliers } from '@/hooks/suppliers/use-suppliers';
 import { Supplier, deleteSupplier, updateSupplier } from '@/lib/suppliers/suppliers';
+import {
+	getSuppliersAccountsSummary,
+	type SupplierAccountSummary,
+} from '@/lib/suppliers/account-summary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onlyDigits } from '@/lib/suppliers/validation';
 import {
@@ -29,6 +33,7 @@ import { SuppliersTable } from '@/components/business/suppliers/suppliers-table'
 import { SupplierFormDialog } from '@/components/business/suppliers/supplier-form-dialog';
 import { SupplierToggleActiveDialog } from '@/components/business/suppliers/supplier-toggle-active-dialog';
 import { SupplierDeleteDialog } from '@/components/business/suppliers/supplier-delete-dialog';
+import { SupplierDetailsDialog } from '@/components/business/suppliers/supplier-details-dialog';
 import { normalize as normalizeText } from '@/utils/normalize';
 import { translateError } from '@/lib/error-translator';
 
@@ -47,6 +52,40 @@ export function SuppliersManagement() {
 	const [toToggle, setToToggle] = useState<Supplier | null>(null);
 	const [toDelete, setToDelete] = useState<Supplier | null>(null);
 	const [busy, setBusy] = useState(false);
+	const [selectedSupplier, setSelectedSupplier] = useState<{ id: number; name: string } | null>(
+		null
+	);
+
+	const [balances, setBalances] = useState<Map<number, SupplierAccountSummary> | null>(null);
+	const [balancesLoading, setBalancesLoading] = useState(true);
+	const [balancesError, setBalancesError] = useState(false);
+	// Guards against a late response (e.g. after a quick refetch on dialog close) overwriting fresher data.
+	const balancesRequestIdRef = useRef(0);
+
+	const fetchBalances = async () => {
+		const requestId = ++balancesRequestIdRef.current;
+		setBalancesLoading(true);
+		let result: Awaited<ReturnType<typeof getSuppliersAccountsSummary>>;
+		try {
+			result = await getSuppliersAccountsSummary();
+		} catch (err) {
+			result = { data: null, error: err };
+		}
+		const { data, error } = result;
+		if (requestId !== balancesRequestIdRef.current) return;
+		if (error) {
+			setBalancesError(true);
+			setBalancesLoading(false);
+			return;
+		}
+		setBalancesError(false);
+		setBalances(new Map((data ?? []).map((s) => [s.supplier_id, s])));
+		setBalancesLoading(false);
+	};
+
+	useEffect(() => {
+		void fetchBalances();
+	}, []);
 
 	useEffect(() => setPage(1), [search, status, locality]);
 
@@ -124,6 +163,14 @@ export function SuppliersManagement() {
 		if (!open) setEditing(null);
 	};
 
+	const handleSupplierDetailsOpenChange = (open: boolean) => {
+		if (!open) setSelectedSupplier(null);
+	};
+
+	const handleSupplierDetailsClosed = (changed: boolean) => {
+		if (changed) void fetchBalances();
+	};
+
 	const handleSaved = async () => {
 		handleFormOpenChange(false);
 		await reloadList();
@@ -186,8 +233,9 @@ export function SuppliersManagement() {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<h2 className="text-xl font-semibold">Proveedores</h2>
+			<h2 className="text-xl font-semibold">Proveedores</h2>
+
+			<div className="flex justify-end">
 				<Button onClick={() => openForm(null)} className="gap-2">
 					<Plus className="h-4 w-4" />
 					Nuevo proveedor
@@ -256,6 +304,12 @@ export function SuppliersManagement() {
 						onEdit={openForm}
 						onToggleActive={(supplier) => setToToggle((current) => current ?? supplier)}
 						onDelete={setToDelete}
+						onSupplierClick={(supplier) =>
+							setSelectedSupplier({ id: supplier.id, name: supplier.name })
+						}
+						balances={balances}
+						balancesLoading={balancesLoading}
+						balancesError={balancesError}
 					/>
 					<PaginationControls
 						currentPage={currentPage}
@@ -285,6 +339,13 @@ export function SuppliersManagement() {
 				loading={busy}
 				onConfirm={confirmDelete}
 				onCancel={() => setToDelete(null)}
+			/>
+			<SupplierDetailsDialog
+				supplierId={selectedSupplier?.id ?? null}
+				supplierName={selectedSupplier?.name ?? ''}
+				open={!!selectedSupplier}
+				onOpenChange={handleSupplierDetailsOpenChange}
+				onClosed={handleSupplierDetailsClosed}
 			/>
 		</div>
 	);
