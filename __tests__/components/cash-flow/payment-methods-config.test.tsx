@@ -289,6 +289,19 @@ describe('PaymentMethodsConfig', () => {
 			});
 		});
 
+		it('calls createPaymentMethod once when two submit events fire in the same tick', async () => {
+			await goToCreateForm();
+			fireEvent.change(nameInput(), { target: { value: 'Efectivo' } });
+
+			const form = nameInput().closest('form')!;
+			fireEvent.submit(form);
+			fireEvent.submit(form);
+
+			await waitFor(() => {
+				expect(createPaymentMethod).toHaveBeenCalledTimes(1);
+			});
+		});
+
 		it('shows a destructive toast with the fallback message and stays on the form when creating fails', async () => {
 			(createPaymentMethod as jest.Mock).mockResolvedValue(dbError('db error'));
 			await goToCreateForm();
@@ -462,6 +475,27 @@ describe('PaymentMethodsConfig', () => {
 	});
 
 	describe('reactivate flow', () => {
+		it('disables "Nuevo" while a reactivate request is pending', async () => {
+			let resolveUpdate: (value: { data: PaymentMethod | null; error: null }) => void = () => {};
+			(updatePaymentMethod as jest.Mock).mockReturnValue(
+				new Promise((resolve) => {
+					resolveUpdate = resolve;
+				})
+			);
+			await openWith([ACTIVE_METHOD, INACTIVE_METHOD]);
+			fireEvent.click(screen.getByRole('switch'));
+
+			fireEvent.click(screen.getByRole('button', { name: 'Reactivar' }));
+
+			expect(screen.getByText('Nuevo')).toBeDisabled();
+
+			resolveUpdate({ data: ACTIVE_METHOD, error: null });
+
+			await waitFor(() => {
+				expect(screen.getByText('Nuevo')).not.toBeDisabled();
+			});
+		});
+
 		it('reactivates a visible inactive row directly, with a success toast and a re-fetch', async () => {
 			await openWith([ACTIVE_METHOD, INACTIVE_METHOD]);
 			fireEvent.click(screen.getByRole('switch'));

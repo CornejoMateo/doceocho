@@ -34,6 +34,7 @@ describe('listFilesByPurchaseSupplierIds', () => {
 			select: jest.fn(() => chain),
 			in: jest.fn(() => chain),
 			order: jest.fn(() => chain),
+			range: jest.fn(() => chain),
 		};
 		(chain as any).then = (resolve: (v: any) => any) =>
 			resolve({ data: [PURCHASE_FILE, SECOND_PURCHASE_FILE], error: null });
@@ -47,6 +48,7 @@ describe('listFilesByPurchaseSupplierIds', () => {
 		expect(from).toHaveBeenCalledWith('files_purchases_suppliers');
 		expect(chain.in).toHaveBeenCalledWith('purchase_supplier_id', [11, 33]);
 		expect(chain.order).toHaveBeenCalledWith('id', { ascending: true });
+		expect(chain.range).toHaveBeenCalledWith(0, 999);
 		expect(from).toHaveBeenCalledTimes(1);
 	});
 
@@ -69,6 +71,7 @@ describe('listFilesByPurchaseSupplierIds', () => {
 			select: jest.fn(() => chain),
 			in: jest.fn(() => chain),
 			order: jest.fn(() => chain),
+			range: jest.fn(() => chain),
 		};
 		(chain as any).then = (resolve: (v: any) => any) =>
 			resolve({ data: [FILE_A, FILE_B], error: null });
@@ -85,6 +88,7 @@ describe('listFilesByPurchaseSupplierIds', () => {
 			select: jest.fn(() => chain),
 			in: jest.fn(() => chain),
 			order: jest.fn(() => chain),
+			range: jest.fn(() => chain),
 		};
 		(chain as any).then = (resolve: (v: any) => any) =>
 			resolve({ data: null, error: 'list failed' });
@@ -94,5 +98,24 @@ describe('listFilesByPurchaseSupplierIds', () => {
 
 		expect(data).toBeNull();
 		expect(error).toBe('list failed');
+	});
+
+	it('splits more than 200 ids into separate chunked queries', async () => {
+		const ids = Array.from({ length: 250 }, (_, i) => i + 1);
+		const chain: Record<string, jest.Mock> = {
+			select: jest.fn(() => chain),
+			in: jest.fn(() => chain),
+			order: jest.fn(() => chain),
+			range: jest.fn(() => chain),
+		};
+		(chain as any).then = (resolve: (v: any) => any) => resolve({ data: [], error: null });
+		const from = jest.fn(() => chain);
+		(getSupabaseClient as jest.Mock).mockReturnValue({ from });
+
+		await listFilesByPurchaseSupplierIds(ids);
+
+		expect(from).toHaveBeenCalledTimes(2);
+		expect(chain.in).toHaveBeenNthCalledWith(1, 'purchase_supplier_id', ids.slice(0, 200));
+		expect(chain.in).toHaveBeenNthCalledWith(2, 'purchase_supplier_id', ids.slice(200));
 	});
 });

@@ -131,6 +131,7 @@ describe('lib/suppliers: atomic purchase deletion', () => {
 				select: jest.fn(() => chain),
 				in: jest.fn(() => chain),
 				order: jest.fn(() => chain),
+				range: jest.fn(() => chain),
 			};
 			(chain as any).then = (resolve: (v: any) => any) =>
 				resolve({ data: [PAYMENT_FILE, SECOND_PAYMENT_FILE], error: null });
@@ -144,6 +145,7 @@ describe('lib/suppliers: atomic purchase deletion', () => {
 			expect(from).toHaveBeenCalledWith('files_payments_suppliers');
 			expect(chain.in).toHaveBeenCalledWith('payment_supplier_id', [22, 33]);
 			expect(chain.order).toHaveBeenCalledWith('id', { ascending: true });
+			expect(chain.range).toHaveBeenCalledWith(0, 999);
 		});
 
 		it('passes the query error through', async () => {
@@ -151,6 +153,7 @@ describe('lib/suppliers: atomic purchase deletion', () => {
 				select: jest.fn(() => chain),
 				in: jest.fn(() => chain),
 				order: jest.fn(() => chain),
+				range: jest.fn(() => chain),
 			};
 			(chain as any).then = (resolve: (v: any) => any) =>
 				resolve({ data: null, error: 'list failed' });

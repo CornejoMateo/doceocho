@@ -3,10 +3,10 @@ import { useState } from 'react';
 import {
 	SupplierDetailsDialog,
 	purchaseStatus,
-	inDateRange,
 } from '@/components/business/suppliers/supplier-details-dialog';
-import { getSupplierAccountDetail } from '@/lib/suppliers/account-summary';
+import { getSupplierAccountTotals } from '@/lib/suppliers/account-summary';
 import {
+	listSupplierPurchasesPage,
 	createPurchaseSupplier,
 	updatePurchaseSupplier,
 	deletePurchaseSupplier,
@@ -15,6 +15,7 @@ import {
 	createPaymentSupplier,
 	updatePaymentSupplier,
 	deletePaymentSupplier,
+	listPaymentsSuppliersByPurchaseIds,
 } from '@/lib/suppliers/payments-suppliers';
 import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
@@ -23,10 +24,8 @@ import { formatShortDate } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import {
 	uploadFilePurchaseSupplier,
-	listFilesByPurchaseSupplierId,
 	listFilesByPurchaseSupplierIds,
 	listFilesWithUrlsByPurchaseSupplierId,
-	signUrlsForPurchaseSupplierFiles,
 } from '@/lib/suppliers/files-purchases-suppliers';
 import {
 	uploadFilePaymentSupplier,
@@ -48,6 +47,22 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 	),
 }));
 
+jest.mock('@/components/business/suppliers/supplier-date-filter', () => ({
+	SupplierDateFilter: ({ onFilterFromChange, onFilterToChange, onClear }: any) => (
+		<div>
+			<button type="button" onClick={() => onFilterFromChange('2026-01-01')}>
+				Set desde
+			</button>
+			<button type="button" onClick={() => onFilterToChange('2026-01-31')}>
+				Set hasta
+			</button>
+			<button type="button" onClick={onClear}>
+				Limpiar filtro
+			</button>
+		</div>
+	),
+}));
+
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: mockToast }),
 }));
@@ -57,10 +72,11 @@ jest.mock('@/lib/error-translator', () => ({
 }));
 
 jest.mock('@/lib/suppliers/account-summary', () => ({
-	getSupplierAccountDetail: jest.fn(),
+	getSupplierAccountTotals: jest.fn(),
 }));
 
 jest.mock('@/lib/suppliers/purchases-suppliers', () => ({
+	listSupplierPurchasesPage: jest.fn(),
 	createPurchaseSupplier: jest.fn(),
 	updatePurchaseSupplier: jest.fn(),
 	deletePurchaseSupplier: jest.fn(),
@@ -70,15 +86,13 @@ jest.mock('@/lib/suppliers/payments-suppliers', () => ({
 	createPaymentSupplier: jest.fn(),
 	updatePaymentSupplier: jest.fn(),
 	deletePaymentSupplier: jest.fn(),
+	listPaymentsSuppliersByPurchaseIds: jest.fn(),
 }));
 
 jest.mock('@/lib/suppliers/files-purchases-suppliers', () => ({
-	listFilesByPurchaseSupplierId: jest.fn(),
 	listFilesByPurchaseSupplierIds: jest.fn(),
 	listFilesWithUrlsByPurchaseSupplierId: jest.fn(),
-	signUrlsForPurchaseSupplierFiles: jest.fn(),
 	uploadFilePurchaseSupplier: jest.fn(),
-	downloadFilePurchaseSupplier: jest.fn(),
 	deleteFilePurchaseSupplier: jest.fn(),
 }));
 
@@ -87,7 +101,6 @@ jest.mock('@/lib/suppliers/files-payments-suppliers', () => ({
 	listFilesWithUrlsByPaymentSupplierId: jest.fn(),
 	signUrlsForPaymentSupplierFiles: jest.fn(),
 	uploadFilePaymentSupplier: jest.fn(),
-	downloadFilePaymentSupplier: jest.fn(),
 	deleteFilePaymentSupplier: jest.fn(),
 }));
 
@@ -99,30 +112,39 @@ jest.mock('@/lib/payment-methods/payment-methods', () => ({
 	listPaymentMethods: jest.fn(),
 }));
 
-const purchase = {
+const purchaseA = {
 	id: 11,
 	created_at: '2026-01-10',
-	amount_ars: 5000,
+	amount_ars: 3000,
 	supplier_id: 3,
 	notes: null,
-	payments: [],
 	totalPaidArs: 0,
-	balanceArs: 5000,
+	balanceArs: 3000,
+};
+const purchaseB = {
+	...purchaseA,
+	id: 12,
+	created_at: '2026-01-05',
+	amount_ars: 2000,
+	balanceArs: 2000,
 };
 
-const detail = {
-	supplier_id: 3,
-	purchases: [purchase],
-	totalPurchasesArs: 5000,
-	totalPaymentsArs: 0,
-	balanceArs: 5000,
+// Deliberately distinct from purchaseA/B amounts so money() assertions never collide.
+const baseTotals = {
+	totalPurchasesArs: 9999,
+	totalPaymentsArs: 1111,
+	balanceArs: 8888,
+	pendingCount: 1,
+	paidCount: 0,
 };
 
-const detailSuccess = { data: detail, error: null };
+function page(purchases: any[], totalCount: number) {
+	return { data: { purchases, totalCount }, error: null };
+}
 
 const fileInput = () => document.querySelector('input[type="file"]') as HTMLInputElement;
 
-const money = (amount: number) => formatCurrency(amount).replace(/\u00a0/g, ' ');
+const money = (amount: number) => formatCurrency(amount).replace(/ /g, ' ');
 
 const pdf = (name: string) => new File(['pdf'], name, { type: 'application/pdf' });
 
@@ -175,6 +197,10 @@ function openDialog() {
 const destructiveToasts = () =>
 	mockToast.mock.calls.map(([arg]) => arg).filter((a) => a.variant === 'destructive');
 
+async function expandPurchase() {
+	fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
+}
+
 async function openNewPurchaseForm() {
 	openDialog();
 	fireEvent.click(await screen.findByRole('button', { name: 'Nueva compra' }));
@@ -182,24 +208,32 @@ async function openNewPurchaseForm() {
 }
 async function openNewPaymentForm() {
 	openDialog();
-	fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
+	await expandPurchase();
 	fireEvent.click(await screen.findByRole('button', { name: 'Registrar pago' }));
 	fireEvent.change(screen.getByLabelText('Monto'), { target: { value: '1000' } });
+}
+
+async function openDeleteConfirmation() {
+	openDialog();
+	fireEvent.click(await screen.findByRole('button', { name: 'Eliminar compra' }));
+	return screen.findByText('¿Eliminar compra?');
 }
 
 beforeEach(() => {
 	jest.clearAllMocks();
 	URL.createObjectURL = jest.fn(() => 'blob:mock') as any;
 	URL.revokeObjectURL = jest.fn() as any;
-	(getSupplierAccountDetail as jest.Mock).mockResolvedValue(detailSuccess);
+	(getSupplierAccountTotals as jest.Mock).mockResolvedValue({ data: baseTotals, error: null });
+	(listSupplierPurchasesPage as jest.Mock).mockImplementation(async ({ status }: any) =>
+		status === 'pending' ? page([purchaseA], 1) : page([], 0)
+	);
+	(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
-	(listFilesByPurchaseSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesByPurchaseSupplierIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(listFilesWithUrlsByPaymentSupplierId as jest.Mock).mockResolvedValue({ data: [], error: null });
-	(signUrlsForPurchaseSupplierFiles as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({ data: [], error: null });
 	(uploadFilePurchaseSupplier as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	(uploadFilePaymentSupplier as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
@@ -207,14 +241,317 @@ beforeEach(() => {
 	(deletePaymentSupplier as jest.Mock).mockResolvedValue({ error: null });
 });
 
-/** Opens the delete confirmation of the existing purchase from the detail view. */
-async function openDeleteConfirmation() {
-	openDialog();
-	fireEvent.click(await screen.findByRole('button', { name: 'Eliminar compra' }));
-	return screen.findByText('¿Eliminar compra?');
-}
-
 describe('SupplierDetailsDialog', () => {
+	describe('header totals', () => {
+		it('renders the summary from getSupplierAccountTotals, not from the loaded lists', async () => {
+			openDialog();
+
+			await waitFor(() => expect(getSupplierAccountTotals).toHaveBeenCalledWith(3));
+			expect(await screen.findByText(money(baseTotals.totalPurchasesArs))).toBeInTheDocument();
+			expect(screen.getByText(money(baseTotals.totalPaymentsArs))).toBeInTheDocument();
+		});
+
+		it('shows the no-purchases empty state and hides the tabs when both counts are zero', async () => {
+			(getSupplierAccountTotals as jest.Mock).mockResolvedValue({
+				data: { ...baseTotals, pendingCount: 0, paidCount: 0 },
+				error: null,
+			});
+			openDialog();
+
+			expect(
+				await screen.findByText('Este proveedor no tiene compras registradas.')
+			).toBeInTheDocument();
+			expect(screen.queryByRole('tab', { name: /Pendientes/ })).not.toBeInTheDocument();
+		});
+	});
+
+	describe('tabs and pagination', () => {
+		it('fetches only the pending tab on open, and fetches paid only once entered', async () => {
+			openDialog();
+
+			await waitFor(() =>
+				expect(listSupplierPurchasesPage).toHaveBeenCalledWith(
+					expect.objectContaining({ status: 'pending', offset: 0 })
+				)
+			);
+			expect(listSupplierPurchasesPage).not.toHaveBeenCalledWith(
+				expect.objectContaining({ status: 'paid' })
+			);
+
+			// Radix TabsTrigger switches on mousedown, not click.
+			fireEvent.mouseDown(await screen.findByRole('tab', { name: 'Pagadas (0)' }));
+
+			await waitFor(() =>
+				expect(listSupplierPurchasesPage).toHaveBeenCalledWith(
+					expect.objectContaining({ status: 'paid', offset: 0 })
+				)
+			);
+		});
+
+		it('labels each tab with the counts from totals', async () => {
+			(getSupplierAccountTotals as jest.Mock).mockResolvedValue({
+				data: { ...baseTotals, pendingCount: 3, paidCount: 2 },
+				error: null,
+			});
+			openDialog();
+
+			expect(await screen.findByRole('tab', { name: 'Pendientes (3)' })).toBeInTheDocument();
+			expect(screen.getByRole('tab', { name: 'Pagadas (2)' })).toBeInTheDocument();
+		});
+
+		it('"Cargar más" appends the next page and disappears once totalCount is reached', async () => {
+			(getSupplierAccountTotals as jest.Mock).mockResolvedValue({
+				data: { ...baseTotals, pendingCount: 2 },
+				error: null,
+			});
+			(listSupplierPurchasesPage as jest.Mock).mockImplementation(
+				async ({ status, offset }: any) => {
+					if (status !== 'pending') return page([], 0);
+					return offset === 0 ? page([purchaseA], 2) : page([purchaseB], 2);
+				}
+			);
+			openDialog();
+
+			expect(await screen.findByText(money(purchaseA.amount_ars))).toBeInTheDocument();
+			expect(screen.queryByText(money(purchaseB.amount_ars))).not.toBeInTheDocument();
+
+			fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }));
+
+			expect(await screen.findByText(money(purchaseB.amount_ars))).toBeInTheDocument();
+			await waitFor(() =>
+				expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+			);
+		});
+
+		it('shows the empty-tab copy, and the date-range copy once a filter is active', async () => {
+			(listSupplierPurchasesPage as jest.Mock).mockResolvedValue(page([], 0));
+			openDialog();
+
+			expect(await screen.findByText('No hay compras pendientes.')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Set desde'));
+
+			await waitFor(() =>
+				expect(
+					screen.getByText('No hay compras en el rango de fechas seleccionado.')
+				).toBeInTheDocument()
+			);
+		});
+
+		it('resets the current tab to page 1 and passes from/to to the RPC when the date filter changes', async () => {
+			openDialog();
+			await screen.findByText(money(purchaseA.amount_ars));
+
+			fireEvent.click(screen.getByText('Set desde'));
+			fireEvent.click(screen.getByText('Set hasta'));
+
+			await waitFor(() =>
+				expect(listSupplierPurchasesPage).toHaveBeenCalledWith(
+					expect.objectContaining({ from: '2026-01-01', to: '2026-01-31', offset: 0 })
+				)
+			);
+		});
+
+		it('ignores a stale page response after the supplier changes before it resolves', async () => {
+			const first = deferred<{ data: any; error: null }>();
+			(listSupplierPurchasesPage as jest.Mock).mockImplementation(
+				async ({ supplierId, status }: any) => {
+					if (status !== 'pending') return page([], 0);
+					return supplierId === 3 ? first.promise : page([purchaseB], 1);
+				}
+			);
+
+			function SwitchSupplierHarness() {
+				const [supplierId, setSupplierId] = useState(3);
+				return (
+					<>
+						<button type="button" onClick={() => setSupplierId(4)}>
+							Switch
+						</button>
+						<SupplierDetailsDialog
+							supplierId={supplierId}
+							supplierName="Vidrios SA"
+							open={true}
+							onOpenChange={() => {}}
+						/>
+					</>
+				);
+			}
+
+			render(<SwitchSupplierHarness />);
+			await waitFor(() =>
+				expect(listSupplierPurchasesPage).toHaveBeenCalledWith(
+					expect.objectContaining({ supplierId: 3 })
+				)
+			);
+
+			fireEvent.click(screen.getByText('Switch'));
+			await waitFor(() =>
+				expect(listSupplierPurchasesPage).toHaveBeenCalledWith(
+					expect.objectContaining({ supplierId: 4 })
+				)
+			);
+			expect(await screen.findByText(money(purchaseB.amount_ars))).toBeInTheDocument();
+
+			await act(async () => {
+				first.resolve(page([purchaseA], 1));
+			});
+
+			expect(screen.getByText(money(purchaseB.amount_ars))).toBeInTheDocument();
+			expect(screen.queryByText(money(purchaseA.amount_ars))).not.toBeInTheDocument();
+		});
+
+		it('ignores a stale totals response that resolves after the dialog was closed and reopened', async () => {
+			const first = deferred<{ data: typeof baseTotals; error: null }>();
+			const staleTotals = { ...baseTotals, totalPurchasesArs: 123 };
+			(getSupplierAccountTotals as jest.Mock)
+				.mockImplementationOnce(() => first.promise)
+				.mockResolvedValue({ data: baseTotals, error: null });
+
+			openDialog();
+			await waitFor(() => expect(getSupplierAccountTotals).toHaveBeenCalledTimes(1));
+
+			fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+			await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+			fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }));
+			await waitFor(() => expect(getSupplierAccountTotals).toHaveBeenCalledTimes(2));
+			expect(await screen.findByText(money(baseTotals.totalPurchasesArs))).toBeInTheDocument();
+
+			await act(async () => {
+				first.resolve({ data: staleTotals, error: null });
+			});
+
+			expect(screen.getByText(money(baseTotals.totalPurchasesArs))).toBeInTheDocument();
+			expect(screen.queryByText(money(123))).not.toBeInTheDocument();
+		});
+	});
+
+	describe('lazy payment loading on expand', () => {
+		it('does not fetch payments while the purchase stays collapsed', async () => {
+			openDialog();
+
+			await screen.findByText(money(purchaseA.amount_ars));
+			expect(listPaymentsSuppliersByPurchaseIds).not.toHaveBeenCalled();
+		});
+
+		it('fetches a purchase payments only once it is expanded', async () => {
+			openDialog();
+
+			await expandPurchase();
+
+			await waitFor(() => expect(listPaymentsSuppliersByPurchaseIds).toHaveBeenCalledWith([11]));
+		});
+
+		it('shows an error with a retry action when loading payments fails, and recovers on retry', async () => {
+			(listPaymentsSuppliersByPurchaseIds as jest.Mock)
+				.mockResolvedValueOnce({ data: null, error: { message: 'boom' } })
+				.mockResolvedValueOnce({
+					data: [
+						{
+							id: 88,
+							created_at: '2026-01-20',
+							amount_ars: 2500,
+							bank_account_id: null,
+							payment_method_id: null,
+							purchase_supplier_id: 11,
+							notes: null,
+						},
+					],
+					error: null,
+				});
+			openDialog();
+
+			await expandPurchase();
+
+			expect(await screen.findByText('No se pudieron cargar los pagos.')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+			await waitFor(() => expect(screen.getByText(money(2500))).toBeInTheDocument());
+			expect(listPaymentsSuppliersByPurchaseIds).toHaveBeenCalledTimes(2);
+		});
+
+		it('renders a payment gallery backed by the batched payment file list', async () => {
+			(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
+				data: [
+					{
+						id: 88,
+						created_at: '2026-01-20',
+						amount_ars: 2500,
+						bank_account_id: null,
+						payment_method_id: null,
+						purchase_supplier_id: 11,
+						notes: null,
+					},
+				],
+				error: null,
+			});
+			const paymentFileRow = {
+				id: 1,
+				created_at: '2026-01-20T00:00:00.000Z',
+				storage_path: 'payments/88/uuid-1.jpg',
+				payment_supplier_id: 88,
+				file_name: 'recibo.jpg',
+				description: null,
+			};
+			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
+				data: [paymentFileRow],
+				error: null,
+			});
+			(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({
+				data: [
+					{
+						id: 1,
+						url: 'https://signed/payments/88/uuid-1.jpg',
+						name: 'recibo.jpg',
+						displayName: 'recibo.jpg',
+						description: null,
+						mimetype: null,
+						size: null,
+						uploadedAt: '2026-01-20T00:00:00.000Z',
+					},
+				],
+				error: null,
+			});
+			openDialog();
+
+			await expandPurchase();
+
+			await waitFor(() => expect(listFilesByPaymentSupplierIds).toHaveBeenCalledWith([88]));
+			await waitFor(() =>
+				expect(signUrlsForPaymentSupplierFiles).toHaveBeenCalledWith([paymentFileRow])
+			);
+			expect(await screen.findByText('recibo.jpg')).toBeInTheDocument();
+			// The batch already preloaded the rows: no per-payment live fetch.
+			expect(listFilesWithUrlsByPaymentSupplierId).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('after paying a purchase fully', () => {
+		it('removes it from Pendientes and updates the tab counts', async () => {
+			(createPaymentSupplier as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
+			(getSupplierAccountTotals as jest.Mock)
+				.mockResolvedValueOnce({ data: baseTotals, error: null })
+				.mockResolvedValue({ data: { ...baseTotals, pendingCount: 0, paidCount: 1 }, error: null });
+			let pendingCalls = 0;
+			(listSupplierPurchasesPage as jest.Mock).mockImplementation(async ({ status }: any) => {
+				if (status !== 'pending') return page([], 0);
+				pendingCalls += 1;
+				return pendingCalls === 1 ? page([purchaseA], 1) : page([], 0);
+			});
+			await openNewPaymentForm();
+			fireEvent.change(screen.getByLabelText('Monto'), { target: { value: '5000' } });
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() => expect(mockToast).toHaveBeenCalledWith({ title: 'Pago creado' }));
+			expect(await screen.findByText('No hay compras pendientes.')).toBeInTheDocument();
+			expect(await screen.findByRole('tab', { name: 'Pendientes (0)' })).toBeInTheDocument();
+			expect(screen.getByRole('tab', { name: 'Pagadas (1)' })).toBeInTheDocument();
+		});
+	});
+
 	describe('staged attachments in the create form', () => {
 		it('renders the attachments section in create mode, where it used to be hidden', async () => {
 			await openNewPurchaseForm();
@@ -296,6 +633,44 @@ describe('SupplierDetailsDialog', () => {
 			expect(uploadFilePurchaseSupplier).not.toHaveBeenCalled();
 		});
 
+		it('returns to the detail view after creating a payment, not the payment edit form', async () => {
+			(createPaymentSupplier as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
+			await openNewPaymentForm();
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() => expect(mockToast).toHaveBeenCalled());
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago creado' });
+			await waitFor(() =>
+				expect(screen.getByText('Cuenta corriente del proveedor')).toBeInTheDocument()
+			);
+			expect(screen.queryByText('Editar pago')).not.toBeInTheDocument();
+			// The payment form (and its submit button) is gone entirely.
+			expect(screen.queryByRole('button', { name: 'Crear' })).not.toBeInTheDocument();
+			expect(createPaymentSupplier).toHaveBeenCalledTimes(1);
+			expect(updatePaymentSupplier).not.toHaveBeenCalled();
+		});
+
+		it('keeps the payment row when an upload fails', async () => {
+			(createPaymentSupplier as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
+			(uploadFilePaymentSupplier as jest.Mock).mockResolvedValue({ data: null, error: 'boom' });
+			await openNewPaymentForm();
+			fireEvent.change(fileInput(), { target: { files: [pdf('recibo.pdf')] } });
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() => expect(mockToast).toHaveBeenCalled());
+			expect(updatePaymentSupplier).not.toHaveBeenCalled();
+			expect(createPaymentSupplier).toHaveBeenCalledTimes(1);
+			expect(destructiveToasts()[0]).toEqual(
+				expect.objectContaining({ title: 'Archivos adjuntos pendientes' })
+			);
+			await waitFor(() =>
+				expect(screen.getByText('Cuenta corriente del proveedor')).toBeInTheDocument()
+			);
+			expect(screen.queryByText('Editar pago')).not.toBeInTheDocument();
+		});
+
 		it('clears the staged list and reports the count when every upload succeeds', async () => {
 			(createPurchaseSupplier as jest.Mock).mockResolvedValue({
 				data: createdPurchase,
@@ -354,9 +729,6 @@ describe('SupplierDetailsDialog', () => {
 			// The typed-in data survives: no rollback of the purchase row.
 			expect(updatePurchaseSupplier).not.toHaveBeenCalled();
 			expect(createPurchaseSupplier).toHaveBeenCalledTimes(1);
-			expect(mockToast).not.toHaveBeenCalledWith(
-				expect.objectContaining({ description: 'No se pudo guardar la compra.' })
-			);
 			expect(destructiveToasts()).toHaveLength(1);
 			expect(destructiveToasts()[0]).toEqual({
 				variant: 'destructive',
@@ -364,7 +736,6 @@ describe('SupplierDetailsDialog', () => {
 				description:
 					'La compra se creó, pero 1 de 2 archivos no se pudo adjuntar. Podés reintentarlos desde la vista de edición.',
 			});
-			// The row is still there to retry from, on the detail view.
 			await waitFor(() =>
 				expect(screen.getByText('Cuenta corriente del proveedor')).toBeInTheDocument()
 			);
@@ -409,54 +780,18 @@ describe('SupplierDetailsDialog', () => {
 			expect(screen.queryByText('Editar compra')).not.toBeInTheDocument();
 		});
 
-		it('returns to the detail view after creating a payment, not the payment edit form', async () => {
-			(createPaymentSupplier as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
-			await openNewPaymentForm();
-
-			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
-
-			await waitFor(() => expect(mockToast).toHaveBeenCalled());
-			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago creado' });
-			await waitFor(() =>
-				expect(screen.getByText('Cuenta corriente del proveedor')).toBeInTheDocument()
-			);
-			expect(screen.queryByText('Editar pago')).not.toBeInTheDocument();
-			// The payment form (and its submit button) is gone entirely.
-			expect(screen.queryByRole('button', { name: 'Crear' })).not.toBeInTheDocument();
-			expect(createPaymentSupplier).toHaveBeenCalledTimes(1);
-			expect(updatePaymentSupplier).not.toHaveBeenCalled();
-		});
-
-		it('keeps the payment row when an upload fails', async () => {
-			(createPaymentSupplier as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
-			(uploadFilePaymentSupplier as jest.Mock).mockResolvedValue({ data: null, error: 'boom' });
-			await openNewPaymentForm();
-			fireEvent.change(fileInput(), { target: { files: [pdf('recibo.pdf')] } });
-
-			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
-
-			await waitFor(() => expect(mockToast).toHaveBeenCalled());
-			expect(updatePaymentSupplier).not.toHaveBeenCalled();
-			expect(createPaymentSupplier).toHaveBeenCalledTimes(1);
-			expect(destructiveToasts()[0]).toEqual(
-				expect.objectContaining({ title: 'Archivos adjuntos pendientes' })
-			);
-			await waitFor(() =>
-				expect(screen.getByText('Cuenta corriente del proveedor')).toBeInTheDocument()
-			);
-			expect(screen.queryByText('Editar pago')).not.toBeInTheDocument();
-		});
-
-		it('clears the staged list when the form is cancelled', async () => {
+		it('clears the staged list when the form is cancelled, without refetching anything', async () => {
 			await openNewPurchaseForm();
 			fireEvent.change(fileInput(), { target: { files: [pdf('factura.pdf')] } });
 			expect(screen.getByText('factura.pdf')).toBeInTheDocument();
+			const callsBeforeCancel = (listSupplierPurchasesPage as jest.Mock).mock.calls.length;
 
 			fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
 			fireEvent.click(await screen.findByRole('button', { name: 'Nueva compra' }));
 			expect(screen.queryByText('factura.pdf')).not.toBeInTheDocument();
 			expect(screen.getByText('No hay archivos para adjuntar.')).toBeInTheDocument();
+			expect((listSupplierPurchasesPage as jest.Mock).mock.calls.length).toBe(callsBeforeCancel);
 		});
 
 		it('clears the staged list when the dialog is closed', async () => {
@@ -472,7 +807,7 @@ describe('SupplierDetailsDialog', () => {
 			expect(screen.getByText('No hay archivos para adjuntar.')).toBeInTheDocument();
 		});
 
-		it('shows the purchase attachments of a purchase with zero payments once expanded', async () => {
+		it('shows the purchase attachments of a purchase once expanded', async () => {
 			(listFilesWithUrlsByPurchaseSupplierId as jest.Mock).mockResolvedValue({
 				data: [
 					{
@@ -490,277 +825,10 @@ describe('SupplierDetailsDialog', () => {
 			});
 			openDialog();
 
-			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
+			await expandPurchase();
 
 			expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
 			expect(listFilesWithUrlsByPurchaseSupplierId).toHaveBeenCalledWith(11);
-		});
-
-		it('does not fetch any attachments while the purchase stays collapsed', async () => {
-			openDialog();
-
-			await screen.findByText('Cuenta corriente del proveedor');
-			expect(listFilesWithUrlsByPurchaseSupplierId).not.toHaveBeenCalled();
-			expect(listFilesWithUrlsByPaymentSupplierId).not.toHaveBeenCalled();
-		});
-
-		it('renders a payment gallery per payment inside the expanded block', async () => {
-			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
-				data: {
-					...detail,
-					purchases: [
-						{
-							...purchase,
-							balanceArs: 2500,
-							payments: [
-								{
-									id: 88,
-									created_at: '2026-01-20',
-									amount_ars: 2500,
-									bank_account_id: null,
-									payment_method_id: null,
-									purchase_supplier_id: 11,
-									notes: null,
-								},
-							],
-						},
-					],
-				},
-				error: null,
-			});
-			const paymentFileRow = {
-				id: 1,
-				created_at: '2026-01-20T00:00:00.000Z',
-				storage_path: 'payments/88/uuid-1.jpg',
-				payment_supplier_id: 88,
-				file_name: 'recibo.jpg',
-				description: null,
-			};
-			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
-				data: [paymentFileRow],
-				error: null,
-			});
-			(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({
-				data: [
-					{
-						id: 1,
-						url: 'https://signed/payments/88/uuid-1.jpg',
-						name: 'recibo.jpg',
-						displayName: 'recibo.jpg',
-						description: null,
-						mimetype: null,
-						size: null,
-						uploadedAt: '2026-01-20T00:00:00.000Z',
-					},
-				],
-				error: null,
-			});
-			openDialog();
-
-			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
-
-			await waitFor(() => expect(listFilesByPaymentSupplierIds).toHaveBeenCalledWith([88]));
-			await waitFor(() =>
-				expect(signUrlsForPaymentSupplierFiles).toHaveBeenCalledWith([paymentFileRow])
-			);
-			expect(listFilesWithUrlsByPurchaseSupplierId).toHaveBeenCalledWith(11);
-			expect(screen.getByText('Comprobantes de compra')).toBeInTheDocument();
-			expect(await screen.findByText('recibo.jpg')).toBeInTheDocument();
-			// The batch already preloaded the rows: no per-payment list query.
-			expect(listFilesWithUrlsByPaymentSupplierId).not.toHaveBeenCalled();
-		});
-
-		it('falls back to the payment gallery own live fetch when the batched payment file list errors', async () => {
-			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
-				data: {
-					...detail,
-					purchases: [
-						{
-							...purchase,
-							balanceArs: 2500,
-							payments: [
-								{
-									id: 88,
-									created_at: '2026-01-20',
-									amount_ars: 2500,
-									bank_account_id: null,
-									payment_method_id: null,
-									purchase_supplier_id: 11,
-									notes: null,
-								},
-							],
-						},
-					],
-				},
-				error: null,
-			});
-			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
-				data: null,
-				error: { message: 'batch failed' },
-			});
-			(listFilesWithUrlsByPaymentSupplierId as jest.Mock).mockResolvedValue({
-				data: [
-					{
-						id: 1,
-						url: 'https://signed/payments/88/uuid-1.jpg',
-						name: 'recibo.jpg',
-						displayName: 'recibo.jpg',
-						description: null,
-						mimetype: null,
-						size: null,
-						uploadedAt: '2026-01-20T00:00:00.000Z',
-					},
-				],
-				error: null,
-			});
-			openDialog();
-
-			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
-
-			await waitFor(() => expect(listFilesWithUrlsByPaymentSupplierId).toHaveBeenCalledWith(88));
-			expect(await screen.findByText('recibo.jpg')).toBeInTheDocument();
-			// Preloading never succeeded, so the gallery never got raw rows to sign.
-			expect(signUrlsForPaymentSupplierFiles).not.toHaveBeenCalled();
-		});
-
-		it('self-corrects the "N archivos" badge once a signing failure drops a file from the gallery', async () => {
-			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
-				data: {
-					...detail,
-					purchases: [
-						{
-							...purchase,
-							balanceArs: 2500,
-							payments: [
-								{
-									id: 88,
-									created_at: '2026-01-20',
-									amount_ars: 2500,
-									bank_account_id: null,
-									payment_method_id: null,
-									purchase_supplier_id: 11,
-									notes: null,
-								},
-							],
-						},
-					],
-				},
-				error: null,
-			});
-			const rowA = {
-				id: 1,
-				created_at: '2026-01-20T00:00:00.000Z',
-				storage_path: 'payments/88/uuid-1.jpg',
-				payment_supplier_id: 88,
-				file_name: 'a.jpg',
-				description: null,
-			};
-			const rowB = { ...rowA, id: 2, storage_path: 'payments/88/uuid-2.jpg', file_name: 'b.jpg' };
-			(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
-				data: [rowA, rowB],
-				error: null,
-			});
-			// Row B's signing failed and was silently dropped: only one item comes back.
-			(signUrlsForPaymentSupplierFiles as jest.Mock).mockResolvedValue({
-				data: [
-					{
-						id: 1,
-						url: 'https://signed/payments/88/uuid-1.jpg',
-						name: 'a.jpg',
-						displayName: 'a.jpg',
-						description: null,
-						mimetype: null,
-						size: null,
-						uploadedAt: '2026-01-20T00:00:00.000Z',
-					},
-				],
-				error: null,
-			});
-			openDialog();
-
-			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
-
-			expect(await screen.findByText('a.jpg')).toBeInTheDocument();
-			// The raw row count was 2, but the badge settles on the post-signing count of 1.
-			await waitFor(() => expect(screen.getByText(/· 1 archivo$/)).toBeInTheDocument());
-			expect(screen.queryByText(/· 2 archivos/)).not.toBeInTheDocument();
-		});
-
-		it('nests each payment gallery under its own payment row', async () => {
-			const paymentOne = {
-				id: 88,
-				created_at: '2026-01-20',
-				amount_ars: 1111,
-				bank_account_id: null,
-				payment_method_id: null,
-				purchase_supplier_id: 11,
-				notes: null,
-			};
-			const paymentTwo = {
-				id: 99,
-				created_at: '2026-01-25',
-				amount_ars: 2222,
-				bank_account_id: null,
-				payment_method_id: null,
-				purchase_supplier_id: 11,
-				notes: null,
-			};
-			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
-				data: {
-					...detail,
-					purchases: [
-						{
-							...purchase,
-							balanceArs: 5000,
-							payments: [paymentOne, paymentTwo],
-						},
-					],
-				},
-				error: null,
-			});
-			// Each payment gets its own file row, so the tiles identify their owner.
-			(listFilesByPaymentSupplierIds as jest.Mock).mockImplementation(async (ids: number[]) => ({
-				data: ids.map((id) => ({
-					id: 1000 + id,
-					created_at: '2026-01-20T00:00:00.000Z',
-					storage_path: `payments/${id}/uuid.jpg`,
-					payment_supplier_id: id,
-					file_name: `recibo-${id}.jpg`,
-					description: null,
-				})),
-				error: null,
-			}));
-			(signUrlsForPaymentSupplierFiles as jest.Mock).mockImplementation(async (files: any[]) => ({
-				data: files.map((f) => ({
-					id: f.id,
-					url: `https://signed/${f.storage_path}`,
-					name: f.file_name,
-					displayName: f.file_name,
-					description: f.description,
-					mimetype: null,
-					size: null,
-					uploadedAt: f.created_at,
-				})),
-				error: null,
-			}));
-			openDialog();
-
-			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
-
-			const paymentRow = async (paymentId: number) => {
-				const tile = await screen.findByAltText(`recibo-${paymentId}.jpg`);
-				const row = tile.closest(`li[data-payment-id="${paymentId}"]`) as HTMLElement;
-				return { tile, row };
-			};
-			const one = await paymentRow(paymentOne.id);
-			const two = await paymentRow(paymentTwo.id);
-
-			expect(one.row).toContainElement(screen.getByText(money(paymentOne.amount_ars)));
-			expect(one.row).not.toContainElement(screen.getByText(money(paymentTwo.amount_ars)));
-			expect(two.row).toContainElement(screen.getByText(money(paymentTwo.amount_ars)));
-			expect(two.row).not.toContainElement(screen.getByText(money(paymentOne.amount_ars)));
-
-			expect(screen.getByText('Comprobantes de compra')).toBeInTheDocument();
 		});
 
 		it('keeps staged payment files out of the purchase form', async () => {
@@ -775,40 +843,13 @@ describe('SupplierDetailsDialog', () => {
 	});
 
 	describe('deleting a purchase', () => {
-		it('opens a confirmation naming the amount and the payments it takes with it', async () => {
-			(getSupplierAccountDetail as jest.Mock).mockResolvedValue({
-				data: {
-					...detail,
-					purchases: [
-						{
-							...purchase,
-							balanceArs: 2500,
-							payments: [
-								{
-									id: 88,
-									created_at: '2026-01-20',
-									amount_ars: 2500,
-									bank_account_id: null,
-									payment_method_id: null,
-									purchase_supplier_id: 11,
-									notes: null,
-								},
-							],
-						},
-					],
-				},
-				error: null,
-			});
-
+		it('opens a confirmation naming the amount and the date, with generic copy for files/payments', async () => {
 			await openDeleteConfirmation();
 
-			await waitFor(() => expect(listFilesByPurchaseSupplierIds).toHaveBeenCalledWith([11]));
-
-			// The description is split by the amount <span>, so assert its full text.
 			const description = screen.getByText(/Se eliminará permanentemente la compra/);
-			const text = description.textContent?.replace(/\u00a0/g, ' ');
+			const text = description.textContent?.replace(/ /g, ' ');
 			expect(text).toContain('Esta acción no se puede deshacer.');
-			expect(text).toContain(money(purchase.amount_ars));
+			expect(text).toContain(money(purchaseA.amount_ars));
 			expect(description.textContent).toContain(`del ${formatShortDate('2026-01-10')}`);
 			expect(description.textContent).toContain('junto con sus archivos y pagos asociados.');
 			expect(deletePurchaseSupplier).not.toHaveBeenCalled();
@@ -823,20 +864,16 @@ describe('SupplierDetailsDialog', () => {
 			expect(deletePurchaseSupplier).not.toHaveBeenCalled();
 		});
 
-		it('deletes the purchase and refetches the list, which drops the row', async () => {
-			const noPurchases = {
-				data: {
-					...detail,
-					purchases: [],
-					totalPurchasesArs: 0,
-					totalPaymentsArs: 0,
-					balanceArs: 0,
-				},
-				error: null,
-			};
-			(getSupplierAccountDetail as jest.Mock)
-				.mockResolvedValueOnce(detailSuccess)
-				.mockResolvedValue(noPurchases);
+		it('deletes the purchase and refetches totals and the pending tab, which drops the row', async () => {
+			(getSupplierAccountTotals as jest.Mock)
+				.mockResolvedValueOnce({ data: baseTotals, error: null })
+				.mockResolvedValue({ data: { ...baseTotals, pendingCount: 0, paidCount: 1 }, error: null });
+			let pendingCalls = 0;
+			(listSupplierPurchasesPage as jest.Mock).mockImplementation(async ({ status }: any) => {
+				if (status !== 'pending') return page([], 0);
+				pendingCalls += 1;
+				return pendingCalls === 1 ? page([purchaseA], 1) : page([], 0);
+			});
 			await openDeleteConfirmation();
 
 			fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
@@ -844,10 +881,9 @@ describe('SupplierDetailsDialog', () => {
 			await waitFor(() => expect(deletePurchaseSupplier).toHaveBeenCalledWith(11));
 			expect(mockToast).toHaveBeenCalledWith({ title: 'Compra eliminada' });
 			await waitFor(() =>
-				expect(screen.getByText('Este proveedor no tiene compras registradas.')).toBeInTheDocument()
+				expect(screen.getByText('No hay compras pendientes.')).toBeInTheDocument()
 			);
 			expect(screen.queryByRole('button', { name: 'Editar compra' })).not.toBeInTheDocument();
-			expect(getSupplierAccountDetail).toHaveBeenCalledTimes(2);
 		});
 
 		it('drops the purchase from the expanded set so its galleries unmount', async () => {
@@ -867,7 +903,7 @@ describe('SupplierDetailsDialog', () => {
 				error: null,
 			});
 			openDialog();
-			fireEvent.click(await screen.findByRole('button', { name: 'Mostrar detalle de la compra' }));
+			await expandPurchase();
 			expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
 
 			fireEvent.click(screen.getByRole('button', { name: 'Eliminar compra' }));
@@ -880,7 +916,6 @@ describe('SupplierDetailsDialog', () => {
 				).toBeInTheDocument()
 			);
 			expect(screen.queryByAltText('factura.jpg')).not.toBeInTheDocument();
-			expect(screen.getByRole('button', { name: 'Editar compra' })).toBeInTheDocument();
 		});
 
 		it('cannot be submitted twice while the delete is in flight', async () => {
@@ -914,8 +949,6 @@ describe('SupplierDetailsDialog', () => {
 				title: 'Error',
 				description: 'No tenés permisos para eliminar compras.',
 			});
-			// Nothing was deleted, so the row and its edit trigger stay put.
-			expect(getSupplierAccountDetail).toHaveBeenCalledTimes(1);
 			expect(screen.getByRole('button', { name: 'Editar compra' })).toBeInTheDocument();
 		});
 
@@ -930,6 +963,34 @@ describe('SupplierDetailsDialog', () => {
 			expect(destructiveToasts()[0]).toEqual(
 				expect.objectContaining({ description: 'No se pudo eliminar la compra.' })
 			);
+		});
+	});
+
+	describe('deleting a payment', () => {
+		it('deletes a payment and reloads that purchase payments and the active tab', async () => {
+			const withPayment = {
+				id: 88,
+				created_at: '2026-01-20',
+				amount_ars: 2500,
+				bank_account_id: null,
+				payment_method_id: null,
+				purchase_supplier_id: 11,
+				notes: null,
+			};
+			(listPaymentsSuppliersByPurchaseIds as jest.Mock)
+				.mockResolvedValueOnce({ data: [withPayment], error: null })
+				.mockResolvedValue({ data: [], error: null });
+			openDialog();
+			await expandPurchase();
+			await screen.findByText(money(2500));
+
+			fireEvent.click(screen.getByRole('button', { name: 'Eliminar pago' }));
+			fireEvent.click(await screen.findByRole('button', { name: 'Eliminar' }));
+
+			await waitFor(() => expect(deletePaymentSupplier).toHaveBeenCalledWith(88));
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago eliminado' });
+			await waitFor(() => expect(listPaymentsSuppliersByPurchaseIds).toHaveBeenCalledTimes(2));
+			await waitFor(() => expect(screen.getByText('Sin pagos registrados.')).toBeInTheDocument());
 		});
 	});
 
@@ -954,98 +1015,6 @@ describe('SupplierDetailsDialog', () => {
 
 		it('classifies an overpayment as a-favor (Saldo a favor)', () => {
 			expect(purchaseStatus({ balanceArs: -50, totalPaidArs: 150 })).toBe('a-favor');
-		});
-	});
-
-	describe('inDateRange', () => {
-		it('matches any date when no filter is set', () => {
-			expect(inDateRange('2026-03-14T12:00:00.000Z', '', '')).toBe(true);
-		});
-
-		it('includes both range boundaries', () => {
-			expect(inDateRange('2026-03-14T12:00:00.000Z', '2026-03-14', '2026-03-14')).toBe(true);
-			expect(inDateRange('2026-03-14T12:00:00.000Z', '2026-03-10', '2026-03-14')).toBe(true);
-			expect(inDateRange('2026-03-14T12:00:00.000Z', '2026-03-14', '2026-03-20')).toBe(true);
-		});
-
-		it('excludes dates outside the range', () => {
-			expect(inDateRange('2026-03-14T12:00:00.000Z', '2026-03-15', '')).toBe(false);
-			expect(inDateRange('2026-03-14T12:00:00.000Z', '', '2026-03-13')).toBe(false);
-		});
-
-		it('compares using the Argentina-local day, not the UTC day, for a timestamp that crosses midnight UTC', () => {
-			// 2026-03-15T01:30:00Z is 2026-03-14 22:30 in Argentina (UTC-3): a
-			// filter on the 14th must match it, and a filter on the 15th must not,
-			// even though the raw ISO string's date portion is "2026-03-15".
-			const timestamp = '2026-03-15T01:30:00.000Z';
-			expect(inDateRange(timestamp, '2026-03-14', '2026-03-14')).toBe(true);
-			expect(inDateRange(timestamp, '2026-03-15', '2026-03-15')).toBe(false);
-		});
-	});
-
-	describe('fetchDetail stale-response guard', () => {
-		it('ignores a stale response when supplierId changes before the first fetch resolves', async () => {
-			const first = deferred<{ data: typeof detail; error: null }>();
-			const staleData = { ...detail, totalPurchasesArs: 123 };
-			const freshData = { ...detail, totalPurchasesArs: 7777 };
-			(getSupplierAccountDetail as jest.Mock).mockImplementation((id: number) =>
-				id === 3 ? first.promise : Promise.resolve({ data: freshData, error: null })
-			);
-
-			function SwitchSupplierHarness() {
-				const [supplierId, setSupplierId] = useState(3);
-				return (
-					<>
-						<button type="button" onClick={() => setSupplierId(4)}>
-							Switch
-						</button>
-						<SupplierDetailsDialog
-							supplierId={supplierId}
-							supplierName="Vidrios SA"
-							open={true}
-							onOpenChange={() => {}}
-						/>
-					</>
-				);
-			}
-
-			render(<SwitchSupplierHarness />);
-			await waitFor(() => expect(getSupplierAccountDetail).toHaveBeenCalledWith(3));
-
-			fireEvent.click(screen.getByText('Switch'));
-			await waitFor(() => expect(getSupplierAccountDetail).toHaveBeenCalledWith(4));
-			expect(await screen.findByText(money(7777))).toBeInTheDocument();
-			await act(async () => {
-				first.resolve({ data: staleData, error: null });
-			});
-
-			expect(screen.getByText(money(7777))).toBeInTheDocument();
-			expect(screen.queryByText(money(123))).not.toBeInTheDocument();
-		});
-
-		it('ignores a stale response that resolves after the dialog was closed and reopened', async () => {
-			const first = deferred<{ data: typeof detail; error: null }>();
-			const staleData = { ...detail, totalPurchasesArs: 123 };
-			(getSupplierAccountDetail as jest.Mock)
-				.mockImplementationOnce(() => first.promise)
-				.mockResolvedValue(detailSuccess);
-
-			openDialog();
-			await waitFor(() => expect(getSupplierAccountDetail).toHaveBeenCalledTimes(1));
-
-			fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-			await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-
-			fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }));
-			await waitFor(() => expect(getSupplierAccountDetail).toHaveBeenCalledTimes(2));
-			await screen.findByText('Cuenta corriente del proveedor');
-			expect(screen.getAllByText(money(detail.totalPurchasesArs)).length).toBeGreaterThan(0);
-			await act(async () => {
-				first.resolve({ data: staleData, error: null });
-			});
-
-			expect(screen.getAllByText(money(detail.totalPurchasesArs)).length).toBeGreaterThan(0);
-			expect(screen.queryByText(money(123))).not.toBeInTheDocument();
 		});
 	});
 });

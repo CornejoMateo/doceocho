@@ -1,98 +1,12 @@
 import {
-	getSupplierAccountDetail,
+	getSupplierAccountTotals,
 	getSuppliersAccountsSummary,
 } from '@/lib/suppliers/account-summary';
-import { listPurchasesSuppliers } from '@/lib/suppliers/purchases-suppliers';
-import { listPaymentsSuppliersByPurchaseIds } from '@/lib/suppliers/payments-suppliers';
 import { getSupabaseClient } from '@/lib/supabase-client';
-
-jest.mock('@/lib/suppliers/purchases-suppliers', () => ({
-	listPurchasesSuppliers: jest.fn(),
-}));
-
-jest.mock('@/lib/suppliers/payments-suppliers', () => ({
-	listPaymentsSuppliersByPurchaseIds: jest.fn(),
-}));
 
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
 }));
-
-const PURCHASE = {
-	id: 11,
-	created_at: '2026-01-10T00:00:00.000Z',
-	supplier_id: 3,
-	notes: null,
-};
-
-function payment(id: number, purchaseSupplierId: number, amount_ars: number) {
-	return {
-		id,
-		created_at: '2026-01-20T00:00:00.000Z',
-		amount_ars,
-		bank_account_id: null,
-		payment_method_id: null,
-		purchase_supplier_id: purchaseSupplierId,
-		notes: null,
-	};
-}
-
-function setup(amount_ars: number, payments: ReturnType<typeof payment>[]) {
-	(listPurchasesSuppliers as jest.Mock).mockResolvedValue({
-		data: [{ ...PURCHASE, amount_ars }],
-		error: null,
-	});
-	(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
-		data: payments,
-		error: null,
-	});
-}
-
-describe('getSupplierAccountDetail: balance rounding', () => {
-	beforeEach(() => {
-		jest.clearAllMocks();
-	});
-
-	it('rounds a payment total split across floats (0.1 + 0.1 + 0.1) so it equals the purchase amount exactly', async () => {
-		setup(0.3, [payment(1, 11, 0.1), payment(2, 11, 0.1), payment(3, 11, 0.1)]);
-
-		const { data } = await getSupplierAccountDetail(3);
-
-		expect(data?.purchases[0].totalPaidArs).toBe(0.3);
-		expect(data?.purchases[0].balanceArs).toBe(0);
-		expect(data?.totalPurchasesArs).toBe(0.3);
-		expect(data?.totalPaymentsArs).toBe(0.3);
-		expect(data?.balanceArs).toBe(0);
-	});
-
-	it('leaves an unpaid purchase balance equal to the full amount', async () => {
-		setup(1000, []);
-
-		const { data } = await getSupplierAccountDetail(3);
-
-		expect(data?.purchases[0].totalPaidArs).toBe(0);
-		expect(data?.purchases[0].balanceArs).toBe(1000);
-	});
-
-	it('computes a partial balance for a payment smaller than the purchase amount', async () => {
-		setup(1000, [payment(1, 11, 400)]);
-
-		const { data } = await getSupplierAccountDetail(3);
-
-		expect(data?.purchases[0].totalPaidArs).toBe(400);
-		expect(data?.purchases[0].balanceArs).toBe(600);
-	});
-
-	it('rounds an overpayment to a clean negative balance', async () => {
-		setup(100, [payment(1, 11, 70), payment(2, 11, 80)]);
-
-		const { data } = await getSupplierAccountDetail(3);
-
-		expect(data?.purchases[0].totalPaidArs).toBe(150);
-		expect(data?.purchases[0].balanceArs).toBe(-50);
-		expect(data?.balanceArs).toBe(-50);
-	});
-});
 
 describe('getSuppliersAccountsSummary: snake_case RPC row mapping', () => {
 	beforeEach(() => {
@@ -135,6 +49,88 @@ describe('getSuppliersAccountsSummary: snake_case RPC row mapping', () => {
 		});
 
 		const { data, error } = await getSuppliersAccountsSummary();
+
+		expect(data).toBeNull();
+		expect(error).toEqual({ message: 'boom' });
+	});
+});
+
+describe('getSupplierAccountTotals: snake_case RPC row mapping', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	it('maps a snake_case numeric-string RPC row to the camelCase totals shape', async () => {
+		(getSupabaseClient as jest.Mock).mockReturnValue({
+			rpc: jest.fn().mockResolvedValue({
+				data: [
+					{
+						total_purchases_ars: '1200.5',
+						total_payments_ars: '600',
+						balance_ars: '600.5',
+						pending_count: '3',
+						paid_count: '2',
+					},
+				],
+				error: null,
+			}),
+		});
+
+		const { data, error } = await getSupplierAccountTotals(7);
+
+		expect(error).toBeNull();
+		expect(data).toEqual({
+			totalPurchasesArs: 1200.5,
+			totalPaymentsArs: 600,
+			balanceArs: 600.5,
+			pendingCount: 3,
+			paidCount: 2,
+		});
+	});
+
+	it('passes the supplier id to the RPC', async () => {
+		const rpc = jest.fn().mockResolvedValue({
+			data: [
+				{
+					total_purchases_ars: 0,
+					total_payments_ars: 0,
+					balance_ars: 0,
+					pending_count: 0,
+					paid_count: 0,
+				},
+			],
+			error: null,
+		});
+		(getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
+
+		await getSupplierAccountTotals(42);
+
+		expect(rpc).toHaveBeenCalledWith('get_supplier_account_totals', { p_supplier_id: 42 });
+	});
+
+	it('returns all-zero totals when the RPC returns no row', async () => {
+		(getSupabaseClient as jest.Mock).mockReturnValue({
+			rpc: jest.fn().mockResolvedValue({ data: [], error: null }),
+		});
+
+		const { data, error } = await getSupplierAccountTotals(7);
+
+		expect(error).toBeNull();
+		expect(data).toEqual({
+			totalPurchasesArs: 0,
+			totalPaymentsArs: 0,
+			balanceArs: 0,
+			pendingCount: 0,
+			paidCount: 0,
+		});
+	});
+
+	it('returns the RPC error untouched instead of mapping the row', async () => {
+		(getSupabaseClient as jest.Mock).mockReturnValue({
+			rpc: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
+		});
+
+		const { data, error } = await getSupplierAccountTotals(7);
 
 		expect(data).toBeNull();
 		expect(error).toEqual({ message: 'boom' });
