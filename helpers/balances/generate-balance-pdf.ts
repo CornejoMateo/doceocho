@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BalanceReportRow } from '@/components/business/reports/balances/types';
+import type { BalanceReportRow } from '@/components/business/cash-flow/balances-tab/types';
 import { formatCurrency, parseArsToNumber } from '@/utils/formats-money';
 import { BALANCES_REPORT_COLUMNS } from '@/constants/balances/balances-report';
 import { formatCreatedAt } from '@/utils/format-date';

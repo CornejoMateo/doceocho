@@ -1,7 +1,7 @@
 import type {
 	BalanceReportRow,
 	BalanceFilters,
-} from '@/components/business/reports/balances/types';
+} from '@/components/business/cash-flow/balances-tab/types';
 import { parseArsToNumber } from '@/utils/formats-money';
 
 /**

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { BalanceFilters } from '@/components/business/reports/balances/types';
+import type { BalanceFilters } from '@/components/business/cash-flow/balances-tab/types';
 import { BALANCE_FILTER_DEFAULTS } from '@/constants/balances/balances-report';
 
 export function useBalanceFilters() {
