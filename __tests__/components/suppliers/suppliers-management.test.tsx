@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { useSuppliers } from '@/hooks/suppliers/use-suppliers';
 import { updateSupplier, deleteSupplier } from '@/lib/suppliers/suppliers';
+import { getSuppliersAccountsSummary } from '@/lib/suppliers/account-summary';
 import { useAuth } from '@/components/provider/auth-provider';
 
 const mockToast = jest.fn();
@@ -14,7 +15,32 @@ jest.mock('@/lib/suppliers/suppliers', () => ({
 	deleteSupplier: jest.fn(),
 	createSupplier: jest.fn(),
 }));
+jest.mock('@/lib/suppliers/account-summary', () => ({ getSuppliersAccountsSummary: jest.fn() }));
 jest.mock('@/lib/error-translator', () => ({ translateError: jest.fn(() => '') }));
+
+jest.mock('@/components/business/suppliers/supplier-details-dialog', () => ({
+	SupplierDetailsDialog: ({ open, onOpenChange, onClosed }: any) =>
+		open ? (
+			<div data-testid="supplier-details-dialog">
+				<button
+					onClick={() => {
+						onOpenChange(false);
+						onClosed?.(false);
+					}}
+				>
+					Close dialog (unchanged)
+				</button>
+				<button
+					onClick={() => {
+						onOpenChange(false);
+						onClosed?.(true);
+					}}
+				>
+					Close dialog (changed)
+				</button>
+			</div>
+		) : null,
+}));
 
 const mk = (over: Record<string, any>) => ({
 	created_at: '',
@@ -58,6 +84,7 @@ describe('SuppliersManagement', () => {
 		(useAuth as jest.Mock).mockReturnValue({ user: { role: 'Admin' }, loading: false });
 		(updateSupplier as jest.Mock).mockResolvedValue({ data: {}, error: null });
 		(deleteSupplier as jest.Mock).mockResolvedValue({ error: null });
+		(getSuppliersAccountsSummary as jest.Mock).mockResolvedValue({ data: [], error: null });
 		mockHook();
 	});
 
@@ -226,6 +253,38 @@ describe('SuppliersManagement', () => {
 			);
 			expect(screen.getByRole('alertdialog')).toBeInTheDocument();
 			expect(refresh).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('supplier balances', () => {
+		it('fetches the accounts summary on mount', async () => {
+			render(<SuppliersManagement />);
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
+		});
+
+		it('refetches the accounts summary after the details dialog closes with changes', async () => {
+			render(<SuppliersManagement />);
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
+
+			fireEvent.click(desktop().getByText('Vidrios del Sur'));
+			expect(screen.getByTestId('supplier-details-dialog')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Close dialog (changed)'));
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(2));
+		});
+
+		it('does not refetch the accounts summary after the details dialog closes unchanged', async () => {
+			render(<SuppliersManagement />);
+			await waitFor(() => expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1));
+
+			fireEvent.click(desktop().getByText('Vidrios del Sur'));
+			expect(screen.getByTestId('supplier-details-dialog')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Close dialog (unchanged)'));
+			await waitFor(() =>
+				expect(screen.queryByTestId('supplier-details-dialog')).not.toBeInTheDocument()
+			);
+			expect(getSuppliersAccountsSummary).toHaveBeenCalledTimes(1);
 		});
 	});
 });

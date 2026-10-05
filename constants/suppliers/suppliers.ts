@@ -20,3 +20,19 @@ export const SUPPLIER_LABELS = {
 	active: 'Activo',
 	inactive: 'Inactivo',
 };
+
+export const purchaseStatusLabel: Record<PurchaseStatus, string> = {
+	pendiente: 'Pendiente',
+	parcial: 'Parcial',
+	pagada: 'Pagada',
+	'a-favor': 'Saldo a favor',
+};
+
+export const purchaseStatusBadgeClassName: Record<PurchaseStatus, string> = {
+	pendiente: 'border-transparent bg-muted text-muted-foreground',
+	parcial: 'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+	pagada: 'border-transparent bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
+	'a-favor': 'border-transparent bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
+};
+
+export type PurchaseStatus = 'pendiente' | 'parcial' | 'pagada' | 'a-favor';

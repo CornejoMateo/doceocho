@@ -1,5 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SuppliersTable } from '@/components/business/suppliers/suppliers-table';
+import { formatCurrency } from '@/utils/formats-money';
+import type { SupplierAccountSummary } from '@/lib/suppliers/account-summary';
+
+// getByText compares against the normalized (nbsp-collapsed) DOM text, so the expectation must match.
+const money = (amount: number) => formatCurrency(amount).replace(/\u00a0/g, ' ');
 
 const base = {
 	created_at: '2024-01-01',
@@ -35,9 +40,46 @@ const inactive = {
 	payment_terms_days: 0,
 };
 
-function setup() {
-	const handlers = { onEdit: jest.fn(), onToggleActive: jest.fn(), onDelete: jest.fn() };
-	render(<SuppliersTable suppliers={[active, inactive]} busy={false} {...handlers} />);
+const withAddress = {
+	...base,
+	id: 3,
+	name: 'Maderas del Sur',
+	address: 'Av. Siempre Viva 742',
+	locality: 'Springfield',
+};
+
+const summary = (overrides: Partial<SupplierAccountSummary>): SupplierAccountSummary => ({
+	supplier_id: 1,
+	supplier_name: 'Vidrios SA',
+	totalPurchasesArs: 0,
+	totalPaymentsArs: 0,
+	balanceArs: 0,
+	...overrides,
+});
+
+// Default: no balances data, not loading, no error (column renders "—" for every supplier).
+const defaultBalanceProps = {
+	balances: new Map<number, SupplierAccountSummary>(),
+	balancesLoading: false,
+	balancesError: false,
+};
+
+function setup(balanceProps: Partial<typeof defaultBalanceProps> = {}) {
+	const handlers = {
+		onEdit: jest.fn(),
+		onToggleActive: jest.fn(),
+		onDelete: jest.fn(),
+		onSupplierClick: jest.fn(),
+	};
+	render(
+		<SuppliersTable
+			suppliers={[active, inactive]}
+			busy={false}
+			{...handlers}
+			{...defaultBalanceProps}
+			{...balanceProps}
+		/>
+	);
 	return handlers;
 }
 
@@ -93,8 +135,140 @@ describe('SuppliersTable', () => {
 				onEdit={jest.fn()}
 				onToggleActive={jest.fn()}
 				onDelete={jest.fn()}
+				onSupplierClick={jest.fn()}
+				{...defaultBalanceProps}
 			/>
 		);
 		screen.getAllByLabelText('Editar Vidrios SA').forEach((b) => expect(b).toBeDisabled());
+	});
+
+	it('calls onSupplierClick when a row is clicked, without triggering row actions', () => {
+		const h = setup();
+		fireEvent.click(screen.getAllByText('Vidrios SA')[0]);
+		expect(h.onSupplierClick).toHaveBeenCalledWith(active);
+		expect(h.onEdit).not.toHaveBeenCalled();
+	});
+
+	it('does not call onSupplierClick when a row action button is clicked', () => {
+		const h = setup();
+		fireEvent.click(screen.getAllByLabelText('Editar Vidrios SA')[0]);
+		expect(h.onEdit).toHaveBeenCalledWith(active);
+		expect(h.onSupplierClick).not.toHaveBeenCalled();
+	});
+
+	it('does not call onSupplierClick when the WhatsApp link is clicked', () => {
+		const h = setup();
+		const link = document.querySelector('a[href="https://wa.me/5491112345678"]')!;
+		fireEvent.click(link);
+		expect(h.onSupplierClick).not.toHaveBeenCalled();
+	});
+
+	it('does not call onSupplierClick when the email link is clicked', () => {
+		const h = setup();
+		const link = document.querySelector('a[href="mailto:ok@vidrios.com"]')!;
+		fireEvent.click(link);
+		expect(h.onSupplierClick).not.toHaveBeenCalled();
+	});
+
+	it('does not call onSupplierClick when the address link is clicked', () => {
+		const handlers = {
+			onEdit: jest.fn(),
+			onToggleActive: jest.fn(),
+			onDelete: jest.fn(),
+			onSupplierClick: jest.fn(),
+		};
+		render(
+			<SuppliersTable
+				suppliers={[withAddress]}
+				busy={false}
+				{...handlers}
+				{...defaultBalanceProps}
+			/>
+		);
+
+		const link = screen.getAllByText('Av. Siempre Viva 742, Springfield')[0].closest('a')!;
+		fireEvent.click(link);
+
+		expect(handlers.onSupplierClick).not.toHaveBeenCalled();
+	});
+
+	it('activates onSupplierClick on Enter/Space when the row itself is focused', () => {
+		const h = setup();
+		const row = screen.getAllByText('Vidrios SA')[0].closest('[role="button"]')!;
+		fireEvent.keyDown(row, { key: 'Enter' });
+		expect(h.onSupplierClick).toHaveBeenCalledWith(active);
+
+		h.onSupplierClick.mockClear();
+		fireEvent.keyDown(row, { key: ' ' });
+		expect(h.onSupplierClick).toHaveBeenCalledWith(active);
+	});
+
+	it('ignores a keydown bubbling up from an inner action button', () => {
+		const h = setup();
+		const editButton = screen.getAllByLabelText('Editar Vidrios SA')[0];
+		fireEvent.keyDown(editButton, { key: 'Enter' });
+		expect(h.onSupplierClick).not.toHaveBeenCalled();
+	});
+
+	describe('cuenta corriente column', () => {
+		it('renders the column header', () => {
+			setup();
+			expect(screen.getAllByText('Cuenta corriente').length).toBeGreaterThan(0);
+		});
+
+		it('shows "Debemos" with the formatted balance when we owe the supplier', () => {
+			setup({
+				balances: new Map([[1, summary({ supplier_id: 1, balanceArs: 1500 })]]),
+			});
+			expect(screen.getAllByText(`Debemos ${money(1500)}`).length).toBeGreaterThan(0);
+		});
+
+		it('shows "Al día" when the balance is exactly zero', () => {
+			setup({
+				balances: new Map([[1, summary({ supplier_id: 1, balanceArs: 0 })]]),
+			});
+			expect(screen.getAllByText('Al día').length).toBeGreaterThan(0);
+		});
+
+		it('treats a floating point epsilon balance as zero, showing "Al día" instead of "Debemos"', () => {
+			const epsilonBalance = 0.3 - (0.1 + 0.1 + 0.1);
+			setup({
+				balances: new Map([[1, summary({ supplier_id: 1, balanceArs: epsilonBalance })]]),
+			});
+			expect(screen.queryAllByText(/^Debemos/).length).toBe(0);
+			expect(screen.getAllByText('Al día').length).toBeGreaterThan(0);
+		});
+
+		it('shows "A favor" with the absolute formatted balance when we overpaid', () => {
+			setup({
+				balances: new Map([[1, summary({ supplier_id: 1, balanceArs: -800 })]]),
+			});
+			expect(screen.getAllByText(`A favor ${money(800)}`).length).toBeGreaterThan(0);
+		});
+
+		it('shows a loading placeholder while balances are loading', () => {
+			setup({ balancesLoading: true });
+			expect(screen.queryAllByText(/^Debemos/).length).toBe(0);
+			expect(screen.queryAllByText('Al día').length).toBe(0);
+			expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
+		});
+
+		it('shows "—" when the balances fetch failed', () => {
+			setup({ balancesError: true, balances: new Map([[1, summary({ supplier_id: 1 })]]) });
+			expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+		});
+
+		it('shows "—" when a supplier has no balance entry', () => {
+			setup();
+			expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+		});
+
+		it('shows "—" instead of "Al día" when balanceArs is not a finite number', () => {
+			setup({
+				balances: new Map([[1, summary({ supplier_id: 1, balanceArs: NaN })]]),
+			});
+			expect(screen.queryAllByText('Al día').length).toBe(0);
+			expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+		});
 	});
 });

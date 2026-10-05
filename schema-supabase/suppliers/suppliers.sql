@@ -92,3 +92,46 @@ WITH CHECK (
             AND u.role = 'Admin'
     )
 );
+
+--- RPC method to get suppliers accounts summary (total purchases, total payments, balance) in ARS
+CREATE OR REPLACE FUNCTION public.get_suppliers_accounts_summary()
+RETURNS TABLE (
+    supplier_id bigint,
+    supplier_name text,
+    total_purchases_ars numeric,
+    total_payments_ars numeric,
+    balance_ars numeric
+)
+LANGUAGE sql
+STABLE
+AS $$
+    WITH purchases AS (
+        SELECT
+            supplier_id,
+            SUM(amount_ars) AS total_purchases_ars
+        FROM public.purchases_suppliers
+        GROUP BY supplier_id
+    ),
+    payments AS (
+        SELECT
+            p.supplier_id,
+            SUM(ps.amount_ars) AS total_payments_ars
+        FROM public.payments_suppliers ps
+        INNER JOIN public.purchases_suppliers p
+            ON p.id = ps.purchase_supplier_id
+        GROUP BY p.supplier_id
+    )
+    SELECT
+        s.id AS supplier_id,
+        s.name AS supplier_name,
+        COALESCE(p.total_purchases_ars, 0) AS total_purchases_ars,
+        COALESCE(pay.total_payments_ars, 0) AS total_payments_ars,
+        COALESCE(p.total_purchases_ars, 0)
+            - COALESCE(pay.total_payments_ars, 0) AS balance_ars
+    FROM public.suppliers s
+    LEFT JOIN purchases p
+        ON p.supplier_id = s.id
+    LEFT JOIN payments pay
+        ON pay.supplier_id = s.id
+    ORDER BY s.name;
+$$;
