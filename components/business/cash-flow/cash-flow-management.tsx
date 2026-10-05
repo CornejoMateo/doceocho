@@ -34,12 +34,14 @@ import { CashBoxTransactions } from '@/components/business/cash-flow/cash-box-tr
 import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
 import { CashBoxHistory } from '@/components/business/cash-flow/cash-box-history';
 import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts-tab';
+import { PaymentMethodsConfig } from '@/components/business/cash-flow/payment-methods-config';
 import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
 import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
 import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box-dialog';
 import { formatCurrency } from '@/utils/formats-money';
+import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { CheckingAccountsTab } from '@/components/business/cash-flow/checking-accounts-tab';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 
@@ -249,10 +251,13 @@ export function CashFlowManagement() {
 
 				<TabsContent value="summary">
 					<Tabs value={summaryTab} onValueChange={setSummaryTab} className="space-y-6">
-						<TabsList>
-							<TabsTrigger value="current">Caja Actual</TabsTrigger>
-							<TabsTrigger value="history">Historial</TabsTrigger>
-						</TabsList>
+						<div className="flex items-center justify-between">
+							<TabsList>
+								<TabsTrigger value="current">Caja Actual</TabsTrigger>
+								<TabsTrigger value="history">Historial</TabsTrigger>
+							</TabsList>
+							<PaymentMethodsConfig />
+						</div>
 
 						<TabsContent value="current" className="space-y-6">
 							{loadingCashBoxes ? (
@@ -339,7 +344,11 @@ export function CashFlowManagement() {
 					/>
 				</TabsContent>
 
-				<TabsContent value="checking-accounts">
+				<TabsContent value="suppliers">
+					<SuppliersManagement />
+        </TabsContent>
+				
+        <TabsContent value="checking-accounts">
 					<CheckingAccountsTab />
 				</TabsContent>
 
@@ -347,7 +356,7 @@ export function CashFlowManagement() {
 					(tab) =>
 						tab.value !== 'summary' &&
 						tab.value !== 'bank-accounts' &&
-						tab.value !== 'checking-accounts'
+						tab.value !== 'checking-accounts' && tab.value !== 'suppliers'
 				).map((tab) => (
 					<TabsContent key={tab.value} value={tab.value}>
 						<Card className="p-12 bg-card border-border text-center">
