@@ -182,18 +182,3 @@ export async function getTotalsByBalanceIds(balanceIds: number[]): Promise<{
 
 	return { data: totals, error: null };
 }
-
-export async function getLastTransactionUSD(
-	id: string
-): Promise<{ data: number | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select('quote_usd')
-		.eq('balance_id', id)
-		.order('created_at', { ascending: false })
-		.limit(1)
-		.single();
-
-	return { data: data?.quote_usd || null, error };
-}
