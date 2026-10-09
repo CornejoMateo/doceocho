@@ -43,7 +43,9 @@ import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box
 import { formatCurrency } from '@/utils/formats-money';
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { CheckingAccountsTab } from '@/components/business/cash-flow/checking-accounts-tab';
+import { CategoriesConfig } from '@/components/business/cash-flow/categories-config';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
+import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
 
 function CashFlowTransactionsRealtime({
 	cashBoxId,
@@ -346,17 +348,36 @@ export function CashFlowManagement() {
 
 				<TabsContent value="suppliers">
 					<SuppliersManagement />
-        </TabsContent>
-				
-        <TabsContent value="checking-accounts">
+				</TabsContent>
+
+				<TabsContent value="checking-accounts">
 					<CheckingAccountsTab />
 				</TabsContent>
+
+				{Object.entries(CATEGORY_TABS).map(([tabValue, config]) => (
+					<TabsContent key={tabValue} value={tabValue} className="space-y-6">
+						<div className="flex items-center justify-end">
+							<CategoriesConfig
+								kind={config.kind}
+								title={config.title}
+								triggerLabel={config.triggerLabel}
+								newLabel={config.newLabel}
+								emptyLabel={config.emptyLabel}
+							/>
+						</div>
+						<Card className="p-12 bg-card border-border text-center">
+							<p className="text-muted-foreground">Próximamente</p>
+						</Card>
+					</TabsContent>
+				))}
 
 				{CASH_FLOW_TABS.filter(
 					(tab) =>
 						tab.value !== 'summary' &&
 						tab.value !== 'bank-accounts' &&
-						tab.value !== 'checking-accounts' && tab.value !== 'suppliers'
+						tab.value !== 'checking-accounts' &&
+						tab.value !== 'suppliers' &&
+						!(tab.value in CATEGORY_TABS)
 				).map((tab) => (
 					<TabsContent key={tab.value} value={tab.value}>
 						<Card className="p-12 bg-card border-border text-center">
