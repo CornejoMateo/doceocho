@@ -1,5 +1,8 @@
 export const IVA_RATES = [0, 10.5, 21, 27] as const;
 
+export const FUTURE_YEARS_AHEAD = 1;
+export const PAST_YEARS_BACK = 4;
+
 function round2(value: number): number {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
 }

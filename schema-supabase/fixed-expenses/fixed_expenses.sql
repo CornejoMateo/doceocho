@@ -100,8 +100,13 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+-- fixed_expense_payments is created in a later file; plpgsql resolves it at run time; logic mirrors the edit/delete RPCs
+declare
+  v_period date := date_trunc('month', now() at time zone 'America/Argentina/Buenos_Aires')::date;
 begin
-  update public.fixed_expenses set is_paid = false where is_paid = true;
+  update public.fixed_expenses fe
+  set is_paid = exists (select 1 from public.fixed_expense_payments p where p.fixed_expense_id = fe.id and p.period = v_period)
+  where fe.is_paid is distinct from exists (select 1 from public.fixed_expense_payments p where p.fixed_expense_id = fe.id and p.period = v_period);
 end;
 $$;
 

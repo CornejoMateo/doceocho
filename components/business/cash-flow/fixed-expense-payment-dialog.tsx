@@ -19,8 +19,9 @@ import { FixedExpenseWithCategory } from '@/lib/fixed-expenses/fixed-expenses';
 import { FixedExpensePaymentWithDetails } from '@/lib/fixed-expenses/fixed-expense-payments';
 import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
 import { BankAccount } from '@/lib/cash-flow/cash-flow';
-import { IVA_RATES } from '@/constants/cashflow/fixed-expenses';
+import { FUTURE_YEARS_AHEAD, IVA_RATES } from '@/constants/cashflow/fixed-expenses';
 import { formatCurrency, formatNumber } from '@/utils/formats-money';
+import { getLocalDate } from '@/utils/format-date';
 
 type FixedExpensePaymentDialogProps = {
 	open: boolean;
@@ -69,6 +70,7 @@ export function FixedExpensePaymentDialog({
 	payingSaving,
 	onSubmit,
 }: FixedExpensePaymentDialogProps) {
+	const maxPaymentMonth = `${Number(getLocalDate().slice(0, 4)) + FUTURE_YEARS_AHEAD}-12`;
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
@@ -93,6 +95,7 @@ export function FixedExpensePaymentDialog({
 							id="payment-period"
 							type="month"
 							value={paymentMonth}
+							max={maxPaymentMonth}
 							onChange={(e) => setPaymentMonth(e.target.value)}
 							required
 						/>

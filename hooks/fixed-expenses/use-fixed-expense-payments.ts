@@ -13,11 +13,16 @@ import {
 } from '@/helpers/fixed-expenses/fixed-expenses-summary';
 import { getLocalDate } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
+import { FUTURE_YEARS_AHEAD, PAST_YEARS_BACK } from '@/constants/cashflow/fixed-expenses';
 
 export function useFixedExpensePayments(categories: CashFlowCategory[]) {
 	const currentYear = Number(getLocalDate().slice(0, 4));
 	const yearOptions = useMemo(
-		() => Array.from({ length: 5 }, (_, i) => currentYear - i),
+		() =>
+			Array.from(
+				{ length: FUTURE_YEARS_AHEAD + PAST_YEARS_BACK + 1 },
+				(_, i) => currentYear + FUTURE_YEARS_AHEAD - i
+			),
 		[currentYear]
 	);
 	const [year, setYear] = useState(currentYear);
