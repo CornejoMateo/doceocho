@@ -9,7 +9,8 @@ create table public.cash_flow_categories (
   constraint cash_flow_categories_pkey primary key (id),
   constraint cash_flow_categories_name_length_check check (char_length(trim(name)) > 0 and char_length(name) <= 60),
   constraint cash_flow_categories_name_trimmed_check check (name = trim(name)),
-  constraint cash_flow_categories_kind_check check (kind in ('income', 'expense', 'fixed_expense', 'payment', 'collection'))
+  constraint cash_flow_categories_kind_check check (kind in ('income', 'expense', 'fixed_expense', 'payment', 'collection')),
+  constraint cash_flow_categories_id_kind_unique unique (id, kind)
 ) TABLESPACE pg_default;
 
 ------ INDEXES ------

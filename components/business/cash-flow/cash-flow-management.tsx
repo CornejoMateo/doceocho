@@ -44,6 +44,7 @@ import { formatCurrency } from '@/utils/formats-money';
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { CheckingAccountsTab } from '@/components/business/cash-flow/checking-accounts-tab';
 import { CategoriesConfig } from '@/components/business/cash-flow/categories-config';
+import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses-tab';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
 
@@ -355,7 +356,7 @@ export function CashFlowManagement() {
 				</TabsContent>
 
 				{Object.entries(CATEGORY_TABS).map(([tabValue, config]) => (
-					<TabsContent key={tabValue} value={tabValue} className="space-y-6">
+					<TabsContent key={tabValue} value={tabValue} className="space-y-6 min-w-0">
 						<div className="flex items-center justify-end">
 							<CategoriesConfig
 								kind={config.kind}
@@ -365,9 +366,13 @@ export function CashFlowManagement() {
 								emptyLabel={config.emptyLabel}
 							/>
 						</div>
-						<Card className="p-12 bg-card border-border text-center">
-							<p className="text-muted-foreground">Próximamente</p>
-						</Card>
+						{tabValue === 'fixed-expenses' ? (
+							<FixedExpensesTab />
+						) : (
+							<Card className="p-12 bg-card border-border text-center">
+								<p className="text-muted-foreground">Próximamente</p>
+							</Card>
+						)}
 					</TabsContent>
 				))}
 

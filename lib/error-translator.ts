@@ -36,6 +36,9 @@ export const translateError = (error: any): string => {
 	}
 
 	// Database errors
+	if (errorMessage.includes('fixed_expense_payments_fixed_expense_id_period_unique')) {
+		return 'Ya existe un pago registrado para este costo fijo en ese mes.';
+	}
 	if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
 		return 'Ya existe un registro con estos datos.';
 	}
