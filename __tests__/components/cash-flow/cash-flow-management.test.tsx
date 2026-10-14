@@ -13,6 +13,22 @@ jest.mock('@/components/business/cash-flow/checking-accounts-tab', () => ({
 	CheckingAccountsTab: () => <div data-testid="checking-accounts-tab" />,
 }));
 
+jest.mock('@/components/business/cash-flow/incomes-tab', () => ({
+	IncomesTab: () => <div data-testid="incomes-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/expenses-tab', () => ({
+	ExpensesTab: () => <div data-testid="expenses-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/collections-tab', () => ({
+	CollectionsTab: () => <div data-testid="collections-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/payments-tab', () => ({
+	PaymentsTab: () => <div data-testid="payments-tab" />,
+}));
+
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: jest.fn() }),
 }));
@@ -51,5 +67,25 @@ describe('CashFlowManagement Component', () => {
 
 		expect(await screen.findByTestId('checking-accounts-tab')).toBeInTheDocument();
 		expect(screen.queryByText('Próximamente')).not.toBeInTheDocument();
+	});
+
+	it.each([
+		['Ingresos', 'incomes-tab'],
+		['Gastos', 'expenses-tab'],
+		['Cobros', 'collections-tab'],
+		['Pagos', 'payments-tab'],
+	])('mounts the %s tab when its tab is selected', async (tabLabel, testId) => {
+		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation(() => ({
+			data: [],
+			loading: false,
+			refresh: jest.fn(),
+		}));
+
+		render(<CashFlowManagement />);
+		expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+
+		await userEvent.click(screen.getByRole('tab', { name: tabLabel }));
+
+		expect(await screen.findByTestId(testId)).toBeInTheDocument();
 	});
 });
