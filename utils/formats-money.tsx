@@ -38,6 +38,12 @@ export const normalizeMoney = (value: number): number => {
 	return Object.is(rounded, -0) ? 0 : rounded;
 };
 
+// Rounds to at most 2 decimals (DB net_amount check requires this), and avoids -0
+export const roundToTwoDecimals = (value: number): number => {
+	const rounded = Math.round((value + Number.EPSILON) * 100) / 100;
+	return Object.is(rounded, -0) ? 0 : rounded;
+};
+
 // This allows the input value to be formatted as the user types,
 // but we need to set the input type to “text”
 export const formatNumber = (value: string) => {
