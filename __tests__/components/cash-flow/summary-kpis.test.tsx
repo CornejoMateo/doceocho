@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { SummaryKpis } from '@/components/business/cash-flow/summary-kpis';
+import { SummaryKpis } from '@/components/business/cash-flow/summary/summary-kpis';
 import { SummaryCards } from '@/helpers/cash-flow-stats/cash-flow-summary';
 
 function cards(over: Partial<SummaryCards> = {}): SummaryCards {
@@ -26,7 +26,7 @@ describe('SummaryKpis', () => {
 		expect(screen.getByText('Margen')).toBeInTheDocument();
 		expect(screen.getByText(/^\$\s*600$/)).toBeInTheDocument();
 		expect(screen.getByText('Rentabilidad')).toBeInTheDocument();
-		expect(screen.getByText('60.0%')).toBeInTheDocument();
+		expect(screen.getByText('60%')).toBeInTheDocument();
 		expect(screen.getByText('Cobros')).toBeInTheDocument();
 		expect(screen.getByText('Pagos')).toBeInTheDocument();
 		expect(screen.getByText('IVA del mes (crédito − débito)')).toBeInTheDocument();
@@ -40,6 +40,6 @@ describe('SummaryKpis', () => {
 
 	it('shows 0.0% profitability without dividing by zero when income is 0', () => {
 		render(<SummaryKpis cards={cards({ incomeNet: 0, profitability: 0 })} />);
-		expect(screen.getByText('0.0%')).toBeInTheDocument();
+		expect(screen.getByText('0.00%')).toBeInTheDocument();
 	});
 });

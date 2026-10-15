@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { IncomesTab } from '@/components/business/cash-flow/incomes-tab';
+import { IncomesTab } from '@/components/business/cash-flow/incomes-expenses/incomes-tab';
 import { useIncomes } from '@/hooks/incomes/use-incomes';
 
 jest.mock('@/hooks/incomes/use-incomes', () => ({
 	useIncomes: jest.fn(),
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-tab', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab', () => ({
 	IncomeExpenseTab: ({
 		state,
 		entityLabel,

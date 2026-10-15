@@ -15,7 +15,7 @@ import {
 import { getLocalDate } from '@/utils/format-date';
 import { FUTURE_YEARS_AHEAD, PAST_YEARS_BACK } from '@/constants/cashflow/fixed-expenses';
 
-export type PartyOption = { id: number; name: string };
+export type PartyOption = { id: number; name: string; isSettled?: boolean };
 
 // Normalized shape shared by incomes and expenses; party_* is client/supplier depending on kind.
 export type IncomeExpenseEntry = {
@@ -36,6 +36,11 @@ export type IncomeExpenseEntry = {
 	iva_amount: number;
 	total_amount: number;
 };
+
+// Boolean flags for fields that fail validation on submit; drives inline field errors in the dialog.
+export type IncomeExpenseFormErrors = Partial<
+	Record<'date' | 'voucherTypeId' | 'partyId' | 'categoryId' | 'netAmount', boolean>
+>;
 
 export type EntrySavePayload = {
 	date: string;
@@ -214,6 +219,10 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	const [netAmount, setNetAmount] = useState('');
 	const [ivaPercent, setIvaPercent] = useState<number>(IVA_RATES[0]);
 	const [saving, setSaving] = useState(false);
+	const [errors, setErrors] = useState<IncomeExpenseFormErrors>({});
+	const clearError = (field: keyof IncomeExpenseFormErrors) => {
+		setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
+	};
 
 	// Net is capped to 2 decimals (DB check requires it); iva/total here are preview only, DB recomputes authoritatively.
 	const parsedNetAmount = roundToTwoDecimals(parseArsToNumber(netAmount));
@@ -229,6 +238,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setDescription('');
 		setNetAmount('');
 		setIvaPercent(IVA_RATES[0]);
+		setErrors({});
 	};
 
 	const handleAdd = () => {
@@ -248,6 +258,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setDescription(entry.description ?? '');
 		setNetAmount(formatCurrencyWithoutSymbol(entry.net_amount));
 		setIvaPercent(entry.iva_percent);
+		setErrors({});
 		setIsFormOpen(true);
 	};
 
@@ -266,16 +277,18 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (
-			!date ||
-			!voucherTypeId ||
-			!partyId ||
-			!categoryId ||
-			!Number.isFinite(parsedNetAmount) ||
-			parsedNetAmount < 0
-		) {
+		const nextErrors: IncomeExpenseFormErrors = {};
+		if (!date) nextErrors.date = true;
+		if (!voucherTypeId) nextErrors.voucherTypeId = true;
+		if (!partyId) nextErrors.partyId = true;
+		if (!categoryId) nextErrors.categoryId = true;
+		if (!Number.isFinite(parsedNetAmount) || parsedNetAmount < 0) nextErrors.netAmount = true;
+		if (Object.keys(nextErrors).length > 0) {
+			setErrors(nextErrors);
+			toast({ title: 'Completá los campos obligatorios', variant: 'destructive' });
 			return;
 		}
+		setErrors({});
 		setSaving(true);
 		try {
 			const payload: EntrySavePayload = {
@@ -367,21 +380,37 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		isFormOpen,
 		editingEntry,
 		date,
-		setDate,
+		setDate: (value: string) => {
+			setDate(value);
+			clearError('date');
+		},
 		voucherNumber,
 		setVoucherNumber,
 		voucherTypeId,
-		setVoucherTypeId,
+		setVoucherTypeId: (value: string) => {
+			setVoucherTypeId(value);
+			clearError('voucherTypeId');
+		},
 		workId,
 		setWorkId,
 		partyId,
-		setPartyId,
+		setPartyId: (value: string) => {
+			setPartyId(value);
+			clearError('partyId');
+		},
 		categoryId,
-		setCategoryId,
+		setCategoryId: (value: string) => {
+			setCategoryId(value);
+			clearError('categoryId');
+		},
 		description,
 		setDescription,
 		netAmount,
-		setNetAmount,
+		setNetAmount: (value: string) => {
+			setNetAmount(value);
+			clearError('netAmount');
+		},
+		errors,
 		ivaPercent,
 		setIvaPercent,
 		ivaAmount,

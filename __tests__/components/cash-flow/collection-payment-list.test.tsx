@@ -2,7 +2,7 @@
 process.env.TZ = 'America/Argentina/Buenos_Aires';
 
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { CollectionPaymentList } from '@/components/business/cash-flow/collection-payment-list';
+import { CollectionPaymentList } from '@/components/business/cash-flow/collections-payments/collection-payment-list';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
 import type { CollectionPaymentEntry } from '@/hooks/collection-payment/use-collection-payment-tab';

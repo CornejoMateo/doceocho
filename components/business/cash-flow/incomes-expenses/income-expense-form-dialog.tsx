@@ -25,7 +25,7 @@ import {
 } from '@/hooks/income-expense/use-income-expense-tab';
 import { IVA_RATES } from '@/constants/cashflow/iva';
 import { formatCurrency, formatNumber } from '@/utils/formats-money';
-import { EntityCombobox } from '@/components/business/cash-flow/entity-combobox';
+import { EntityCombobox } from '@/components/business/cash-flow/shared/entity-combobox';
 import { withInactiveSelected } from '@/utils/select-options';
 
 type IncomeExpenseFormDialogProps = {

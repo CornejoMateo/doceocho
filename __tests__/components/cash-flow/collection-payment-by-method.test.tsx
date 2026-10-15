@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { CollectionPaymentByMethod } from '@/components/business/cash-flow/collection-payment-by-method';
+import { CollectionPaymentByMethod } from '@/components/business/cash-flow/collections-payments/collection-payment-by-method';
 import { formatCurrency } from '@/utils/formats-money';
 import type { CollectionPaymentEntry } from '@/hooks/collection-payment/use-collection-payment-tab';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';

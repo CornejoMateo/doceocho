@@ -13,15 +13,15 @@ import { Button } from '@/components/ui/button';
 import { useFixedExpenses } from '@/hooks/fixed-expenses/use-fixed-expenses';
 import { useFixedExpensePayments } from '@/hooks/fixed-expenses/use-fixed-expense-payments';
 import { useFixedExpensePaymentDialog } from '@/hooks/fixed-expenses/use-fixed-expense-payment-dialog';
-import { FixedExpensesList } from '@/components/business/cash-flow/fixed-expenses-list';
-import { FixedExpensesSummary } from '@/components/business/cash-flow/fixed-expenses-summary';
+import { FixedExpensesList } from '@/components/business/cash-flow/fixed-expenses/fixed-expenses-list';
+import { FixedExpensesSummary } from '@/components/business/cash-flow/fixed-expenses/fixed-expenses-summary';
 import {
 	FixedExpensePaymentsList,
 	monthLabel,
-} from '@/components/business/cash-flow/fixed-expense-payments-list';
-import { FixedExpenseFormDialog } from '@/components/business/cash-flow/fixed-expense-form-dialog';
-import { FixedExpensePaymentDialog } from '@/components/business/cash-flow/fixed-expense-payment-dialog';
-import { FixedExpenseConfirmDialog } from '@/components/business/cash-flow/fixed-expense-confirm-dialog';
+} from '@/components/business/cash-flow/fixed-expenses/fixed-expense-payments-list';
+import { FixedExpenseFormDialog } from '@/components/business/cash-flow/fixed-expenses/fixed-expense-form-dialog';
+import { FixedExpensePaymentDialog } from '@/components/business/cash-flow/fixed-expenses/fixed-expense-payment-dialog';
+import { FixedExpenseConfirmDialog } from '@/components/business/cash-flow/fixed-expenses/fixed-expense-confirm-dialog';
 import { formatCurrency } from '@/utils/formats-money';
 
 const INNER_TAB_OPTIONS = [

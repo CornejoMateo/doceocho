@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { PaymentMethodsConfig } from '@/components/business/cash-flow/payment-methods-config';
+import { PaymentMethodsConfig } from '@/components/business/cash-flow/cash-box/payment-methods-config';
 import {
 	PaymentMethod,
 	listPaymentMethods,

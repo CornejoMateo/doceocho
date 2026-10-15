@@ -4,11 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Filter, Plus } from 'lucide-react';
 import { CashFlowCategory } from '@/lib/categories/categories';
 import { Work } from '@/lib/works/works';
-import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
 import { PartyOption } from '@/hooks/income-expense/use-income-expense-tab';
-import { CollectionPaymentFilterDialog } from '@/components/business/cash-flow/collection-payment-filter-dialog';
+import { IncomeExpenseFilterDialog } from '@/components/business/cash-flow/incomes-expenses/income-expense-filter-dialog';
 
-type CollectionPaymentFiltersProps = {
+type IncomeExpenseFiltersProps = {
 	addLabel: string;
 	onAdd: () => void;
 	partyLabel: string;
@@ -25,9 +24,6 @@ type CollectionPaymentFiltersProps = {
 	categoryId: string;
 	onCategoryIdChange: (value: string) => void;
 	categories: CashFlowCategory[];
-	paymentMethodId: string;
-	onPaymentMethodIdChange: (value: string) => void;
-	paymentMethods: PaymentMethod[];
 	search: string;
 	onSearchChange: (value: string) => void;
 	onClear: () => void;
@@ -36,7 +32,7 @@ type CollectionPaymentFiltersProps = {
 	onFilterDialogOpenChange: (open: boolean) => void;
 };
 
-export function CollectionPaymentFilters({
+export function IncomeExpenseFilters({
 	addLabel,
 	onAdd,
 	partyLabel,
@@ -53,16 +49,13 @@ export function CollectionPaymentFilters({
 	categoryId,
 	onCategoryIdChange,
 	categories,
-	paymentMethodId,
-	onPaymentMethodIdChange,
-	paymentMethods,
 	search,
 	onSearchChange,
 	onClear,
 	activeFilterCount,
 	filterDialogOpen,
 	onFilterDialogOpenChange,
-}: CollectionPaymentFiltersProps) {
+}: IncomeExpenseFiltersProps) {
 	return (
 		<div className="flex flex-wrap items-center gap-2">
 			<Input
@@ -92,7 +85,7 @@ export function CollectionPaymentFilters({
 				{addLabel}
 			</Button>
 
-			<CollectionPaymentFilterDialog
+			<IncomeExpenseFilterDialog
 				open={filterDialogOpen}
 				onOpenChange={onFilterDialogOpenChange}
 				partyLabel={partyLabel}
@@ -109,9 +102,6 @@ export function CollectionPaymentFilters({
 				categoryId={categoryId}
 				onCategoryIdChange={onCategoryIdChange}
 				categories={categories}
-				paymentMethodId={paymentMethodId}
-				onPaymentMethodIdChange={onPaymentMethodIdChange}
-				paymentMethods={paymentMethods}
 				onClear={onClear}
 			/>
 		</div>

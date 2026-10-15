@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { SummaryMonthlyChart } from '@/components/business/cash-flow/summary-monthly-chart';
+import { SummaryMonthlyChart } from '@/components/business/cash-flow/summary/summary-monthly-chart';
 import { MonthlyChartPoint } from '@/helpers/cash-flow-stats/cash-flow-summary';
 
 // jsdom has no layout engine; ResponsiveContainer reports 0x0 and renders nothing without this mock.

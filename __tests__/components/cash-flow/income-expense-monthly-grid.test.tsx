@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { IncomeExpenseMonthlyGrid } from '@/components/business/cash-flow/income-expense-monthly-grid';
+import { IncomeExpenseMonthlyGrid } from '@/components/business/cash-flow/incomes-expenses/income-expense-monthly-grid';
 import { formatCurrency } from '@/utils/formats-money';
 import type { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
 
