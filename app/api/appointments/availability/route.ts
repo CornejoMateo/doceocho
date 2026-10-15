@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/get-service-role-client';
 import {
 	AvailabilitySettings,
+	formatDateOnly,
 	getBookableDates,
 	getSlotsForDate,
 } from '@/helpers/appointments/availability';
+import { loadHolidayAvailability } from '@/lib/appointments/holiday-availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,14 +35,24 @@ export async function GET(req: NextRequest) {
 			);
 		}
 
+		const now = new Date();
+		const holidays = await loadHolidayAvailability(
+			supabase,
+			formatDateOnly(now),
+			formatDateOnly(
+				new Date(now.getFullYear(), now.getMonth(), now.getDate() + settings.max_days_ahead)
+			)
+		);
+
 		const availability: AvailabilitySettings = {
 			weekly_schedule: settings.weekly_schedule ?? [],
 			slot_duration_minutes: settings.slot_duration_minutes,
 			min_notice_hours: settings.min_notice_hours,
 			max_days_ahead: settings.max_days_ahead,
+			date_overrides: holidays.dateOverrides,
 		};
 
-		const bookableDates = getBookableDates(availability);
+		const bookableDates = getBookableDates(availability, now);
 
 		if (bookableDates.length === 0) {
 			return NextResponse.json({
@@ -65,7 +77,7 @@ export async function GET(req: NextRequest) {
 				.lte('date', lastDate),
 		]);
 
-		const blockedDates = (blocked ?? []).map((entry) => entry.date);
+		const blockedDates = [...(blocked ?? []).map((entry) => entry.date), ...holidays.blockedDates];
 
 		const requestedDate = req.nextUrl.searchParams.get('date');
 		const dates = requestedDate
@@ -75,7 +87,7 @@ export async function GET(req: NextRequest) {
 		const days = dates
 			.map((date) => ({
 				date,
-				slots: getSlotsForDate(date, availability, taken ?? [], blockedDates),
+				slots: getSlotsForDate(date, availability, taken ?? [], blockedDates, now),
 			}))
 			.filter((day) => day.slots.length > 0);
 

@@ -301,7 +301,8 @@ export function AppointmentSettingsDialog({
 						</div>
 						{blockedDates.length === 0 ? (
 							<p className="text-xs text-muted-foreground">
-								No hay días bloqueados. Usalo para feriados o cierres.
+								No hay días bloqueados. Los feriados nacionales ya se bloquean solos; usalo para
+								cierres puntuales.
 							</p>
 						) : (
 							<div className="space-y-1">
