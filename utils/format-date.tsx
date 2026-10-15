@@ -104,14 +104,6 @@ export const formatTimeVideo = (seconds: number) => {
 	return `${m}:${s}`;
 };
 
-/** Formats a date-only 'YYYY-MM-DD' string as dd/mm/yyyy without using Date (avoids timezone day shifts). */
-export function formatDateOnly(value: string | null | undefined): string {
-	if (!value) return 'N/A';
-	const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-	if (!match) return 'N/A';
-	return `${match[3]}/${match[2]}/${match[1]}`;
-}
-
 /** Returns true when the value is a real calendar date in 'YYYY-MM-DD' form. */
 export function isValidDateOnly(value: string | null | undefined): boolean {
 	if (!value) return false;
