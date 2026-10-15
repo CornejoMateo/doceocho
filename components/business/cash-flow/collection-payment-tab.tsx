@@ -27,8 +27,7 @@ type CollectionPaymentTabProps = {
 	categoriesConfig: React.ReactNode;
 };
 
-// Generic orchestrator shared by Collections and Payments; entity-specific wiring lives in the thin
-// collections-tab.tsx/payments-tab.tsx wrappers that build `state` via useCollections()/usePayments().
+// Generic orchestrator shared by Collections and Payments
 export function CollectionPaymentTab({
 	state,
 	entityLabel,
@@ -146,6 +145,14 @@ export function CollectionPaymentTab({
 				setBankAccountId={state.setBankAccountId}
 				saving={state.saving}
 				onSubmit={state.handleSubmit}
+				errors={state.errors}
+				partyOptional={state.partyOptional}
+				linkedLabel={state.linkedLabel}
+				purchaseId={state.purchaseId}
+				setPurchaseId={state.setPurchaseId}
+				purchases={state.purchases}
+				purchasesLoading={state.purchasesLoading}
+				descriptionMaxLength={state.descriptionMaxLength}
 			/>
 
 			<ConfirmDialog
@@ -156,7 +163,7 @@ export function CollectionPaymentTab({
 				title={`¿Eliminar ${entityLabel}?`}
 				description={
 					state.entryToDelete
-						? `Se eliminará el ${entityLabel} de ${state.entryToDelete.party_name} por ${formatCurrency(state.entryToDelete.amount)}. Esta acción no se puede deshacer.`
+						? `Se eliminará el ${entityLabel} de ${state.entryToDelete.party_name ?? `sin ${partyLabel.toLowerCase()} asignado`} por ${formatCurrency(state.entryToDelete.amount)}. Esta acción no se puede deshacer.`
 						: ''
 				}
 				confirmText="Eliminar"

@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Edit, Trash2 } from 'lucide-react';
 import { CollectionPaymentEntry } from '@/hooks/collection-payment/use-collection-payment-tab';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
+import { formatDateOnly } from '@/utils/format-date';
 
 type CollectionPaymentListProps = {
 	entries: CollectionPaymentEntry[];
@@ -91,12 +91,12 @@ export function CollectionPaymentList({
 								</TableHeader>
 								<TableBody>
 									{entries.map((entry) => (
-										<TableRow key={entry.id}>
+										<TableRow key={`${entry.source ?? 'g'}-${entry.id}`}>
 											<TableCell className="text-center whitespace-nowrap">
-												{formatShortDate(entry.date)}
+												{formatDateOnly(entry.date)}
 											</TableCell>
 											<TableCell className="text-center">{entry.receipt_number || '-'}</TableCell>
-											<TableCell className="text-center">{entry.party_name}</TableCell>
+											<TableCell className="text-center">{entry.party_name || '-'}</TableCell>
 											<TableCell className="text-center">{entry.work_name || '-'}</TableCell>
 											<TableCell className="text-center">{entry.category_name || '-'}</TableCell>
 											<TableCell className="text-center max-w-[200px] truncate">
@@ -104,7 +104,7 @@ export function CollectionPaymentList({
 											</TableCell>
 											<TableCell className="text-center">
 												<div className="flex flex-col">
-													<span>{entry.payment_method_name}</span>
+													<span>{entry.payment_method_name || '-'}</span>
 													{entry.bank_account_name && (
 														<span className="text-xs text-muted-foreground">
 															{entry.bank_account_name}
@@ -129,15 +129,18 @@ export function CollectionPaymentList({
 
 					<div className="md:hidden space-y-3" data-testid="collection-payment-mobile">
 						{entries.map((entry) => (
-							<Card key={entry.id} className="bg-card border-border p-4 space-y-3">
+							<Card
+								key={`${entry.source ?? 'g'}-${entry.id}`}
+								className="bg-card border-border p-4 space-y-3"
+							>
 								<div className="flex items-center justify-between gap-2">
-									<span className="font-medium">{formatShortDate(entry.date)}</span>
+									<span className="font-medium">{formatDateOnly(entry.date)}</span>
 									<span className="font-semibold">{formatCurrency(entry.amount)}</span>
 								</div>
 								<dl className="space-y-1 text-sm">
 									<div className="flex justify-between gap-2">
 										<dt className="text-muted-foreground">{partyLabel}</dt>
-										<dd className="text-right">{entry.party_name}</dd>
+										<dd className="text-right">{entry.party_name || '-'}</dd>
 									</div>
 									<div className="flex justify-between gap-2">
 										<dt className="text-muted-foreground">Comprobante</dt>
@@ -160,7 +163,7 @@ export function CollectionPaymentList({
 									<div className="flex justify-between gap-2">
 										<dt className="text-muted-foreground">Medio de pago</dt>
 										<dd className="text-right">
-											{entry.payment_method_name}
+											{entry.payment_method_name || '-'}
 											{entry.bank_account_name ? ` · ${entry.bank_account_name}` : ''}
 										</dd>
 									</div>

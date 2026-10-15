@@ -283,6 +283,8 @@ export function SupplierDetailsDialog({
 						activePurchaseForPayment={forms.activePurchaseForPayment}
 						paymentAmount={forms.paymentAmount}
 						onAmountChange={forms.setPaymentAmount}
+						paymentDate={forms.paymentDate}
+						onDateChange={forms.setPaymentDate}
 						remainingPurchaseBalance={forms.remainingPurchaseBalance}
 						paymentExceedsBalance={forms.paymentExceedsBalance}
 						paymentBankAccountId={forms.paymentBankAccountId}
