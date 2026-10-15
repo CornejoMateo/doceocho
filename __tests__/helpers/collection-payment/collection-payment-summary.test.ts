@@ -87,15 +87,24 @@ describe('computeCollectionPaymentByMethod', () => {
 		expect(rows).toEqual([{ paymentMethodId: 1, paymentMethodName: 'Efectivo', amount: 0 }]);
 	});
 
-	// payment_method_id on CollectionPaymentEntry is a required `number` (collections/payments always carry
-	// a payment method), so there is no literal-null case to exercise here. The closest real edge case is
-	// an entry whose method id isn't present in the (active) paymentMethods list at all, e.g. a deleted method.
 	it('falls back to an empty name for an entry whose payment method is missing from the list entirely', () => {
 		const entries = [entry({ payment_method_id: 99, payment_method_name: '', amount: 30 })];
 
 		const rows = computeCollectionPaymentByMethod(entries, []);
 
 		expect(rows).toEqual([{ paymentMethodId: 99, paymentMethodName: '', amount: 30 }]);
+	});
+
+	it('excludes an entry with a null payment_method_id (e.g. a supplier-origin payment with no method)', () => {
+		const methods = [method({ id: 1 })];
+		const entries = [
+			entry({ payment_method_id: 1, amount: 100 }),
+			entry({ payment_method_id: null as any, payment_method_name: null as any, amount: 999 }),
+		];
+
+		const rows = computeCollectionPaymentByMethod(entries, methods);
+
+		expect(rows).toEqual([{ paymentMethodId: 1, paymentMethodName: 'Efectivo', amount: 100 }]);
 	});
 
 	it('rounds the accumulated amount to 2 decimals', () => {
