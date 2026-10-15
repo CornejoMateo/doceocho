@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { CashBoxHistory } from '@/components/business/cash-flow/cash-box-history';
+import { CashBoxHistory } from '@/components/business/cash-flow/cash-box/cash-box-history';
 import * as cashFlowLib from '@/lib/cash-flow/cash-flow';
 
 // Mock dependencies

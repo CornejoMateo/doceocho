@@ -1,5 +1,5 @@
 import { render, screen, within, fireEvent } from '@testing-library/react';
-import { BankAccountStats } from '@/components/business/cash-flow/bank-account-stats';
+import { BankAccountStats } from '@/components/business/cash-flow/bank-accounts/bank-account-stats';
 import { useBankAccountStats } from '@/hooks/cash-flow-stats/use-bank-account-stats';
 
 jest.mock('@/hooks/cash-flow-stats/use-bank-account-stats', () => ({

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BankAccountForm } from '@/components/business/cash-flow/bank-account-form';
+import { BankAccountForm } from '@/components/business/cash-flow/bank-accounts/bank-account-form';
 import { createBankAccount, updateBankAccount } from '@/lib/cash-flow/cash-flow';
 import { translateError } from '@/lib/error-translator';
 

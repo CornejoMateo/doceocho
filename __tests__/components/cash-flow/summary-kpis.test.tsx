@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { SummaryKpis } from '@/components/business/cash-flow/summary-kpis';
+import { SummaryKpis } from '@/components/business/cash-flow/summary/summary-kpis';
 import { SummaryCards } from '@/helpers/cash-flow-stats/cash-flow-summary';
 
 function cards(over: Partial<SummaryCards> = {}): SummaryCards {

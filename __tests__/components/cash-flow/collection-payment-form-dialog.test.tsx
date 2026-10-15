@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { CollectionPaymentFormDialog } from '@/components/business/cash-flow/collection-payment-form-dialog';
+import { CollectionPaymentFormDialog } from '@/components/business/cash-flow/collections-payments/collection-payment-form-dialog';
 import type { CashFlowCategory } from '@/lib/categories/categories';
 import type { Work } from '@/lib/works/works';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
@@ -24,7 +24,7 @@ const mockComboboxLabels: Record<string, string> = {
 	'cp-purchase': 'purchase-combobox',
 };
 
-jest.mock('@/components/business/cash-flow/entity-combobox', () => ({
+jest.mock('@/components/business/cash-flow/shared/entity-combobox', () => ({
 	EntityCombobox: ({ id, value, onValueChange, options, placeholder, disabled }: any) => (
 		<select
 			data-testid={id}

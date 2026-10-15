@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { CheckingAccountsTab } from '@/components/business/cash-flow/checking-accounts-tab';
+import { CheckingAccountsTab } from '@/components/business/cash-flow/balances-tab/checking-accounts-tab';
 import { useBalancesReport } from '@/hooks/balances/use-balances-report';
 
 jest.mock('@/hooks/balances/use-balances-report');

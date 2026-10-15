@@ -37,8 +37,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { getAccountTypeLabel } from '@/constants/cashflow/cashflow';
 import { formatCurrency } from '@/utils/formats-money';
-import { BankAccountForm } from '@/components/business/cash-flow/bank-account-form';
-import { BankAccountStats } from '@/components/business/cash-flow/bank-account-stats';
+import { BankAccountForm } from '@/components/business/cash-flow/bank-accounts/bank-account-form';
+import { BankAccountStats } from '@/components/business/cash-flow/bank-accounts/bank-account-stats';
 
 interface BankAccountsTabProps {
 	bankAccounts: BankAccount[];

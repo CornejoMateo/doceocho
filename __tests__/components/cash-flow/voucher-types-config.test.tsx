@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { VoucherTypesConfig } from '@/components/business/cash-flow/voucher-types-config';
+import { VoucherTypesConfig } from '@/components/business/cash-flow/incomes-expenses/voucher-types-config';
 import {
 	VoucherType,
 	listVoucherTypes,
