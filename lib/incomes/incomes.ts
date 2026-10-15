@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { fetchAllPages } from '@/lib/suppliers/pagination';
 
 export type Income = {
 	id: number;
@@ -54,19 +55,21 @@ function mapRow(row: any): IncomeWithDetails {
 	};
 }
 
-// Scoped by year on the server (mirrors listFixedExpensePayments); remaining filters stay in-memory.
 export async function listIncomes(params: {
 	year: number;
 }): Promise<{ data: IncomeWithDetails[] | null; error: any }> {
-	const supabase = getSupabaseClient();
 	const { year } = params;
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select(SELECT)
-		.gte('date', `${year}-01-01`)
-		.lt('date', `${year + 1}-01-01`)
-		.order('date', { ascending: false })
-		.order('id', { ascending: false });
+	const { data, error } = await fetchAllPages<any>((from, to) => {
+		const supabase = getSupabaseClient();
+		return supabase
+			.from(TABLE)
+			.select(SELECT)
+			.gte('date', `${year}-01-01`)
+			.lt('date', `${year + 1}-01-01`)
+			.order('date', { ascending: false })
+			.order('id', { ascending: false })
+			.range(from, to);
+	});
 	if (error) return { data: null, error };
 	return { data: data ? data.map(mapRow) : null, error: null };
 }

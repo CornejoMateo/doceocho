@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts-tab';
+import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts/bank-accounts-tab';
 import { updateBankAccount } from '@/lib/cash-flow/cash-flow';
 import { translateError } from '@/lib/error-translator';
 
@@ -21,7 +21,7 @@ jest.mock('@/constants/cashflow/cashflow', () => ({
 	getAccountTypeLabel: (v: string) => ({ checking: 'Cuenta Corriente' })[v] || v,
 }));
 
-jest.mock('@/components/business/cash-flow/bank-account-form', () => ({
+jest.mock('@/components/business/cash-flow/bank-accounts/bank-account-form', () => ({
 	BankAccountForm: ({ account, onSave, onCancel }: any) => (
 		<div data-testid="bank-account-form">
 			<span>{account ? `Editando ${account.name}` : 'Formulario nueva cuenta'}</span>
@@ -31,7 +31,7 @@ jest.mock('@/components/business/cash-flow/bank-account-form', () => ({
 	),
 }));
 
-jest.mock('@/components/business/cash-flow/bank-account-stats', () => ({
+jest.mock('@/components/business/cash-flow/bank-accounts/bank-account-stats', () => ({
 	BankAccountStats: () => <div data-testid="bank-account-stats" />,
 }));
 

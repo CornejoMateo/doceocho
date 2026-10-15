@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { PaymentsTab } from '@/components/business/cash-flow/payments-tab';
+import { PaymentsTab } from '@/components/business/cash-flow/collections-payments/payments-tab';
 import { usePayments } from '@/hooks/payments/use-payments';
 
 jest.mock('@/hooks/payments/use-payments', () => ({
 	usePayments: jest.fn(),
 }));
 
-jest.mock('@/components/business/cash-flow/collection-payment-tab', () => ({
+jest.mock('@/components/business/cash-flow/collections-payments/collection-payment-tab', () => ({
 	CollectionPaymentTab: ({
 		state,
 		entityLabel,

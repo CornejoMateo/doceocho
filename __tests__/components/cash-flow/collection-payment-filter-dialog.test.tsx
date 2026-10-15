@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { CollectionPaymentFilterDialog } from '@/components/business/cash-flow/collection-payment-filter-dialog';
+import { CollectionPaymentFilterDialog } from '@/components/business/cash-flow/collections-payments/collection-payment-filter-dialog';
 import type { Work } from '@/lib/works/works';
 import type { PartyOption } from '@/hooks/income-expense/use-income-expense-tab';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';

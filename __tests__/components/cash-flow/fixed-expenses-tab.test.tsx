@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses-tab';
+import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses/fixed-expenses-tab';
 import {
 	listFixedExpenses,
 	createFixedExpense,

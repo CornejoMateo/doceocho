@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { CollectionPaymentFilters } from '@/components/business/cash-flow/collection-payment-filters';
+import { CollectionPaymentFilters } from '@/components/business/cash-flow/collections-payments/collection-payment-filters';
 
 const noop = () => {};
 

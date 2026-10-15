@@ -70,6 +70,7 @@ const mockBankAccount = {
 	account_number: '123456',
 	account_type: 'Checking',
 	is_active: true,
+	initial_balance: 0,
 };
 
 const mockCashBox = {
@@ -137,6 +138,7 @@ describe('Bank Accounts', () => {
 			account_number: '123',
 			account_type: 'Checking',
 			is_active: true,
+			initial_balance: 0,
 		};
 
 		const result = await createBankAccount(payload);
@@ -257,6 +259,7 @@ describe('error propagation', () => {
 					account_number: '1',
 					account_type: 'x',
 					is_active: true,
+					initial_balance: 0,
 				}),
 			'single',
 		],
