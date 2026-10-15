@@ -12,9 +12,9 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { useSummaryTab } from '@/hooks/cash-flow-stats/use-summary-tab';
-import { SummaryKpis } from '@/components/business/cash-flow/summary-kpis';
-import { SummaryMonthlyChart } from '@/components/business/cash-flow/summary-monthly-chart';
-import { SummaryByWork } from '@/components/business/cash-flow/summary-by-work';
+import { SummaryKpis } from '@/components/business/cash-flow/summary/summary-kpis';
+import { SummaryMonthlyChart } from '@/components/business/cash-flow/summary/summary-monthly-chart';
+import { SummaryByWork } from '@/components/business/cash-flow/summary/summary-by-work';
 
 export function SummaryTab() {
 	const state = useSummaryTab();

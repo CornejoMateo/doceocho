@@ -1,12 +1,12 @@
 'use client';
 
 import { useCollectionPaymentTab } from '@/hooks/collection-payment/use-collection-payment-tab';
-import { CollectionPaymentFilters } from '@/components/business/cash-flow/collection-payment-filters';
-import { CollectionPaymentSummary } from '@/components/business/cash-flow/collection-payment-summary';
-import { CollectionPaymentMonthlyGrid } from '@/components/business/cash-flow/collection-payment-monthly-grid';
-import { CollectionPaymentByMethod } from '@/components/business/cash-flow/collection-payment-by-method';
-import { CollectionPaymentList } from '@/components/business/cash-flow/collection-payment-list';
-import { CollectionPaymentFormDialog } from '@/components/business/cash-flow/collection-payment-form-dialog';
+import { CollectionPaymentFilters } from '@/components/business/cash-flow/collections-payments/collection-payment-filters';
+import { CollectionPaymentSummary } from '@/components/business/cash-flow/collections-payments/collection-payment-summary';
+import { CollectionPaymentMonthlyGrid } from '@/components/business/cash-flow/collections-payments/collection-payment-monthly-grid';
+import { CollectionPaymentByMethod } from '@/components/business/cash-flow/collections-payments/collection-payment-by-method';
+import { CollectionPaymentList } from '@/components/business/cash-flow/collections-payments/collection-payment-list';
+import { CollectionPaymentFormDialog } from '@/components/business/cash-flow/collections-payments/collection-payment-form-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
 	Select,

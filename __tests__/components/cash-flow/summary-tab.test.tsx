@@ -1,20 +1,20 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SummaryTab } from '@/components/business/cash-flow/summary-tab';
+import { SummaryTab } from '@/components/business/cash-flow/summary/summary-tab';
 import { useSummaryTab } from '@/hooks/cash-flow-stats/use-summary-tab';
 
 jest.mock('@/hooks/cash-flow-stats/use-summary-tab', () => ({
 	useSummaryTab: jest.fn(),
 }));
 
-jest.mock('@/components/business/cash-flow/summary-kpis', () => ({
+jest.mock('@/components/business/cash-flow/summary/summary-kpis', () => ({
 	SummaryKpis: () => <div data-testid="summary-kpis-mock" />,
 }));
 
-jest.mock('@/components/business/cash-flow/summary-monthly-chart', () => ({
+jest.mock('@/components/business/cash-flow/summary/summary-monthly-chart', () => ({
 	SummaryMonthlyChart: () => <div data-testid="summary-monthly-chart-mock" />,
 }));
 
-jest.mock('@/components/business/cash-flow/summary-by-work', () => ({
+jest.mock('@/components/business/cash-flow/summary/summary-by-work', () => ({
 	SummaryByWork: () => <div data-testid="summary-by-work-mock" />,
 }));
 

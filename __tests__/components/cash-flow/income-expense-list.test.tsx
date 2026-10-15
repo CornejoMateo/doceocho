@@ -2,7 +2,7 @@
 process.env.TZ = 'America/Argentina/Buenos_Aires';
 
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { IncomeExpenseList } from '@/components/business/cash-flow/income-expense-list';
+import { IncomeExpenseList } from '@/components/business/cash-flow/incomes-expenses/income-expense-list';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
 import type { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';

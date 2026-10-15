@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { SummaryByWork } from '@/components/business/cash-flow/summary-by-work';
+import { SummaryByWork } from '@/components/business/cash-flow/summary/summary-by-work';
 import { WorkResultRow } from '@/helpers/cash-flow-stats/cash-flow-summary';
 
 function row(over: Partial<WorkResultRow> = {}): WorkResultRow {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useIncomes } from '@/hooks/incomes/use-incomes';
-import { IncomeExpenseTab } from '@/components/business/cash-flow/income-expense-tab';
+import { IncomeExpenseTab } from '@/components/business/cash-flow/incomes-expenses/income-expense-tab';
 
 type IncomesTabProps = {
 	categoriesConfig: React.ReactNode;

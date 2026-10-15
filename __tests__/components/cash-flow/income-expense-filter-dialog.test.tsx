@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { IncomeExpenseFilterDialog } from '@/components/business/cash-flow/income-expense-filter-dialog';
+import { IncomeExpenseFilterDialog } from '@/components/business/cash-flow/incomes-expenses/income-expense-filter-dialog';
 import type { Work } from '@/lib/works/works';
 import type { PartyOption } from '@/hooks/income-expense/use-income-expense-tab';
 
