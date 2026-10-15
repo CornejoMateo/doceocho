@@ -114,6 +114,17 @@ describe('works lib', () => {
 			const { data } = await createWork(newWork as any);
 			expect(data?.id).toBe(1);
 		});
+
+		it('clears a stale completion_date when status is not completed', async () => {
+			const insert = jest.fn().mockReturnValue({ select: () => ({ single: mockSingle }) });
+			(getSupabaseClient as jest.Mock).mockReturnValue({ from: () => ({ insert }) });
+			mockSingle.mockResolvedValue({ data: { id: 1 }, error: null });
+
+			await createWork({ name: 'x', status: 'pending', completion_date: '2024-01-01' } as any);
+			expect(insert).toHaveBeenCalledWith(
+				expect.objectContaining({ status: 'pending', completion_date: null })
+			);
+		});
 	});
 
 	describe('updateWork', () => {

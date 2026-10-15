@@ -82,6 +82,8 @@ export function WorksList({
 				}
 			} catch (error) {
 				console.error('Error updating work:', error);
+				// Propagate so callers (e.g. the status modal) know the update failed.
+				throw error;
 			}
 		}
 	};

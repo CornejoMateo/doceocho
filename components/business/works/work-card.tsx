@@ -21,12 +21,14 @@ import {
 	Plus,
 	ExternalLink,
 	Loader2,
+	Lightbulb,
 } from 'lucide-react';
 import { statusConfig } from '@/constants/type-config';
 import { WorkWithProgress } from '@/lib/works/works';
 import { useState } from 'react';
 import { translateError } from '@/lib/error-translator';
-import { formatCreatedAt } from '@/utils/format-date';
+import { formatCreatedAt, formatDateOnly } from '@/utils/format-date';
+import { WorkStatusChangeModal } from '@/components/business/works/work-status-change-modal';
 
 interface WorkCardProps {
 	work: WorkWithProgress;
@@ -37,6 +39,7 @@ interface WorkCardProps {
 	onUpdateGeneralNote?: (workId: number, note: string) => Promise<void>;
 	onAddToCalendar?: (work: WorkWithProgress) => void;
 	onOpenClient?: (work: WorkWithProgress) => void;
+	onChangeStatus?: (workId: number, newStatus: string, completionDate?: string) => Promise<void>;
 	loadingWorkId?: number | null;
 }
 
@@ -49,10 +52,12 @@ export function WorkCard({
 	onUpdateGeneralNote,
 	onAddToCalendar,
 	onOpenClient,
+	onChangeStatus,
 	loadingWorkId,
 }: WorkCardProps) {
 	const [isPostItModalOpen, setIsPostItModalOpen] = useState(false);
 	const [isUpdatingNote, setIsUpdatingNote] = useState(false);
+	const [targetStatus, setTargetStatus] = useState<string | null>(null);
 
 	const statusInfo = statusConfig.find((s) => s.value === work.status);
 
@@ -63,6 +68,27 @@ export function WorkCard({
 	const isAuthorized = user?.role === 'Admin';
 	const canSendNotifications = isAuthorized;
 	const canEditNotes = isAuthorized;
+
+	// Recommendations: Admin only, never for completed or paused works
+	let recommendation: { text: string; target: string; action: string } | null = null;
+	if (isAuthorized && onChangeStatus) {
+		if (work.status !== 'completed' && work.status !== 'paused') {
+			// progress is 100 by default when there are no checklist items, so require at least one
+			if (work.progress === 100 && (work.tasks?.length ?? 0) > 0) {
+				recommendation = {
+					text: 'Tu obra está al 100%. ¿Querés marcarla como Finalizada?',
+					target: 'completed',
+					action: 'Marcar como Finalizada',
+				};
+			} else if (work.progress > 0 && (work.status === 'pending' || !work.status)) {
+				recommendation = {
+					text: 'Tu obra ya tiene avance. ¿Querés pasarla a En progreso?',
+					target: 'in_progress',
+					action: 'Pasar a En progreso',
+				};
+			}
+		}
+	}
 
 	const isThisLoading = loadingWorkId === work.id;
 	const isAnyLoading = loadingWorkId != null;
@@ -173,7 +199,27 @@ export function WorkCard({
 								<Calendar className="h-4 w-4 flex-shrink-0" />
 								<span>{formatCreatedAt(work.created_at)}</span>
 							</div>
+							{work.completion_date && (
+								<div className="flex items-center gap-2 text-sm text-muted-foreground">
+									<CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+									<span>Finalizada el {formatDateOnly(work.completion_date)}</span>
+								</div>
+							)}
 						</div>
+
+						{recommendation && (
+							<div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/40 p-3 text-sm">
+								<Lightbulb className="h-4 w-4 flex-shrink-0 text-yellow-500" />
+								<span className="flex-1 min-w-0 sm:text-sm text-xs">{recommendation.text}</span>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setTargetStatus(recommendation!.target)}
+								>
+									{recommendation.action}
+								</Button>
+							</div>
+						)}
 					</div>
 
 					<div className="flex flex-col gap-2 w-full lg:w-auto">
@@ -272,6 +318,19 @@ export function WorkCard({
 	return (
 		<>
 			{cardContent}
+			{onChangeStatus && (
+				<WorkStatusChangeModal
+					open={targetStatus !== null}
+					onOpenChange={(open) => {
+						if (!open) setTargetStatus(null);
+					}}
+					currentStatus={work.status}
+					targetStatus={targetStatus}
+					onConfirm={(newStatus, completionDate) =>
+						onChangeStatus(work.id, newStatus, completionDate)
+					}
+				/>
+			)}
 			<PostItModal
 				isOpen={isPostItModalOpen}
 				onOpenChange={setIsPostItModalOpen}

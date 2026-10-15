@@ -32,6 +32,9 @@ jest.mock('@/components/business/works/checklists/checklist-completion-modal', (
 jest.mock('@/utils/format-date', () => ({
 	formatCreatedAt: (d: any) => d || 'no date',
 	formatDate: (d: any) => d || 'no date',
+	formatDateOnly: (d: any) => d || 'no date',
+	getLocalDate: () => '2026-01-01',
+	isValidDateOnly: () => true,
 }));
 
 const baseWork: WorkWithProgress = {
@@ -378,5 +381,36 @@ describe('WorkCard', () => {
 		);
 
 		expect(screen.getByText(String(workWithoutName.id))).toBeInTheDocument();
+	});
+
+	describe('100% recommendation', () => {
+		const renderCard = (work: any, role = 'Admin') =>
+			render(
+				<WorkCard
+					work={work}
+					user={{ role }}
+					onOpenEmail={onOpenEmail}
+					onOpenWhatsApp={onOpenWhatsApp}
+					onOpenChecklist={onOpenChecklist}
+					onChangeStatus={jest.fn()}
+				/>
+			);
+		const text = /Tu obra está al 100%/;
+
+		it('shows for admin when progress is 100 and there are checklist items', () => {
+			renderCard({ ...baseWork, progress: 100, tasks: [{ id: 1, done: true }] });
+			expect(screen.getByText(text)).toBeInTheDocument();
+		});
+
+		it('does not show when the work has no checklist items', () => {
+			renderCard({ ...baseWork, progress: 100, tasks: [] });
+			expect(screen.queryByText(text)).not.toBeInTheDocument();
+		});
+
+		it('does not show for completed works or non-admins', () => {
+			const withItems = { ...baseWork, progress: 100, tasks: [{ id: 1, done: true }] };
+			renderCard({ ...withItems, status: 'completed' });
+			expect(screen.queryByText(text)).not.toBeInTheDocument();
+		});
 	});
 });
