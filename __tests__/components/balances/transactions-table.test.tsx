@@ -6,11 +6,6 @@ jest.mock('@/utils/formats-money', () => ({
 	formatCurrencyUSD: (v: any) => `USD ${v || 0}`,
 }));
 
-jest.mock('@/constants/balances/payment_methods', () => ({
-	getPaymentMethodLabel: (v: string) =>
-		({ bank_transfer: 'Transferencia bancaria', cash: 'Efectivo' })[v] || v,
-}));
-
 const mockTransactions = [
 	{
 		id: 1,
@@ -18,7 +13,8 @@ const mockTransactions = [
 		amount: 50000,
 		usd_amount: 50,
 		quote_usd: 1000,
-		payment_method: 'bank_transfer',
+		payment_method_id: 2,
+		payment_method_name: 'Transferencia Bancaria',
 		notes: 'Pago inicial',
 		bank_account_id: 7,
 		bank_account: { id: 7, name: 'Cuenta Principal', bank: 'Santander' },
@@ -29,7 +25,8 @@ const mockTransactions = [
 		amount: 10000,
 		usd_amount: 10,
 		quote_usd: 1000,
-		payment_method: 'cash',
+		payment_method_id: 1,
+		payment_method_name: 'Efectivo',
 		notes: 'Compra de insumos',
 		bank_account_id: null,
 		bank_account: null,
@@ -77,8 +74,19 @@ describe('TransactionsTable', () => {
 		expect(table.getByText('$50000')).toBeInTheDocument();
 		expect(table.getByText('USD 50')).toBeInTheDocument();
 		expect(table.getByText('$10000')).toBeInTheDocument();
-		expect(table.getByText('Transferencia bancaria')).toBeInTheDocument();
+		expect(table.getByText('Transferencia Bancaria')).toBeInTheDocument();
 		expect(table.getByText('Efectivo')).toBeInTheDocument();
+	});
+
+	it('shows "-" when the transaction has no payment method name', () => {
+		renderTable({
+			transactions: [
+				{ ...mockTransactions[1], payment_method_id: null, payment_method_name: null },
+			],
+		});
+
+		const table = within(screen.getByRole('table'));
+		expect(table.getByText('-')).toBeInTheDocument();
 	});
 
 	it('shows bank account details when present', () => {

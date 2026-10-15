@@ -8,6 +8,7 @@ export type BankAccount = {
 	account_number: string;
 	account_type: string;
 	is_active: boolean;
+	initial_balance: number;
 };
 
 export type CashBox = {

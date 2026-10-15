@@ -15,6 +15,7 @@ import {
 import { uploadFilePurchaseSupplier } from '@/lib/suppliers/files-purchases-suppliers';
 import { uploadFilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
 import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/suppliers/suppliers';
+import { getLocalDate } from '@/utils/format-date';
 import type { StagedFile } from '@/components/business/suppliers/supplier-file-attachments';
 
 export type ViewState = 'detail' | 'purchase-form' | 'payment-form';
@@ -48,6 +49,7 @@ export function usePurchasePaymentForms({
 		useState<PurchaseSupplierWithBalance | null>(null);
 	const [editingPayment, setEditingPayment] = useState<PaymentSupplier | null>(null);
 	const [paymentAmount, setPaymentAmount] = useState('');
+	const [paymentDate, setPaymentDate] = useState(getLocalDate());
 	const [paymentBankAccountId, setPaymentBankAccountId] = useState(NO_BANK_ACCOUNT);
 	const [paymentMethodIdValue, setPaymentMethodIdValue] = useState(NO_PAYMENT_METHOD);
 	const [paymentNotes, setPaymentNotes] = useState('');
@@ -61,10 +63,10 @@ export function usePurchasePaymentForms({
 		setActivePurchaseForPayment(null);
 		setEditingPayment(null);
 		setPaymentAmount('');
+		setPaymentDate(getLocalDate());
 		setPaymentBankAccountId(NO_BANK_ACCOUNT);
 		setPaymentMethodIdValue(NO_PAYMENT_METHOD);
 		setPaymentNotes('');
-		// A surviving staged list would attach the previous form's files to the next purchase/payment.
 		setStagedPurchaseFiles([]);
 		setStagedPaymentFiles([]);
 	};
@@ -106,6 +108,7 @@ export function usePurchasePaymentForms({
 		setActivePurchaseForPayment(purchase);
 		setEditingPayment(null);
 		setPaymentAmount('');
+		setPaymentDate(getLocalDate());
 		setPaymentBankAccountId(NO_BANK_ACCOUNT);
 		setPaymentMethodIdValue(NO_PAYMENT_METHOD);
 		setPaymentNotes('');
@@ -117,6 +120,7 @@ export function usePurchasePaymentForms({
 		setActivePurchaseForPayment(purchase);
 		setEditingPayment(payment);
 		setPaymentAmount(formatCurrencyWithoutSymbol(payment.amount_ars));
+		setPaymentDate(payment.paid_date ?? getLocalDate());
 		setPaymentBankAccountId(
 			payment.bank_account_id ? String(payment.bank_account_id) : NO_BANK_ACCOUNT
 		);
@@ -226,6 +230,7 @@ export function usePurchasePaymentForms({
 		try {
 			const payload = {
 				amount_ars: parsedAmount,
+				paid_date: paymentDate,
 				bank_account_id:
 					paymentBankAccountId === NO_BANK_ACCOUNT ? null : Number(paymentBankAccountId),
 				payment_method_id:
@@ -246,7 +251,6 @@ export function usePurchasePaymentForms({
 				const failed = await uploadStagedFiles(staged, data.id, 'payment');
 				setStagedPaymentFiles([]);
 				if (failed > 0) {
-					// Keep the row: the typed-in data is valid and the user can retry the files from edit.
 					toast({
 						variant: 'destructive',
 						title: 'Archivos adjuntos pendientes',
@@ -299,6 +303,8 @@ export function usePurchasePaymentForms({
 		editingPayment,
 		paymentAmount,
 		setPaymentAmount,
+		paymentDate,
+		setPaymentDate,
 		paymentBankAccountId,
 		setPaymentBankAccountId,
 		paymentMethodIdValue,

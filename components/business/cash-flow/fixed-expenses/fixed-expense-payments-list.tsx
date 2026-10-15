@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { paginateAndFilter } from '@/utils/pagination';
-import { formatShortDate } from '@/utils/format-date';
+import { formatDateOnly } from '@/utils/format-date';
 import { formatCurrency } from '@/utils/formats-money';
 import { MONTH_LABELS_ES } from '@/helpers/fixed-expenses/fixed-expenses-summary';
 import { FixedExpensePaymentWithDetails } from '@/lib/fixed-expenses/fixed-expense-payments';
@@ -149,9 +149,7 @@ export function FixedExpensePaymentsList({
 						<TableBody>
 							{paginatedData.map((payment) => (
 								<TableRow key={payment.id}>
-									<TableCell className="text-center">
-										{formatShortDate(payment.paid_date)}
-									</TableCell>
+									<TableCell className="text-center">{formatDateOnly(payment.paid_date)}</TableCell>
 									<TableCell className="text-center">{payment.description}</TableCell>
 									<TableCell className="text-center">{payment.category_name}</TableCell>
 									<TableCell className="text-center">
@@ -182,7 +180,7 @@ export function FixedExpensePaymentsList({
 						<div className="flex items-center justify-between gap-2">
 							<span className="font-medium min-w-0 break-words">{payment.description}</span>
 							<span className="text-sm text-muted-foreground shrink-0">
-								{formatShortDate(payment.paid_date)}
+								{formatDateOnly(payment.paid_date)}
 							</span>
 						</div>
 						<dl className="space-y-1 text-sm">
