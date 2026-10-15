@@ -94,7 +94,7 @@ export function IncomeExpenseList({
 									{entries.map((entry) => (
 										<TableRow key={entry.id}>
 											<TableCell className="text-center whitespace-nowrap">
-												{formatDateOnly(entry.date)}
+												{entry.date.split('-').reverse().join('/')}
 											</TableCell>
 											<TableCell className="text-center">
 												<div className="flex flex-col">
