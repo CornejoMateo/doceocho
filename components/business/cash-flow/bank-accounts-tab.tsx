@@ -36,7 +36,9 @@ import { BankAccount, updateBankAccount } from '@/lib/cash-flow/cash-flow';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { getAccountTypeLabel } from '@/constants/cashflow/cashflow';
+import { formatCurrency } from '@/utils/formats-money';
 import { BankAccountForm } from '@/components/business/cash-flow/bank-account-form';
+import { BankAccountStats } from '@/components/business/cash-flow/bank-account-stats';
 
 interface BankAccountsTabProps {
 	bankAccounts: BankAccount[];
@@ -201,6 +203,7 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 										<TableHead>Banco</TableHead>
 										<TableHead>N° de cuenta</TableHead>
 										<TableHead>Tipo</TableHead>
+										<TableHead className="text-right">Saldo inicial</TableHead>
 										<TableHead>Estado</TableHead>
 										<TableHead className="text-right">Acciones</TableHead>
 									</TableRow>
@@ -215,6 +218,9 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 												<Badge variant="secondary">
 													{getAccountTypeLabel(account.account_type)}
 												</Badge>
+											</TableCell>
+											<TableCell className="text-right">
+												{formatCurrency(account.initial_balance)}
 											</TableCell>
 											<TableCell>
 												<Badge variant={account.is_active ? 'default' : 'outline'}>
@@ -258,6 +264,10 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 										<dt className="text-muted-foreground">Tipo</dt>
 										<dd>{getAccountTypeLabel(account.account_type)}</dd>
 									</div>
+									<div className="flex justify-between gap-2">
+										<dt className="text-muted-foreground">Saldo inicial</dt>
+										<dd>{formatCurrency(account.initial_balance)}</dd>
+									</div>
 								</dl>
 								<div className="flex gap-2 pt-1">{renderActions(account, true)}</div>
 							</Card>
@@ -265,6 +275,8 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 					</div>
 				</>
 			)}
+
+			<BankAccountStats bankAccounts={bankAccounts} />
 
 			<Dialog open={isFormOpen} onOpenChange={handleFormOpenChange}>
 				<DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">

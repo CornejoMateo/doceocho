@@ -31,6 +31,10 @@ jest.mock('@/components/business/cash-flow/bank-account-form', () => ({
 	),
 }));
 
+jest.mock('@/components/business/cash-flow/bank-account-stats', () => ({
+	BankAccountStats: () => <div data-testid="bank-account-stats" />,
+}));
+
 const mockAccounts = [
 	{
 		id: 1,
@@ -39,6 +43,7 @@ const mockAccounts = [
 		account_number: '123-456',
 		account_type: 'checking',
 		is_active: true,
+		initial_balance: 1000,
 	},
 	{
 		id: 2,
@@ -47,6 +52,7 @@ const mockAccounts = [
 		account_number: '789-012',
 		account_type: 'savings',
 		is_active: false,
+		initial_balance: 0,
 	},
 ];
 
@@ -77,8 +83,15 @@ describe('BankAccountsTab', () => {
 			expect(view.getByText('Santander')).toBeInTheDocument();
 			expect(view.getByText('123-456')).toBeInTheDocument();
 			expect(view.getByText('Cuenta Corriente')).toBeInTheDocument();
+			expect(view.getByText(/^\$\s*1\.000$/)).toBeInTheDocument();
 		}
 		expect(screen.queryByText('Cuenta Secundaria')).not.toBeInTheDocument();
+	});
+
+	it('renders the bank account statistics section', () => {
+		renderTab();
+
+		expect(screen.getByTestId('bank-account-stats')).toBeInTheDocument();
 	});
 
 	it('shows inactive accounts when "Mostrar inactivas" is toggled', () => {
