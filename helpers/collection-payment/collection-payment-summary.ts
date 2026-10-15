@@ -19,12 +19,14 @@ export function computeCollectionPaymentByMethod(
 	const amountByMethod = new Map<number, number>();
 	const nameByMethod = new Map<number, string>();
 	for (const entry of entries) {
+		// A supplier payment created from the Suppliers module can have no payment method at all.
+		if (entry.payment_method_id == null) continue;
 		amountByMethod.set(
 			entry.payment_method_id,
 			(amountByMethod.get(entry.payment_method_id) ?? 0) + Number(entry.amount)
 		);
 		if (!nameByMethod.has(entry.payment_method_id))
-			nameByMethod.set(entry.payment_method_id, entry.payment_method_name);
+			nameByMethod.set(entry.payment_method_id, entry.payment_method_name ?? '');
 	}
 
 	const rows = new Map<number, CollectionPaymentMethodRow>();

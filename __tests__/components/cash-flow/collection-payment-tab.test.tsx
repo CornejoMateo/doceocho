@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { CollectionPaymentTab } from '@/components/business/cash-flow/collection-payment-tab';
+import { CollectionPaymentTab } from '@/components/business/cash-flow/collections-payments/collection-payment-tab';
 import type { useCollectionPaymentTab } from '@/hooks/collection-payment/use-collection-payment-tab';
 
 jest.mock('@/components/ui/select', () => ({
@@ -14,13 +14,16 @@ jest.mock('@/components/ui/select', () => ({
 	SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
 }));
 
-jest.mock('@/components/business/cash-flow/collection-payment-filters', () => ({
-	CollectionPaymentFilters: ({ addLabel, onAdd }: any) => (
-		<button onClick={onAdd}>{addLabel}</button>
-	),
-}));
+jest.mock(
+	'@/components/business/cash-flow/collections-payments/collection-payment-filters',
+	() => ({
+		CollectionPaymentFilters: ({ addLabel, onAdd }: any) => (
+			<button onClick={onAdd}>{addLabel}</button>
+		),
+	})
+);
 
-jest.mock('@/components/business/cash-flow/collection-payment-list', () => ({
+jest.mock('@/components/business/cash-flow/collections-payments/collection-payment-list', () => ({
 	CollectionPaymentList: ({ entries, loading, onEdit, onAskDelete }: any) => (
 		<div data-testid="list">
 			{loading
@@ -36,21 +39,34 @@ jest.mock('@/components/business/cash-flow/collection-payment-list', () => ({
 	),
 }));
 
-jest.mock('@/components/business/cash-flow/collection-payment-summary', () => ({
-	CollectionPaymentSummary: ({ total }: any) => <div data-testid="summary">Total: {total}</div>,
-}));
+jest.mock(
+	'@/components/business/cash-flow/collections-payments/collection-payment-summary',
+	() => ({
+		CollectionPaymentSummary: ({ total }: any) => <div data-testid="summary">Total: {total}</div>,
+	})
+);
 
-jest.mock('@/components/business/cash-flow/collection-payment-monthly-grid', () => ({
-	CollectionPaymentMonthlyGrid: ({ title }: any) => <div data-testid="monthly-grid">{title}</div>,
-}));
+jest.mock(
+	'@/components/business/cash-flow/collections-payments/collection-payment-monthly-grid',
+	() => ({
+		CollectionPaymentMonthlyGrid: ({ title }: any) => <div data-testid="monthly-grid">{title}</div>,
+	})
+);
 
-jest.mock('@/components/business/cash-flow/collection-payment-by-method', () => ({
-	CollectionPaymentByMethod: () => <div data-testid="by-method" />,
-}));
+jest.mock(
+	'@/components/business/cash-flow/collections-payments/collection-payment-by-method',
+	() => ({
+		CollectionPaymentByMethod: () => <div data-testid="by-method" />,
+	})
+);
 
-jest.mock('@/components/business/cash-flow/collection-payment-form-dialog', () => ({
-	CollectionPaymentFormDialog: ({ open }: any) => (open ? <div data-testid="form-dialog" /> : null),
-}));
+jest.mock(
+	'@/components/business/cash-flow/collections-payments/collection-payment-form-dialog',
+	() => ({
+		CollectionPaymentFormDialog: ({ open }: any) =>
+			open ? <div data-testid="form-dialog" /> : null,
+	})
+);
 
 function makeState(over: Partial<ReturnType<typeof useCollectionPaymentTab>> = {}) {
 	return {

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
+import { CloseCashBoxDialog } from '@/components/business/cash-flow/cash-box/close-cash-box-dialog';
 
 jest.mock('@/utils/formats-money', () => ({
 	formatCurrency: (v: number) => `$${v}`,

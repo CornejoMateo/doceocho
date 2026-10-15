@@ -18,10 +18,14 @@ import { Input } from '@/components/ui/input';
 import { CashFlowCategory } from '@/lib/categories/categories';
 import { VoucherType } from '@/lib/voucher-types/voucher-types';
 import { Work } from '@/lib/works/works';
-import { PartyOption, IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
+import {
+	PartyOption,
+	IncomeExpenseEntry,
+	IncomeExpenseFormErrors,
+} from '@/hooks/income-expense/use-income-expense-tab';
 import { IVA_RATES } from '@/constants/cashflow/iva';
 import { formatCurrency, formatNumber } from '@/utils/formats-money';
-import { EntityCombobox } from '@/components/business/cash-flow/entity-combobox';
+import { EntityCombobox } from '@/components/business/cash-flow/shared/entity-combobox';
 import { withInactiveSelected } from '@/utils/select-options';
 
 type IncomeExpenseFormDialogProps = {
@@ -57,7 +61,12 @@ type IncomeExpenseFormDialogProps = {
 	totalAmount: number;
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
+	errors: IncomeExpenseFormErrors;
 };
+
+function FieldError({ message }: { message: string }) {
+	return <p className="text-destructive text-xs">{message}</p>;
+}
 
 export function IncomeExpenseFormDialog({
 	open,
@@ -92,6 +101,7 @@ export function IncomeExpenseFormDialog({
 	totalAmount,
 	saving,
 	onSubmit,
+	errors,
 }: IncomeExpenseFormDialogProps) {
 	const filterWorksByParty = partyLabel === 'Cliente';
 	const selectedPartyId = partyId ? Number(partyId) : null;
@@ -158,8 +168,10 @@ export function IncomeExpenseFormDialog({
 								type="date"
 								value={date}
 								onChange={(e) => setDate(e.target.value)}
+								aria-invalid={!!errors.date}
 								required
 							/>
+							{errors.date && <FieldError message="Elegí una fecha" />}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="ie-voucher-number">N° comprobante</Label>
@@ -175,7 +187,7 @@ export function IncomeExpenseFormDialog({
 					<div className="space-y-2">
 						<Label htmlFor="ie-voucher-type">Tipo de comprobante</Label>
 						<Select value={voucherTypeId} onValueChange={setVoucherTypeId} required>
-							<SelectTrigger id="ie-voucher-type">
+							<SelectTrigger id="ie-voucher-type" aria-invalid={!!errors.voucherTypeId}>
 								<SelectValue placeholder="Selecciona un tipo" />
 							</SelectTrigger>
 							<SelectContent>
@@ -187,6 +199,7 @@ export function IncomeExpenseFormDialog({
 								))}
 							</SelectContent>
 						</Select>
+						{errors.voucherTypeId && <FieldError message="Elegí un tipo de comprobante" />}
 					</div>
 
 					<div className="space-y-2">
@@ -199,7 +212,9 @@ export function IncomeExpenseFormDialog({
 							placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
 							searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
 							emptyLabel="No se encontraron resultados"
+							invalid={!!errors.partyId}
 						/>
+						{errors.partyId && <FieldError message={`Elegí un ${partyLabel.toLowerCase()}`} />}
 					</div>
 
 					<div className="space-y-2">
@@ -228,7 +243,7 @@ export function IncomeExpenseFormDialog({
 					<div className="space-y-2">
 						<Label htmlFor="ie-category">Categoría</Label>
 						<Select value={categoryId} onValueChange={setCategoryId} required>
-							<SelectTrigger id="ie-category">
+							<SelectTrigger id="ie-category" aria-invalid={!!errors.categoryId}>
 								<SelectValue placeholder="Selecciona una categoría" />
 							</SelectTrigger>
 							<SelectContent>
@@ -240,6 +255,7 @@ export function IncomeExpenseFormDialog({
 								))}
 							</SelectContent>
 						</Select>
+						{errors.categoryId && <FieldError message="Elegí una categoría" />}
 					</div>
 
 					<div className="space-y-2">
@@ -268,8 +284,10 @@ export function IncomeExpenseFormDialog({
 										decPart !== undefined ? `${intPart},${decPart.slice(0, 2)}` : formatted
 									);
 								}}
+								aria-invalid={!!errors.netAmount}
 								required
 							/>
+							{errors.netAmount && <FieldError message="Ingresá un monto mayor a 0" />}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="ie-iva-percent">IVA %</Label>

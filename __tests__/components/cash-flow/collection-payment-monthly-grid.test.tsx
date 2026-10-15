@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { CollectionPaymentMonthlyGrid } from '@/components/business/cash-flow/collection-payment-monthly-grid';
+import { CollectionPaymentMonthlyGrid } from '@/components/business/cash-flow/collections-payments/collection-payment-monthly-grid';
 import { formatCurrency } from '@/utils/formats-money';
 const money = (n: number) => formatCurrency(n).replace(/\u00A0/g, ' ');
 

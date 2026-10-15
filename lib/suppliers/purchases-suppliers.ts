@@ -124,17 +124,51 @@ export async function listSupplierPurchasesPage({
 	};
 }
 
+type PurchaseWithPaymentsRow = {
+	id: number | string;
+	created_at: string;
+	amount_ars: number | string;
+	supplier_id: number | string;
+	notes: string | null;
+	payments_suppliers: { amount_ars: number | string }[] | null;
+};
+
+export async function listPurchasesSuppliersWithBalance(supplierId: number): Promise<{
+	data: PurchaseSupplierWithBalance[] | null;
+	error: any;
+}> {
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select('*, payments_suppliers(amount_ars)')
+		.eq('supplier_id', supplierId)
+		.order('created_at', { ascending: false });
+
+	if (error) return { data: null, error };
+
+	const rows = (data ?? []) as PurchaseWithPaymentsRow[];
+	return {
+		data: rows.map((row) => {
+			const amountArs = normalizeMoney(Number(row.amount_ars));
+			const totalPaidArs = normalizeMoney(
+				(row.payments_suppliers ?? []).reduce((sum, p) => sum + Number(p.amount_ars), 0)
+			);
+			return {
+				id: Number(row.id),
+				created_at: row.created_at,
+				amount_ars: amountArs,
+				supplier_id: Number(row.supplier_id),
+				notes: row.notes,
+				totalPaidArs,
+				balanceArs: normalizeMoney(amountArs - totalPaidArs),
+			};
+		}),
+		error: null,
+	};
+}
+
 const STORAGE_REMOVE_CHUNK_SIZE = 100;
 
-/**
- * Deletes a purchase and all its associated payments and files atomically. Returns
- * an array of storage paths that were deleted, or an empty array if none. If the
- * purchase did not exist or was not permitted to be deleted, returns an error.
- *
- * If any storage objects fail to delete, they are logged and returned in
- * `orphanedPaths` for the caller to retry or report. The purchase and its payment
- * rows are still deleted in this case.
- */
 export async function deletePurchaseSupplier(
 	id: number
 ): Promise<{ error: any; orphanedPaths?: string[] }> {

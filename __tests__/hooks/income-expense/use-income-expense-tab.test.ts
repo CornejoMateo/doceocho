@@ -108,12 +108,10 @@ describe('useIncomeExpenseTab', () => {
 			});
 
 			const { result } = renderHook(() => useIncomeExpenseTab(config));
-			// First fetch (mount) is pending; trigger a second fetch for a new year before it resolves.
 			act(() => result.current.setYear(2020));
 			await waitFor(() => expect(config.listEntries).toHaveBeenCalledTimes(2));
 			await waitFor(() => expect(result.current.visibleEntries).toHaveLength(1));
 
-			// The stale first response resolves last; it must not overwrite the newer data.
 			await act(async () => {
 				resolveFirst({ data: [entry({ id: 1 })], error: null });
 			});
@@ -330,6 +328,66 @@ describe('useIncomeExpenseTab', () => {
 			await act(async () => result.current.handleSubmit(fakeEvent()));
 
 			expect(config.createEntry).not.toHaveBeenCalled();
+		});
+
+		it('sets a party field error and shows a toast when the client is missing', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).not.toHaveBeenCalled();
+			expect(result.current.errors.partyId).toBe(true);
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					title: 'Completá los campos obligatorios',
+					variant: 'destructive',
+				})
+			);
+		});
+
+		it('sets an amount field error when the net amount is negative', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('-100');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).not.toHaveBeenCalled();
+			expect(result.current.errors.netAmount).toBe(true);
+		});
+
+		it('clears the party field error once a client is selected', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+			expect(result.current.errors.partyId).toBe(true);
+
+			act(() => result.current.setPartyId('3'));
+
+			expect(result.current.errors.partyId).toBeFalsy();
 		});
 
 		it('creates a new entry with the rounded net amount and computed iva/total', async () => {

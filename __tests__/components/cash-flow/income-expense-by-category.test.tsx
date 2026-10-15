@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { IncomeExpenseByCategory } from '@/components/business/cash-flow/income-expense-by-category';
+import { IncomeExpenseByCategory } from '@/components/business/cash-flow/incomes-expenses/income-expense-by-category';
 import { formatCurrency } from '@/utils/formats-money';
 import type { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
 import type { CashFlowCategory } from '@/lib/categories/categories';
