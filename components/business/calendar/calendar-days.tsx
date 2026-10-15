@@ -1,5 +1,6 @@
 import { Event } from '@/lib/calendar/events';
 import { EventType, resolveEventType } from '@/lib/calendar/event-types';
+import { CalendarHoliday } from '@/helpers/calendar/holidays';
 
 interface CalendarDayProps {
 	day: number;
@@ -8,6 +9,7 @@ interface CalendarDayProps {
 	isSelected: boolean;
 	onClick: () => void;
 	eventTypes?: EventType[];
+	holiday?: CalendarHoliday;
 }
 
 export function CalendarDay({
@@ -17,10 +19,17 @@ export function CalendarDay({
 	isSelected,
 	onClick,
 	eventTypes = [],
+	holiday,
 }: CalendarDayProps) {
+	// Red for a day off, amber when the admin decided to work it anyway.
+	const holidayColor = holiday?.workDay
+		? 'text-amber-600 dark:text-amber-400'
+		: 'text-red-600 dark:text-red-400';
+
 	return (
 		<div
 			onClick={onClick}
+			title={holiday?.name}
 			className={`aspect-square p-2 rounded-lg border transition-colors cursor-pointer ${
 				isToday
 					? 'border-green-500 dark:border-green-400 bg-green-500/10 dark:bg-green-400/10'
@@ -33,10 +42,15 @@ export function CalendarDay({
 		>
 			<div className="flex flex-col h-full">
 				<span
-					className={`text-sm font-medium ${isToday ? 'text-green-600 dark:text-green-400' : Object.keys(events).length > 0 ? 'text-foreground' : 'text-muted-foreground'}`}
+					className={`text-sm font-medium ${isToday ? 'text-green-600 dark:text-green-400' : holiday ? holidayColor : Object.keys(events).length > 0 ? 'text-foreground' : 'text-muted-foreground'}`}
 				>
 					{day}
 				</span>
+				{holiday && (
+					<span className={`hidden sm:block truncate text-[10px] leading-tight ${holidayColor}`}>
+						{holiday.workDay ? 'Se trabaja' : 'Feriado'}
+					</span>
+				)}
 				{Object.keys(events).length > 0 && (
 					<div className="hidden sm:flex flex-1 items-center justify-center mt-1">
 						<div className="flex flex-wrap gap-1">

@@ -7,12 +7,14 @@ import { monthNames, dayNames } from '@/constants/date';
 import { Event } from '@/lib/calendar/events';
 import { EventType } from '@/lib/calendar/event-types';
 import { formatDateString } from '@/helpers/calendar/date';
+import { CalendarHoliday } from '@/helpers/calendar/holidays';
 
 type MonthGridProps = {
 	currentDate: Date;
 	selectedDate: string | null;
 	eventTypes: EventType[];
 	eventsByDate: Record<string, Event[]>;
+	holidaysByDate?: Record<string, CalendarHoliday>;
 	onDateSelect: (dateStr: string | null) => void;
 	onPreviousMonth: () => void;
 	onNextMonth: () => void;
@@ -23,6 +25,7 @@ export function MonthGrid({
 	selectedDate,
 	eventTypes,
 	eventsByDate,
+	holidaysByDate = {},
 	onDateSelect,
 	onPreviousMonth,
 	onNextMonth,
@@ -94,6 +97,7 @@ export function MonthGrid({
 							isSelected={selectedDate === dateStr}
 							onClick={() => onDateSelect(selectedDate === dateStr ? null : dateStr)}
 							eventTypes={eventTypes}
+							holiday={holidaysByDate[dateStr]}
 						/>
 					);
 				})}

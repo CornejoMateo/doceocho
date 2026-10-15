@@ -5,6 +5,7 @@ import {
 	getSlotsForDate,
 	normalizeTime,
 } from '@/helpers/appointments/availability';
+import { loadHolidayAvailability } from '@/lib/appointments/holiday-availability';
 import { sendAppointmentRequestedNotification } from '@/lib/push/send-appointment-notification';
 
 export const dynamic = 'force-dynamic';
@@ -63,25 +64,25 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
+		const [{ data: taken }, { data: blocked }, holidays] = await Promise.all([
+			supabase.from('appointments').select('date, start_time, status').eq('date', date),
+			supabase.from('appointment_blocked_dates').select('date').eq('date', date),
+			loadHolidayAvailability(supabase, date, date),
+		]);
+
 		const availability: AvailabilitySettings = {
 			weekly_schedule: settings.weekly_schedule ?? [],
 			slot_duration_minutes: settings.slot_duration_minutes,
 			min_notice_hours: settings.min_notice_hours,
 			max_days_ahead: settings.max_days_ahead,
+			date_overrides: holidays.dateOverrides,
 		};
 
-		const [{ data: taken }, { data: blocked }] = await Promise.all([
-			supabase.from('appointments').select('date, start_time, status').eq('date', date),
-			supabase.from('appointment_blocked_dates').select('date').eq('date', date),
-		]);
-
 		// The slot is re-validated here: never trust what the browser sent.
-		const slot = getSlotsForDate(
-			date,
-			availability,
-			taken ?? [],
-			(blocked ?? []).map((entry) => entry.date)
-		).find((candidate) => candidate.start === startTime);
+		const slot = getSlotsForDate(date, availability, taken ?? [], [
+			...(blocked ?? []).map((entry) => entry.date),
+			...holidays.blockedDates,
+		]).find((candidate) => candidate.start === startTime);
 
 		if (!slot) {
 			return NextResponse.json({ error: 'Ese horario ya no está disponible' }, { status: 409 });
