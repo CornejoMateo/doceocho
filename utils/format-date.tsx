@@ -17,6 +17,16 @@ export const formatCreatedAt = (dateValue: unknown) => {
 	return `${day}/${month}/${year}`;
 };
 
+// For plain 'YYYY-MM-DD' date columns: splits the string instead of `new Date()`, which
+// would parse it as UTC midnight and shift a day back once localized to Argentina time.
+export function formatDateOnly(value: string | null | undefined) {
+	if (!value) return '-';
+	const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (!match) return '-';
+	const [, year, month, day] = match;
+	return `${day}/${month}/${year}`;
+}
+
 export function formatShortDate(value: string | null | undefined) {
 	if (!value) return '-';
 	try {
@@ -93,14 +103,6 @@ export const formatTimeVideo = (seconds: number) => {
 	const s = (totalSeconds % 60).toString().padStart(2, '0');
 	return `${m}:${s}`;
 };
-
-/** Formats a date-only 'YYYY-MM-DD' string as dd/mm/yyyy without using Date (avoids timezone day shifts). */
-export function formatDateOnly(value: string | null | undefined): string {
-	if (!value) return 'N/A';
-	const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-	if (!match) return 'N/A';
-	return `${match[3]}/${match[2]}/${match[1]}`;
-}
 
 /** Returns true when the value is a real calendar date in 'YYYY-MM-DD' form. */
 export function isValidDateOnly(value: string | null | undefined): boolean {

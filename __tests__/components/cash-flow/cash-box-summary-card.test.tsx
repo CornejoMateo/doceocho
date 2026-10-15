@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { CashBoxSummaryCard } from '@/components/business/cash-flow/cash-box-summary-card';
+import { CashBoxSummaryCard } from '@/components/business/cash-flow/cash-box/cash-box-summary-card';
 
 const mockSummary = {
 	id: 1,

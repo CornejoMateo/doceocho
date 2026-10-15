@@ -1,6 +1,6 @@
 'use client';
 
-import { BalancesReport } from '@/components/business/reports/balances/balances-report';
+import { BudgetsReport } from '@/components/business/reports/budgets/budgets-report';
 
 export function ReportsView() {
 	return (
@@ -14,7 +14,7 @@ export function ReportsView() {
 			</div>
 
 			{/* Content */}
-			<BalancesReport />
+			<BudgetsReport />
 		</div>
 	);
 }

@@ -30,6 +30,11 @@ const mockBankAccounts = [
 	},
 ];
 
+const mockPaymentMethodOptions = [
+	{ id: 1, created_at: '2024-01-01', name: 'Efectivo', is_active: true },
+	{ id: 2, created_at: '2024-01-01', name: 'Transferencia Bancaria', is_active: true },
+];
+
 const defaultProps = {
 	addingMode: null as 'transaction' | null,
 	transactionDate: new Date('2024-06-15'),
@@ -42,8 +47,9 @@ const defaultProps = {
 	onQuoteUsdChange: jest.fn(),
 	notes: '',
 	onNotesChange: jest.fn(),
-	paymentMethod: '',
-	onPaymentMethodChange: jest.fn(),
+	paymentMethodId: '',
+	onPaymentMethodIdChange: jest.fn(),
+	paymentMethodOptions: mockPaymentMethodOptions,
 	bankAccountId: '',
 	onBankAccountIdChange: jest.fn(),
 	onCancel: jest.fn(),
@@ -256,31 +262,56 @@ describe('AddTransactionSection', () => {
 		expect(onNotesChange).toHaveBeenCalledWith('Pago de proveedor');
 	});
 
-	describe('bank account selection', () => {
-		it('does not show bank account select when payment method is not bank_transfer', () => {
-			render(
-				<AddTransactionSection {...defaultProps} addingMode="transaction" paymentMethod="cash" />
-			);
+	describe('payment method selection', () => {
+		it('renders payment method options from props', () => {
+			render(<AddTransactionSection {...defaultProps} addingMode="transaction" />);
 
-			expect(screen.queryByText('Cuenta Bancaria')).not.toBeInTheDocument();
+			fireEvent.click(screen.getByText('Seleccionar método'));
+
+			expect(screen.getByText('Efectivo')).toBeInTheDocument();
+			expect(screen.getByText('Transferencia Bancaria')).toBeInTheDocument();
 		});
 
-		it('shows bank account select when payment method is bank_transfer', () => {
-			(useOptimizedRealtime as jest.Mock).mockReturnValue({
-				data: mockBankAccounts,
-				loading: false,
-				refresh: jest.fn(),
-			});
-
+		it('calls onPaymentMethodIdChange when a method is selected', () => {
+			const onPaymentMethodIdChange = jest.fn();
 			render(
 				<AddTransactionSection
 					{...defaultProps}
 					addingMode="transaction"
-					paymentMethod="bank_transfer"
+					onPaymentMethodIdChange={onPaymentMethodIdChange}
 				/>
 			);
 
-			expect(screen.getByText('Cuenta Bancaria')).toBeInTheDocument();
+			fireEvent.click(screen.getByText('Seleccionar método'));
+			fireEvent.click(screen.getByText('Efectivo'));
+
+			expect(onPaymentMethodIdChange).toHaveBeenCalledWith('1');
+		});
+
+		it('marks inactive methods in the label', () => {
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					paymentMethodOptions={[
+						{ id: 3, created_at: '2024-01-01', name: 'Cheque físico', is_active: false },
+					]}
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Seleccionar método'));
+
+			expect(screen.getByText('Cheque físico (inactivo)')).toBeInTheDocument();
+		});
+	});
+
+	describe('bank account selection', () => {
+		it('is always visible regardless of the selected payment method', () => {
+			render(
+				<AddTransactionSection {...defaultProps} addingMode="transaction" paymentMethodId="1" />
+			);
+
+			expect(screen.getByText('Cuenta Bancaria (opcional)')).toBeInTheDocument();
 		});
 
 		it('renders bank account options from the realtime hook data', () => {
@@ -290,15 +321,9 @@ describe('AddTransactionSection', () => {
 				refresh: jest.fn(),
 			});
 
-			render(
-				<AddTransactionSection
-					{...defaultProps}
-					addingMode="transaction"
-					paymentMethod="bank_transfer"
-				/>
-			);
+			render(<AddTransactionSection {...defaultProps} addingMode="transaction" />);
 
-			fireEvent.click(screen.getByText('Selecciona una cuenta'));
+			fireEvent.click(screen.getByText('Sin cuenta'));
 
 			expect(screen.getByText('Santander - Cuenta Principal (123456)')).toBeInTheDocument();
 			expect(screen.getByText('BBVA - Cuenta Secundaria (789012)')).toBeInTheDocument();
@@ -316,15 +341,37 @@ describe('AddTransactionSection', () => {
 				<AddTransactionSection
 					{...defaultProps}
 					addingMode="transaction"
-					paymentMethod="bank_transfer"
 					onBankAccountIdChange={onBankAccountIdChange}
 				/>
 			);
 
-			fireEvent.click(screen.getByText('Selecciona una cuenta'));
+			fireEvent.click(screen.getByText('Sin cuenta'));
 			fireEvent.click(screen.getByText('Santander - Cuenta Principal (123456)'));
 
 			expect(onBankAccountIdChange).toHaveBeenCalledWith('1');
+		});
+
+		it('calls onBankAccountIdChange with empty string when "Sin cuenta" is selected', () => {
+			const onBankAccountIdChange = jest.fn();
+			(useOptimizedRealtime as jest.Mock).mockReturnValue({
+				data: mockBankAccounts,
+				loading: false,
+				refresh: jest.fn(),
+			});
+
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					bankAccountId="1"
+					onBankAccountIdChange={onBankAccountIdChange}
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Santander - Cuenta Principal (123456)'));
+			fireEvent.click(screen.getByText('Sin cuenta'));
+
+			expect(onBankAccountIdChange).toHaveBeenCalledWith('');
 		});
 	});
 });

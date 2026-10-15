@@ -102,8 +102,9 @@ export function BalanceDetailsModal({
 		setTransactionAmount,
 		bankAccountId,
 		setBankAccountId,
-		paymentMethod,
-		setPaymentMethod,
+		paymentMethodId,
+		setPaymentMethodId,
+		paymentMethodOptions,
 		notes,
 		setNotes,
 		quoteUsd,
@@ -229,8 +230,9 @@ export function BalanceDetailsModal({
 							onQuoteUsdChange={setQuoteUsd}
 							notes={notes}
 							onNotesChange={setNotes}
-							paymentMethod={paymentMethod}
-							onPaymentMethodChange={setPaymentMethod}
+							paymentMethodId={paymentMethodId}
+							onPaymentMethodIdChange={setPaymentMethodId}
+							paymentMethodOptions={paymentMethodOptions}
 							onBankAccountIdChange={setBankAccountId}
 							bankAccountId={bankAccountId}
 							onCancel={resetTransactionForm}
