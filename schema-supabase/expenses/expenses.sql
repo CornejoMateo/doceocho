@@ -120,3 +120,37 @@ USING (
             AND u.role = 'Admin'
     )
 );
+
+------ RUN PRODUCTION ------
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'expenses_net_amount_decimals_check'
+          AND conrelid = 'public.expenses'::regclass
+    ) THEN
+        ALTER TABLE public.expenses
+          ADD CONSTRAINT expenses_net_amount_decimals_check
+          CHECK (net_amount = round(net_amount, 2)) NOT VALID;
+    END IF;
+END $$;
+
+ALTER TABLE public.expenses VALIDATE CONSTRAINT expenses_net_amount_decimals_check;
+
+create or replace function public.expenses_compute_iva_and_total()
+returns trigger
+language plpgsql
+as $$
+begin
+    new.iva_amount := round(new.net_amount * new.iva_percent / 100, 2);
+    new.total_amount := new.net_amount + new.iva_amount;
+    return new;
+end;
+$$;
+
+DROP TRIGGER IF EXISTS trg_expenses_compute_iva_and_total ON public.expenses;
+create trigger trg_expenses_compute_iva_and_total
+before insert or update on public.expenses
+for each row
+execute function public.expenses_compute_iva_and_total();
