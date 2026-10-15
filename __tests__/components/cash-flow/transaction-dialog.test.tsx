@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
+import { TransactionDialog } from '@/components/business/cash-flow/cash-box/transaction-dialog';
 import { createTransaction } from '@/lib/cash-flow/cash-flow';
 import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';

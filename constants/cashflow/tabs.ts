@@ -16,7 +16,7 @@ export const CASH_FLOW_TABS: { value: CashFlowTabValue; label: string }[] = [
 	{ value: 'expenses', label: 'Gastos' },
 	{ value: 'collections', label: 'Cobros' },
 	{ value: 'payments', label: 'Pagos' },
-	{ value: 'fixed-expenses', label: 'Gastos fijos' },
+	{ value: 'fixed-expenses', label: 'Costos fijos' },
 	{ value: 'checking-accounts', label: 'Cuentas corrientes' },
 	{ value: 'suppliers', label: 'Proveedores' },
 	{ value: 'bank-accounts', label: 'Cuentas bancarias' },

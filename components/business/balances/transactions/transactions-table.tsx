@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/table';
 import { BalanceTransactionWithBankAccount } from '@/lib/balances/balance_transactions';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
-import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 
 interface TransactionsTableProps {
 	isLoading: boolean;
@@ -68,7 +67,7 @@ export function TransactionsTable({
 								<TableCell>{formatDate(transaction.date)}</TableCell>
 
 								<TableCell className="text-center whitespace-normal break-words">
-									{getPaymentMethodLabel(transaction.payment_method || '')}
+									{transaction.payment_method_name || '-'}
 
 									{transaction.bank_account_id && transaction.bank_account ? (
 										<div className="text-xs text-muted-foreground">
@@ -193,9 +192,7 @@ export function TransactionsTable({
 							<div>
 								<p className="text-xs font-medium text-muted-foreground">Método de pago</p>
 
-								<p className="mt-0.5 text-sm">
-									{getPaymentMethodLabel(transaction.payment_method || '')}
-								</p>
+								<p className="mt-0.5 text-sm">{transaction.payment_method_name || '-'}</p>
 
 								{transaction.bank_account_id && transaction.bank_account ? (
 									<p className="text-xs text-muted-foreground">

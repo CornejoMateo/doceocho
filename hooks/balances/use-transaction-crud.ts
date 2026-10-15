@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
 	BalanceTransaction,
 	getTransactionsByBalanceId,
@@ -15,11 +15,13 @@ import {
 	markBalanceAsSettled,
 	unmarkBalanceAsSettled,
 } from '@/lib/balances/balances';
+import { PaymentMethod, listPaymentMethods } from '@/lib/payment-methods/payment-methods';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { format, set } from 'date-fns';
+import { format } from 'date-fns';
 import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
+import { withInactiveSelected } from '@/utils/select-options';
 
 export function useTransactionCrud(
 	balance: BalanceWithBudget | null,
@@ -50,11 +52,28 @@ export function useTransactionCrud(
 
 	const [transactionDate, setTransactionDate] = useState<Date>(new Date());
 	const [transactionAmount, setTransactionAmount] = useState('');
-	const [paymentMethod, setPaymentMethod] = useState('');
+	const [paymentMethodId, setPaymentMethodId] = useState('');
 	const [notes, setNotes] = useState('');
 	const [quoteUsd, setQuoteUsd] = useState('');
 	const [usdAmount, setUsdAmount] = useState('');
 	const [bankAccountId, setBankAccountId] = useState<string>('');
+
+	const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+	const activePaymentMethods = useMemo(
+		() => paymentMethods.filter((m) => m.is_active),
+		[paymentMethods]
+	);
+	// Keeps a now-inactive but already-selected method visible while editing (never on create).
+	const paymentMethodOptions = useMemo(
+		() =>
+			withInactiveSelected(
+				activePaymentMethods,
+				paymentMethods,
+				paymentMethodId,
+				!!editingTransaction
+			),
+		[activePaymentMethods, paymentMethods, paymentMethodId, editingTransaction]
+	);
 
 	useEffect(() => {
 		if (balance && isOpen) {
@@ -62,6 +81,11 @@ export function useTransactionCrud(
 			setBalanceNotes(balance.notes ?? '');
 		}
 	}, [balance?.id, isOpen]);
+
+	useEffect(() => {
+		if (!isOpen) return;
+		listPaymentMethods().then(({ data }) => setPaymentMethods(data ?? []));
+	}, [isOpen]);
 
 	useEffect(() => {
 		if (skipNextAutoCalcRef.current) {
@@ -231,11 +255,13 @@ export function useTransactionCrud(
 		setIsSavingTransaction(true);
 
 		try {
+			const selectedMethod = paymentMethods.find((m) => String(m.id) === paymentMethodId);
 			const { data, error } = await createTransaction({
 				balance_id: balance.id,
 				date: format(transactionDate, 'yyyy-MM-dd'),
 				amount: parseArsToNumber(transactionAmount),
-				payment_method: paymentMethod || null,
+				payment_method_id: paymentMethodId ? Number(paymentMethodId) : null,
+				payment_method: selectedMethod?.name ?? null,
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
 				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
@@ -371,7 +397,7 @@ export function useTransactionCrud(
 		setEditingTransaction(null);
 		setTransactionDate(new Date());
 		setTransactionAmount('');
-		setPaymentMethod('');
+		setPaymentMethodId('');
 		setNotes('');
 		setQuoteUsd('');
 		setUsdAmount('');
@@ -392,7 +418,17 @@ export function useTransactionCrud(
 					})
 				: ''
 		);
-		setPaymentMethod(transaction.payment_method || '');
+
+		const matchByText = transaction.payment_method
+			? paymentMethods.find((m) => m.name === transaction.payment_method)
+			: undefined;
+		setPaymentMethodId(
+			transaction.payment_method_id
+				? String(transaction.payment_method_id)
+				: matchByText
+					? String(matchByText.id)
+					: ''
+		);
 		setBankAccountId(transaction.bank_account_id ? String(transaction.bank_account_id) : '');
 		setNotes(transaction.notes || '');
 		setQuoteUsd(
@@ -423,10 +459,12 @@ export function useTransactionCrud(
 		setIsSavingTransaction(true);
 
 		try {
+			const selectedMethod = paymentMethods.find((m) => String(m.id) === paymentMethodId);
 			const { error } = await updateTransaction(editingTransaction.id, {
 				date: format(transactionDate, 'yyyy-MM-dd'),
 				amount: parseArsToNumber(transactionAmount),
-				payment_method: paymentMethod || null,
+				payment_method_id: paymentMethodId ? Number(paymentMethodId) : null,
+				payment_method: selectedMethod?.name ?? null,
 				notes: notes || null,
 				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
 				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
@@ -515,8 +553,9 @@ export function useTransactionCrud(
 		setTransactionDate,
 		transactionAmount,
 		setTransactionAmount,
-		paymentMethod,
-		setPaymentMethod,
+		paymentMethodId,
+		setPaymentMethodId,
+		paymentMethodOptions,
 		setBankAccountId,
 		bankAccountId,
 		notes,

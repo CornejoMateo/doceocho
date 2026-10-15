@@ -26,6 +26,8 @@ interface PaymentFormProps {
 	activePurchaseForPayment: PurchaseSupplierWithBalance | null;
 	paymentAmount: string;
 	onAmountChange: (value: string) => void;
+	paymentDate: string;
+	onDateChange: (value: string) => void;
 	remainingPurchaseBalance: number;
 	paymentExceedsBalance: boolean;
 	paymentBankAccountId: string;
@@ -48,6 +50,8 @@ export function PaymentForm({
 	activePurchaseForPayment,
 	paymentAmount,
 	onAmountChange,
+	paymentDate,
+	onDateChange,
 	remainingPurchaseBalance,
 	paymentExceedsBalance,
 	paymentBankAccountId,
@@ -77,6 +81,17 @@ export function PaymentForm({
 				</DialogDescription>
 			</DialogHeader>
 			<form onSubmit={onSubmit} className="space-y-4">
+				<div className="space-y-2">
+					<Label htmlFor="payment-date">Fecha de pago</Label>
+					<Input
+						id="payment-date"
+						type="date"
+						value={paymentDate}
+						onChange={(e) => onDateChange(e.target.value)}
+						required
+					/>
+				</div>
+
 				<div className="space-y-2">
 					<Label htmlFor="payment-amount">Monto</Label>
 					<div className="flex gap-2">
