@@ -1,12 +1,13 @@
 import { getSupabaseClient } from '../supabase-client';
+import { fetchAllPages } from '@/lib/suppliers/pagination';
 
+// General collections only (no client). Customer collections always live in balance_transactions.
 export type Collection = {
 	id: number;
 	created_at: string;
 	date: string;
 	receipt_number: string | null;
 	work_id: number | null;
-	client_id: number;
 	category_id: number | null;
 	kind: 'collection';
 	description: string | null;
@@ -17,7 +18,6 @@ export type Collection = {
 
 export type CollectionWithDetails = Collection & {
 	work_name: string | null;
-	client_name: string;
 	category_name: string | null;
 	payment_method_name: string;
 	bank_account_name: string | null;
@@ -27,7 +27,6 @@ export type CollectionInput = {
 	date: string;
 	receipt_number: string | null;
 	work_id: number | null;
-	client_id: number;
 	category_id: number | null;
 	description: string | null;
 	amount: number;
@@ -37,34 +36,34 @@ export type CollectionInput = {
 
 const TABLE = 'collections';
 const SELECT =
-	'*, works(name), clients(name, last_name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank)';
+	'*, works(name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank)';
 
 function mapRow(row: any): CollectionWithDetails {
-	const { works, clients, cash_flow_categories, payment_methods, bank_accounts, ...rest } = row;
-	const clientName = clients ? `${clients.name || ''} ${clients.last_name || ''}`.trim() : '';
+	const { works, cash_flow_categories, payment_methods, bank_accounts, ...rest } = row;
 	return {
 		...rest,
 		work_name: works?.name ?? null,
-		client_name: clientName,
 		category_name: cash_flow_categories?.name ?? null,
 		payment_method_name: payment_methods?.name ?? '',
 		bank_account_name: bank_accounts ? `${bank_accounts.bank} - ${bank_accounts.name}` : null,
 	};
 }
 
-// Scoped by year on the server (mirrors listIncomes/listExpenses); remaining filters stay in-memory.
 export async function listCollections(params: {
 	year: number;
 }): Promise<{ data: CollectionWithDetails[] | null; error: any }> {
-	const supabase = getSupabaseClient();
 	const { year } = params;
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select(SELECT)
-		.gte('date', `${year}-01-01`)
-		.lt('date', `${year + 1}-01-01`)
-		.order('date', { ascending: false })
-		.order('id', { ascending: false });
+	const { data, error } = await fetchAllPages<any>((from, to) => {
+		const supabase = getSupabaseClient();
+		return supabase
+			.from(TABLE)
+			.select(SELECT)
+			.gte('date', `${year}-01-01`)
+			.lt('date', `${year + 1}-01-01`)
+			.order('date', { ascending: false })
+			.order('id', { ascending: false })
+			.range(from, to);
+	});
 	if (error) return { data: null, error };
 	return { data: data ? data.map(mapRow) : null, error: null };
 }

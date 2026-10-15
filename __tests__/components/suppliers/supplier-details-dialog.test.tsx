@@ -20,7 +20,7 @@ import {
 import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
+import { formatShortDate, getLocalDate } from '@/utils/format-date';
 import { translateError } from '@/lib/error-translator';
 import {
 	uploadFilePurchaseSupplier,
@@ -549,6 +549,35 @@ describe('SupplierDetailsDialog', () => {
 			expect(await screen.findByText('No hay compras pendientes.')).toBeInTheDocument();
 			expect(await screen.findByRole('tab', { name: 'Pendientes (0)' })).toBeInTheDocument();
 			expect(screen.getByRole('tab', { name: 'Pagadas (1)' })).toBeInTheDocument();
+		});
+	});
+
+	describe('payment date field', () => {
+		it('defaults the new payment date to today and submits it as paid_date', async () => {
+			(createPaymentSupplier as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
+			await openNewPaymentForm();
+
+			expect(screen.getByLabelText('Fecha de pago')).toHaveValue(getLocalDate());
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() => expect(createPaymentSupplier).toHaveBeenCalledTimes(1));
+			expect(createPaymentSupplier).toHaveBeenCalledWith(
+				expect.objectContaining({ paid_date: getLocalDate() })
+			);
+		});
+
+		it('prefills the date field from the payment being edited', async () => {
+			(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
+				data: [{ ...createdPayment, id: 88, paid_date: '2026-03-15' }],
+				error: null,
+			});
+			openDialog();
+			await expandPurchase();
+			fireEvent.click(await screen.findByRole('button', { name: 'Más acciones del pago' }));
+			fireEvent.click(await screen.findByRole('button', { name: 'Editar pago' }));
+
+			expect(await screen.findByLabelText('Fecha de pago')).toHaveValue('2026-03-15');
 		});
 	});
 

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BankAccountForm } from '@/components/business/cash-flow/bank-account-form';
+import { BankAccountForm } from '@/components/business/cash-flow/bank-accounts/bank-account-form';
 import { createBankAccount, updateBankAccount } from '@/lib/cash-flow/cash-flow';
 import { translateError } from '@/lib/error-translator';
 
@@ -32,6 +32,7 @@ const mockAccount = {
 	account_number: '123-456',
 	account_type: 'checking',
 	is_active: true,
+	initial_balance: 1500,
 };
 
 function fillRequiredFields() {
@@ -58,22 +59,36 @@ describe('BankAccountForm', () => {
 		(updateBankAccount as jest.Mock).mockResolvedValue({ data: mockAccount, error: null });
 	});
 
-	it('renders empty fields and "Crear" button in create mode', () => {
+	it('renders empty fields, a "0,00" initial balance, and "Crear" button in create mode', () => {
 		render(<BankAccountForm onSave={onSave} onCancel={onCancel} />);
 
 		expect(screen.getByLabelText('Nombre de la Cuenta')).toHaveValue('');
 		expect(screen.getByLabelText('Banco')).toHaveValue('');
 		expect(screen.getByLabelText('Número de Cuenta')).toHaveValue('');
+		expect(screen.getByLabelText('Saldo inicial')).toHaveValue('0.00');
 		expect(screen.getByText('Crear')).toBeInTheDocument();
 	});
 
-	it('renders prefilled fields and "Actualizar" button in edit mode', () => {
+	it('renders prefilled fields (including initial balance) and "Actualizar" button in edit mode', () => {
 		render(<BankAccountForm account={mockAccount} onSave={onSave} onCancel={onCancel} />);
 
 		expect(screen.getByLabelText('Nombre de la Cuenta')).toHaveValue('Cuenta Principal');
 		expect(screen.getByLabelText('Banco')).toHaveValue('Santander');
 		expect(screen.getByLabelText('Número de Cuenta')).toHaveValue('123-456');
+		expect(screen.getByLabelText('Saldo inicial')).toHaveValue('1.500');
 		expect(screen.getByText('Actualizar')).toBeInTheDocument();
+	});
+
+	it('prefills a negative initial balance in edit mode', () => {
+		render(
+			<BankAccountForm
+				account={{ ...mockAccount, initial_balance: -250.5 }}
+				onSave={onSave}
+				onCancel={onCancel}
+			/>
+		);
+
+		expect(screen.getByLabelText('Saldo inicial')).toHaveValue('-250,5');
 	});
 
 	it('calls onCancel when cancel button is clicked', () => {
@@ -141,12 +156,35 @@ describe('BankAccountForm', () => {
 				bank: 'Banco Galicia',
 				account_number: '1111-2222',
 				account_type: 'checking',
+				initial_balance: 0,
 				is_active: true,
 			});
 		});
 
 		expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Cuenta creada' }));
 		expect(onSave).toHaveBeenCalled();
+	});
+
+	it('creates a new account with a custom (negative) initial balance', async () => {
+		render(<BankAccountForm onSave={onSave} onCancel={onCancel} />);
+		fillRequiredFields();
+
+		fireEvent.change(screen.getByLabelText('Saldo inicial'), { target: { value: '-1234,5' } });
+		fireEvent.click(screen.getByText('Crear'));
+
+		await waitFor(() => {
+			expect(createBankAccount).toHaveBeenCalledWith(
+				expect.objectContaining({ initial_balance: -1234.5 })
+			);
+		});
+	});
+
+	it('caps the initial balance to 2 decimals while typing', () => {
+		render(<BankAccountForm onSave={onSave} onCancel={onCancel} />);
+
+		fireEvent.change(screen.getByLabelText('Saldo inicial'), { target: { value: '10,999' } });
+
+		expect(screen.getByLabelText('Saldo inicial')).toHaveValue('10,99');
 	});
 
 	it('updates an existing account instead of creating a new one', async () => {
@@ -164,6 +202,7 @@ describe('BankAccountForm', () => {
 				bank: 'Santander',
 				account_number: '123-456',
 				account_type: 'checking',
+				initial_balance: 1500,
 			});
 		});
 
@@ -172,6 +211,20 @@ describe('BankAccountForm', () => {
 			expect.objectContaining({ title: 'Cuenta actualizada' })
 		);
 		expect(onSave).toHaveBeenCalled();
+	});
+
+	it('updates an existing account with an edited initial balance', async () => {
+		render(<BankAccountForm account={mockAccount} onSave={onSave} onCancel={onCancel} />);
+
+		fireEvent.change(screen.getByLabelText('Saldo inicial'), { target: { value: '2.000,25' } });
+		fireEvent.click(screen.getByText('Actualizar'));
+
+		await waitFor(() => {
+			expect(updateBankAccount).toHaveBeenCalledWith(
+				1,
+				expect.objectContaining({ initial_balance: 2000.25 })
+			);
+		});
 	});
 
 	it('shows an error toast and does not call onSave when createBankAccount fails', async () => {

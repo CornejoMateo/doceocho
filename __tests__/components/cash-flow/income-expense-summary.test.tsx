@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { IncomeExpenseSummary } from '@/components/business/cash-flow/income-expense-summary';
+import { IncomeExpenseSummary } from '@/components/business/cash-flow/incomes-expenses/income-expense-summary';
 import { formatCurrency } from '@/utils/formats-money';
 
 const money = (n: number) => formatCurrency(n).replace(/\u00A0/g, ' ');

@@ -17,6 +17,16 @@ export const formatCreatedAt = (dateValue: unknown) => {
 	return `${day}/${month}/${year}`;
 };
 
+// For plain 'YYYY-MM-DD' date columns: splits the string instead of `new Date()`, which
+// would parse it as UTC midnight and shift a day back once localized to Argentina time.
+export function formatDateOnly(value: string | null | undefined) {
+	if (!value) return '-';
+	const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (!match) return '-';
+	const [, year, month, day] = match;
+	return `${day}/${month}/${year}`;
+}
+
 export function formatShortDate(value: string | null | undefined) {
 	if (!value) return '-';
 	try {

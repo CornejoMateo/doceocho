@@ -9,23 +9,27 @@ jest.mock('@/components/provider/auth-provider', () => ({
 	useAuth: () => ({ user: { role: 'Admin' } }),
 }));
 
-jest.mock('@/components/business/cash-flow/checking-accounts-tab', () => ({
+jest.mock('@/components/business/cash-flow/balances-tab/checking-accounts-tab', () => ({
 	CheckingAccountsTab: () => <div data-testid="checking-accounts-tab" />,
 }));
 
-jest.mock('@/components/business/cash-flow/incomes-tab', () => ({
+jest.mock('@/components/business/cash-flow/summary/summary-tab', () => ({
+	SummaryTab: () => <div data-testid="summary-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/incomes-expenses/incomes-tab', () => ({
 	IncomesTab: () => <div data-testid="incomes-tab" />,
 }));
 
-jest.mock('@/components/business/cash-flow/expenses-tab', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/expenses-tab', () => ({
 	ExpensesTab: () => <div data-testid="expenses-tab" />,
 }));
 
-jest.mock('@/components/business/cash-flow/collections-tab', () => ({
+jest.mock('@/components/business/cash-flow/collections-payments/collections-tab', () => ({
 	CollectionsTab: () => <div data-testid="collections-tab" />,
 }));
 
-jest.mock('@/components/business/cash-flow/payments-tab', () => ({
+jest.mock('@/components/business/cash-flow/collections-payments/payments-tab', () => ({
 	PaymentsTab: () => <div data-testid="payments-tab" />,
 }));
 
@@ -41,7 +45,7 @@ describe('CashFlowManagement Component', () => {
 		jest.clearAllMocks();
 	});
 
-	it('shows the "En desarrollo" placeholder in the summary tab', () => {
+	it('mounts the summary tab by default (no more "En desarrollo" placeholder)', () => {
 		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation((key) => {
 			if (key === 'cash_boxes') {
 				return { data: [], loading: false, refresh: mockRefreshCashBoxes };
@@ -50,7 +54,8 @@ describe('CashFlowManagement Component', () => {
 		});
 
 		render(<CashFlowManagement />);
-		expect(screen.getByText('En desarrollo')).toBeInTheDocument();
+		expect(screen.getByTestId('summary-tab')).toBeInTheDocument();
+		expect(screen.queryByText('En desarrollo')).not.toBeInTheDocument();
 	});
 
 	it('mounts the checking accounts tab when its tab is selected', async () => {

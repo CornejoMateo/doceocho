@@ -7,6 +7,7 @@ import {
 	updateTransaction,
 } from '@/lib/balances/balance_transactions';
 import { updateBalance } from '@/lib/balances/balances';
+import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
 
 jest.mock('@/lib/balances/balance_transactions', () => ({
 	getTransactionsByBalanceId: jest.fn(),
@@ -20,6 +21,15 @@ jest.mock('@/lib/balances/balances', () => ({
 	markBalanceAsSettled: jest.fn(),
 	unmarkBalanceAsSettled: jest.fn(),
 }));
+
+jest.mock('@/lib/payment-methods/payment-methods', () => ({
+	listPaymentMethods: jest.fn(),
+}));
+
+const mockPaymentMethods = [
+	{ id: 1, created_at: '2024-01-01', name: 'Efectivo', is_active: true },
+	{ id: 2, created_at: '2024-01-01', name: 'Transferencia', is_active: true },
+];
 
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: jest.fn(),
@@ -75,6 +85,7 @@ describe('useTransactionCrud', () => {
 			toast: mockToast,
 		});
 		(getTransactionsByBalanceId as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: mockPaymentMethods, error: null });
 	});
 
 	it('loads transactions when balance and isOpen are provided', async () => {
@@ -125,6 +136,30 @@ describe('useTransactionCrud', () => {
 		expect(createTransaction).toHaveBeenCalled();
 		expect(result.current.isSavingTransaction).toBe(false);
 		expect(mockOnTransactionCreated).toHaveBeenCalled();
+	});
+
+	it('sends both payment_method_id and the resolved payment_method name when creating', async () => {
+		(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setTransactionAmount('500');
+			result.current.setQuoteUsd('1000');
+			result.current.setPaymentMethodId('2');
+		});
+
+		await act(async () => {
+			await result.current.handleAddTransaction();
+		});
+
+		expect(createTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({ payment_method_id: 2, payment_method: 'Transferencia' })
+		);
 	});
 
 	it('shows error toast when createTransaction returns error', async () => {
@@ -233,16 +268,19 @@ describe('useTransactionCrud', () => {
 		expect(result.current.isEditingNotes).toBe(false);
 	});
 
-	it('edits a transaction by populating the form', () => {
+	it('edits a transaction by populating the form', async () => {
 		const { result } = renderHook(() =>
 			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
 		);
+
+		await act(async () => {});
 
 		const tx = {
 			id: 5,
 			date: '2024-06-15',
 			amount: 500,
-			payment_method: 'TRANSFERENCIA',
+			payment_method_id: 2,
+			payment_method: 'Transferencia',
 			notes: 'Test note',
 			quote_usd: 950,
 			usd_amount: 1.05,
@@ -255,7 +293,43 @@ describe('useTransactionCrud', () => {
 		expect(result.current.editingTransaction).toEqual(tx);
 		expect(result.current.addingMode).toBe('transaction');
 		expect(result.current.transactionAmount).toBe('500');
-		expect(result.current.paymentMethod).toBe('TRANSFERENCIA');
+		expect(result.current.paymentMethodId).toBe('2');
+	});
+
+	it('preselects the payment method by exact name match when the legacy row has no payment_method_id', async () => {
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.handleEditTransaction({
+				id: 6,
+				payment_method_id: null,
+				payment_method: 'Transferencia',
+			} as any);
+		});
+
+		expect(result.current.paymentMethodId).toBe('2');
+	});
+
+	it('leaves the payment method select empty when the legacy text has no exact match', async () => {
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.handleEditTransaction({
+				id: 7,
+				payment_method_id: null,
+				payment_method: 'TRANSFERENCIA BANCARIA VIEJA',
+			} as any);
+		});
+
+		expect(result.current.paymentMethodId).toBe('');
 	});
 
 	it('updates a transaction successfully', async () => {

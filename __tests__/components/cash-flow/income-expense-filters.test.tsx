@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { IncomeExpenseFilters } from '@/components/business/cash-flow/income-expense-filters';
+import { IncomeExpenseFilters } from '@/components/business/cash-flow/incomes-expenses/income-expense-filters';
 
 const noop = () => {};
 

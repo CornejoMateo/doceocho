@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Edit, MoreVertical, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
+import { formatDateOnly } from '@/utils/format-date';
 import { pluralArchivos } from '@/helpers/suppliers/suppliers';
 import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
@@ -55,7 +55,7 @@ export function PaymentRow({
 					<div className="min-w-0 text-sm">
 						<p className="font-medium">{formatCurrency(payment.amount_ars)}</p>
 						<p className="text-xs text-muted-foreground">
-							{formatShortDate(payment.created_at)}
+							{formatDateOnly(payment.paid_date)}
 							{' · '}
 							{payment.bank_account_id
 								? (bankAccountById.get(payment.bank_account_id)?.name ?? 'Cuenta eliminada')

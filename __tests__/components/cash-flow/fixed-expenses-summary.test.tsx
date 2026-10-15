@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { FixedExpensesSummary } from '@/components/business/cash-flow/fixed-expenses-summary';
+import { FixedExpensesSummary } from '@/components/business/cash-flow/fixed-expenses/fixed-expenses-summary';
 
 const TOTALS = { net: 1000, iva: 210, total: 1210, count: 2, average: 605 };
 const BY_MONTH = Array.from({ length: 12 }, (_, month) => ({ month, net: 0, iva: 0, total: 0 }));

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import {
 	EntityCombobox,
 	EntityComboboxOption,
-} from '@/components/business/cash-flow/entity-combobox';
+} from '@/components/business/cash-flow/shared/entity-combobox';
 
 const OPTIONS: EntityComboboxOption[] = [
 	{ id: 1, label: 'Cliente Pérez' },
