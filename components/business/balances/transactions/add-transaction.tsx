@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
-import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
+import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
 import { useCallback } from 'react';
 import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
@@ -34,8 +34,9 @@ interface AddTransactionSectionProps {
 	onQuoteUsdChange: (value: string) => void;
 	notes: string;
 	onNotesChange: (value: string) => void;
-	paymentMethod: string;
-	onPaymentMethodChange: (value: string) => void;
+	paymentMethodId: string;
+	onPaymentMethodIdChange: (value: string) => void;
+	paymentMethodOptions: PaymentMethod[];
 	onBankAccountIdChange: (value: string) => void;
 	bankAccountId: string;
 	onCancel: () => void;
@@ -60,8 +61,9 @@ export function AddTransactionSection({
 	onQuoteUsdChange,
 	notes,
 	onNotesChange,
-	paymentMethod,
-	onPaymentMethodChange,
+	paymentMethodId,
+	onPaymentMethodIdChange,
+	paymentMethodOptions,
 	onBankAccountIdChange,
 	bankAccountId,
 	onCancel,
@@ -185,37 +187,40 @@ export function AddTransactionSection({
 				<div className="space-y-2">
 					<div className="space-y-2">
 						<Label htmlFor="payment-method">Método de pago</Label>
-						<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
+						<Select value={paymentMethodId} onValueChange={onPaymentMethodIdChange}>
 							<SelectTrigger id="payment-method">
 								<SelectValue placeholder="Seleccionar método" />
 							</SelectTrigger>
 							<SelectContent>
-								{PAYMENT_METHODS.map((method) => (
-									<SelectItem key={method.value} value={method.value}>
-										{method.label}
+								{paymentMethodOptions.map((method) => (
+									<SelectItem key={method.id} value={String(method.id)}>
+										{method.name}
+										{!method.is_active && ' (inactivo)'}
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
 					</div>
 				</div>
-				{paymentMethod === 'bank_transfer' && (
-					<div className="space-y-2">
-						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
-						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Selecciona una cuenta" />
-							</SelectTrigger>
-							<SelectContent>
-								{bankAccounts.map((account) => (
-									<SelectItem key={account.id} value={String(account.id)}>
-										{account.bank} - {account.name} ({account.account_number})
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-				)}
+				<div className="space-y-2">
+					<Label htmlFor="bankAccount">Cuenta Bancaria (opcional)</Label>
+					<Select
+						value={bankAccountId || 'none'}
+						onValueChange={(v) => onBankAccountIdChange(v === 'none' ? '' : v)}
+					>
+						<SelectTrigger className="w-full" id="bankAccount">
+							<SelectValue placeholder="Selecciona una cuenta" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">Sin cuenta</SelectItem>
+							{bankAccounts.map((account) => (
+								<SelectItem key={account.id} value={String(account.id)}>
+									{account.bank} - {account.name} ({account.account_number})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="notes">Observaciones</Label>

@@ -6,7 +6,6 @@ create table public.collections (
   date date not null,
   receipt_number text null,
   work_id bigint null,
-  client_id bigint not null,
   category_id bigint null,
   kind text not null default 'collection',
   description text null,
@@ -16,7 +15,6 @@ create table public.collections (
   constraint collections_pkey primary key (id),
   constraint collections_kind_check check (kind = 'collection'),
   constraint collections_work_id_fkey foreign key (work_id) references public.works (id) on delete set null,
-  constraint collections_client_id_fkey foreign key (client_id) references public.clients (id) on delete restrict,
   constraint collections_category_id_kind_fkey foreign key (category_id, kind) references public.cash_flow_categories (id, kind) on delete set null,
   constraint collections_payment_method_id_fkey foreign key (payment_method_id) references public.payment_methods (id) on delete restrict,
   constraint collections_bank_account_id_fkey foreign key (bank_account_id) references public.bank_accounts (id) on delete set null,
@@ -30,7 +28,6 @@ create table public.collections (
 
 create index collections_date_idx on public.collections (date);
 create index collections_work_id_idx on public.collections (work_id);
-create index collections_client_id_idx on public.collections (client_id);
 create index collections_category_id_idx on public.collections (category_id);
 create index collections_payment_method_id_idx on public.collections (payment_method_id);
 
@@ -97,3 +94,26 @@ USING (
             AND u.role = 'Admin'
     )
 );
+
+BEGIN;
+
+DO $$
+DECLARE
+  has_rows boolean;
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'collections' AND column_name = 'client_id'
+  ) THEN
+    EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.collections WHERE client_id IS NOT NULL)' INTO has_rows;
+    IF has_rows THEN
+      RAISE EXCEPTION 'collections tiene filas con client_id: migrarlas a balance_transactions antes de borrar la columna';
+    END IF;
+  END IF;
+END $$;
+
+ALTER TABLE public.collections DROP CONSTRAINT IF EXISTS collections_client_id_fkey;
+DROP INDEX IF EXISTS collections_client_id_idx;
+ALTER TABLE public.collections DROP COLUMN IF EXISTS client_id;
+
+COMMIT;
