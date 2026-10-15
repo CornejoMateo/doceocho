@@ -38,6 +38,7 @@ import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box
 import { formatCurrency } from '@/utils/formats-money';
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { CheckingAccountsTab } from '@/components/business/cash-flow/checking-accounts-tab';
+import { SummaryTab } from '@/components/business/cash-flow/summary-tab';
 import { CategoriesConfig } from '@/components/business/cash-flow/categories-config';
 import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses-tab';
 import { IncomesTab } from '@/components/business/cash-flow/incomes-tab';
@@ -250,10 +251,8 @@ export function CashFlowManagement() {
 					</TabsList>
 				</div>
 
-				<TabsContent value="summary">
-					<Card className="p-12 bg-card border-border text-center">
-						<p className="text-muted-foreground">En desarrollo</p>
-					</Card>
+				<TabsContent value="summary" className="min-w-0">
+					<SummaryTab />
 				</TabsContent>
 
 				<TabsContent value="bank-accounts">

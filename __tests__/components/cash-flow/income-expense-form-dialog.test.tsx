@@ -103,6 +103,7 @@ function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDi
 		totalAmount: 0,
 		saving: false,
 		onSubmit: jest.fn((e) => e.preventDefault()),
+		errors: {},
 		...over,
 	};
 }

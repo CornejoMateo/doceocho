@@ -138,6 +138,7 @@ export function IncomeExpenseTab({
 				totalAmount={state.totalAmount}
 				saving={state.saving}
 				onSubmit={state.handleSubmit}
+				errors={state.errors}
 			/>
 
 			<ConfirmDialog
