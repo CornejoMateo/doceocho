@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { IncomeExpenseFormDialog } from '@/components/business/cash-flow/income-expense-form-dialog';
+import { IncomeExpenseFormDialog } from '@/components/business/cash-flow/incomes-expenses/income-expense-form-dialog';
 import type { CashFlowCategory } from '@/lib/categories/categories';
 import type { VoucherType } from '@/lib/voucher-types/voucher-types';
 import type { Work } from '@/lib/works/works';
@@ -21,7 +21,7 @@ jest.mock('@/components/ui/select', () => ({
 	SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
 }));
 
-jest.mock('@/components/business/cash-flow/entity-combobox', () => ({
+jest.mock('@/components/business/cash-flow/shared/entity-combobox', () => ({
 	EntityCombobox: ({ id, value, onValueChange, options, placeholder, disabled }: any) => (
 		<select
 			data-testid={id}
@@ -103,6 +103,7 @@ function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDi
 		totalAmount: 0,
 		saving: false,
 		onSubmit: jest.fn((e) => e.preventDefault()),
+		errors: {},
 		...over,
 	};
 }

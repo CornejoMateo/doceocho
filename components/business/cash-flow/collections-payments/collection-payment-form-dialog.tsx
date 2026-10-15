@@ -27,7 +27,7 @@ import {
 	CollectionPaymentFormErrors,
 } from '@/hooks/collection-payment/use-collection-payment-tab';
 import { formatNumber } from '@/utils/formats-money';
-import { EntityCombobox } from '@/components/business/cash-flow/entity-combobox';
+import { EntityCombobox } from '@/components/business/cash-flow/shared/entity-combobox';
 import { withInactiveSelected } from '@/utils/select-options';
 
 type CollectionPaymentFormDialogProps = {

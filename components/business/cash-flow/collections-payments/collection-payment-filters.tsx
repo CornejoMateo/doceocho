@@ -4,10 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Filter, Plus } from 'lucide-react';
 import { CashFlowCategory } from '@/lib/categories/categories';
 import { Work } from '@/lib/works/works';
+import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
 import { PartyOption } from '@/hooks/income-expense/use-income-expense-tab';
-import { IncomeExpenseFilterDialog } from '@/components/business/cash-flow/income-expense-filter-dialog';
+import { CollectionPaymentFilterDialog } from '@/components/business/cash-flow/collections-payments/collection-payment-filter-dialog';
 
-type IncomeExpenseFiltersProps = {
+type CollectionPaymentFiltersProps = {
 	addLabel: string;
 	onAdd: () => void;
 	partyLabel: string;
@@ -24,6 +25,9 @@ type IncomeExpenseFiltersProps = {
 	categoryId: string;
 	onCategoryIdChange: (value: string) => void;
 	categories: CashFlowCategory[];
+	paymentMethodId: string;
+	onPaymentMethodIdChange: (value: string) => void;
+	paymentMethods: PaymentMethod[];
 	search: string;
 	onSearchChange: (value: string) => void;
 	onClear: () => void;
@@ -32,7 +36,7 @@ type IncomeExpenseFiltersProps = {
 	onFilterDialogOpenChange: (open: boolean) => void;
 };
 
-export function IncomeExpenseFilters({
+export function CollectionPaymentFilters({
 	addLabel,
 	onAdd,
 	partyLabel,
@@ -49,13 +53,16 @@ export function IncomeExpenseFilters({
 	categoryId,
 	onCategoryIdChange,
 	categories,
+	paymentMethodId,
+	onPaymentMethodIdChange,
+	paymentMethods,
 	search,
 	onSearchChange,
 	onClear,
 	activeFilterCount,
 	filterDialogOpen,
 	onFilterDialogOpenChange,
-}: IncomeExpenseFiltersProps) {
+}: CollectionPaymentFiltersProps) {
 	return (
 		<div className="flex flex-wrap items-center gap-2">
 			<Input
@@ -85,7 +92,7 @@ export function IncomeExpenseFilters({
 				{addLabel}
 			</Button>
 
-			<IncomeExpenseFilterDialog
+			<CollectionPaymentFilterDialog
 				open={filterDialogOpen}
 				onOpenChange={onFilterDialogOpenChange}
 				partyLabel={partyLabel}
@@ -102,6 +109,9 @@ export function IncomeExpenseFilters({
 				categoryId={categoryId}
 				onCategoryIdChange={onCategoryIdChange}
 				categories={categories}
+				paymentMethodId={paymentMethodId}
+				onPaymentMethodIdChange={onPaymentMethodIdChange}
+				paymentMethods={paymentMethods}
 				onClear={onClear}
 			/>
 		</div>

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { FixedExpensePaymentDialog } from '@/components/business/cash-flow/fixed-expense-payment-dialog';
+import { FixedExpensePaymentDialog } from '@/components/business/cash-flow/fixed-expenses/fixed-expense-payment-dialog';
 import { getLocalDate } from '@/utils/format-date';
 
 const noop = () => {};

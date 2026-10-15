@@ -1,7 +1,10 @@
+// Forced before any Date-based formatting runs, so a day-shift bug (UTC midnight vs. Argentina) is reproducible.
+process.env.TZ = 'America/Argentina/Buenos_Aires';
+
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { IncomeExpenseList } from '@/components/business/cash-flow/income-expense-list';
+import { IncomeExpenseList } from '@/components/business/cash-flow/incomes-expenses/income-expense-list';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
+import { formatDateOnly } from '@/utils/format-date';
 import type { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
 
 const money = (n: number) => formatCurrency(n).replace(/\u00A0/g, ' ');
@@ -76,11 +79,33 @@ describe('IncomeExpenseList', () => {
 
 		const desktop = within(screen.getByTestId('income-expense-desktop'));
 		expect(desktop.getByText('Cliente')).toBeInTheDocument();
-		expect(desktop.getByText(formatShortDate(entry.date))).toBeInTheDocument();
+		expect(desktop.getByText(formatDateOnly(entry.date))).toBeInTheDocument();
 		expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
 		expect(desktop.getByText(money(entry.net_amount))).toBeInTheDocument();
 		expect(desktop.getByText(money(entry.iva_amount))).toBeInTheDocument();
 		expect(desktop.getByText(money(entry.total_amount))).toBeInTheDocument();
+	});
+
+	it('does not shift the date a day back in Argentina time (desktop and mobile)', () => {
+		// new Date('2026-01-01') + toLocaleDateString in UTC-3 would wrongly show 31/12/2025.
+		const entry = makeEntry({ date: '2026-01-01' });
+		render(
+			<IncomeExpenseList
+				entries={[entry]}
+				loading={false}
+				partyLabel="Cliente"
+				emptyLabel="No hay ingresos registrados"
+				onEdit={noop}
+				onAskDelete={noop}
+			/>
+		);
+
+		expect(
+			within(screen.getByTestId('income-expense-desktop')).getByText('01/01/2026')
+		).toBeInTheDocument();
+		expect(
+			within(screen.getByTestId('income-expense-mobile')).getByText('01/01/2026')
+		).toBeInTheDocument();
 	});
 
 	it('calls onEdit and onAskDelete with the clicked entry', () => {

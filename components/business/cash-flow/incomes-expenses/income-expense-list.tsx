@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Edit, Trash2 } from 'lucide-react';
 import { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
+import { formatDateOnly } from '@/utils/format-date';
 
 type IncomeExpenseListProps = {
 	entries: IncomeExpenseEntry[];
@@ -94,7 +94,7 @@ export function IncomeExpenseList({
 									{entries.map((entry) => (
 										<TableRow key={entry.id}>
 											<TableCell className="text-center whitespace-nowrap">
-												{formatShortDate(entry.date)}
+												{formatDateOnly(entry.date)}
 											</TableCell>
 											<TableCell className="text-center">
 												<div className="flex flex-col">
@@ -137,7 +137,7 @@ export function IncomeExpenseList({
 						{entries.map((entry) => (
 							<Card key={entry.id} className="bg-card border-border p-4 space-y-3">
 								<div className="flex items-center justify-between gap-2">
-									<span className="font-medium">{formatShortDate(entry.date)}</span>
+									<span className="font-medium">{formatDateOnly(entry.date)}</span>
 									<span className="font-semibold">{formatCurrency(entry.total_amount)}</span>
 								</div>
 								<dl className="space-y-1 text-sm">

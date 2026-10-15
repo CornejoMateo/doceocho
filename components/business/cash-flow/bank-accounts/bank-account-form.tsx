@@ -16,6 +16,12 @@ import { BankAccount, createBankAccount, updateBankAccount } from '@/lib/cash-fl
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { ACCOUNT_TYPES } from '@/constants/cashflow/cashflow';
+import {
+	formatCurrencyWithoutSymbol,
+	formatNumber,
+	parseArsToNumber,
+	roundToTwoDecimals,
+} from '@/utils/formats-money';
 
 interface BankAccountFormProps {
 	account?: BankAccount;
@@ -29,13 +35,25 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 	const [bank, setBank] = useState(account?.bank ?? '');
 	const [accountNumber, setAccountNumber] = useState(account?.account_number ?? '');
 	const [accountType, setAccountType] = useState(account?.account_type ?? '');
+	const [initialBalance, setInitialBalance] = useState(
+		formatCurrencyWithoutSymbol(account?.initial_balance ?? 0)
+	);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const handleInitialBalanceChange = (value: string) => {
+		const isNegative = value.trim().startsWith('-');
+		const formatted = formatNumber(value);
+		const [intPart, decPart] = formatted.split(',');
+		const capped = decPart !== undefined ? `${intPart},${decPart.slice(0, 2)}` : formatted;
+		setInitialBalance(isNegative && capped ? `-${capped}` : capped);
+	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		const trimmedName = name.trim();
 		const trimmedBank = bank.trim();
 		const trimmedAccountNumber = accountNumber.trim();
+		const parsedInitialBalance = roundToTwoDecimals(parseArsToNumber(initialBalance));
 		if (!trimmedName || !trimmedBank || !trimmedAccountNumber || !accountType) {
 			toast({
 				title: 'Datos incompletos',
@@ -52,6 +70,7 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 					bank: trimmedBank,
 					account_number: trimmedAccountNumber,
 					account_type: accountType,
+					initial_balance: parsedInitialBalance,
 				});
 				if (error) throw error;
 				toast({
@@ -64,6 +83,7 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 					bank: trimmedBank,
 					account_number: trimmedAccountNumber,
 					account_type: accountType,
+					initial_balance: parsedInitialBalance,
 					is_active: true,
 				});
 				if (error) throw error;
@@ -134,6 +154,17 @@ export function BankAccountForm({ account, onSave, onCancel }: BankAccountFormPr
 							))}
 						</SelectContent>
 					</Select>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="initialBalance">Saldo inicial</Label>
+					<Input
+						id="initialBalance"
+						type="text"
+						placeholder="0,00"
+						value={initialBalance}
+						onChange={(e) => handleInitialBalanceChange(e.target.value)}
+					/>
 				</div>
 
 				<div className="flex gap-2">

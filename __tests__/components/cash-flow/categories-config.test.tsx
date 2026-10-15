@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { CategoriesConfig } from '@/components/business/cash-flow/categories-config';
+import { CategoriesConfig } from '@/components/business/cash-flow/shared/categories-config';
 import {
 	CashFlowCategory,
 	listCategories,

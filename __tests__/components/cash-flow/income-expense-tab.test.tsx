@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { IncomeExpenseTab } from '@/components/business/cash-flow/income-expense-tab';
+import { IncomeExpenseTab } from '@/components/business/cash-flow/incomes-expenses/income-expense-tab';
 import type { useIncomeExpenseTab } from '@/hooks/income-expense/use-income-expense-tab';
 
 jest.mock('@/components/ui/select', () => ({
@@ -14,15 +14,15 @@ jest.mock('@/components/ui/select', () => ({
 	SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
 }));
 
-jest.mock('@/components/business/cash-flow/voucher-types-config', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/voucher-types-config', () => ({
 	VoucherTypesConfig: () => <button>Configurar tipos de comprobante</button>,
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-filters', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-filters', () => ({
 	IncomeExpenseFilters: ({ addLabel, onAdd }: any) => <button onClick={onAdd}>{addLabel}</button>,
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-list', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-list', () => ({
 	IncomeExpenseList: ({ entries, loading, onEdit, onAskDelete }: any) => (
 		<div data-testid="list">
 			{loading
@@ -38,21 +38,21 @@ jest.mock('@/components/business/cash-flow/income-expense-list', () => ({
 	),
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-summary', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-summary', () => ({
 	IncomeExpenseSummary: ({ totalGross }: any) => (
 		<div data-testid="summary">Total: {totalGross}</div>
 	),
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-monthly-grid', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-monthly-grid', () => ({
 	IncomeExpenseMonthlyGrid: () => <div data-testid="monthly-grid" />,
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-by-category', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-by-category', () => ({
 	IncomeExpenseByCategory: () => <div data-testid="by-category" />,
 }));
 
-jest.mock('@/components/business/cash-flow/income-expense-form-dialog', () => ({
+jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-form-dialog', () => ({
 	IncomeExpenseFormDialog: ({ open }: any) => (open ? <div data-testid="form-dialog" /> : null),
 }));
 

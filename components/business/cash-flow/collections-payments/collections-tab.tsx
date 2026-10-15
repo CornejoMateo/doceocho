@@ -1,7 +1,7 @@
 'use client';
 
 import { useCollections } from '@/hooks/collections/use-collections';
-import { CollectionPaymentTab } from '@/components/business/cash-flow/collection-payment-tab';
+import { CollectionPaymentTab } from '@/components/business/cash-flow/collections-payments/collection-payment-tab';
 
 type CollectionsTabProps = {
 	categoriesConfig: React.ReactNode;

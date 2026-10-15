@@ -25,6 +25,7 @@ type EntityComboboxProps = {
 	emptyLabel?: string;
 	disabled?: boolean;
 	id?: string;
+	invalid?: boolean;
 };
 
 // Generic searchable Popover+Command select, shared by party (client/supplier) and work pickers.
@@ -37,6 +38,7 @@ export function EntityCombobox({
 	emptyLabel = 'No encontrado',
 	disabled = false,
 	id,
+	invalid = false,
 }: EntityComboboxProps) {
 	const [open, setOpen] = useState(false);
 	const selected = options.find((option) => String(option.id) === value);
@@ -50,6 +52,7 @@ export function EntityCombobox({
 					variant="outline"
 					role="combobox"
 					aria-expanded={open}
+					aria-invalid={invalid}
 					className="w-full justify-between font-normal"
 					disabled={disabled}
 				>

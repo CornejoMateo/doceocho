@@ -28,22 +28,23 @@ import {
 	listBankAccounts,
 	listTransactions,
 } from '@/lib/cash-flow/cash-flow';
-import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
-import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts-tab';
-import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
+import { TransactionDialog } from '@/components/business/cash-flow/cash-box/transaction-dialog';
+import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts/bank-accounts-tab';
+import { CloseCashBoxDialog } from '@/components/business/cash-flow/cash-box/close-cash-box-dialog';
 import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
-import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box-dialog';
+import { OpenCashBoxDialog } from '@/components/business/cash-flow/cash-box/open-cash-box-dialog';
 import { formatCurrency } from '@/utils/formats-money';
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
-import { CheckingAccountsTab } from '@/components/business/cash-flow/checking-accounts-tab';
-import { CategoriesConfig } from '@/components/business/cash-flow/categories-config';
-import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses-tab';
-import { IncomesTab } from '@/components/business/cash-flow/incomes-tab';
-import { ExpensesTab } from '@/components/business/cash-flow/expenses-tab';
-import { CollectionsTab } from '@/components/business/cash-flow/collections-tab';
-import { PaymentsTab } from '@/components/business/cash-flow/payments-tab';
+import { CheckingAccountsTab } from '@/components/business/cash-flow/balances-tab/checking-accounts-tab';
+import { SummaryTab } from '@/components/business/cash-flow/summary/summary-tab';
+import { CategoriesConfig } from '@/components/business/cash-flow/shared/categories-config';
+import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses/fixed-expenses-tab';
+import { IncomesTab } from '@/components/business/cash-flow/incomes-expenses/incomes-tab';
+import { ExpensesTab } from '@/components/business/cash-flow/incomes-expenses/expenses-tab';
+import { CollectionsTab } from '@/components/business/cash-flow/collections-payments/collections-tab';
+import { PaymentsTab } from '@/components/business/cash-flow/collections-payments/payments-tab';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
 
@@ -250,10 +251,8 @@ export function CashFlowManagement() {
 					</TabsList>
 				</div>
 
-				<TabsContent value="summary">
-					<Card className="p-12 bg-card border-border text-center">
-						<p className="text-muted-foreground">En desarrollo</p>
-					</Card>
+				<TabsContent value="summary" className="min-w-0">
+					<SummaryTab />
 				</TabsContent>
 
 				<TabsContent value="bank-accounts">

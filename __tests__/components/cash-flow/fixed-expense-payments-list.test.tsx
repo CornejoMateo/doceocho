@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { FixedExpensePaymentsList } from '@/components/business/cash-flow/fixed-expense-payments-list';
+import { FixedExpensePaymentsList } from '@/components/business/cash-flow/fixed-expenses/fixed-expense-payments-list';
 import { FixedExpensePaymentWithDetails } from '@/lib/fixed-expenses/fixed-expense-payments';
 
 function makePayment(id: number): FixedExpensePaymentWithDetails {

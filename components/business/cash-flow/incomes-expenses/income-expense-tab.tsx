@@ -1,13 +1,13 @@
 'use client';
 
 import { useIncomeExpenseTab } from '@/hooks/income-expense/use-income-expense-tab';
-import { IncomeExpenseFilters } from '@/components/business/cash-flow/income-expense-filters';
-import { IncomeExpenseSummary } from '@/components/business/cash-flow/income-expense-summary';
-import { IncomeExpenseMonthlyGrid } from '@/components/business/cash-flow/income-expense-monthly-grid';
-import { IncomeExpenseByCategory } from '@/components/business/cash-flow/income-expense-by-category';
-import { IncomeExpenseList } from '@/components/business/cash-flow/income-expense-list';
-import { IncomeExpenseFormDialog } from '@/components/business/cash-flow/income-expense-form-dialog';
-import { VoucherTypesConfig } from '@/components/business/cash-flow/voucher-types-config';
+import { IncomeExpenseFilters } from '@/components/business/cash-flow/incomes-expenses/income-expense-filters';
+import { IncomeExpenseSummary } from '@/components/business/cash-flow/incomes-expenses/income-expense-summary';
+import { IncomeExpenseMonthlyGrid } from '@/components/business/cash-flow/incomes-expenses/income-expense-monthly-grid';
+import { IncomeExpenseByCategory } from '@/components/business/cash-flow/incomes-expenses/income-expense-by-category';
+import { IncomeExpenseList } from '@/components/business/cash-flow/incomes-expenses/income-expense-list';
+import { IncomeExpenseFormDialog } from '@/components/business/cash-flow/incomes-expenses/income-expense-form-dialog';
+import { VoucherTypesConfig } from '@/components/business/cash-flow/incomes-expenses/voucher-types-config';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
 	Select,
@@ -138,6 +138,7 @@ export function IncomeExpenseTab({
 				totalAmount={state.totalAmount}
 				saving={state.saving}
 				onSubmit={state.handleSubmit}
+				errors={state.errors}
 			/>
 
 			<ConfirmDialog

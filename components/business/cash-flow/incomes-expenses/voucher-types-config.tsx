@@ -117,7 +117,14 @@ export function VoucherTypesConfig() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		const trimmedName = name.trim();
-		if (!trimmedName) return;
+		if (!trimmedName) {
+			toast({
+				title: 'Datos incompletos',
+				description: 'Ingresá un nombre para el tipo de comprobante.',
+				variant: 'destructive',
+			});
+			return;
+		}
 		setSaving(true);
 		try {
 			const { error } = editingVoucherType

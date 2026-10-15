@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { CashBoxTransactions } from '@/components/business/cash-flow/cash-box-transactions';
+import { CashBoxTransactions } from '@/components/business/cash-flow/cash-box/cash-box-transactions';
 
 jest.mock('@/utils/formats-money', () => ({
 	formatCurrency: (v: number) => `$${v}`,
