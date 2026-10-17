@@ -52,7 +52,7 @@ export function DeleteWorkDialog({
 						<ul className="mt-2 list-inside list-disc space-y-0.5">
 							<li>Checklists y sus archivos</li>
 							<li>Presupuestos</li>
-							<li>Saldos y transacciones</li>
+							<li>Cuentas corrientes y transacciones</li>
 							<li>Archivos</li>
 						</ul>
 						<p className="mt-2 font-medium text-destructive">Esta acción no se puede deshacer.</p>

@@ -32,7 +32,7 @@ export function WeeklyClients() {
 
 			<div className="space-y-3 max-h-[500px] overflow-y-auto">
 				{loading ? (
-					<p className="text-sm text-muted-foreground">Cargando clientes...</p>
+					<p className="text-sm text-muted-foreground text-center">Cargando clientes...</p>
 				) : clients.length > 0 ? (
 					clients.map((client) => (
 						<div

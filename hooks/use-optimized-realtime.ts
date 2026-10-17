@@ -10,15 +10,16 @@ interface CacheEntry<T> {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 const DEBOUNCE_DELAY = 300; // 300ms para agrupar actualizaciones
 
+const EMPTY_DATA: readonly never[] = [];
+const NOOP = () => {};
+
 export function useOptimizedRealtime<T extends { id: number }>(
 	table: string,
 	fetchFromDb: () => Promise<T[]>,
 	cacheKey?: string,
 	isAuthorized?: boolean
 ) {
-	if (table === 'users' && !isAuthorized) {
-		return { data: [], loading: false, error: null, refresh: () => {} };
-	}
+	const isGated = table === 'users' && !isAuthorized;
 
 	const [data, setData] = useState<T[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -181,13 +182,14 @@ export function useOptimizedRealtime<T extends { id: number }>(
 
 	// Initialization
 	useEffect(() => {
+		if (isGated) return;
 		fetchData();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []); // Only runs on mount
+	}, [isGated]); // Only runs on mount (or when the authorization gate opens)
 
 	// Realtime configuration
 	useEffect(() => {
-		if (!table) return;
+		if (!table || isGated) return;
 		const channel = supabase
 			.channel(`${table}-optimized-realtime`)
 			.on(
@@ -207,10 +209,11 @@ export function useOptimizedRealtime<T extends { id: number }>(
 			}
 			supabase.removeChannel(channel);
 		};
-	}, [table, processRealtimeEvent]);
+	}, [table, processRealtimeEvent, isGated]);
 
 	// Clean expired cache periodically
 	useEffect(() => {
+		if (isGated) return;
 		const interval = setInterval(() => {
 			const cached = localStorage.getItem(cacheKeyFinal);
 			if (cached) {
@@ -226,7 +229,7 @@ export function useOptimizedRealtime<T extends { id: number }>(
 		}, CACHE_DURATION);
 
 		return () => clearInterval(interval);
-	}, [cacheKeyFinal]);
+	}, [cacheKeyFinal, isGated]);
 
 	const refresh = useCallback(() => fetchData(true), [fetchData]);
 
@@ -236,10 +239,10 @@ export function useOptimizedRealtime<T extends { id: number }>(
 	}, [cacheKeyFinal, fetchData]);
 
 	return {
-		data,
-		loading,
-		error,
-		refresh,
-		invalidateCache,
+		data: isGated ? (EMPTY_DATA as unknown as T[]) : data,
+		loading: isGated ? false : loading,
+		error: isGated ? null : error,
+		refresh: isGated ? NOOP : refresh,
+		invalidateCache: isGated ? NOOP : invalidateCache,
 	};
 }

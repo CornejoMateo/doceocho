@@ -11,6 +11,7 @@ import { deleteEvent, deleteLastYearEvents, Event } from '@/lib/calendar/events'
 import { getEventTypeOptions } from '@/lib/calendar/event-types';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
+import { isAdminRole } from '@/constants/users/user-role';
 import { useToast } from '@/components/ui/use-toast';
 import {
 	Dialog,
@@ -39,6 +40,8 @@ import { useCreateEvent } from '@/hooks/calendar/use-create-event';
 import { UpcomingEvents } from '@/components/business/calendar/upcoming-events';
 import { matchesSearchText } from '@/helpers/calendar/search-events';
 import { toISODate } from '@/helpers/calendar/date';
+import { useHolidays } from '@/hooks/calendar/use-holidays';
+import { HolidayCard } from '@/components/business/calendar/holiday-card';
 
 const maxVisibleEvents = 5;
 
@@ -47,6 +50,7 @@ export function CalendarView() {
 	const { events, refresh } = useLoadEvents();
 	const { eventTypes } = useLoadEventTypes();
 	const [currentDate, setCurrentDate] = useState(new Date());
+	const { holidaysByDate, refreshWorkDays } = useHolidays(currentDate.getFullYear());
 	const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 	const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 	const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -96,7 +100,7 @@ export function CalendarView() {
 	}, [events]);
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const eventsByDate = useMemo(() => {
 		const filtered =
@@ -269,6 +273,7 @@ export function CalendarView() {
 							selectedDate={selectedDate}
 							eventTypes={eventTypes}
 							eventsByDate={eventsByDate}
+							holidaysByDate={holidaysByDate}
 							onDateSelect={setSelectedDate}
 							onPreviousMonth={() =>
 								setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
@@ -280,26 +285,36 @@ export function CalendarView() {
 					</div>
 				</Card>
 
-				{/* Upcoming events */}
-				<UpcomingEvents
-					events={currentEvents}
-					totalCount={filteredEvents.length}
-					maxVisibleEvents={maxVisibleEvents}
-					showAllEvents={showAllEvents}
-					onToggleShowAll={() => setShowAllEvents(!showAllEvents)}
-					selectedDate={selectedDate}
-					onClearDate={() => {
-						setSelectedDate(null);
-						setShowAllEvents(false);
-					}}
-					searchTerm={searchTerm}
-					onSearchChange={setSearchTerm}
-					onEventClick={handleEventClick}
-					onDeleteEvent={handleDeleteEvent}
-					isAuthorized={isAuthorized}
-					eventTypes={eventTypes}
-					workDataMap={workDataMap}
-				/>
+				<div className="space-y-6">
+					{selectedDate && holidaysByDate[selectedDate] && (
+						<HolidayCard
+							holiday={holidaysByDate[selectedDate]}
+							isAuthorized={isAuthorized}
+							onChanged={refreshWorkDays}
+						/>
+					)}
+
+					{/* Upcoming events */}
+					<UpcomingEvents
+						events={currentEvents}
+						totalCount={filteredEvents.length}
+						maxVisibleEvents={maxVisibleEvents}
+						showAllEvents={showAllEvents}
+						onToggleShowAll={() => setShowAllEvents(!showAllEvents)}
+						selectedDate={selectedDate}
+						onClearDate={() => {
+							setSelectedDate(null);
+							setShowAllEvents(false);
+						}}
+						searchTerm={searchTerm}
+						onSearchChange={setSearchTerm}
+						onEventClick={handleEventClick}
+						onDeleteEvent={handleDeleteEvent}
+						isAuthorized={isAuthorized}
+						eventTypes={eventTypes}
+						workDataMap={workDataMap}
+					/>
+				</div>
 			</div>
 
 			{/* Legend */}
@@ -315,10 +330,18 @@ export function CalendarView() {
 						<div className="h-3 w-3 rounded-full bg-red-500" />
 						<span className="text-sm text-muted-foreground">Vencidos</span>
 					</div>
+					<div className="flex items-center gap-2">
+						<span className="text-sm font-medium text-red-600 dark:text-red-400">15</span>
+						<span className="text-sm text-muted-foreground">Feriado</span>
+					</div>
+					<div className="flex items-center gap-2">
+						<span className="text-sm font-medium text-amber-600 dark:text-amber-400">15</span>
+						<span className="text-sm text-muted-foreground">Feriado que se trabaja</span>
+					</div>
 				</div>
 			</Card>
 
-			{user?.role === 'Admin' && (
+			{isAdminRole(user?.role) && (
 				<Card className="p-4 bg-card border-border">
 					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 						<div className="flex-1 min-w-0">

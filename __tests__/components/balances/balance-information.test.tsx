@@ -44,8 +44,6 @@ jest.mock('@/utils/formats-money', () => ({
 
 const mockSummary = {
 	type: 'A favor del cliente',
-	effectiveBudgetArs: 100000,
-	effectiveBudgetUsd: 5000,
 	budgetUsd: 5000,
 	budgetArsCurrent: 100000,
 	totalPaidUsd: 2000,
@@ -54,8 +52,6 @@ const mockSummary = {
 	progressPercentage: 50,
 	budgetArsInitial: 100000,
 	totalPaidArs: 50000,
-	totalExtraArs: 0,
-	totalExtraUsd: 0,
 };
 
 describe('BalanceInformation', () => {
@@ -71,8 +67,6 @@ describe('BalanceInformation', () => {
 		usdCurrent: 1050,
 		totalPaid: 50000,
 		totalPaidUsd: 2000,
-		totalExtraArs: 0,
-		totalExtraUsd: 0,
 		summary: mockSummary,
 		formatDate,
 		onUpdated,

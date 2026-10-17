@@ -32,21 +32,25 @@ import { translateError } from '@/lib/error-translator';
 import { useClientWorks } from '@/hooks/clients/use-client-works';
 import { useClientBudgets } from '@/hooks/clients/use-client-budgets';
 import { useClientBalances } from '@/hooks/clients/use-client-balances';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface ClientDetailsDialogProps {
 	client: Client | null;
 	isOpen: boolean;
 	onClose: () => void;
-	onEdit: () => void;
+	onEdit?: () => void;
 	onClientUpdated?: () => void;
+	initialTab?: 'info' | 'works' | 'budgets' | 'balances' | 'images';
+	onClientDataLoaded?: () => void;
 }
 
 export function ClientDetailsDialog({
 	client,
 	isOpen,
 	onClose,
-	onEdit,
 	onClientUpdated,
+	initialTab,
+	onClientDataLoaded,
 }: ClientDetailsDialogProps) {
 	const [isWorkFormOpen, setIsWorkFormOpen] = useState(false);
 	const [isBalanceFormOpen, setIsBalanceFormOpen] = useState(false);
@@ -55,7 +59,7 @@ export function ClientDetailsDialog({
 	const [clientData, setClientData] = useState<Client | null>(null);
 	const { user } = useAuth();
 
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	// Auto-save hook for cover field
 	const {
@@ -85,6 +89,7 @@ export function ClientDetailsDialog({
 		works,
 		isLoading: isLoadingWorks,
 		loadWorks,
+		clearWorks,
 		create,
 		remove,
 		update,
@@ -100,8 +105,8 @@ export function ClientDetailsDialog({
 		if (!balance) {
 			toast({
 				variant: 'destructive',
-				title: 'Sin saldo',
-				description: 'Esta obra no tiene un saldo asociado.',
+				title: 'Sin cuenta corriente',
+				description: 'Esta obra no tiene una cuenta corriente asociada.',
 			});
 			return;
 		}
@@ -181,8 +186,8 @@ export function ClientDetailsDialog({
 			await createBalance(balanceData);
 
 			toast({
-				title: 'Saldo creado',
-				description: 'El saldo se ha creado exitosamente.',
+				title: 'Cuenta corriente creada',
+				description: 'La cuenta corriente se ha creado exitosamente.',
 			});
 
 			setIsBalanceFormOpen(false);
@@ -192,11 +197,21 @@ export function ClientDetailsDialog({
 			const errorMessage = translateError(error);
 			toast({
 				variant: 'destructive',
-				title: 'Error al crear el saldo',
-				description: errorMessage || 'Hubo un problema al crear el saldo.',
+				title: 'Error al crear la cuenta corriente',
+				description: errorMessage || 'Hubo un problema al crear la cuenta corriente.',
 			});
 		}
 	};
+
+	useEffect(() => {
+		if (!isOpen || !client?.id) return;
+
+		if (initialTab === 'works') {
+			loadWorks();
+		} else if (initialTab === 'budgets') {
+			loadBudgets();
+		}
+	}, [isOpen, client?.id, initialTab]);
 
 	// Update local client data when client prop changes or dialog opens
 	useEffect(() => {
@@ -214,11 +229,13 @@ export function ClientDetailsDialog({
 						setClientData(freshClientData);
 						setCover(freshClientData.cover || '');
 					}
+					onClientDataLoaded?.();
 				} catch (error) {
 					console.error('Error loading fresh client data:', error);
 					// Fallback to prop data if fresh data fails
 					setClientData(client);
 					setCover(client.cover || '');
+					onClientDataLoaded?.();
 				}
 			};
 			loadFreshClientData();
@@ -242,6 +259,7 @@ export function ClientDetailsDialog({
 		setIsBalanceFormOpen(false);
 		setSelectedBalance(null);
 		setIsBalanceDetailsOpen(false);
+		clearWorks();
 	};
 
 	if (!clientData) return null;
@@ -260,7 +278,7 @@ export function ClientDetailsDialog({
 						</Button>
 					</div>
 					<DialogDescription className="sr-only">
-						Información completa del cliente, obras, presupuestos y saldos
+						Información completa del cliente, obras, presupuestos y cuentas corrientes
 					</DialogDescription>
 				</DialogHeader>
 
@@ -307,7 +325,7 @@ export function ClientDetailsDialog({
 
 					<div className="border-t pt-2">
 						<Tabs
-							defaultValue={isAuthorized ? 'info' : 'images'}
+							defaultValue={initialTab ?? (isAuthorized ? 'info' : 'images')}
 							className="w-full "
 							onValueChange={handleTabChange}
 						>
@@ -318,7 +336,7 @@ export function ClientDetailsDialog({
 									{isAuthorized && (
 										<>
 											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
-											<TabsTrigger value="balances">Saldos</TabsTrigger>
+											<TabsTrigger value="balances">Cuentas corrientes</TabsTrigger>
 										</>
 									)}
 									<TabsTrigger value="images">Archivos</TabsTrigger>
@@ -428,8 +446,10 @@ export function ClientDetailsDialog({
 			<Dialog open={isBalanceFormOpen} onOpenChange={setIsBalanceFormOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Nuevo saldo</DialogTitle>
-						<DialogDescription>Completa los campos para crear un nuevo saldo.</DialogDescription>
+						<DialogTitle>Nueva cuenta corriente</DialogTitle>
+						<DialogDescription>
+							Completa los campos para crear una nueva cuenta corriente.
+						</DialogDescription>
 					</DialogHeader>
 					<BalanceForm
 						clientId={client?.id || 0}

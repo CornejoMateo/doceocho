@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
 					const { data: userProfile } = await getUserByUid(user.id, supabase);
 					await sendAttendanceCreatedNotification(
 						supabase,
-						userProfile?.username ?? 'Usuario Taller',
+						userProfile?.username ?? 'Usuario',
 						entryType
 					);
 				} catch (error: any) {

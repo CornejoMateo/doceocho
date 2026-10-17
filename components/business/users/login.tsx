@@ -21,8 +21,9 @@ export default function LoginPage() {
 	const getHomeByRole = (role: UserRole) => {
 		const map: Record<UserRole, string> = {
 			Admin: '/',
+			Superadmin: '/',
 			Taller: '/supplies',
-			QR: '/clock-in',
+			QR: '/employees',
 		};
 		return map[role] || '/';
 	};

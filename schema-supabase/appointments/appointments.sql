@@ -220,3 +220,10 @@ USING (
         WHERE u.uid_user = auth.uid() AND u.role = 'Admin'
     )
 );
+
+------ INDEXES ------
+
+create extension if not exists pg_trgm;
+
+create index if not exists appointments_client_name_trgm_idx on public.appointments using gin (client_name gin_trgm_ops);
+create index if not exists appointments_client_email_trgm_idx on public.appointments using gin (client_email gin_trgm_ops);

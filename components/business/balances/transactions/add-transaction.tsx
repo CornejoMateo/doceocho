@@ -17,13 +17,13 @@ import { cn } from '@/lib/utils';
 import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
-import { PAYMENT_METHODS } from '@/constants/balances/payment_methods';
+import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
 import { useCallback } from 'react';
 import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 
 interface AddTransactionSectionProps {
-	addingMode: 'transaction' | 'extra' | null;
+	addingMode: 'transaction' | null;
 	transactionDate: Date;
 	onTransactionDateChange: (date: Date) => void;
 	transactionAmount: string;
@@ -34,14 +34,14 @@ interface AddTransactionSectionProps {
 	onQuoteUsdChange: (value: string) => void;
 	notes: string;
 	onNotesChange: (value: string) => void;
-	paymentMethod: string;
-	onPaymentMethodChange: (value: string) => void;
+	paymentMethodId: string;
+	onPaymentMethodIdChange: (value: string) => void;
+	paymentMethodOptions: PaymentMethod[];
 	onBankAccountIdChange: (value: string) => void;
 	bankAccountId: string;
 	onCancel: () => void;
 	onSave: () => void;
 	onStartAddTransaction: () => void;
-	onStartAddExtra: () => void;
 	saveDisabled: boolean;
 	editingTransaction?: BalanceTransaction;
 	selectedFiles: File[];
@@ -61,14 +61,14 @@ export function AddTransactionSection({
 	onQuoteUsdChange,
 	notes,
 	onNotesChange,
-	paymentMethod,
-	onPaymentMethodChange,
+	paymentMethodId,
+	onPaymentMethodIdChange,
+	paymentMethodOptions,
 	onBankAccountIdChange,
 	bankAccountId,
 	onCancel,
 	onSave,
 	onStartAddTransaction,
-	onStartAddExtra,
 	saveDisabled,
 	editingTransaction,
 	selectedFiles,
@@ -104,15 +104,6 @@ export function AddTransactionSection({
 					<Plus className="h-4 w-4 mr-2" />
 					Agregar transacción
 				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					className="w-60 items-center flex justify-center"
-					onClick={onStartAddExtra}
-				>
-					<Plus className="h-4 w-4 mr-2" />
-					Agregar monto extra
-				</Button>
 			</div>
 		);
 	}
@@ -130,11 +121,7 @@ export function AddTransactionSection({
 		<div className="space-y-4 p-4 border rounded-lg min-w-0 overflow-hidden">
 			{' '}
 			<h3 className="text-sm font-semibold">
-				{isEditing
-					? 'Editar transacción'
-					: addingMode === 'extra'
-						? 'Nuevo monto extra'
-						: 'Nueva transacción'}
+				{isEditing ? 'Editar transacción' : 'Nueva transacción'}
 			</h3>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				{' '}
@@ -190,49 +177,50 @@ export function AddTransactionSection({
 					<Label htmlFor="usd-amount">Monto en USD</Label>
 					<Input
 						id="usd-amount"
-						type="number"
+						type="text"
 						value={usdAmount}
-						onChange={(e) => onUsdAmountChange(e.target.value)}
+						onChange={(e) => onUsdAmountChange(formatNumber(e.target.value))}
 					/>
 				</div>
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
-					{addingMode === 'transaction' && (
-						<div className="space-y-2">
-							<Label htmlFor="payment-method">Método de pago</Label>
-							<Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-								<SelectTrigger id="payment-method">
-									<SelectValue placeholder="Seleccionar método" />
-								</SelectTrigger>
-								<SelectContent>
-									{PAYMENT_METHODS.map((method) => (
-										<SelectItem key={method.value} value={method.value}>
-											{method.label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					)}
-				</div>
-				{addingMode === 'transaction' && paymentMethod === 'bank_transfer' && (
 					<div className="space-y-2">
-						<Label htmlFor="bankAccount">Cuenta Bancaria</Label>
-						<Select value={bankAccountId} onValueChange={onBankAccountIdChange}>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Selecciona una cuenta" />
+						<Label htmlFor="payment-method">Método de pago</Label>
+						<Select value={paymentMethodId} onValueChange={onPaymentMethodIdChange}>
+							<SelectTrigger id="payment-method">
+								<SelectValue placeholder="Seleccionar método" />
 							</SelectTrigger>
 							<SelectContent>
-								{bankAccounts.map((account) => (
-									<SelectItem key={account.id} value={String(account.id)}>
-										{account.bank} - {account.name} ({account.account_number})
+								{paymentMethodOptions.map((method) => (
+									<SelectItem key={method.id} value={String(method.id)}>
+										{method.name}
+										{!method.is_active && ' (inactivo)'}
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
 					</div>
-				)}
+				</div>
+				<div className="space-y-2">
+					<Label htmlFor="bankAccount">Cuenta Bancaria (opcional)</Label>
+					<Select
+						value={bankAccountId || 'none'}
+						onValueChange={(v) => onBankAccountIdChange(v === 'none' ? '' : v)}
+					>
+						<SelectTrigger className="w-full" id="bankAccount">
+							<SelectValue placeholder="Selecciona una cuenta" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="none">Sin cuenta</SelectItem>
+							{bankAccounts.map((account) => (
+								<SelectItem key={account.id} value={String(account.id)}>
+									{account.bank} - {account.name} ({account.account_number})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="notes">Observaciones</Label>
@@ -294,7 +282,7 @@ export function AddTransactionSection({
 					Cancelar
 				</Button>
 				<Button size="sm" onClick={onSave} disabled={saveDisabled}>
-					{isEditing ? 'Actualizar' : 'Guardar'}
+					{saveDisabled ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
 				</Button>
 			</div>
 		</div>

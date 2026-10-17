@@ -1,9 +1,38 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { CashFlowManagement } from '@/components/business/cash-flow/cash-flow-management';
 import * as realtimeHook from '@/hooks/use-optimized-realtime';
 
 jest.mock('@/lib/cash-flow/cash-flow');
 jest.mock('@/hooks/use-optimized-realtime');
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: 'Admin' } }),
+}));
+
+jest.mock('@/components/business/cash-flow/balances-tab/checking-accounts-tab', () => ({
+	CheckingAccountsTab: () => <div data-testid="checking-accounts-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/summary/summary-tab', () => ({
+	SummaryTab: () => <div data-testid="summary-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/incomes-expenses/incomes-tab', () => ({
+	IncomesTab: () => <div data-testid="incomes-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/incomes-expenses/expenses-tab', () => ({
+	ExpensesTab: () => <div data-testid="expenses-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/collections-payments/collections-tab', () => ({
+	CollectionsTab: () => <div data-testid="collections-tab" />,
+}));
+
+jest.mock('@/components/business/cash-flow/collections-payments/payments-tab', () => ({
+	PaymentsTab: () => <div data-testid="payments-tab" />,
+}));
+
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: jest.fn() }),
 }));
@@ -16,19 +45,7 @@ describe('CashFlowManagement Component', () => {
 		jest.clearAllMocks();
 	});
 
-	it('shows the initial loading state of the cash boxes', () => {
-		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation((key) => {
-			if (key === 'cash_boxes') {
-				return { data: [], loading: true, refresh: mockRefreshCashBoxes };
-			}
-			return { data: [], loading: false, refresh: mockRefreshBankAccounts };
-		});
-
-		render(<CashFlowManagement />);
-		expect(screen.getByText('Cargando...')).toBeInTheDocument();
-	});
-
-	it('shows the button to create a cash box when there is no open cash box', async () => {
+	it('mounts the summary tab by default (no more "En desarrollo" placeholder)', () => {
 		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation((key) => {
 			if (key === 'cash_boxes') {
 				return { data: [], loading: false, refresh: mockRefreshCashBoxes };
@@ -37,44 +54,43 @@ describe('CashFlowManagement Component', () => {
 		});
 
 		render(<CashFlowManagement />);
-
-		expect(screen.getByText('No hay caja abierta')).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: /Crear Caja/i })).toBeInTheDocument();
+		expect(screen.getByTestId('summary-tab')).toBeInTheDocument();
+		expect(screen.queryByText('En desarrollo')).not.toBeInTheDocument();
 	});
 
-	it('shows the information of the current cash box, income/expense buttons and transactions when there is an open cash box', async () => {
-		const mockOpenCashBox = {
-			id: 1,
-			opening_balance: 1000,
-			is_closed: false,
-			created_at: '2026-03-01T10:00:00Z',
-		};
-
-		const mockTransactions = [
-			{
-				id: 101,
-				cash_box_id: 1,
-				type: 'income',
-				amount: 500,
-				description: 'Venta de prueba',
-				category: 'cash',
-			},
-		];
-
-		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation((key) => {
-			if (key === 'cash_boxes') {
-				return { data: [mockOpenCashBox], loading: false, refresh: mockRefreshCashBoxes };
-			}
-			if (key === 'transactions_box') {
-				return { data: mockTransactions, loading: false, refresh: jest.fn() };
-			}
-			return { data: [], loading: false, refresh: mockRefreshBankAccounts };
-		});
+	it('mounts the checking accounts tab when its tab is selected', async () => {
+		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation(() => ({
+			data: [],
+			loading: false,
+			refresh: jest.fn(),
+		}));
 
 		render(<CashFlowManagement />);
+		expect(screen.queryByTestId('checking-accounts-tab')).not.toBeInTheDocument();
 
-		expect(screen.getByRole('button', { name: /Registrar Ingreso/i })).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: /Registrar Egreso/i })).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: /Cerrar Caja/i })).toBeInTheDocument();
+		await userEvent.click(screen.getByRole('tab', { name: 'Cuentas corrientes' }));
+
+		expect(await screen.findByTestId('checking-accounts-tab')).toBeInTheDocument();
+		expect(screen.queryByText('Próximamente')).not.toBeInTheDocument();
+	});
+
+	it.each([
+		['Ingresos', 'incomes-tab'],
+		['Gastos', 'expenses-tab'],
+		['Cobros', 'collections-tab'],
+		['Pagos', 'payments-tab'],
+	])('mounts the %s tab when its tab is selected', async (tabLabel, testId) => {
+		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation(() => ({
+			data: [],
+			loading: false,
+			refresh: jest.fn(),
+		}));
+
+		render(<CashFlowManagement />);
+		expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+
+		await userEvent.click(screen.getByRole('tab', { name: tabLabel }));
+
+		expect(await screen.findByTestId(testId)).toBeInTheDocument();
 	});
 });

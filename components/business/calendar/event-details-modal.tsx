@@ -23,6 +23,7 @@ import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
 import { Pencil } from 'lucide-react';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { format, parse } from 'date-fns';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface EventDetailsModalProps {
 	isOpen: boolean;
@@ -68,7 +69,7 @@ export function EventDetailsModal({
 	}, [event.work_id]);
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const handleRememberChange = async () => {
 		try {

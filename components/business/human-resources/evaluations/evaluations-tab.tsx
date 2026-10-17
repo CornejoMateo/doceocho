@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
@@ -140,6 +141,14 @@ export function EvaluationsTab() {
 
 	const loading = loadingEmployees || loadingEvaluations;
 	const error = employeesError || evaluationsError;
+
+	if (loading && employees.length === 0 && evaluations.length === 0) {
+		return (
+			<div className="flex justify-center py-8">
+				<Spinner className="h-6 w-6" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">

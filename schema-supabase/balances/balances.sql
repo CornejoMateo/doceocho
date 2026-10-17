@@ -12,6 +12,7 @@ create table public.balances (
   balance_amount_ars numeric null,
   balance_amount_usd numeric null,
   bank_account_id bigint null,
+  is_settled boolean not null default false,
   constraint balances_pkey primary key (id),
   constraint balances_budget_id_fkey foreign KEY (budget_id) references budgets (id) on update CASCADE,
   constraint balances_client_id_fkey foreign KEY (client_id) references clients (id) on update CASCADE on delete CASCADE
@@ -84,10 +85,28 @@ create table public.balance_transactions (
   usd_amount numeric null,
   notes text null,
   payment_method character varying null,
-  is_extra_amount boolean not null default false,  
+  bank_account_id bigint null,
+  payment_method_id bigint null,
+  work_id bigint null,
+  receipt_number text null,
+  category_id bigint null,
+  kind text not null default 'collection',
   constraint balance_transactions_pkey primary key (id),
-  constraint balance_transactions_balance_id_fkey foreign KEY (balance_id) references balances (id) on update CASCADE on delete CASCADE
+  constraint balance_transactions_balance_id_fkey foreign KEY (balance_id) references balances (id) on update CASCADE on delete CASCADE,
+  constraint balance_transactions_bank_account_id_fkey foreign key (bank_account_id) references public.bank_accounts (id) on delete set null,
+  constraint balance_transactions_payment_method_id_fkey foreign key (payment_method_id) references public.payment_methods (id) on delete set null,
+  constraint balance_transactions_work_id_fkey foreign key (work_id) references public.works (id) on delete set null,
+  constraint balance_transactions_category_id_kind_fkey foreign key (category_id, kind) references public.cash_flow_categories (id, kind) on delete set null,
+  constraint balance_transactions_kind_check check (kind = 'collection'),
+  constraint balance_transactions_receipt_number_length_check check (receipt_number is null or char_length(receipt_number) <= 60)
 ) TABLESPACE pg_default;
+
+------ INDEXES (new columns) ------
+
+create index balance_transactions_bank_account_id_idx on public.balance_transactions (bank_account_id);
+create index balance_transactions_payment_method_id_idx on public.balance_transactions (payment_method_id);
+create index balance_transactions_work_id_idx on public.balance_transactions (work_id);
+create index balance_transactions_category_id_idx on public.balance_transactions (category_id);
 
 ALTER TABLE public.balance_transactions ENABLE ROW LEVEL SECURITY;
 
@@ -142,3 +161,64 @@ USING (
             AND u.role = 'Admin'
     )
 );
+
+------ RUN PRODUCTION ------
+
+ALTER TABLE public.balance_transactions ADD COLUMN IF NOT EXISTS bank_account_id bigint;
+ALTER TABLE public.balance_transactions ADD COLUMN IF NOT EXISTS payment_method_id bigint;
+ALTER TABLE public.balance_transactions ADD COLUMN IF NOT EXISTS work_id bigint;
+ALTER TABLE public.balance_transactions ADD COLUMN IF NOT EXISTS receipt_number text;
+ALTER TABLE public.balance_transactions ADD COLUMN IF NOT EXISTS category_id bigint;
+ALTER TABLE public.balance_transactions ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'collection';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'balance_transactions_kind_check') THEN
+    ALTER TABLE public.balance_transactions ADD CONSTRAINT balance_transactions_kind_check CHECK (kind = 'collection') NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'balance_transactions_bank_account_id_fkey') THEN
+    ALTER TABLE public.balance_transactions ADD CONSTRAINT balance_transactions_bank_account_id_fkey FOREIGN KEY (bank_account_id) REFERENCES public.bank_accounts (id) ON DELETE SET NULL NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'balance_transactions_payment_method_id_fkey') THEN
+    ALTER TABLE public.balance_transactions ADD CONSTRAINT balance_transactions_payment_method_id_fkey FOREIGN KEY (payment_method_id) REFERENCES public.payment_methods (id) ON DELETE SET NULL NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'balance_transactions_work_id_fkey') THEN
+    ALTER TABLE public.balance_transactions ADD CONSTRAINT balance_transactions_work_id_fkey FOREIGN KEY (work_id) REFERENCES public.works (id) ON DELETE SET NULL NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'balance_transactions_category_id_kind_fkey') THEN
+    ALTER TABLE public.balance_transactions ADD CONSTRAINT balance_transactions_category_id_kind_fkey FOREIGN KEY (category_id, kind) REFERENCES public.cash_flow_categories (id, kind) ON DELETE SET NULL NOT VALID;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'balance_transactions_receipt_number_length_check') THEN
+    ALTER TABLE public.balance_transactions ADD CONSTRAINT balance_transactions_receipt_number_length_check CHECK (receipt_number IS NULL OR char_length(receipt_number) <= 60) NOT VALID;
+  END IF;
+END $$;
+
+ALTER TABLE public.balance_transactions VALIDATE CONSTRAINT balance_transactions_kind_check;
+ALTER TABLE public.balance_transactions VALIDATE CONSTRAINT balance_transactions_bank_account_id_fkey;
+ALTER TABLE public.balance_transactions VALIDATE CONSTRAINT balance_transactions_payment_method_id_fkey;
+ALTER TABLE public.balance_transactions VALIDATE CONSTRAINT balance_transactions_work_id_fkey;
+ALTER TABLE public.balance_transactions VALIDATE CONSTRAINT balance_transactions_category_id_kind_fkey;
+ALTER TABLE public.balance_transactions VALIDATE CONSTRAINT balance_transactions_receipt_number_length_check;
+
+CREATE INDEX IF NOT EXISTS balance_transactions_bank_account_id_idx ON public.balance_transactions (bank_account_id);
+CREATE INDEX IF NOT EXISTS balance_transactions_payment_method_id_idx ON public.balance_transactions (payment_method_id);
+CREATE INDEX IF NOT EXISTS balance_transactions_work_id_idx ON public.balance_transactions (work_id);
+CREATE INDEX IF NOT EXISTS balance_transactions_category_id_idx ON public.balance_transactions (category_id);
+
+
+------ RUN DATA MIGRATION ------
+
+update public.balance_transactions bt
+set payment_method_id = pm.id
+from public.payment_methods pm
+where bt.payment_method_id is null
+  and pm.name = case bt.payment_method
+    when 'cash' then 'Efectivo'
+    when 'credit_card' then 'Tarjeta de Crédito'
+    when 'debit_card' then 'Tarjeta de Débito'
+    when 'bank_transfer' then 'Transferencia Bancaria'
+    when 'check' then 'Cheque'
+    when 'echeck' then 'Echeck'
+    when 'dollar' then 'Dólar'
+    when 'other' then 'Otro'
+  end;

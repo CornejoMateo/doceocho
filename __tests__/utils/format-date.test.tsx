@@ -1,4 +1,30 @@
-import { formatCreatedAt, formatSimpleTime, formatTimeVideo } from '@/utils/format-date';
+import {
+	formatCreatedAt,
+	formatDateOnly,
+	formatSimpleTime,
+	formatTimeVideo,
+} from '@/utils/format-date';
+
+describe('formatDateOnly', () => {
+	it('formats a YYYY-MM-DD date without going through Date/timezone conversion', () => {
+		expect(formatDateOnly('2026-03-15')).toBe('15/03/2026');
+	});
+
+	it('does not shift the date a day back near the Argentina UTC-3 boundary', () => {
+		// new Date('2026-01-01') + toLocaleDateString in UTC-3 would wrongly show 31/12/2025.
+		expect(formatDateOnly('2026-01-01')).toBe('01/01/2026');
+	});
+
+	it('returns "-" for null, undefined or empty string', () => {
+		expect(formatDateOnly(null)).toBe('-');
+		expect(formatDateOnly(undefined)).toBe('-');
+		expect(formatDateOnly('')).toBe('-');
+	});
+
+	it('returns "-" for a malformed value', () => {
+		expect(formatDateOnly('not-a-date')).toBe('-');
+	});
+});
 
 describe('formatCreatedAt', () => {
 	it('formats valid ISO date correctly', () => {

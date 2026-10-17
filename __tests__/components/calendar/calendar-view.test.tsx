@@ -83,6 +83,13 @@ jest.mock('@/hooks/calendar/use-load-event-types', () => ({
 	}),
 }));
 
+jest.mock('@/hooks/calendar/use-holidays', () => ({
+	useHolidays: () => ({
+		holidaysByDate: {},
+		refreshWorkDays: jest.fn(),
+	}),
+}));
+
 jest.mock('@/components/ui/use-toast', () => ({ useToast: jest.fn() }));
 jest.mock('@/components/provider/auth-provider', () => ({
 	useAuth: () => ({ user: { role: 'Admin' } }),

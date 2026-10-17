@@ -9,6 +9,7 @@ import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { useChatUnread } from '@/components/provider/chat-unread-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 type ChannelsCacheEntry = {
 	userId: string;
@@ -494,7 +495,7 @@ export function useChatManagement({
 		cancelCleanupMessages: () => setPendingCleanupMessages(false),
 
 		// Computed
-		isAdmin: currentUserRole === 'Admin',
+		isAdmin: isAdminRole(currentUserRole),
 
 		firstUnreadMessageId,
 		setFirstUnreadMessageId,

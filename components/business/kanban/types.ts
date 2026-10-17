@@ -51,9 +51,32 @@ export interface Card {
 	priority: 'none' | 'low' | 'medium' | 'high' | 'very_high';
 	completed_at: string | null;
 	color: string | null;
+	/** Client the card is about, when it has one. */
+	client_id: number | null;
+	/** Work the card is about. Always belongs to `client_id` when both are set. */
+	work_id: number | null;
 }
 
-export interface CardWithRelations extends Card {
+/** Names of the linked records, read alongside the card so the board can show them. */
+export interface CardClient {
+	id: number;
+	name: string | null;
+	last_name: string | null;
+}
+
+export interface CardWork {
+	id: number;
+	name: string | null;
+	locality: string | null;
+	address: string | null;
+}
+
+export interface CardWithLinks extends Card {
+	client?: CardClient | null;
+	work?: CardWork | null;
+}
+
+export interface CardWithRelations extends CardWithLinks {
 	list?: List;
 	files?: KanbanFileRecord[];
 }
@@ -64,6 +87,8 @@ export interface CardFormData {
 	due_date?: string;
 	priority?: 'none' | 'low' | 'medium' | 'high' | 'very_high';
 	color?: string;
+	client_id?: number | null;
+	work_id?: number | null;
 }
 
 export type KanbanFileRecord = {

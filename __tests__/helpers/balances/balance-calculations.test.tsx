@@ -10,14 +10,10 @@ describe('calculateBalanceSummary', () => {
 			budgetUsd: 0,
 			totalPaidArs: 0,
 			totalPaidUsd: 0,
-			totalExtraArs: 0,
-			totalExtraUsd: 0,
-			effectiveBudgetArs: 0,
-			effectiveBudgetUsd: 0,
 			remainingArs: 0,
 			remainingUsd: 0,
 			progressPercentage: 0,
-			type: 'Cancelado',
+			type: 'Saldado',
 		});
 	});
 
@@ -39,6 +35,20 @@ describe('calculateBalanceSummary', () => {
 		expect(result.remainingUsd).toBe(3500);
 		expect(result.progressPercentage).toBe(30);
 		expect(result.type).toBe('Deudor');
+	});
+
+	it('returns Saldado when isSettled is true, even with a pending debtor balance', () => {
+		const result = calculateBalanceSummary({
+			budgetAmountArs: 100000,
+			budgetAmountUsd: 5000,
+			budgetInitialArs: 100000,
+			totalPaidArs: 30000,
+			totalPaidUsd: 1500,
+			isSettled: true,
+		});
+
+		expect(result.remainingArs).toBe(70000);
+		expect(result.type).toBe('Saldado');
 	});
 
 	it('returns creditor when remaining usd is negative', () => {
@@ -66,7 +76,7 @@ describe('calculateBalanceSummary', () => {
 
 		expect(result.remainingArs).toBe(0);
 		expect(result.remainingUsd).toBe(0);
-		expect(result.type).toBe('Cancelado');
+		expect(result.type).toBe('Saldado');
 	});
 
 	it('caps progress percentage at 100', () => {
@@ -91,7 +101,7 @@ describe('calculateBalanceSummary', () => {
 
 		expect(result.budgetArsInitial).toBe(0);
 		expect(result.progressPercentage).toBe(0);
-		expect(result.type).toBe('Cancelado');
+		expect(result.type).toBe('Saldado');
 	});
 
 	it('uses budgetArsCurrent for progress when available instead of budgetInitialArs', () => {
@@ -106,23 +116,7 @@ describe('calculateBalanceSummary', () => {
 		expect(result.progressPercentage).toBe(25);
 	});
 
-	it('includes extra amounts in the effective budget and remaining', () => {
-		const result = calculateBalanceSummary({
-			budgetAmountArs: 100000,
-			budgetAmountUsd: 5000,
-			totalPaidArs: 30000,
-			totalPaidUsd: 1500,
-			totalExtraArs: 20000,
-			totalExtraUsd: 1000,
-		});
-
-		expect(result.totalExtraArs).toBe(20000);
-		expect(result.totalExtraUsd).toBe(1000);
-		expect(result.remainingArs).toBe(90000);
-		expect(result.remainingUsd).toBe(4500);
-	});
-
-	it('uses budgetInitialArs for progress when effectiveBudgetArs is zero', () => {
+	it('uses budgetInitialArs for progress when budgetArsCurrent is zero', () => {
 		const result = calculateBalanceSummary({
 			budgetAmountArs: 0,
 			budgetAmountUsd: 5000,

@@ -1,11 +1,45 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UserRole } from '@/constants/users/user-role';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { clearChannelsCache } from '@/hooks/chat/use-chat-management';
+import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/use-toast';
+
+// Timeout values for auth checks. The outer timeout is slightly longer than the inner timeout
+// to allow for the fetchProfile call to complete before the outer timeout triggers.
+const AUTH_TIMEOUT_MS = 10000;
+
+const AUTH_OUTER_TIMEOUT_MS = AUTH_TIMEOUT_MS + 2000;
+
+class AuthTimeoutError extends Error {
+	constructor() {
+		super('Auth check timed out');
+		this.name = 'AuthTimeoutError';
+	}
+}
+
+// Races an arbitrary promise against a timeout, without altering the original
+// promise's resolution/rejection behavior when it settles first.
+function withAuthTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timeoutId = setTimeout(() => reject(new AuthTimeoutError()), ms);
+
+		promise.then(
+			(value) => {
+				clearTimeout(timeoutId);
+				resolve(value);
+			},
+			(err) => {
+				clearTimeout(timeoutId);
+				reject(err);
+			}
+		);
+	});
+}
 
 export type SessionUser = {
 	username: string;
@@ -25,47 +59,65 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchProfile(token: string): Promise<SessionUser | null> {
-	const res = await fetch('/api/me', {
-		headers: {
-			Authorization: `Bearer ${token}`,
-		},
-	});
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
 
-	if (!res.ok) {
-		console.error('[API /me]', {
-			status: res.status,
-			statusText: res.statusText,
-			body: await res.text(),
+	try {
+		const res = await fetch('/api/me', {
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+			signal: controller.signal,
 		});
 
+		if (!res.ok) {
+			console.error('[API /me]', {
+				status: res.status,
+				statusText: res.statusText,
+				body: await res.text(),
+			});
+
+			return null;
+		}
+
+		const json = await res.json();
+
+		console.log('[API /me]', json);
+
+		if (!json.data) {
+			console.warn('[API /me] Sin data', json);
+			return null;
+		}
+
+		return {
+			username: json.data.username,
+			role: json.data.role,
+			name: json.data.name || '-',
+			last_name: json.data.last_name || '-',
+			uid: json.data.uid_user || '',
+		};
+	} catch (err) {
+		if (err instanceof DOMException && err.name === 'AbortError') {
+			throw new AuthTimeoutError();
+		}
+
+		console.error('[API /me] fetch failed or timed out', err);
 		return null;
+	} finally {
+		clearTimeout(timeoutId);
 	}
-
-	const json = await res.json();
-
-	console.log('[API /me]', json);
-
-	if (!json.data) {
-		console.warn('[API /me] Sin data', json);
-		return null;
-	}
-
-	return {
-		username: json.data.username,
-		role: json.data.role,
-		name: json.data.name || '-',
-		last_name: json.data.last_name || '-',
-		uid: json.data.uid_user || '',
-	};
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
 	const [user, setUser] = useState<SessionUser | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [initializing, setInitializing] = useState(true);
 	const supabase = getSupabaseClient();
 
+	const authRequestRef = useRef(0);
 	const router = useRouter();
-	const loadProfile = useCallback(async () => {
+
+	const loadProfile = useCallback(async (): Promise<SessionUser | null> => {
 		const {
 			data: { session },
 			error,
@@ -85,25 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				hasUser: !!user,
 			});
 
-			if (!user) {
-				setUser(null);
-			}
-
-			return;
+			return null;
 		}
 
-		try {
-			const profile = await fetchProfile(session.access_token);
+		const profile = await fetchProfile(session.access_token);
 
-			if (profile) {
-				setUser(profile);
-			} else {
-				console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
-				return;
-			}
-		} catch (err) {
-			console.error('Error loading profile:', err);
+		if (!profile) {
+			console.warn('[AUTH] Session válida, pero no se pudo cargar el perfil');
 		}
+
+		return profile;
 	}, [supabase]);
 
 	useEffect(() => {
@@ -114,25 +157,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		} = supabase.auth.onAuthStateChange(async (event, session) => {
 			if (cancelled) return;
 
-			switch (event) {
-				case 'SIGNED_IN':
-				case 'INITIAL_SESSION':
-					try {
-						await loadProfile();
-					} finally {
-						if (!cancelled) {
-							setLoading(false);
+			const requestId = ++authRequestRef.current;
+			const isStale = () => cancelled || authRequestRef.current !== requestId;
+
+			try {
+				switch (event) {
+					case 'SIGNED_IN':
+					case 'INITIAL_SESSION':
+						try {
+							const profile = await withAuthTimeout(loadProfile(), AUTH_OUTER_TIMEOUT_MS);
+
+							if (!isStale()) {
+								setUser(profile);
+							}
+						} catch (err) {
+							if (err instanceof AuthTimeoutError) {
+								console.error('[AUTH] loadProfile timed out', err);
+
+								if (!isStale()) {
+									setUser(null);
+									toast({
+										title: 'Error',
+										description: 'No se pudo verificar tu sesión. Revisá tu conexión.',
+										variant: 'destructive',
+									});
+								}
+							} else {
+								console.error('Error loading profile:', err);
+							}
+						} finally {
+							if (!isStale()) {
+								setLoading(false);
+							}
 						}
-					}
-					break;
+						break;
 
-				case 'SIGNED_OUT':
-					setUser(null);
-					setLoading(false);
-					break;
+					case 'SIGNED_OUT':
+						setUser(null);
+						setLoading(false);
+						break;
 
-				case 'TOKEN_REFRESHED':
-					break;
+					case 'TOKEN_REFRESHED':
+						break;
+				}
+			} finally {
+				if (!isStale()) {
+					setInitializing(false);
+				}
 			}
 		});
 
@@ -182,7 +253,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			if (!session) {
 				throw new Error('No se pudo obtener la sesión');
 			}
-			await loadProfile();
+			const profile = await loadProfile();
+			if (profile) setUser(profile);
 			return sessionUser;
 		} catch (err: any) {
 			throw err;
@@ -195,6 +267,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		setLoading(true);
 
 		clearChannelsCache();
+
+		try {
+			localStorage.removeItem('users_cache');
+		} catch {
+			// localStorage access can throw (e.g. disabled storage); safe to ignore.
+		}
 
 		try {
 			await supabase.auth.signOut({
@@ -219,7 +297,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				signOutUser,
 			}}
 		>
-			{children}
+			{initializing ? (
+				<div className="flex min-h-screen items-center justify-center bg-background">
+					<Spinner className="h-6 w-6" />
+				</div>
+			) : (
+				children
+			)}
 		</AuthContext.Provider>
 	);
 }

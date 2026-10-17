@@ -15,14 +15,6 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import {
-	DollarSign,
-	ArrowUpCircle,
-	ArrowDownCircle,
-	Plus,
-	RefreshCw,
-	Building2,
-} from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
 	CashBox,
@@ -33,20 +25,39 @@ import {
 	createCashBox,
 	closeCashBox,
 	deleteTransaction,
-	listActiveBankAccounts,
+	listBankAccounts,
 	listTransactions,
 } from '@/lib/cash-flow/cash-flow';
-import { CashBoxSummaryCard } from '@/components/business/cash-flow/cash-box-summary-card';
-import { CashBoxTransactions } from '@/components/business/cash-flow/cash-box-transactions';
-import { TransactionDialog } from '@/components/business/cash-flow/transaction-dialog';
-import { CashBoxHistory } from '@/components/business/cash-flow/cash-box-history';
-import { BankAccountsDialog } from '@/components/business/cash-flow/bank-accounts-dialog';
-import { CloseCashBoxDialog } from '@/components/business/cash-flow/close-cash-box-dialog';
+import { TransactionDialog } from '@/components/business/cash-flow/cash-box/transaction-dialog';
+import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts/bank-accounts-tab';
+import { CloseCashBoxDialog } from '@/components/business/cash-flow/cash-box/close-cash-box-dialog';
 import { translateError } from '@/lib/error-translator';
 import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
 import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
-import { OpenCashBoxDialog } from '@/components/business/cash-flow/open-cash-box-dialog';
+import { OpenCashBoxDialog } from '@/components/business/cash-flow/cash-box/open-cash-box-dialog';
 import { formatCurrency } from '@/utils/formats-money';
+import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
+import { CheckingAccountsTab } from '@/components/business/cash-flow/balances-tab/checking-accounts-tab';
+import { SummaryTab } from '@/components/business/cash-flow/summary/summary-tab';
+import { CategoriesConfig } from '@/components/business/cash-flow/shared/categories-config';
+import { FixedExpensesTab } from '@/components/business/cash-flow/fixed-expenses/fixed-expenses-tab';
+import { IncomesTab } from '@/components/business/cash-flow/incomes-expenses/incomes-tab';
+import { ExpensesTab } from '@/components/business/cash-flow/incomes-expenses/expenses-tab';
+import { CollectionsTab } from '@/components/business/cash-flow/collections-payments/collections-tab';
+import { PaymentsTab } from '@/components/business/cash-flow/collections-payments/payments-tab';
+import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
+import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
+
+function CashFlowTabHeader({ value }: { value: CashFlowTabValue }) {
+	const tab = CASH_FLOW_TABS.find((t) => t.value === value);
+	if (!tab) return null;
+	return (
+		<div>
+			<h3 className="text-xl font-semibold text-foreground">{tab.title}</h3>
+			<p className="text-muted-foreground mt-1">{tab.description}</p>
+		</div>
+	);
+}
 
 function CashFlowTransactionsRealtime({
 	cashBoxId,
@@ -74,7 +85,7 @@ function CashFlowTransactionsRealtime({
 
 export function CashFlowManagement() {
 	const { toast } = useToast();
-	const [activeTab, setActiveTab] = useState('current');
+	const [activeTab, setActiveTab] = useState<CashFlowTabValue>('summary');
 
 	const [isOpenCashBoxDialogOpen, setIsOpenCashBoxDialogOpen] = useState(false);
 
@@ -98,16 +109,19 @@ export function CashFlowManagement() {
 	} = useOptimizedRealtime<BankAccount>(
 		'bank_accounts',
 		async () => {
-			const { data } = await listActiveBankAccounts();
+			const { data } = await listBankAccounts();
 			return data ?? [];
 		},
-		'active_bank_accounts_cache'
+		'all_bank_accounts_cache'
+	);
+	const activeBankAccounts = useMemo(
+		() => bankAccounts.filter((account) => account.is_active),
+		[bankAccounts]
 	);
 
 	const [transactions, setTransactions] = useState<TransactionWithBankAccount[]>([]);
 	const refreshTransactionsRef = useRef<(() => Promise<void>) | null>(null);
 	const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
-	const [isBankAccountsDialogOpen, setIsBankAccountsDialogOpen] = useState(false);
 	const [isCloseCashBoxDialogOpen, setIsCloseCashBoxDialogOpen] = useState(false);
 	const [isDeleteTransactionDialogOpen, setIsDeleteTransactionDialogOpen] = useState(false);
 	const [transactionToDelete, setTransactionToDelete] = useState<TransactionWithBankAccount | null>(
@@ -223,11 +237,6 @@ export function CashFlowManagement() {
 		}
 	};
 
-	const handleBankAccountsUpdated = async () => {
-		setIsBankAccountsDialogOpen(false);
-		await refreshBankAccounts();
-	};
-
 	return (
 		<div className="space-y-6">
 			{/* Header */}
@@ -236,99 +245,96 @@ export function CashFlowManagement() {
 					<h2 className="text-2xl font-bold text-foreground text-balance">Flujo de Fondos</h2>
 					<p className="text-muted-foreground mt-1">Gestión de ingresos, egresos y cajas</p>
 				</div>
-				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						onClick={() => setIsBankAccountsDialogOpen(true)}
-						className="gap-2"
-					>
-						<Building2 className="h-4 w-4" />
-						Cuentas Bancarias
-					</Button>
-				</div>
 			</div>
 
-			<Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-				<TabsList>
-					<TabsTrigger value="current">Caja Actual</TabsTrigger>
-					<TabsTrigger value="history">Historial</TabsTrigger>
-				</TabsList>
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => setActiveTab(value as CashFlowTabValue)}
+				className="space-y-6"
+			>
+				<div className="overflow-x-auto">
+					<TabsList className="w-max flex-nowrap">
+						{CASH_FLOW_TABS.map((tab) => (
+							<TabsTrigger key={tab.value} value={tab.value} className="shrink-0">
+								{tab.label}
+							</TabsTrigger>
+						))}
+					</TabsList>
+				</div>
 
-				<TabsContent value="current" className="space-y-6">
-					{loadingCashBoxes ? (
-						<Card className="p-12 bg-card border-border text-center">
-							<p className="text-muted-foreground">Cargando...</p>
-						</Card>
-					) : !openCashBox ? (
-						<Card className="p-12 bg-card border-border text-center">
-							<div className="flex flex-col items-center gap-4">
-								<div className="rounded-full bg-secondary p-4">
-									<DollarSign className="h-8 w-8 text-muted-foreground" />
-								</div>
-								<div>
-									<h3 className="text-lg font-semibold text-foreground">No hay caja abierta</h3>
-									<p className="text-muted-foreground mt-1">
-										Crea una nueva caja para comenzar a registrar movimientos
-									</p>
-								</div>
-								<Button onClick={() => setIsOpenCashBoxDialogOpen(true)}>
-									<Plus className="h-4 w-4" />
-									Crear Caja
-								</Button>
-							</div>
-						</Card>
-					) : (
-						<>
-							{/* Summary Card */}
-							{cashBoxSummary && <CashBoxSummaryCard summary={cashBoxSummary} />}
-
-							{/* Action Buttons */}
-							<div className="grid gap-4 md:grid-cols-2">
-								<Button onClick={() => handleAddTransaction('income')} className="gap-2 h-12">
-									<ArrowUpCircle className="h-5 w-5" />
-									Registrar Ingreso
-								</Button>
-								<Button
-									onClick={() => handleAddTransaction('expense')}
-									variant="outline"
-									className="gap-2 h-12"
-								>
-									<ArrowDownCircle className="h-5 w-5" />
-									Registrar Egreso
-								</Button>
-							</div>
-
-							{/* Close Cash Box Button */}
-							<div className="flex w-full justify-end">
-								<Button
-									onClick={() => setIsCloseCashBoxDialogOpen(true)}
-									variant="destructive"
-									className="w-full gap-2 md:w-auto"
-								>
-									<RefreshCw className="" />
-									Cerrar Caja
-								</Button>
-							</div>
-
-							{/* Transactions List */}
-							{openCashBox && (
-								<CashBoxTransactions
-									transactions={transactions}
-									cashBoxCreatedAt={openCashBox.created_at || ''}
-									onDeleteTransaction={handleAskDeleteTransaction}
-								/>
-							)}
-						</>
-					)}
+				<TabsContent value="summary" className="space-y-6 min-w-0">
+					<CashFlowTabHeader value="summary" />
+					<SummaryTab />
 				</TabsContent>
 
-				<TabsContent value="history">
-					<CashBoxHistory
-						cashBoxes={cashBoxes}
-						loading={loadingCashBoxes}
-						onRefresh={refreshCashBoxes}
+				<TabsContent value="bank-accounts" className="space-y-6">
+					<CashFlowTabHeader value="bank-accounts" />
+					<BankAccountsTab
+						bankAccounts={bankAccounts}
+						onBankAccountsUpdated={refreshBankAccounts}
 					/>
 				</TabsContent>
+
+				<TabsContent value="suppliers" className="space-y-6">
+					<CashFlowTabHeader value="suppliers" />
+					<SuppliersManagement />
+				</TabsContent>
+
+				<TabsContent value="checking-accounts" className="space-y-6">
+					<CashFlowTabHeader value="checking-accounts" />
+					<CheckingAccountsTab />
+				</TabsContent>
+
+				{Object.entries(CATEGORY_TABS).map(([tabValue, config]) => {
+					const categoriesConfig = (
+						<CategoriesConfig
+							kind={config.kind}
+							title={config.title}
+							triggerLabel={config.triggerLabel}
+							newLabel={config.newLabel}
+							emptyLabel={config.emptyLabel}
+						/>
+					);
+					return (
+						<TabsContent key={tabValue} value={tabValue} className="space-y-6 min-w-0">
+							<CashFlowTabHeader value={tabValue as CashFlowTabValue} />
+							{tabValue === 'fixed-expenses' ? (
+								<>
+									<div className="flex items-center justify-end">{categoriesConfig}</div>
+									<FixedExpensesTab />
+								</>
+							) : tabValue === 'incomes' ? (
+								<IncomesTab categoriesConfig={categoriesConfig} />
+							) : tabValue === 'expenses' ? (
+								<ExpensesTab categoriesConfig={categoriesConfig} />
+							) : tabValue === 'collections' ? (
+								<CollectionsTab categoriesConfig={categoriesConfig} />
+							) : tabValue === 'payments' ? (
+								<PaymentsTab categoriesConfig={categoriesConfig} />
+							) : (
+								<Card className="p-12 bg-card border-border text-center">
+									<p className="text-muted-foreground">Próximamente</p>
+								</Card>
+							)}
+						</TabsContent>
+					);
+				})}
+
+				{CASH_FLOW_TABS.filter(
+					(tab) =>
+						tab.value !== 'summary' &&
+						tab.value !== 'bank-accounts' &&
+						tab.value !== 'checking-accounts' &&
+						tab.value !== 'suppliers' &&
+						!(tab.value in CATEGORY_TABS)
+				).map((tab) => (
+					<TabsContent key={tab.value} value={tab.value} className="space-y-6">
+						<CashFlowTabHeader value={tab.value} />
+						<Card className="p-12 bg-card border-border text-center">
+							<p className="text-muted-foreground">Próximamente</p>
+						</Card>
+					</TabsContent>
+				))}
 			</Tabs>
 
 			{/* Dialogs */}
@@ -337,7 +343,7 @@ export function CashFlowManagement() {
 				onOpenChange={setIsTransactionDialogOpen}
 				type={transactionType}
 				cashBoxId={openCashBox?.id || 0}
-				bankAccounts={bankAccounts}
+				bankAccounts={activeBankAccounts}
 				onTransactionCreated={handleTransactionCreated}
 			/>
 
@@ -351,13 +357,6 @@ export function CashFlowManagement() {
 					}}
 				/>
 			)}
-
-			<BankAccountsDialog
-				open={isBankAccountsDialogOpen}
-				onOpenChange={setIsBankAccountsDialogOpen}
-				bankAccounts={bankAccounts}
-				onBankAccountsUpdated={handleBankAccountsUpdated}
-			/>
 
 			<CloseCashBoxDialog
 				open={isCloseCashBoxDialogOpen}

@@ -17,6 +17,16 @@ export const formatCreatedAt = (dateValue: unknown) => {
 	return `${day}/${month}/${year}`;
 };
 
+// For plain 'YYYY-MM-DD' date columns: splits the string instead of `new Date()`, which
+// would parse it as UTC midnight and shift a day back once localized to Argentina time.
+export function formatDateOnly(value: string | null | undefined) {
+	if (!value) return '-';
+	const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (!match) return '-';
+	const [, year, month, day] = match;
+	return `${day}/${month}/${year}`;
+}
+
 export function formatShortDate(value: string | null | undefined) {
 	if (!value) return '-';
 	try {
@@ -92,4 +102,20 @@ export const formatTimeVideo = (seconds: number) => {
 		.padStart(2, '0');
 	const s = (totalSeconds % 60).toString().padStart(2, '0');
 	return `${m}:${s}`;
+};
+
+/** Returns true when the value is a real calendar date in 'YYYY-MM-DD' form. */
+export function isValidDateOnly(value: string | null | undefined): boolean {
+	if (!value) return false;
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+	if (!match) return false;
+	const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])];
+	const check = new Date(Date.UTC(y, m - 1, d));
+	return check.getUTCFullYear() === y && check.getUTCMonth() === m - 1 && check.getUTCDate() === d;
+}
+
+// Builds a local Date for the given 'YYYY-MM-DD' (Argentina today) for the picker's upper bound
+export const parseToday = (value: string) => {
+	const [y, m, d] = value.split('-').map(Number);
+	return new Date(y, m - 1, d);
 };

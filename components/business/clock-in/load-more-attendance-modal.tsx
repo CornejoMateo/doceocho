@@ -171,7 +171,7 @@ export function LoadMoreAttendanceModal({
 									<SelectItem value="all">Todos los usuarios</SelectItem>
 									{users.map(
 										(user) =>
-											user.role === 'Taller' && (
+											user.role !== 'QR' && (
 												<SelectItem key={user.uid_user} value={user.uid_user}>
 													{user.name && user.last_name
 														? `${user.name} ${user.last_name}`

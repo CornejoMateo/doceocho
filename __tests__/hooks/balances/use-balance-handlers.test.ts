@@ -119,7 +119,9 @@ describe('useBalanceHandlers', () => {
 			await result.current.handleDeleteBalance();
 		});
 
-		expect(toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Eliminando saldo...' }));
+		expect(toast).toHaveBeenCalledWith(
+			expect.objectContaining({ title: 'Eliminando cuenta corriente...' })
+		);
 		expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
 		expect(onRefresh).not.toHaveBeenCalled();
 	});

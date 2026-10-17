@@ -4,12 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/provider/auth-provider';
 import { CalendarView } from '@/components/business/calendar/calendar-view';
 import { AppointmentsTab } from '@/components/business/calendar/appointments/appointments-tab';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function CalendarManagement() {
 	const { user } = useAuth();
 
 	// Only admins review appointments and configure availability.
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	if (!isAuthorized) {
 		return <CalendarView />;

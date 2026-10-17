@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BalanceReportRow } from '@/components/business/reports/balances/types';
+import type { BalanceReportRow } from '@/components/business/cash-flow/balances-tab/types';
 import { formatCurrency, parseArsToNumber } from '@/utils/formats-money';
 import { BALANCES_REPORT_COLUMNS } from '@/constants/balances/balances-report';
 import { formatCreatedAt } from '@/utils/format-date';
@@ -15,7 +15,7 @@ export function generateBalancesPDF(rows: BalanceReportRow[], filtersDescription
 
 	// Title
 	doc.setFontSize(18);
-	doc.text('Reporte de Saldos', 14, 20);
+	doc.text('Reporte de Cuentas Corrientes', 14, 20);
 
 	// Subtitle with filter info
 	doc.setFontSize(10);
@@ -93,7 +93,7 @@ export function generateBalancesPDF(rows: BalanceReportRow[], filtersDescription
 		doc.setFontSize(8);
 		doc.setTextColor(150);
 		doc.text(
-			`Total de saldos: ${rows.length} - Página ${i} de ${pageCount}`,
+			`Total de cuentas corrientes: ${rows.length} - Página ${i} de ${pageCount}`,
 			14,
 			doc.internal.pageSize.height - 10
 		);
@@ -138,10 +138,14 @@ export function getFiltersDescription(filters: {
 		parts.push(`Entregas ARS máx: ${formatCurrency(parseArsToNumber(filters.maxDeliveriesArs))}`);
 	}
 	if (hasValue(filters.minBalanceArs)) {
-		parts.push(`Saldo ARS mín: ${formatCurrency(parseArsToNumber(filters.minBalanceArs))}`);
+		parts.push(
+			`Cuenta corriente ARS mín: ${formatCurrency(parseArsToNumber(filters.minBalanceArs))}`
+		);
 	}
 	if (hasValue(filters.maxBalanceArs)) {
-		parts.push(`Saldo ARS máx: ${formatCurrency(parseArsToNumber(filters.maxBalanceArs))}`);
+		parts.push(
+			`Cuenta corriente ARS máx: ${formatCurrency(parseArsToNumber(filters.maxBalanceArs))}`
+		);
 	}
 
 	if (parts.length === 0) return 'Todos';

@@ -50,7 +50,14 @@ export async function proxy(request: NextRequest) {
 		}
 	);
 
-	await supabase.auth.getUser();
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	if (pathname === '/login' && user) {
+		return NextResponse.redirect(new URL('/', request.url));
+	}
+
 	return response;
 }
 

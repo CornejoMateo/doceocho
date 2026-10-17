@@ -27,6 +27,7 @@ function createSupabaseMock() {
 		select: jest.fn(() => chain),
 		order: jest.fn(() => chain),
 		eq: jest.fn(() => chain),
+		returns: jest.fn(() => chain),
 		insert: jest.fn(() => chain),
 		update: jest.fn(() => chain),
 		delete: jest.fn(() => chain),
@@ -74,12 +75,15 @@ describe('kanban cards lib', () => {
 			const promise = Promise.resolve({ data: [mockCard], error: null });
 			chain.select.mockReturnValue(chain);
 			chain.eq.mockReturnValue(chain);
-			chain.order.mockReturnValue(promise);
+			chain.order.mockReturnValue(chain);
+			chain.returns.mockReturnValue(promise);
 
 			const result = await getCardsByListId(1);
 
 			expect(supabase.from).toHaveBeenCalledWith('kanban_cards');
-			expect(chain.select).toHaveBeenCalledWith('*');
+			// The card now carries its linked client and work.
+			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('client:clients'));
+			expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('work:works'));
 			expect(chain.eq).toHaveBeenCalledWith('list_id', 1);
 			expect(chain.order).toHaveBeenCalledWith('position', { ascending: true });
 			expect(result.data).toEqual([mockCard]);
@@ -92,7 +96,8 @@ describe('kanban cards lib', () => {
 			const promise = Promise.resolve({ data: null, error: new Error('DB error') });
 			chain.select.mockReturnValue(chain);
 			chain.eq.mockReturnValue(chain);
-			chain.order.mockReturnValue(promise);
+			chain.order.mockReturnValue(chain);
+			chain.returns.mockReturnValue(promise);
 
 			const result = await getCardsByListId(1);
 			expect(result.data).toBeNull();

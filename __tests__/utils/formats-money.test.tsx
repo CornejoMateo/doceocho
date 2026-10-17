@@ -4,6 +4,7 @@ import {
 	normalizeMoney,
 	formatNumber,
 	parseArsToNumber,
+	roundToTwoDecimals,
 } from '@/utils/formats-money';
 
 describe('money utils', () => {
@@ -81,6 +82,33 @@ describe('money utils', () => {
 
 		it('keeps integers unchanged', () => {
 			expect(normalizeMoney(100)).toBe(100);
+		});
+	});
+
+	describe('roundToTwoDecimals', () => {
+		it('rounds a value with more than 2 decimals to 2', () => {
+			expect(roundToTwoDecimals(10.126)).toBe(10.13);
+		});
+
+		it('corrects floating point drift that would otherwise round down', () => {
+			expect(roundToTwoDecimals(1.005)).toBe(1.01);
+		});
+
+		it('leaves 3-decimal-safe integers unchanged', () => {
+			expect(roundToTwoDecimals(100)).toBe(100);
+		});
+
+		it('converts negative zero to zero', () => {
+			expect(roundToTwoDecimals(-0)).toBe(0);
+			expect(Object.is(roundToTwoDecimals(-0.001), -0)).toBe(false);
+		});
+
+		it('returns NaN for NaN input instead of silently coercing it', () => {
+			expect(roundToTwoDecimals(NaN)).toBeNaN();
+		});
+
+		it('rounds a negative amount correctly', () => {
+			expect(roundToTwoDecimals(-10.555)).toBe(-10.55);
 		});
 	});
 

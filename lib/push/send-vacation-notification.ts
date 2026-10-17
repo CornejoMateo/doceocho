@@ -7,7 +7,7 @@ import {
 	getUserPushSubscriptions,
 } from '@/lib/push/subscriptions';
 
-const VACATIONS_URL = '/human-resources';
+const VACATIONS_URL = '/employees?tab=vacaciones';
 
 type NotificationPayload = {
 	title: string;

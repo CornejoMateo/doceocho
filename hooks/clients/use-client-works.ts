@@ -1,24 +1,35 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createWork, deleteWork, getWorksByClientId, updateWork } from '@/lib/works/works';
 import { Work } from '@/lib/works/works';
 
 export function useClientWorks(clientId?: number) {
 	const [works, setWorks] = useState<Work[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
+	// Incremented on every load/clear so responses from superseded requests are ignored
+	const requestIdRef = useRef(0);
+
+	const clearWorks = useCallback(() => {
+		requestIdRef.current += 1;
+		setWorks([]);
+		setIsLoading(false);
+	}, []);
 
 	const loadWorks = useCallback(async () => {
 		if (!clientId) return;
 
+		const requestId = ++requestIdRef.current;
 		setIsLoading(true);
 		try {
 			const { data, error } = await getWorksByClientId(clientId);
 			if (error) throw error;
+			if (requestId !== requestIdRef.current) return;
 			setWorks(data || []);
 		} catch (error) {
 			console.error(error);
+			if (requestId !== requestIdRef.current) return;
 			setWorks([]);
 		} finally {
-			setIsLoading(false);
+			if (requestId === requestIdRef.current) setIsLoading(false);
 		}
 	}, [clientId]);
 
@@ -55,5 +66,5 @@ export function useClientWorks(clientId?: number) {
 		return data;
 	};
 
-	return { works, isLoading, loadWorks, create, remove, update };
+	return { works, isLoading, loadWorks, clearWorks, create, remove, update };
 }

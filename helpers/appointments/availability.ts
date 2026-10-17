@@ -13,6 +13,8 @@ export type AvailabilitySettings = {
 	slot_duration_minutes: number;
 	min_notice_hours: number;
 	max_days_ahead: number;
+	/** Per-date schedules that replace the weekly one, e.g. a holiday worked with custom hours. */
+	date_overrides?: Record<string, DaySchedule>;
 };
 
 export type TakenSlot = {
@@ -62,6 +64,16 @@ export function formatDateOnly(date: Date): string {
 	return `${year}-${month}-${day}`;
 }
 
+/** The schedule that applies to a date: its override if any, otherwise its weekday. */
+export function getScheduleForDate(
+	date: string,
+	settings: AvailabilitySettings
+): DaySchedule | undefined {
+	return (
+		settings.date_overrides?.[date] ?? settings.weekly_schedule?.[parseDateOnly(date).getDay()]
+	);
+}
+
 /** Every slot the weekly schedule defines for that date, before any filtering. */
 export function buildDaySlots(
 	schedule: DaySchedule | undefined,
@@ -108,7 +120,7 @@ export function getSlotsForDate(
 
 	if (Number.isNaN(target.getTime())) return [];
 
-	const schedule = settings.weekly_schedule?.[target.getDay()];
+	const schedule = getScheduleForDate(date, settings);
 	const slots = buildDaySlots(schedule, settings.slot_duration_minutes);
 
 	if (slots.length === 0) return [];
@@ -140,11 +152,12 @@ export function getBookableDates(settings: AvailabilitySettings, now: Date = new
 	const dates: string[] = [];
 
 	for (let offset = 0; offset <= settings.max_days_ahead; offset++) {
-		const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-		const schedule = settings.weekly_schedule?.[date.getDay()];
+		const date = formatDateOnly(
+			new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset)
+		);
 
-		if (schedule?.enabled) {
-			dates.push(formatDateOnly(date));
+		if (getScheduleForDate(date, settings)?.enabled) {
+			dates.push(date);
 		}
 	}
 

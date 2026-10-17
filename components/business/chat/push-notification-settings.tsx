@@ -61,7 +61,7 @@ export function PushNotificationSettings({
 		} else {
 			toast({
 				title: 'Suscripción exitosa',
-				description: 'Ahora recibirás notificaciones de los mensajes.',
+				description: 'Ahora recibirás notificaciones push.',
 				variant: 'default',
 			});
 		}

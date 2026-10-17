@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Work } from '@/lib/works/works';
 import { useState } from 'react';
+import { statusOptions } from '@/constants/type-config';
 
 interface WorkFormProps {
 	clientId: number;
@@ -130,7 +131,7 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 					onValueChange={(value) =>
 						setFormData((prev) => ({
 							...prev,
-							status: value as 'pending' | 'in_progress' | 'completed',
+							status: value as 'pending' | 'in_progress' | 'completed' | 'paused',
 						}))
 					}
 					required
@@ -139,9 +140,11 @@ export function WorkForm({ onSubmit, onCancel }: WorkFormProps) {
 						<SelectValue placeholder="Seleccionar estado" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="pending">Pendiente</SelectItem>
-						<SelectItem value="in_progress">En progreso</SelectItem>
-						<SelectItem value="completed">Finalizada</SelectItem>
+						{statusOptions.map((option) => (
+							<SelectItem key={option.value} value={option.value}>
+								{option.label}
+							</SelectItem>
+						))}
 					</SelectContent>
 				</Select>
 			</div>

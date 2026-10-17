@@ -1,4 +1,4 @@
-import { UserRole } from '@/constants/users/user-role';
+import { isAdminRole, UserRole } from '@/constants/users/user-role';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -167,5 +167,5 @@ export async function isAdmin(userId: string) {
 
 	if (error || !data) return false;
 
-	return data.role === 'Admin';
+	return isAdminRole(data.role);
 }

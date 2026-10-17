@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pencil, Info } from 'lucide-react';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
 import { BalanceSummary } from '@/helpers/balances/balance-calculations';
@@ -37,8 +37,6 @@ interface BalanceInformationProps {
 
 	totalPaid: number;
 	totalPaidUsd: number;
-	totalExtraArs: number;
-	totalExtraUsd: number;
 
 	summary: BalanceSummary;
 
@@ -56,8 +54,6 @@ export function BalanceInformation({
 	usdCurrent,
 	totalPaid,
 	totalPaidUsd,
-	totalExtraArs,
-	totalExtraUsd,
 	summary,
 	formatDate,
 	onUpdated,
@@ -174,12 +170,10 @@ export function BalanceInformation({
 
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-primary">
-							{formatCurrency(summary.effectiveBudgetArs)}
+							{formatCurrency(summary.budgetArsCurrent)}
 						</p>
 
-						<p className="text-xs text-muted-foreground">
-							{formatCurrencyUSD(summary.effectiveBudgetUsd)}
-						</p>
+						<p className="text-xs text-muted-foreground">{formatCurrencyUSD(summary.budgetUsd)}</p>
 					</div>
 				</div>
 
@@ -196,17 +190,7 @@ export function BalanceInformation({
 				</div>
 
 				<div>
-					<p className="text-xs text-muted-foreground mb-1">Monto extra</p>
-
-					<div className="flex flex-col">
-						<p className="text-sm font-bold text-purple-600">{formatCurrency(totalExtraArs)}</p>
-
-						<p className="text-xs text-muted-foreground">{formatCurrencyUSD(totalExtraUsd)}</p>
-					</div>
-				</div>
-
-				<div>
-					<p className="text-xs text-muted-foreground mb-1">Saldo</p>
+					<p className="text-xs text-muted-foreground mb-1">Monto</p>
 
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-orange-600">

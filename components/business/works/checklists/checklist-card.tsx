@@ -26,6 +26,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface ChecklistCardProps {
 	checklist: Checklist;
@@ -186,7 +187,7 @@ export function ChecklistCard({
 		onUploadSuccess: () => setImagesRefreshKey((prev) => prev + 1),
 	});
 
-	const isAdmin = user?.role === 'Admin';
+	const isAdmin = isAdminRole(user?.role);
 
 	const handleDragEnd = async (event: DragEndEvent) => {
 		const { active, over } = event;

@@ -1,20 +1,20 @@
 export const BALANCES_REPORT_TITLE = 'Cuentas corrientes';
 
 export const BALANCES_REPORT_COLUMNS = {
-	contractDate: 'FECHA 1ER PRESUPUESTO CONTRATADO',
+	contractDate: 'FECHA DE VENTA',
 	client: 'CLIENTE',
 	work: 'OBRA',
 	concept: 'CONCEPTO',
 	purchase: 'COMPRA',
 	deliveries: 'ENTREGAS',
-	balanceType: 'TIPO DE SALDO',
-	balanceAmount: 'MONTO DE SALDO',
+	balanceType: 'TIPO DE CUENTA CORRIENTE',
+	balanceAmount: 'MONTO',
 } as const;
 
 export const BALANCE_TYPES = {
 	DEBTOR: 'DEUDOR',
 	CREDITOR: 'ACREEDOR',
-	CANCELLED: 'CANCELADO',
+	CANCELLED: 'SALDADO',
 	TOTAL: 'TOTAL',
 } as const;
 
@@ -31,11 +31,11 @@ export const BALANCE_FILTER_DEFAULTS = {
 } as const;
 
 export const BALANCE_FILTER_LABELS = {
-	balanceType: 'Tipo de saldo',
+	balanceType: 'Tipo de cuenta corriente',
 	minPurchaseArs: 'Compra ARS mínima',
 	maxPurchaseArs: 'Compra ARS máxima',
 	minDeliveriesArs: 'Entregas ARS mínimas',
 	maxDeliveriesArs: 'Entregas ARS máximas',
-	minBalanceArs: 'Saldo ARS mínimo',
-	maxBalanceArs: 'Saldo ARS máximo',
+	minBalanceArs: 'Monto de cuenta corriente mínima (ARS)',
+	maxBalanceArs: 'Monto de cuenta corriente máxima (ARS)',
 } as const;

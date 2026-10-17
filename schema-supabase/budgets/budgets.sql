@@ -150,3 +150,7 @@ USING (
           AND u.role = 'Admin'
     )
 );
+
+------ INDEXES ------
+
+create index if not exists budgets_number_trgm_idx on public.budgets using gin (number gin_trgm_ops);

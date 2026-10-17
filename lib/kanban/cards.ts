@@ -1,18 +1,31 @@
 import { getSupabaseClient } from '../supabase-client';
-import type { Card, CardWithRelations, CardFormData } from '@/components/business/kanban/types';
+import type {
+	Card,
+	CardWithLinks,
+	CardWithRelations,
+	CardFormData,
+} from '@/components/business/kanban/types';
 import { getKanbanFileByCardId, deleteKanbanFile } from '@/lib/kanban/files';
 
 const TABLE = 'kanban_cards';
 
+/** Card columns plus the linked client and work, so the board can label them. */
+const CARD_WITH_LINKS_SELECT = `
+	*,
+	client:clients(id, name, last_name),
+	work:works(id, name, locality, address)
+`;
+
 export async function getCardsByListId(
 	listId: number
-): Promise<{ data: Card[] | null; error: any }> {
+): Promise<{ data: CardWithLinks[] | null; error: any }> {
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase
 		.from(TABLE)
-		.select('*')
+		.select(CARD_WITH_LINKS_SELECT)
 		.eq('list_id', listId)
-		.order('position', { ascending: true });
+		.order('position', { ascending: true })
+		.returns<CardWithLinks[]>();
 	return { data, error };
 }
 
@@ -30,7 +43,7 @@ export async function getCardWithRelations(
 		.from(TABLE)
 		.select(
 			`
-			*,
+			${CARD_WITH_LINKS_SELECT},
 			list:kanban_lists(*)
 		`
 		)

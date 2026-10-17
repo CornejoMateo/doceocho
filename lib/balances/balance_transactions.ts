@@ -1,5 +1,7 @@
 import { getSupabaseClient } from '../supabase-client';
 import { BankAccount } from '@/lib/cash-flow/cash-flow';
+import { getLocalDate } from '@/utils/format-date';
+import { fetchAllPages } from '@/lib/suppliers/pagination';
 
 export type BalanceTransaction = {
 	id: number;
@@ -11,15 +13,77 @@ export type BalanceTransaction = {
 	usd_amount?: number | null;
 	payment_method?: string | null;
 	notes?: string | null;
-	is_extra_amount?: boolean;
 	bank_account_id?: number | null;
+	payment_method_id?: number | null;
+	work_id?: number | null;
+	receipt_number?: string | null;
+	category_id?: number | null;
 };
 
 export type BalanceTransactionWithBankAccount = BalanceTransaction & {
 	bank_account?: BankAccount | null;
+	payment_method_name?: string | null;
+};
+
+export type BalanceTransactionWithDetails = BalanceTransaction & {
+	client_id: number | null;
+	client_name: string | null;
+	work_name: string | null;
+	category_name: string | null;
+	payment_method_name: string | null;
+	bank_account_name: string | null;
 };
 
 const TABLE = 'balance_transactions';
+const SELECT_WITH_DETAILS =
+	'*, balances(client_id, clients(name, last_name)), works(name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank)';
+
+function mapRowWithDetails(row: any): BalanceTransactionWithDetails {
+	const { balances, works, cash_flow_categories, payment_methods, bank_accounts, ...rest } = row;
+	const client = balances?.clients;
+	const clientName = client ? `${client.name || ''} ${client.last_name || ''}`.trim() : '';
+	return {
+		...rest,
+		date: row.date ?? getLocalDate(row.created_at),
+		amount: Number(row.amount) || 0,
+		client_id: balances?.client_id ?? null,
+		client_name: clientName || null,
+		work_name: works?.name ?? null,
+		category_name: cash_flow_categories?.name ?? null,
+		payment_method_name: payment_methods?.name ?? null,
+		bank_account_name: bank_accounts ? `${bank_accounts.bank} - ${bank_accounts.name}` : null,
+	};
+}
+
+// Argentina-timezone year window so rows with a null `date` (filtered via created_at) are still included.
+function argentinaYearBoundsUtc(year: number) {
+	return {
+		start: `${year}-01-01T03:00:00.000Z`,
+		end: `${year + 1}-01-01T03:00:00.000Z`,
+	};
+}
+
+export async function listBalanceTransactionsForYear(year: number): Promise<{
+	data: BalanceTransactionWithDetails[] | null;
+	error: any;
+}> {
+	const { start, end } = argentinaYearBoundsUtc(year);
+	const { data, error } = await fetchAllPages<any>((from, to) => {
+		const supabase = getSupabaseClient();
+		return supabase
+			.from(TABLE)
+			.select(SELECT_WITH_DETAILS)
+			.or(
+				`and(date.gte.${year}-01-01,date.lt.${year + 1}-01-01),and(date.is.null,created_at.gte.${start},created_at.lt.${end})`
+			)
+			.order('date', { ascending: false })
+			.order('created_at', { ascending: false })
+			.order('id', { ascending: false })
+			.range(from, to);
+	});
+	if (error) return { data: null, error };
+	return { data: (data ?? []).map(mapRowWithDetails), error: null };
+}
 
 // No va a hacer falta seguramente
 export async function listTransactions(): Promise<{
@@ -50,10 +114,17 @@ export async function getTransactionsByBalanceId(
 	const supabase = getSupabaseClient();
 	const { data, error } = await supabase
 		.from(TABLE)
-		.select('*, bank_account:bank_accounts(*)')
+		.select('*, bank_account:bank_accounts(*), payment_methods(name)')
 		.eq('balance_id', balanceId)
 		.order('date', { ascending: false });
-	return { data, error };
+	if (error) return { data: null, error };
+	return {
+		data: (data ?? []).map((row: any) => {
+			const { payment_methods, ...rest } = row;
+			return { ...rest, payment_method_name: payment_methods?.name ?? null };
+		}),
+		error: null,
+	};
 }
 
 export async function createTransaction(
@@ -116,31 +187,27 @@ export async function getTotalByBalanceId(balanceId: number): Promise<{
 	data: {
 		totalAmount: number;
 		totalAmountUSD: number;
-		totalExtraAmount?: number | null;
-		totalExtraAmountUSD?: number | null;
 	} | null;
 	error: any;
 }> {
 	const supabase = getSupabaseClient();
 	const { data: transactions, error } = await supabase
 		.from(TABLE)
-		.select('amount, usd_amount, is_extra_amount')
+		.select('amount, usd_amount')
 		.eq('balance_id', balanceId);
 
 	if (error) {
 		return { data: null, error };
 	}
 
-	const regular = (transactions || []).filter((t) => !t.is_extra_amount);
-	const extra = (transactions || []).filter((t) => t.is_extra_amount);
-
-	const totalAmount = regular.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-	const totalAmountUSD = regular.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
-	const totalExtraAmount = extra.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-	const totalExtraAmountUSD = extra.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
+	const totalAmount = (transactions || []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+	const totalAmountUSD = (transactions || []).reduce(
+		(sum, t) => sum + (Number(t.usd_amount) || 0),
+		0
+	);
 
 	return {
-		data: { totalAmount, totalAmountUSD, totalExtraAmount, totalExtraAmountUSD },
+		data: { totalAmount, totalAmountUSD },
 		error: null,
 	};
 }
@@ -151,8 +218,6 @@ export async function getTotalsByBalanceIds(balanceIds: number[]): Promise<{
 		{
 			totalAmount: number;
 			totalAmountUSD: number;
-			totalExtraAmount?: number | null;
-			totalExtraAmountUSD?: number | null;
 		}
 	> | null;
 	error: any;
@@ -161,7 +226,7 @@ export async function getTotalsByBalanceIds(balanceIds: number[]): Promise<{
 	const supabase = getSupabaseClient();
 	const { data: transactions, error } = await supabase
 		.from(TABLE)
-		.select('balance_id, amount, usd_amount, is_extra_amount')
+		.select('balance_id, amount, usd_amount')
 		.in('balance_id', balanceIds);
 
 	if (error) {
@@ -173,8 +238,6 @@ export async function getTotalsByBalanceIds(balanceIds: number[]): Promise<{
 		{
 			totalAmount: number;
 			totalAmountUSD: number;
-			totalExtraAmount: number;
-			totalExtraAmountUSD: number;
 		}
 	> = {};
 	for (const t of transactions || []) {
@@ -184,32 +247,10 @@ export async function getTotalsByBalanceIds(balanceIds: number[]): Promise<{
 			totals[id] = {
 				totalAmount: 0,
 				totalAmountUSD: 0,
-				totalExtraAmount: 0,
-				totalExtraAmountUSD: 0,
 			};
-		if ((t as any).is_extra_amount) {
-			totals[id].totalExtraAmount += Number((t as any).amount) || 0;
-			totals[id].totalExtraAmountUSD += Number((t as any).usd_amount) || 0;
-		} else {
-			totals[id].totalAmount += Number((t as any).amount) || 0;
-			totals[id].totalAmountUSD += Number((t as any).usd_amount) || 0;
-		}
+		totals[id].totalAmount += Number((t as any).amount) || 0;
+		totals[id].totalAmountUSD += Number((t as any).usd_amount) || 0;
 	}
 
 	return { data: totals, error: null };
-}
-
-export async function getLastTransactionUSD(
-	id: string
-): Promise<{ data: number | null; error: any }> {
-	const supabase = getSupabaseClient();
-	const { data, error } = await supabase
-		.from(TABLE)
-		.select('quote_usd')
-		.eq('balance_id', id)
-		.order('created_at', { ascending: false })
-		.limit(1)
-		.single();
-
-	return { data: data?.quote_usd || null, error };
 }

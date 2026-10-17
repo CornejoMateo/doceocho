@@ -35,7 +35,17 @@ jest.mock('@/lib/utils', () => ({
 }));
 
 jest.mock('@/constants/users/user-role', () => ({
-	roles: ['Admin', 'Taller'],
+	roles: ['Admin', 'Superadmin', 'Taller'],
+	isAdminRole: (role: string) => role === 'Admin' || role === 'Superadmin',
+	isSuperadmin: (role: string) => role === 'Superadmin',
+	getSelectableRoles: (callerRole: string, targetRole?: string) => {
+		const roles = ['Admin', 'Superadmin', 'Taller'];
+		if (callerRole === 'Superadmin') return roles;
+		const assignable = roles.filter((r) => r !== 'Superadmin');
+		return targetRole === 'Superadmin' ? [...assignable, 'Superadmin'] : assignable;
+	},
+	isRoleSelectLocked: (callerRole: string, targetRole?: string) =>
+		targetRole === 'Superadmin' && callerRole !== 'Superadmin',
 }));
 
 jest.mock('@/components/ui/dialog', () => ({

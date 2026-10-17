@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DashboardHome } from '@/components/layout/dashboard-home';
 import { useAuth } from '@/components/provider/auth-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export default function HomePage() {
 	const { user, loading } = useAuth();
@@ -14,7 +15,7 @@ export default function HomePage() {
 		if (loading) return;
 		if (!user) {
 			router.push('/login');
-		} else if (user.role !== 'Admin') {
+		} else if (!isAdminRole(user.role)) {
 			router.replace('/supplies');
 		}
 	}, [user, loading, router]);
@@ -31,7 +32,7 @@ export default function HomePage() {
 		return null;
 	}
 
-	if (user.role !== 'Admin') {
+	if (!isAdminRole(user.role)) {
 		return null;
 	}
 

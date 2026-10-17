@@ -1,7 +1,8 @@
 'use client';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Work } from '@/lib/works/works';
+import { Work, buildWorkStatusChanges } from '@/lib/works/works';
+import { WorkStatusChangeModal } from '@/components/business/works/work-status-change-modal';
 import {
 	MapPin,
 	Calendar,
@@ -27,6 +28,7 @@ import { BalanceWithBudget } from '@/lib/balances/balances';
 import { formatCurrency } from '@/utils/formats-money';
 import { WorkFilesDialog } from '@/components/business/works/work-files';
 import { useAuth } from '@/components/provider/auth-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorkCardProps {
 	work: Work;
@@ -51,9 +53,10 @@ export function WorkCardList({
 }: WorkCardProps) {
 	const [balancePopoverOpen, setBalancePopoverOpen] = useState(false);
 	const [isFilesDialogOpen, setIsFilesDialogOpen] = useState(false);
+	const [targetStatus, setTargetStatus] = useState<string | null>(null);
 	const { user } = useAuth();
 
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 	const canEdit = isAuthorized && !!onUpdate;
 
 	const handleUpdateWork = async (workId: number, updates: Partial<Work>) => {
@@ -119,8 +122,10 @@ export function WorkCardList({
 									<div className="flex items-center gap-1 text-[11px] sm:text-sm text-muted-foreground group">
 										<select
 											value={work.status || 'pending'}
-											onChange={async (e) => {
-												await handleUpdateWork(work.id, { status: e.target.value });
+											onChange={(e) => {
+												if (e.target.value !== (work.status || 'pending')) {
+													setTargetStatus(e.target.value);
+												}
 											}}
 											className="bg-transparent border-none focus:ring-0 focus:ring-offset-0 p-0.5 pr-5 sm:p-1 sm:pr-6 appearance-none focus:outline-none cursor-pointer hover:bg-muted rounded-md text-[11px] sm:text-sm"
 										>
@@ -240,16 +245,16 @@ export function WorkCardList({
 								<PopoverTrigger asChild>
 									<Button variant="outline" size="sm" className="w-full sm:w-auto">
 										<Wallet className="h-4 w-4 mr-2" />
-										Saldos
+										Cuentas corrientes
 									</Button>
 								</PopoverTrigger>
 								<PopoverContent align="end" className="p-1 w-72">
 									<div className="px-2 py-2 text-xs font-medium text-muted-foreground">
-										Saldos de la obra
+										Cuentas corrientes de la obra
 									</div>
 									{balances.length === 0 ? (
 										<div className="px-2 py-3 text-sm text-muted-foreground text-center">
-											No hay saldos asociados
+											No hay cuentas corrientes asociadas
 										</div>
 									) : (
 										<div className="max-h-64 overflow-y-auto">
@@ -257,7 +262,7 @@ export function WorkCardList({
 												const budget = balance.budget;
 												const label = budget
 													? [budget.number, budget.type].filter(Boolean).join(' · ')
-													: 'Saldo sin presupuesto';
+													: 'Cuenta corriente sin presupuesto';
 												return (
 													<button
 														key={balance.id}
@@ -292,6 +297,20 @@ export function WorkCardList({
 					</div>
 				</div>
 			</CardContent>
+
+			{canEdit && (
+				<WorkStatusChangeModal
+					open={targetStatus !== null}
+					onOpenChange={(open) => {
+						if (!open) setTargetStatus(null);
+					}}
+					currentStatus={work.status}
+					targetStatus={targetStatus}
+					onConfirm={(newStatus, completionDate) =>
+						handleUpdateWork(work.id, buildWorkStatusChanges(newStatus, completionDate))
+					}
+				/>
+			)}
 
 			<WorkFilesDialog work={work} open={isFilesDialogOpen} onOpenChange={setIsFilesDialogOpen} />
 		</Card>

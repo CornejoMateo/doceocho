@@ -67,3 +67,10 @@ USING (
           AND u.role = 'Admin'
     )
 );
+
+------ INDEXES ------
+
+create index if not exists clients_name_trgm_idx on public.clients using gin (name gin_trgm_ops);
+create index if not exists clients_last_name_trgm_idx on public.clients using gin (last_name gin_trgm_ops);
+create index if not exists clients_locality_trgm_idx on public.clients using gin (locality gin_trgm_ops);
+create index if not exists clients_identity_number_trgm_idx on public.clients using gin (identity_number gin_trgm_ops);

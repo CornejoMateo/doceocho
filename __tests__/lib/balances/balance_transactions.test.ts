@@ -7,7 +7,7 @@ import {
 	deleteTransaction,
 	getTotalByBalanceId,
 	getTotalsByBalanceIds,
-	getLastTransactionUSD,
+	listBalanceTransactionsForYear,
 } from '@/lib/balances/balance_transactions';
 import { getSupabaseClient } from '@/lib/supabase-client';
 
@@ -65,16 +65,39 @@ describe('balance_transactions lib', () => {
 	});
 
 	describe('getTransactionsByBalanceId', () => {
-		it('fetches transactions for a balance ordered by date desc', async () => {
+		it('fetches transactions for a balance ordered by date desc, flattening the payment method name', async () => {
 			const { supabase, chain } = createSupabaseMock();
-			chain.order = jest.fn().mockResolvedValue({ data: [{ id: 1, amount: 100 }], error: null });
+			chain.order = jest.fn().mockResolvedValue({
+				data: [
+					{ id: 1, amount: 100, payment_methods: { name: 'Transferencia' } },
+					{ id: 2, amount: 200, payment_methods: null },
+				],
+				error: null,
+			});
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			const result = await getTransactionsByBalanceId(10);
 
+			expect(chain.select).toHaveBeenCalledWith(
+				'*, bank_account:bank_accounts(*), payment_methods(name)'
+			);
 			expect(chain.eq).toHaveBeenCalledWith('balance_id', 10);
 			expect(chain.order).toHaveBeenCalledWith('date', { ascending: false });
-			expect(result.data).toEqual([{ id: 1, amount: 100 }]);
+			expect(result.data).toEqual([
+				{ id: 1, amount: 100, payment_method_name: 'Transferencia' },
+				{ id: 2, amount: 200, payment_method_name: null },
+			]);
+		});
+
+		it('passes through errors without mapping', async () => {
+			const { supabase, chain } = createSupabaseMock();
+			const err = { message: 'boom' };
+			chain.order = jest.fn().mockResolvedValue({ data: null, error: err });
+			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
+
+			const result = await getTransactionsByBalanceId(10);
+
+			expect(result).toEqual({ data: null, error: err });
 		});
 	});
 
@@ -305,9 +328,9 @@ describe('balance_transactions lib', () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.eq = jest.fn().mockResolvedValue({
 				data: [
-					{ amount: 100, usd_amount: 5, is_extra_amount: false },
-					{ amount: 200, usd_amount: 10, is_extra_amount: false },
-					{ amount: 50, usd_amount: null, is_extra_amount: false },
+					{ amount: 100, usd_amount: 5 },
+					{ amount: 200, usd_amount: 10 },
+					{ amount: 50, usd_amount: null },
 				],
 				error: null,
 			});
@@ -315,35 +338,10 @@ describe('balance_transactions lib', () => {
 
 			const result = await getTotalByBalanceId(1);
 
-			expect(chain.select).toHaveBeenCalledWith('amount, usd_amount, is_extra_amount');
+			expect(chain.select).toHaveBeenCalledWith('amount, usd_amount');
 			expect(result.data).toEqual({
 				totalAmount: 350,
 				totalAmountUSD: 15,
-				totalExtraAmount: 0,
-				totalExtraAmountUSD: 0,
-			});
-		});
-
-		it('separates extra amounts from regular totals', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			chain.eq = jest.fn().mockResolvedValue({
-				data: [
-					{ amount: 100, usd_amount: 5, is_extra_amount: false },
-					{ amount: 200, usd_amount: 10, is_extra_amount: false },
-					{ amount: 50, usd_amount: 2, is_extra_amount: true },
-					{ amount: 30, usd_amount: null, is_extra_amount: true },
-				],
-				error: null,
-			});
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getTotalByBalanceId(1);
-
-			expect(result.data).toEqual({
-				totalAmount: 300,
-				totalAmountUSD: 15,
-				totalExtraAmount: 80,
-				totalExtraAmountUSD: 2,
 			});
 		});
 
@@ -357,9 +355,200 @@ describe('balance_transactions lib', () => {
 			expect(result.data).toEqual({
 				totalAmount: 0,
 				totalAmountUSD: 0,
-				totalExtraAmount: 0,
-				totalExtraAmountUSD: 0,
 			});
+		});
+	});
+
+	describe('listBalanceTransactionsForYear', () => {
+		function setupOr(result: { data?: any; error?: any }) {
+			const chain: Record<string, jest.Mock> = {
+				select: jest.fn(() => chain),
+				or: jest.fn(() => chain),
+				order: jest.fn(() => chain),
+				range: jest.fn(() => chain),
+			};
+			(chain as any).then = (resolve: (v: any) => any) =>
+				resolve({ data: null, error: null, ...result });
+			const from = jest.fn(() => chain);
+			(getSupabaseClient as jest.Mock).mockReturnValue({ from });
+			return { chain, from };
+		}
+
+		it('scopes the query by date (or null-date created_at) within the given Argentina year, flattening joined details', async () => {
+			const rows = [
+				{
+					id: 1,
+					created_at: '2026-05-10T12:00:00.000Z',
+					date: '2026-05-10',
+					amount: 1000,
+					notes: 'Cuota 1',
+					balances: { client_id: 3, clients: { name: 'Juan', last_name: 'Perez' } },
+					works: { name: 'Obra Norte' },
+					cash_flow_categories: { name: 'Cuota' },
+					payment_methods: { name: 'Transferencia' },
+					bank_accounts: { name: 'Cuenta principal', bank: 'Banco Nación' },
+				},
+			];
+			const { chain, from } = setupOr({ data: rows });
+
+			const res = await listBalanceTransactionsForYear(2026);
+
+			expect(from).toHaveBeenCalledWith('balance_transactions');
+			expect(chain.or).toHaveBeenCalledWith(
+				'and(date.gte.2026-01-01,date.lt.2027-01-01),and(date.is.null,created_at.gte.2026-01-01T03:00:00.000Z,created_at.lt.2027-01-01T03:00:00.000Z)'
+			);
+			expect(res.data?.[0]).toEqual(
+				expect.objectContaining({
+					id: 1,
+					date: '2026-05-10',
+					amount: 1000,
+					client_id: 3,
+					client_name: 'Juan Perez',
+					work_name: 'Obra Norte',
+					category_name: 'Cuota',
+					payment_method_name: 'Transferencia',
+					bank_account_name: 'Banco Nación - Cuenta principal',
+				})
+			);
+		});
+
+		it('falls back to the Argentina date from created_at and amount 0 for legacy null rows', async () => {
+			const rows = [
+				{
+					id: 2,
+					created_at: '2026-03-10T15:30:00.000Z', // 2026-03-10 12:30 ART, well inside the 2026 window
+					date: null,
+					amount: null,
+					notes: null,
+					balances: null,
+					works: null,
+					cash_flow_categories: null,
+					payment_methods: null,
+					bank_accounts: null,
+				},
+			];
+			setupOr({ data: rows });
+
+			const res = await listBalanceTransactionsForYear(2026);
+
+			expect(res.data?.[0]).toEqual(
+				expect.objectContaining({
+					date: '2026-03-10',
+					amount: 0,
+					client_id: null,
+					client_name: null,
+					work_name: null,
+					category_name: null,
+					payment_method_name: null,
+					bank_account_name: null,
+				})
+			);
+		});
+
+		it('passes Supabase errors through', async () => {
+			const err = { code: '42501', message: 'permission denied' };
+			setupOr({ error: err });
+
+			expect(await listBalanceTransactionsForYear(2026)).toEqual({ data: null, error: err });
+		});
+
+		it('builds the exact .or() filter string for a different year boundary', async () => {
+			const { chain } = setupOr({ data: [] });
+
+			await listBalanceTransactionsForYear(2030);
+
+			expect(chain.or).toHaveBeenCalledWith(
+				'and(date.gte.2030-01-01,date.lt.2031-01-01),and(date.is.null,created_at.gte.2030-01-01T03:00:00.000Z,created_at.lt.2031-01-01T03:00:00.000Z)'
+			);
+		});
+
+		it('maps the ART year-boundary null-date rows to the correct side of the cutoff', async () => {
+			const lastSecondOfPrevYear = {
+				id: 10,
+				created_at: '2026-01-01T02:59:59.000Z',
+				date: null,
+				amount: 500,
+				notes: null,
+				balances: null,
+				works: null,
+				cash_flow_categories: null,
+				payment_methods: null,
+				bank_accounts: null,
+			};
+			// 00:00:00 ART on Jan 1 belongs to the current year (the start bound itself).
+			const firstSecondOfYear = {
+				id: 11,
+				created_at: '2026-01-01T03:00:00.000Z',
+				date: null,
+				amount: 700,
+				notes: null,
+				balances: null,
+				works: null,
+				cash_flow_categories: null,
+				payment_methods: null,
+				bank_accounts: null,
+			};
+			setupOr({ data: [lastSecondOfPrevYear, firstSecondOfYear] });
+
+			const res = await listBalanceTransactionsForYear(2026);
+
+			expect(res.data?.[0]).toEqual(expect.objectContaining({ date: '2025-12-31' }));
+			expect(res.data?.[1]).toEqual(expect.objectContaining({ date: '2026-01-01' }));
+		});
+
+		it('fetches a second page beyond the PostgREST 1000-row limit and returns every row', async () => {
+			const makeRow = (id: number) => ({
+				id,
+				date: '2026-05-10',
+				amount: 10,
+				balances: null,
+				works: null,
+				cash_flow_categories: null,
+				payment_methods: null,
+				bank_accounts: null,
+			});
+			const fullPage = Array.from({ length: 1000 }, (_, i) => makeRow(i + 1));
+			const shortPage = [makeRow(1001), makeRow(1002)];
+			let call = 0;
+			const { chain } = setupOr({});
+			(chain as any).then = (resolve: (v: any) => any) => {
+				call += 1;
+				return resolve(
+					call === 1 ? { data: fullPage, error: null } : { data: shortPage, error: null }
+				);
+			};
+
+			const res = await listBalanceTransactionsForYear(2026);
+
+			expect(res.error).toBeNull();
+			expect(res.data).toHaveLength(1002);
+			expect(chain.range).toHaveBeenNthCalledWith(1, 0, 999);
+			expect(chain.range).toHaveBeenNthCalledWith(2, 1000, 1999);
+		});
+
+		it('propagates an error raised on a non-first page', async () => {
+			const fullPage = Array.from({ length: 1000 }, (_, i) => ({
+				id: i + 1,
+				date: '2026-05-10',
+				amount: 10,
+				balances: null,
+				works: null,
+				cash_flow_categories: null,
+				payment_methods: null,
+				bank_accounts: null,
+			}));
+			const err = { message: 'boom' };
+			let call = 0;
+			const { chain } = setupOr({});
+			(chain as any).then = (resolve: (v: any) => any) => {
+				call += 1;
+				return resolve(call === 1 ? { data: fullPage, error: null } : { data: null, error: err });
+			};
+
+			const res = await listBalanceTransactionsForYear(2026);
+
+			expect(res.data).toBeNull();
+			expect(res.error).toEqual(err);
 		});
 	});
 
@@ -373,10 +562,10 @@ describe('balance_transactions lib', () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.in = jest.fn().mockResolvedValue({
 				data: [
-					{ balance_id: 1, amount: 100, usd_amount: 5, is_extra_amount: false },
-					{ balance_id: 1, amount: 50, usd_amount: 2, is_extra_amount: false },
-					{ balance_id: 2, amount: 300, usd_amount: 15, is_extra_amount: false },
-					{ balance_id: 3, amount: 0, usd_amount: 0, is_extra_amount: false },
+					{ balance_id: 1, amount: 100, usd_amount: 5 },
+					{ balance_id: 1, amount: 50, usd_amount: 2 },
+					{ balance_id: 2, amount: 300, usd_amount: 15 },
+					{ balance_id: 3, amount: 0, usd_amount: 0 },
 				],
 				error: null,
 			});
@@ -384,59 +573,13 @@ describe('balance_transactions lib', () => {
 
 			const result = await getTotalsByBalanceIds([1, 2, 3]);
 
-			expect(chain.select).toHaveBeenCalledWith('balance_id, amount, usd_amount, is_extra_amount');
+			expect(chain.select).toHaveBeenCalledWith('balance_id, amount, usd_amount');
 			expect(chain.in).toHaveBeenCalledWith('balance_id', [1, 2, 3]);
 			expect(result.data).toEqual({
-				1: { totalAmount: 150, totalAmountUSD: 7, totalExtraAmount: 0, totalExtraAmountUSD: 0 },
-				2: { totalAmount: 300, totalAmountUSD: 15, totalExtraAmount: 0, totalExtraAmountUSD: 0 },
-				3: { totalAmount: 0, totalAmountUSD: 0, totalExtraAmount: 0, totalExtraAmountUSD: 0 },
+				1: { totalAmount: 150, totalAmountUSD: 7 },
+				2: { totalAmount: 300, totalAmountUSD: 15 },
+				3: { totalAmount: 0, totalAmountUSD: 0 },
 			});
-		});
-
-		it('separates extra amounts from regular totals by balance id', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			chain.in = jest.fn().mockResolvedValue({
-				data: [
-					{ balance_id: 1, amount: 100, usd_amount: 5, is_extra_amount: false },
-					{ balance_id: 1, amount: 30, usd_amount: 2, is_extra_amount: true },
-					{ balance_id: 2, amount: 300, usd_amount: 15, is_extra_amount: false },
-					{ balance_id: 2, amount: 50, usd_amount: 3, is_extra_amount: true },
-				],
-				error: null,
-			});
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getTotalsByBalanceIds([1, 2]);
-
-			expect(result.data).toEqual({
-				1: { totalAmount: 100, totalAmountUSD: 5, totalExtraAmount: 30, totalExtraAmountUSD: 2 },
-				2: { totalAmount: 300, totalAmountUSD: 15, totalExtraAmount: 50, totalExtraAmountUSD: 3 },
-			});
-		});
-	});
-
-	describe('getLastTransactionUSD', () => {
-		it('returns the latest quote_usd for a balance', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			chain.single = jest.fn().mockResolvedValue({ data: { quote_usd: 980 }, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getLastTransactionUSD('5');
-
-			expect(chain.eq).toHaveBeenCalledWith('balance_id', '5');
-			expect(chain.order).toHaveBeenCalledWith('created_at', { ascending: false });
-			expect(chain.limit).toHaveBeenCalledWith(1);
-			expect(result.data).toBe(980);
-		});
-
-		it('returns null when no transaction found', async () => {
-			const { supabase, chain } = createSupabaseMock();
-			chain.single = jest.fn().mockResolvedValue({ data: null, error: null });
-			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
-
-			const result = await getLastTransactionUSD('5');
-
-			expect(result.data).toBeNull();
 		});
 	});
 });

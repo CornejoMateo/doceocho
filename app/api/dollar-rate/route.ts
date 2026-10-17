@@ -51,11 +51,14 @@ export async function POST(req: Request) {
 
 		if (fetchError) {
 			console.error('Error fetching balance:', fetchError);
-			return NextResponse.json({ error: 'No se encontró el saldo especificado' }, { status: 404 });
+			return NextResponse.json(
+				{ error: 'No se encontró la cuenta corriente especificada' },
+				{ status: 404 }
+			);
 		}
 
 		if (!existingBalance) {
-			return NextResponse.json({ error: 'Saldo no encontrado' }, { status: 404 });
+			return NextResponse.json({ error: 'Cuenta corriente no encontrada' }, { status: 404 });
 		}
 
 		const updatedBalanceAmountARS = newBalanceAmountARS ?? existingBalance.balance_amount_ars;

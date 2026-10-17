@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { handleAuthError } from '@/helpers/users/handle-errors';
 import { requireAdmin } from '@/helpers/users/auth-admin';
+import { isSuperadmin } from '@/constants/users/user-role';
 
 export async function POST(req: Request) {
 	try {
 		const token = req.headers.get('authorization')?.replace('Bearer ', '');
-		await requireAdmin(token);
+		const caller = await requireAdmin(token);
 
 		const { username, password, role, name, last_name } = await req.json();
 
@@ -14,6 +15,14 @@ export async function POST(req: Request) {
 			return NextResponse.json(
 				{ error: 'Faltan campos requeridos: username, password, role' },
 				{ status: 400 }
+			);
+		}
+
+		// Only a Superadmin can create another Superadmin
+		if (role === 'Superadmin' && !isSuperadmin(caller.role)) {
+			return NextResponse.json(
+				{ error: 'Solo un Superadmin puede asignar el rol Superadmin' },
+				{ status: 403 }
 			);
 		}
 
@@ -108,7 +117,7 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
 	try {
 		const token = req.headers.get('authorization')?.replace('Bearer ', '');
-		await requireAdmin(token);
+		const caller = await requireAdmin(token);
 
 		const body = await req.json();
 		const { uid_user, password, username, role, name, last_name } = body;
@@ -121,6 +130,32 @@ export async function PUT(req: Request) {
 			process.env.NEXT_PUBLIC_SUPABASE_URL!,
 			process.env.SUPABASE_SERVICE_ROLE_KEY!
 		);
+
+		if (role !== undefined) {
+			// Nobody can change their own role through this route
+			if (uid_user === caller.id) {
+				return NextResponse.json({ error: 'No podés cambiar tu propio rol' }, { status: 403 });
+			}
+
+			const { data: targetUser, error: targetError } = await supabase
+				.from('users')
+				.select('role')
+				.eq('uid_user', uid_user)
+				.single();
+
+			if (targetError || !targetUser) {
+				return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 400 });
+			}
+
+			// Only a Superadmin can assign Superadmin or change an existing Superadmin's role
+			const touchesSuperadmin = role === 'Superadmin' || targetUser.role === 'Superadmin';
+			if (touchesSuperadmin && !isSuperadmin(caller.role)) {
+				return NextResponse.json(
+					{ error: 'Solo un Superadmin puede asignar o modificar el rol Superadmin' },
+					{ status: 403 }
+				);
+			}
+		}
 
 		if (password) {
 			const { error: authError } = await supabase.auth.admin.updateUserById(uid_user, {
@@ -167,7 +202,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
 	try {
 		const token = req.headers.get('authorization')?.replace('Bearer ', '');
-		await requireAdmin(token);
+		const caller = await requireAdmin(token);
 
 		const { uid_user } = await req.json();
 
@@ -179,6 +214,24 @@ export async function DELETE(req: Request) {
 			process.env.NEXT_PUBLIC_SUPABASE_URL!,
 			process.env.SUPABASE_SERVICE_ROLE_KEY!
 		);
+
+		const { data: targetUser, error: targetError } = await supabase
+			.from('users')
+			.select('role')
+			.eq('uid_user', uid_user)
+			.single();
+
+		if (targetError || !targetUser) {
+			return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 400 });
+		}
+
+		// Only a Superadmin can delete another Superadmin
+		if (targetUser.role === 'Superadmin' && !isSuperadmin(caller.role)) {
+			return NextResponse.json(
+				{ error: 'Solo un Superadmin puede eliminar a otro Superadmin' },
+				{ status: 403 }
+			);
+		}
 
 		const { error: authError } = await supabase.auth.admin.deleteUser(uid_user);
 

@@ -21,6 +21,7 @@ import { ClaimsFilter } from '@/components/business/claims/claims-filter';
 import { ClaimsTable } from '@/components/business/claims/claims-table';
 import { useClaimsManagement } from '@/hooks/claims/use-claims-management';
 import { useAuth } from '@/components/provider/auth-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function ClaimsManagement() {
 	const {
@@ -228,7 +229,7 @@ export function ClaimsManagement() {
 					</h2>
 					<p className="text-muted-foreground mt-1">Administración de reclamos y seguimiento</p>
 				</div>
-				{user?.role === 'Admin' && (
+				{isAdminRole(user?.role) && (
 					<Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
 						<Plus className="h-4 w-4" />
 						{filterType === 'diario' ? 'Agregar actividad diaria' : 'Agregar reclamo'}
@@ -274,7 +275,7 @@ export function ClaimsManagement() {
 						onDelete={handleDeleteClick}
 						onResolve={handleResolveClaim}
 						onReOpen={handleReOpenClaim}
-						authorizedUser={!!user && user.role === 'Admin'}
+						authorizedUser={!!user && isAdminRole(user.role)}
 						filterType={filterType}
 						onViewDescription={(description: string) => setDescriptionToView(description)}
 						onViewImages={(claim: Claim) => setSelectedClaimForImages(claim)}
@@ -293,7 +294,7 @@ export function ClaimsManagement() {
 			/>
 
 			{/* delete old claims */}
-			{user?.role === 'Admin' && (
+			{isAdminRole(user?.role) && (
 				<Card className="p-4 bg-card border-border">
 					<div className="flex items-center justify-between">
 						<div>

@@ -1,11 +1,12 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { Building2, MoreHorizontal, User } from 'lucide-react';
 import type { CardWithRelations } from './types';
 import { formatCreatedAt } from '@/utils/format-date';
 import { PRIORITY_COLORS, Priority, PRIORITY_OPTIONS } from '@/constants/kanban/priority';
 import { getDueDateIcon } from '@/helpers/kanban/kanban-card';
+import { formatCardClientName, formatCardWorkName } from '@/helpers/kanban/card-links';
 
 interface KanbanCardProps {
 	card: CardWithRelations;
@@ -22,6 +23,8 @@ export function KanbanCard({
 }: KanbanCardProps) {
 	const yellowToleranceMs = dueDateToleranceYellow * 24 * 60 * 60 * 1000;
 	const redToleranceMs = dueDateToleranceRed * 24 * 60 * 60 * 1000;
+	const clientName = formatCardClientName(card.client);
+	const workName = formatCardWorkName(card.work);
 	const isOverdue = card.due_date && new Date(card.due_date) < new Date() && !card.completed_at;
 	const isCompleted = !!card.completed_at;
 
@@ -58,6 +61,24 @@ export function KanbanCard({
 			}}
 		>
 			<h4 className="font-medium text-sm mb-2 line-clamp-2">{card.title}</h4>
+
+			{/* What the card is about, so the board reads without opening every card. */}
+			{(clientName || workName) && (
+				<div className="mb-2 space-y-1">
+					{clientName && (
+						<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+							<User className="h-3 w-3 shrink-0" />
+							<span className="truncate">{clientName}</span>
+						</div>
+					)}
+					{workName && (
+						<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+							<Building2 className="h-3 w-3 shrink-0" />
+							<span className="truncate">{workName}</span>
+						</div>
+					)}
+				</div>
+			)}
 
 			{card.description && (
 				<p className="text-xs text-muted-foreground mb-2 line-clamp-2">{card.description}</p>

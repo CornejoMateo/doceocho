@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
@@ -11,30 +11,18 @@ import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { TARGET_LOCATION, DEFAULT_RADIUS_METERS } from '@/constants/attendance/attendance';
-import { AttendanceHistory } from './attendance-history';
-import { AdminAttendanceHistory } from './admin-attendance-history';
-import { AttendanceSettings } from './attendance-settings';
-import { AttendanceEntryModal } from './attendance-entry-modal';
-import { SettlementsModal } from './settlements/settlements-modal';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Settings } from 'lucide-react';
-import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
+import { isAdminRole } from '@/constants/users/user-role';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AttendanceQRCode from '@/components/business/clock-in/attendance-qr-code';
 import QRScanner from './attendance-qr-scanner';
-import { listUsers, User } from '@/lib/users/users';
-import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import { ModuleManagement } from '../modules/module-management';
 
+// Fichar view: clock in/out for Admin and Taller (own user), QR code card for role QR.
 export function ClockIn() {
-	const adminHistoryRef = useRef<{ loadHistory: () => Promise<void> }>(null);
 	const [isClockedIn, setIsClockedIn] = useState(false);
 	const [isClockedInOvertime, setIsClockedInOvertime] = useState(false);
 	const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
 	const [latitude, setLatitude] = useState<number | null>(null);
 	const [longitude, setLongitude] = useState<number | null>(null);
-	const [settingsOpen, setSettingsOpen] = useState(false);
-	const [createEntryModalOpen, setCreateEntryModalOpen] = useState(false);
-	const [settlementsModalOpen, setSettlementsModalOpen] = useState(false);
 	const [pendingClockAction, setPendingClockAction] = useState<{
 		isOvertime: boolean;
 		location: {
@@ -45,29 +33,12 @@ export function ClockIn() {
 
 	const { user } = useAuth();
 
-	const isAuthorized = user?.role === 'Admin';
-	const isTaller = user?.role === 'Taller';
+	const canClock = isAdminRole(user?.role) || user?.role === 'Taller';
 	const isQR = user?.role === 'QR';
 
 	const [showScanner, setShowScanner] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [validating, setValidating] = useState(false);
-
-	const {
-		data: users,
-		loading: loadingUsers,
-		error: usersError,
-		refresh,
-	} = useOptimizedRealtime<User>(
-		'users',
-		async () => {
-			const { data, error } = await listUsers();
-			if (error) throw error;
-			return data ?? [];
-		},
-		'users_cache',
-		isAuthorized
-	);
 
 	const loadSettings = useCallback(async () => {
 		const { data: settings } = await getAttendanceSettings();
@@ -238,178 +209,103 @@ export function ClockIn() {
 	};
 
 	return (
-		<div className="container mx-auto p-4 md:p-8">
+		<div className="min-w-0">
 			<div className="grid gap-4 md:gap-6 min-w-0">
-				<Tabs defaultValue="hour" className="min-w-0">
-					<TabsList>
-						<TabsTrigger value="hour">Por hora</TabsTrigger>
-						{!isQR && <TabsTrigger value="module">Por módulo</TabsTrigger>}
-					</TabsList>
-
-					<TabsContent value="hour">
-						{isAuthorized && (
-							<>
-								{loading ? (
-									<div className="flex justify-center py-8">
-										<Spinner className="h-6 w-6" />
-									</div>
-								) : (
-									<>
-										<div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mb-4">
+				{canClock && (
+					<>
+						{loading ? (
+							<div className="flex justify-center py-8">
+								<Spinner className="h-6 w-6" />
+							</div>
+						) : (
+							<div className="flex flex-col items-center gap-4 w-full">
+								<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
+									{!isClockedIn && !isClockedInOvertime && (
+										<>
 											<Button
-												variant="outline"
-												onClick={() => setCreateEntryModalOpen(true)}
+												onClick={() => handleClockAction(false)}
+												className="flex-1"
 												type="button"
+												disabled={validating}
 											>
-												Crear registro
+												{validating && <Spinner className="mr-2 h-4 w-4" />}
+												Registrar entrada
 											</Button>
+
 											<Button
-												variant="outline"
-												onClick={() => setSettlementsModalOpen(true)}
+												onClick={() => handleClockAction(true)}
+												className="flex-1"
 												type="button"
+												disabled={validating}
 											>
-												Liquidaciones
+												{validating && <Spinner className="mr-2 h-4 w-4" />}
+												Registrar entrada (horas extras)
 											</Button>
-											<Button variant="outline" onClick={() => setSettingsOpen(true)} type="button">
-												<Settings className="h-4 w-4 mr-2" />
-												Configuración
-											</Button>
-										</div>
-										<AdminAttendanceHistory ref={adminHistoryRef} users={users} />
-									</>
-								)}
-							</>
+										</>
+									)}
+
+									{isClockedIn && (
+										<Button
+											onClick={() => handleClockAction(false)}
+											className="w-full"
+											type="button"
+											disabled={validating}
+										>
+											{validating && <Spinner className="mr-2 h-4 w-4" />}
+											Registrar salida
+										</Button>
+									)}
+
+									{isClockedInOvertime && (
+										<Button
+											onClick={() => handleClockAction(true)}
+											className="w-full"
+											type="button"
+											disabled={validating}
+										>
+											{validating && <Spinner className="mr-2 h-4 w-4" />}
+											Registrar salida (horas extras)
+										</Button>
+									)}
+								</div>
+							</div>
 						)}
-						{isTaller && (
-							<>
-								{loading ? (
-									<div className="flex justify-center py-8">
-										<Spinner className="h-6 w-6" />
-									</div>
-								) : (
-									<div className="flex flex-col items-center gap-4 w-full">
-										<div className="flex flex-col sm:flex-row gap-2 w-full max-w-2xl">
-											{!isClockedIn && !isClockedInOvertime && (
-												<>
-													<Button
-														onClick={() => handleClockAction(false)}
-														className="flex-1"
-														type="button"
-														disabled={validating}
-													>
-														{validating && <Spinner className="mr-2 h-4 w-4" />}
-														Registrar entrada
-													</Button>
+					</>
+				)}
+				{isQR && (
+					<Card className="w-full max-w-md mx-auto">
+						<CardHeader>
+							<CardTitle>QR de fichaje</CardTitle>
+							<CardDescription>
+								Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
+								minuto.
+							</CardDescription>
+						</CardHeader>
 
-													<Button
-														onClick={() => handleClockAction(true)}
-														className="flex-1"
-														type="button"
-														disabled={validating}
-													>
-														{validating && <Spinner className="mr-2 h-4 w-4" />}
-														Registrar entrada (horas extras)
-													</Button>
-												</>
-											)}
+						<CardContent className="flex justify-center overflow-hidden">
+							<AttendanceQRCode />
+						</CardContent>
+					</Card>
+				)}
+				{showScanner && canClock && (
+					<QRScanner
+						onClose={() => {
+							setShowScanner(false);
+							setPendingClockAction(null);
+						}}
+						onScan={async (token) => {
+							setShowScanner(false);
 
-											{isClockedIn && (
-												<Button
-													onClick={() => handleClockAction(false)}
-													className="w-full"
-													type="button"
-													disabled={validating}
-												>
-													{validating && <Spinner className="mr-2 h-4 w-4" />}
-													Registrar salida
-												</Button>
-											)}
-
-											{isClockedInOvertime && (
-												<Button
-													onClick={() => handleClockAction(true)}
-													className="w-full"
-													type="button"
-													disabled={validating}
-												>
-													{validating && <Spinner className="mr-2 h-4 w-4" />}
-													Registrar salida (horas extras)
-												</Button>
-											)}
-										</div>
-
-										<div className="w-full max-w-2xl">
-											<AttendanceHistory />
-										</div>
-									</div>
-								)}
-							</>
-						)}
-						{isQR && (
-							<Card className="w-full max-w-md mx-auto">
-								<CardHeader>
-									<CardTitle>QR de fichaje</CardTitle>
-									<CardDescription>
-										Escaneá este código desde la aplicación móvil. El QR cambia automáticamente cada
-										minuto.
-									</CardDescription>
-								</CardHeader>
-
-								<CardContent className="flex justify-center overflow-hidden">
-									<AttendanceQRCode />
-								</CardContent>
-							</Card>
-						)}
-						{showScanner && isTaller && (
-							<QRScanner
-								onClose={() => {
-									setShowScanner(false);
-									setPendingClockAction(null);
-								}}
-								onScan={async (token) => {
-									setShowScanner(false);
-
-									try {
-										await finishClockAction(token);
-									} catch {
-									} finally {
-										setPendingClockAction(null);
-									}
-								}}
-							/>
-						)}
-					</TabsContent>
-
-					<TabsContent value="module" className="min-w-0">
-						<ModuleManagement users={users} />
-					</TabsContent>
-				</Tabs>
+							try {
+								await finishClockAction(token);
+							} catch {
+							} finally {
+								setPendingClockAction(null);
+							}
+						}}
+					/>
+				)}
 			</div>
-			<AttendanceSettings
-				open={settingsOpen}
-				onOpenChange={(open) => {
-					setSettingsOpen(open);
-					if (!open) {
-						// Reload settings when closing to update radiusMeters
-						loadSettings();
-					}
-				}}
-			/>
-			<AttendanceEntryModal
-				entry={null}
-				open={createEntryModalOpen}
-				onOpenChange={setCreateEntryModalOpen}
-				onUpdate={() => {
-					adminHistoryRef.current?.loadHistory();
-				}}
-				showUserSelect={true}
-				users={users || []}
-			/>
-			<SettlementsModal
-				open={settlementsModalOpen}
-				onOpenChange={setSettlementsModalOpen}
-				users={users || []}
-			/>
 		</div>
 	);
 }

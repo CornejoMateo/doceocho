@@ -19,6 +19,7 @@ import { paginateAndFilter } from '@/utils/pagination';
 import { useWorkChecklists } from '@/hooks/clients/use-works-checklists';
 import { BalanceWithBudget } from '@/lib/balances/balances';
 import { useAuth } from '@/components/provider/auth-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorksListProps {
 	works: Work[];
@@ -49,7 +50,7 @@ export function WorksList({
 	const { user } = useAuth();
 
 	const isAuthorized = useMemo(() => {
-		return user?.role === 'Admin';
+		return isAdminRole(user?.role);
 	}, [user]);
 
 	const { workChecklists, loadingChecklists } = useWorkChecklists(initialWorks);
@@ -82,6 +83,8 @@ export function WorksList({
 				}
 			} catch (error) {
 				console.error('Error updating work:', error);
+				// Propagate so callers (e.g. the status modal) know the update failed.
+				throw error;
 			}
 		}
 	};

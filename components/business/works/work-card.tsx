@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AddressLink } from '@/components/ui/address-link';
 import { PostItNote } from '@/components/ui/post-it-note';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PostItModal } from '@/components/ui/post-it-modal';
 import { ChecklistCompletionModal } from '@/components/business/works/checklists/checklist-completion-modal';
 import {
@@ -18,12 +19,17 @@ import {
 	Map,
 	Home,
 	Plus,
+	ExternalLink,
+	Loader2,
+	Lightbulb,
 } from 'lucide-react';
 import { statusConfig } from '@/constants/type-config';
 import { WorkWithProgress } from '@/lib/works/works';
 import { useState } from 'react';
 import { translateError } from '@/lib/error-translator';
-import { formatCreatedAt } from '@/utils/format-date';
+import { formatCreatedAt, formatDateOnly } from '@/utils/format-date';
+import { WorkStatusChangeModal } from '@/components/business/works/work-status-change-modal';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorkCardProps {
 	work: WorkWithProgress;
@@ -33,6 +39,9 @@ interface WorkCardProps {
 	onOpenChecklist: (work: WorkWithProgress) => void;
 	onUpdateGeneralNote?: (workId: number, note: string) => Promise<void>;
 	onAddToCalendar?: (work: WorkWithProgress) => void;
+	onOpenClient?: (work: WorkWithProgress) => void;
+	onChangeStatus?: (workId: number, newStatus: string, completionDate?: string) => Promise<void>;
+	loadingWorkId?: number | null;
 }
 
 export function WorkCard({
@@ -43,9 +52,13 @@ export function WorkCard({
 	onOpenChecklist,
 	onUpdateGeneralNote,
 	onAddToCalendar,
+	onOpenClient,
+	onChangeStatus,
+	loadingWorkId,
 }: WorkCardProps) {
 	const [isPostItModalOpen, setIsPostItModalOpen] = useState(false);
 	const [isUpdatingNote, setIsUpdatingNote] = useState(false);
+	const [targetStatus, setTargetStatus] = useState<string | null>(null);
 
 	const statusInfo = statusConfig.find((s) => s.value === work.status);
 
@@ -53,9 +66,33 @@ export function WorkCard({
 	const statusLabel = statusInfo?.label || 'Pendiente';
 	const statusColor = statusInfo?.color || 'text-gray-400 bg-gray-400/10';
 
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 	const canSendNotifications = isAuthorized;
 	const canEditNotes = isAuthorized;
+
+	// Recommendations: Admin only, never for completed or paused works
+	let recommendation: { text: string; target: string; action: string } | null = null;
+	if (isAuthorized && onChangeStatus) {
+		if (work.status !== 'completed' && work.status !== 'paused') {
+			// progress is 100 by default when there are no checklist items, so require at least one
+			if (work.progress === 100 && (work.tasks?.length ?? 0) > 0) {
+				recommendation = {
+					text: 'Tu obra está al 100%. ¿Querés marcarla como Finalizada?',
+					target: 'completed',
+					action: 'Marcar como Finalizada',
+				};
+			} else if (work.progress > 0 && (work.status === 'pending' || !work.status)) {
+				recommendation = {
+					text: 'Tu obra ya tiene avance. ¿Querés pasarla a En progreso?',
+					target: 'in_progress',
+					action: 'Pasar a En progreso',
+				};
+			}
+		}
+	}
+
+	const isThisLoading = loadingWorkId === work.id;
+	const isAnyLoading = loadingWorkId != null;
 
 	const handleSaveGeneralNote = async (note: string) => {
 		if (!onUpdateGeneralNote) return;
@@ -82,7 +119,33 @@ export function WorkCard({
 							</div>
 
 							<div className="text-muted-foreground">
-								<span>{work.name || work.id}</span>
+								{onOpenClient && work.client_id ? (
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												onClick={() => onOpenClient(work)}
+												disabled={isAnyLoading}
+												aria-label={
+													isThisLoading
+														? 'Ver obras del cliente (cargando)'
+														: 'Ver obras del cliente'
+												}
+												className="cursor-pointer inline-flex items-center gap-1 text-left underline decoration-dotted decoration-muted-foreground/50 underline-offset-2 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+											>
+												{work.name || work.id}
+												{isThisLoading ? (
+													<Loader2 className="h-3 w-3 text-muted-foreground flex-shrink-0 animate-spin" />
+												) : (
+													<ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+												)}
+											</button>
+										</TooltipTrigger>
+										<TooltipContent>Ver obras del cliente</TooltipContent>
+									</Tooltip>
+								) : (
+									<span>{work.name || work.id}</span>
+								)}
 							</div>
 						</div>
 
@@ -137,7 +200,27 @@ export function WorkCard({
 								<Calendar className="h-4 w-4 flex-shrink-0" />
 								<span>{formatCreatedAt(work.created_at)}</span>
 							</div>
+							{work.completion_date && (
+								<div className="flex items-center gap-2 text-sm text-muted-foreground">
+									<CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+									<span>Finalizada el {formatDateOnly(work.completion_date)}</span>
+								</div>
+							)}
 						</div>
+
+						{recommendation && (
+							<div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/40 p-3 text-sm">
+								<Lightbulb className="h-4 w-4 flex-shrink-0 text-yellow-500" />
+								<span className="flex-1 min-w-0 sm:text-sm text-xs">{recommendation.text}</span>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setTargetStatus(recommendation!.target)}
+								>
+									{recommendation.action}
+								</Button>
+							</div>
+						)}
 					</div>
 
 					<div className="flex flex-col gap-2 w-full lg:w-auto">
@@ -236,6 +319,19 @@ export function WorkCard({
 	return (
 		<>
 			{cardContent}
+			{onChangeStatus && (
+				<WorkStatusChangeModal
+					open={targetStatus !== null}
+					onOpenChange={(open) => {
+						if (!open) setTargetStatus(null);
+					}}
+					currentStatus={work.status}
+					targetStatus={targetStatus}
+					onConfirm={(newStatus, completionDate) =>
+						onChangeStatus(work.id, newStatus, completionDate)
+					}
+				/>
+			)}
 			<PostItModal
 				isOpen={isPostItModalOpen}
 				onOpenChange={setIsPostItModalOpen}
