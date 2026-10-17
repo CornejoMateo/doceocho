@@ -25,6 +25,7 @@ import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
 import { MultiFilePreviewDialog } from '@/components/ui/multi-file-preview-dialog';
 import { formatFileSize, isVideo, isImage, getFileExtension } from '@/utils/file-upload-utils';
 import { useAuth } from '@/components/provider/auth-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface ClientFilesProps {
 	client: Client;
@@ -49,7 +50,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const [filesForMultiUpload, setFilesForMultiUpload] = useState<File[]>([]);
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	useEffect(() => {
 		loadFiles();

@@ -28,6 +28,7 @@ import { BalanceWithBudget } from '@/lib/balances/balances';
 import { formatCurrency } from '@/utils/formats-money';
 import { WorkFilesDialog } from '@/components/business/works/work-files';
 import { useAuth } from '@/components/provider/auth-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorkCardProps {
 	work: Work;
@@ -55,7 +56,7 @@ export function WorkCardList({
 	const [targetStatus, setTargetStatus] = useState<string | null>(null);
 	const { user } = useAuth();
 
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 	const canEdit = isAuthorized && !!onUpdate;
 
 	const handleUpdateWork = async (workId: number, updates: Partial<Work>) => {

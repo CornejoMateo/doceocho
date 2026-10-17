@@ -26,6 +26,7 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { translateError } from '@/lib/error-translator';
 import { useAuth } from '@/components/provider/auth-provider';
 import { toast } from '@/components/ui/use-toast';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export default function KanbanPage() {
 	const router = useRouter();
@@ -36,7 +37,7 @@ export default function KanbanPage() {
 	const { boards, loading, error, fetchBoards, addBoard, editBoard, removeBoard } = useBoards();
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	useEffect(() => {
 		fetchBoards();

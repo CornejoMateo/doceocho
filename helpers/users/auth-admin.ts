@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export async function requireAdmin(token?: string) {
 	if (!token) {
@@ -34,9 +35,10 @@ export async function requireAdmin(token?: string) {
 		throw new Error('UNAUTHORIZED');
 	}
 
-	if (profile.role !== 'Admin') {
+	if (!isAdminRole(profile.role)) {
 		throw new Error('FORBIDDEN');
 	}
 
-	return user;
+	// role is attached so callers can gate Superadmin-only actions
+	return { ...user, role: profile.role as string };
 }

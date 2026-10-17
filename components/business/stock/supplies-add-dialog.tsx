@@ -19,6 +19,7 @@ import { toast } from '@/components/ui/use-toast';
 import { type SupplyItemStock } from '@/lib/stock/supplies-stock';
 import { useAuth } from '@/components/provider/auth-provider';
 import { formatCurrencyWithoutSymbol, formatNumber, parseArsToNumber } from '@/utils/formats-money';
+import { isAdminRole } from '@/constants/users/user-role';
 
 type FormData = {
 	category: string;
@@ -76,7 +77,7 @@ export function SupplyFormDialog({
 	const [changeQuantityFlag, setChangeQuantityFlag] = useState(false);
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	useEffect(() => {
 		if (editItem) {

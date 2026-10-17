@@ -6,27 +6,27 @@ import { useAuth } from '@/components/provider/auth-provider';
 import { useUsers } from '@/components/provider/users-provider';
 import type { UserRole } from '@/constants/users/user-role';
 import { ClockIn } from '@/components/business/clock-in/clock-in';
+import { AttendanceHistoryTab } from '@/components/business/clock-in/attendance-history-tab';
 import { ModuleManagement } from '@/components/business/modules/module-management';
 import { EmployeesTab } from '@/components/business/human-resources/employees/employees-tab';
 import { EvaluationsTab } from '@/components/business/human-resources/evaluations/evaluations-tab';
 import { VacationsTab } from '@/components/business/human-resources/vacations/vacations-tab';
 import { EmployeesTabValue, TABS } from '@/constants/employees/employees';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function EmployeesManagement() {
 	const { user } = useAuth();
 	const searchParams = useSearchParams();
 	const router = useRouter();
 
-	const isAdmin = user?.role === 'Admin';
+	const isAdmin = isAdminRole(user?.role);
 	const { users } = useUsers();
 
 	if (!user?.role) return null;
 
 	const visibleTabs = TABS.filter((tab) => tab.roles.includes(user.role as UserRole));
 	const requestedTab = searchParams.get('tab') ?? '';
-	const activeTab = visibleTabs.some((tab) => tab.value === requestedTab)
-		? requestedTab
-		: 'fichajes';
+	const activeTab = visibleTabs.some((tab) => tab.value === requestedTab) ? requestedTab : 'fichar';
 
 	const isVisible = (value: EmployeesTabValue) => visibleTabs.some((tab) => tab.value === value);
 
@@ -42,8 +42,8 @@ export function EmployeesManagement() {
 				<h2 className="text-2xl font-bold text-foreground text-balance">Empleados</h2>
 				<p className="text-muted-foreground mt-1">
 					{isAdmin
-						? 'Fichajes, módulos, fichas, evaluaciones y vacaciones del personal'
-						: 'Tus fichajes, módulos y vacaciones'}
+						? 'Fichar, historial de fichajes, módulos, fichas, evaluaciones y vacaciones del personal'
+						: 'Fichá tu entrada y salida, consultá el historial, módulos y vacaciones'}
 				</p>
 			</div>
 
@@ -58,9 +58,15 @@ export function EmployeesManagement() {
 					</TabsList>
 				)}
 
+				{isVisible('fichar') && (
+					<TabsContent value="fichar" className="min-w-0">
+						<ClockIn />
+					</TabsContent>
+				)}
+
 				{isVisible('fichajes') && (
 					<TabsContent value="fichajes" className="min-w-0">
-						<ClockIn users={users} />
+						<AttendanceHistoryTab users={users} />
 					</TabsContent>
 				)}
 

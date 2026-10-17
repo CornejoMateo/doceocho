@@ -33,6 +33,7 @@ import { MODULE_STATUSES, ModuleStatus } from '@/constants/modules/module-status
 import { getModuleStatusLabel, getModuleWorkLabel } from '@/helpers/modules/modules-helper';
 import { User } from '@/lib/users/users';
 import { notifyModuleSubmittedAction } from '@/actions/modules/notify-module-submitted';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [modules, setModules] = useState<Module[]>([]);
@@ -65,7 +66,7 @@ export function ModuleManagement({ users = [] }: { users?: User[] }) {
 	const [statusFilter, setStatusFilter] = useState<ModuleStatus | 'all'>('all');
 	const [infoOpen, setInfoOpen] = useState(false);
 	const { user } = useAuth();
-	const isAdmin = user?.role === 'Admin';
+	const isAdmin = isAdminRole(user?.role);
 
 	const listModalModule = useMemo(() => {
 		if (!listModal.module) return null;

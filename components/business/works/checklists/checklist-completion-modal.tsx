@@ -45,6 +45,7 @@ import { translateError } from '@/lib/error-translator';
 import { useWorkChecklistData } from '@/hooks/clients/use-works-checklists-data';
 import { calculateProgress } from '@/helpers/checklists/progress';
 import { ChecklistCard } from './checklist-card';
+import { isAdminRole } from '@/constants/users/user-role';
 
 type ChecklistCompletionModalProps = {
 	workId: number;
@@ -64,7 +65,7 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 	const notesDebounceTimersRef = useRef<Record<string, number>>({});
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	// Load checklists when modal opens
 	useEffect(() => {

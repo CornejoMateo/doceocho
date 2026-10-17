@@ -32,7 +32,7 @@ function toResult(client: ClientRow): SearchResult {
 export const clientsProvider: SearchProvider = {
 	id: 'clients',
 	label: 'Clientes',
-	roles: ['Admin', 'Taller'],
+	roles: ['Admin', 'Superadmin', 'Taller'],
 	order: 1,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

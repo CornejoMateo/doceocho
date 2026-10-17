@@ -274,6 +274,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 						showPassword={showPassword}
 						setShowPassword={setShowPassword}
 						handleSave={handleSave}
+						callerRole={currentUser?.role}
 						onCancel={() => {
 							setShowForm(false);
 							setEditingUser(null);

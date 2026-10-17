@@ -21,12 +21,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Edit, Trash2, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User } from '@/lib/users/users';
-import { roles } from '@/constants/users/user-role';
+import {
+	isAdminRole,
+	getSelectableRoles,
+	isRoleSelectLocked,
+	UserRole,
+} from '@/constants/users/user-role';
 
 interface UsersTableProps {
 	users: User[];
 	loading: boolean;
-	currentUser: { username: string } | null;
+	currentUser: { username: string; role?: UserRole } | null;
 	isCurrentUser: (user: User) => boolean;
 	onEdit: (user: User) => void;
 	onDelete: (user: User) => void;
@@ -82,20 +87,28 @@ export function UsersTable({
 												<Select
 													value={user.role}
 													onValueChange={(value) => onUpdateRole(user, value)}
+													disabled={isRoleSelectLocked(currentUser?.role, user.role)}
 												>
 													{user.username !== currentUser?.username ? (
 														<>
 															<SelectTrigger
 																className={cn(
 																	'h-8 w-[130px] text-center',
-																	user.role === 'Admin' ? 'border-primary/30 text-primary' : ''
+																	isAdminRole(user.role) ? 'border-primary/30 text-primary' : ''
 																)}
 															>
 																<SelectValue />
 															</SelectTrigger>
 															<SelectContent>
-																{roles.map((role) => (
-																	<SelectItem key={role} value={role}>
+																{getSelectableRoles(currentUser?.role, user.role).map((role) => (
+																	<SelectItem
+																		key={role}
+																		value={role}
+																		disabled={
+																			role === 'Superadmin' &&
+																			isRoleSelectLocked(currentUser?.role, user.role)
+																		}
+																	>
 																		{role}
 																	</SelectItem>
 																))}
@@ -181,18 +194,26 @@ export function UsersTable({
 												<Select
 													value={user.role}
 													onValueChange={(value) => onUpdateRole(user, value)}
+													disabled={isRoleSelectLocked(currentUser?.role, user.role)}
 												>
 													<SelectTrigger
 														className={cn(
 															'h-8 flex-1',
-															user.role === 'Admin' ? 'border-primary/30 text-primary' : ''
+															isAdminRole(user.role) ? 'border-primary/30 text-primary' : ''
 														)}
 													>
 														<SelectValue />
 													</SelectTrigger>
 													<SelectContent>
-														{roles.map((role) => (
-															<SelectItem key={role} value={role}>
+														{getSelectableRoles(currentUser?.role, user.role).map((role) => (
+															<SelectItem
+																key={role}
+																value={role}
+																disabled={
+																	role === 'Superadmin' &&
+																	isRoleSelectLocked(currentUser?.role, user.role)
+																}
+															>
 																{role}
 															</SelectItem>
 														))}

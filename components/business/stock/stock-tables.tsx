@@ -11,6 +11,7 @@ import { QuantityDialog } from './quantity-dialog';
 import { DeleteAlertDialog } from './delete-alert-dialog';
 import type { SuppliesTableProps } from './types';
 import { formatCreatedAt } from '@/utils/format-date';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function SuppliesTable({
 	filteredStock,
@@ -19,7 +20,7 @@ export function SuppliesTable({
 	onUpdateQuantity,
 }: SuppliesTableProps) {
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const {
 		showQuantityDialog,

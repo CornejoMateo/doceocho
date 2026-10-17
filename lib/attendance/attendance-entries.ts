@@ -221,7 +221,7 @@ export async function getAttendanceEntriesForMonth(
 		)
 		.gte('attendance.date', startOfMonth)
 		.lte('attendance.date', endOfMonth)
-		.not('attendance.users.role', 'eq', 'Admin');
+		.not('attendance.users.role', 'eq', 'QR');
 
 	return { data, error };
 }

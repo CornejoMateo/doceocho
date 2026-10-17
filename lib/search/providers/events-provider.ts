@@ -29,7 +29,7 @@ function toResult(event: EventRow): SearchResult {
 export const eventsProvider: SearchProvider = {
 	id: 'events',
 	label: 'Eventos',
-	roles: ['Admin', 'Taller'],
+	roles: ['Admin', 'Superadmin', 'Taller'],
 	order: 5,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

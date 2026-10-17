@@ -3,6 +3,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRole } from '@/constants/users/user-role';
 
 const TABLE = 'channel_members';
 
@@ -20,7 +21,7 @@ async function requireCurrentUserAdmin() {
 		.eq('uid_user', user.id)
 		.single();
 
-	if (error || !profile || profile.role !== 'Admin') {
+	if (error || !profile || !isAdminRole(profile.role)) {
 		throw new Error('FORBIDDEN');
 	}
 

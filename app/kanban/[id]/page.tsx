@@ -33,13 +33,14 @@ import { translateError } from '@/lib/error-translator';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/components/provider/auth-provider';
 import type { CardFormData, Card } from '@/components/business/kanban/types';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export default function BoardPage() {
 	const router = useRouter();
 	const params = useParams();
 	const boardId = params.id ? Number(params.id) : null;
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
 	const [isCardModalOpen, setIsCardModalOpen] = useState(false);

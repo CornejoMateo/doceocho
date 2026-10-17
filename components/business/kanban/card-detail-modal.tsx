@@ -25,6 +25,7 @@ import { useAuth } from '@/components/provider/auth-provider';
 import type { FileViewerItem } from '@/utils/file-upload-utils';
 import type { KanbanFileRecord } from '@/components/business/kanban/types';
 import { DialogDescription } from '@/components/ui/dialog';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface CardDetailModalProps {
 	cardId: number | null;
@@ -42,7 +43,7 @@ export function CardDetailModal({
 	onCardUpdated,
 }: CardDetailModalProps) {
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const { card, loading, error, updateCard, uploadFile, removeCard, removeAttachment } =
 		useCard(cardId);

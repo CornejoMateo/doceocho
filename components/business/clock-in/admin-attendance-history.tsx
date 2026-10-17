@@ -43,8 +43,10 @@ import { AttendanceEntryModal } from './attendance-entry-modal';
 
 type PeriodFilter = 'day' | 'month';
 
-export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref) => {
-	const { users = [] } = props;
+type AdminAttendanceHistoryProps = { users?: User[]; canManageOthersAttendance?: boolean };
+
+export const AdminAttendanceHistory = forwardRef((props: AdminAttendanceHistoryProps, ref) => {
+	const { users = [], canManageOthersAttendance = false } = props;
 	const [allEntries, setAllEntries] = useState<AttendanceEntryWithDate[]>([]);
 	const [summaries, setSummaries] = useState<UserAttendanceSummary[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -353,27 +355,29 @@ export const AdminAttendanceHistory = forwardRef((props: { users?: User[] }, ref
 																			)}
 																		</div>
 
-																		<div className="flex gap-1">
-																			<Button
-																				variant="ghost"
-																				size="sm"
-																				onClick={() => handleEditEntry(entry)}
-																				className="h-8 w-8 p-0"
-																				type="button"
-																			>
-																				<Pencil className="h-4 w-4" />
-																			</Button>
+																		{canManageOthersAttendance && (
+																			<div className="flex gap-1">
+																				<Button
+																					variant="ghost"
+																					size="sm"
+																					onClick={() => handleEditEntry(entry)}
+																					className="h-8 w-8 p-0"
+																					type="button"
+																				>
+																					<Pencil className="h-4 w-4" />
+																				</Button>
 
-																			<Button
-																				variant="ghost"
-																				size="sm"
-																				onClick={() => handleDeleteEntry(entry)}
-																				className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-																				type="button"
-																			>
-																				<Trash2 className="h-4 w-4" />
-																			</Button>
-																		</div>
+																				<Button
+																					variant="ghost"
+																					size="sm"
+																					onClick={() => handleDeleteEntry(entry)}
+																					className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+																					type="button"
+																				>
+																					<Trash2 className="h-4 w-4" />
+																				</Button>
+																			</div>
+																		)}
 																	</div>
 																</div>
 															))}

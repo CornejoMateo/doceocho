@@ -55,12 +55,25 @@ export const ALLOWED_MODULES_BY_ROLE: Record<UserRole, string[]> = {
 		'Reportes',
 		'Empleados',
 	],
+	Superadmin: [
+		'Panel',
+		'Insumos',
+		'Clientes',
+		'Kanban',
+		'Calendario',
+		'Flujo de Fondos',
+		'Obras',
+		'Chat',
+		'Reportes',
+		'Empleados',
+	],
 	Taller: ['Insumos', 'Clientes', 'Kanban', 'Calendario', 'Chat', 'Obras', 'Empleados'],
 	QR: ['Empleados'],
 };
 
 export const HOME_ROUTE_BY_ROLE: Record<UserRole, string> = {
 	Admin: '/',
+	Superadmin: '/',
 	Taller: '/supplies',
 	QR: '/employees',
 };

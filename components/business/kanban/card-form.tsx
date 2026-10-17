@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CardLinksFields, type CardLinks } from '@/components/business/kanban/card-links-fields';
 import { formatCardClientName, formatCardWorkName } from '@/helpers/kanban/card-links';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export interface CardFormHandle {
 	requestClose: () => void;
@@ -46,7 +47,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	ref
 ) {
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');

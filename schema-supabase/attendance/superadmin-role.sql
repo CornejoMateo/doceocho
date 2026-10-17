@@ -3458,10 +3458,6 @@ USING (
     )
 );
 
--- ---------------------------------------------------------------------
--- From schema-supabase/attendance/attendance_entries.sql
--- ---------------------------------------------------------------------
-
 DROP POLICY IF EXISTS "Attendance entries select" ON public.attendance_entries;
 CREATE POLICY "Attendance entries select"
 ON public.attendance_entries

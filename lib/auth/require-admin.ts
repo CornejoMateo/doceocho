@@ -1,5 +1,6 @@
 import { getCurrentUser } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRole } from '@/constants/users/user-role';
 
 // This function checks if the current user is an admin. If the user is not an admin,
 // it throws a 'FORBIDDEN' error. If the user is an admin,
@@ -18,7 +19,7 @@ export async function requireCurrentUserAdmin() {
 		.eq('uid_user', user.id)
 		.single();
 
-	if (error || !profile || profile.role !== 'Admin') {
+	if (error || !profile || !isAdminRole(profile.role)) {
 		throw new Error('FORBIDDEN');
 	}
 

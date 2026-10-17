@@ -26,10 +26,11 @@ import { VACATION_REQUESTS_PER_PAGE } from '@/constants/human-resources/vacation
 import { VacationRequestDialog } from '@/components/business/human-resources/vacations/vacation-request-dialog';
 import { VacationReviewDialog } from '@/components/business/human-resources/vacations/vacation-review-dialog';
 import { VacationRequestCard } from '@/components/business/human-resources/vacations/vacation-request-card';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function VacationsTab() {
 	const { user } = useAuth();
-	const isAdmin = user?.role === 'Admin';
+	const isAdmin = isAdminRole(user?.role);
 
 	const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 	const [requestToReview, setRequestToReview] = useState<VacationRequest | null>(null);

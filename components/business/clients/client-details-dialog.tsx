@@ -32,6 +32,7 @@ import { translateError } from '@/lib/error-translator';
 import { useClientWorks } from '@/hooks/clients/use-client-works';
 import { useClientBudgets } from '@/hooks/clients/use-client-budgets';
 import { useClientBalances } from '@/hooks/clients/use-client-balances';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface ClientDetailsDialogProps {
 	client: Client | null;
@@ -58,7 +59,7 @@ export function ClientDetailsDialog({
 	const [clientData, setClientData] = useState<Client | null>(null);
 	const { user } = useAuth();
 
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	// Auto-save hook for cover field
 	const {

@@ -29,6 +29,7 @@ import { useState } from 'react';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt, formatDateOnly } from '@/utils/format-date';
 import { WorkStatusChangeModal } from '@/components/business/works/work-status-change-modal';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorkCardProps {
 	work: WorkWithProgress;
@@ -65,7 +66,7 @@ export function WorkCard({
 	const statusLabel = statusInfo?.label || 'Pendiente';
 	const statusColor = statusInfo?.color || 'text-gray-400 bg-gray-400/10';
 
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 	const canSendNotifications = isAuthorized;
 	const canEditNotes = isAuthorized;
 

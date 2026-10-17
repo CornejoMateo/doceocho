@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useAuth } from '@/components/provider/auth-provider';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 import { listUsers, User } from '@/lib/users/users';
+import { isAdminRole } from '@/constants/users/user-role';
 
 type UsersContextType = {
 	users: User[];
@@ -17,7 +18,7 @@ const UsersContext = createContext<UsersContextType | null>(null);
 export function UsersProvider({ children }: { children: ReactNode }) {
 	const { user } = useAuth();
 
-	const isAdmin = user?.role === 'Admin';
+	const isAdmin = isAdminRole(user?.role);
 
 	const {
 		data: users,

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Eye, EyeOff } from 'lucide-react';
 import { User } from '@/lib/users/users';
-import { roles } from '@/constants/users/user-role';
+import { getSelectableRoles, isRoleSelectLocked, UserRole } from '@/constants/users/user-role';
 
 interface FormData {
 	username: string;
@@ -32,6 +32,7 @@ interface UsersDialogFormProps {
 	setShowPassword: (show: boolean | ((prev: boolean) => boolean)) => void;
 	handleSave: () => Promise<void>;
 	onCancel: () => void;
+	callerRole?: UserRole;
 }
 
 export function UsersDialogForm({
@@ -43,7 +44,12 @@ export function UsersDialogForm({
 	setShowPassword,
 	handleSave,
 	onCancel,
+	callerRole,
 }: UsersDialogFormProps) {
+	const targetRole = editingUser?.role;
+	const selectableRoles = getSelectableRoles(callerRole, targetRole);
+	const roleSelectLocked = isRoleSelectLocked(callerRole, targetRole);
+
 	return (
 		<div className="grid gap-4 py-4">
 			<div className="grid gap-2">
@@ -121,13 +127,18 @@ export function UsersDialogForm({
 				<Select
 					value={formData.role}
 					onValueChange={(value) => setFormData((p) => ({ ...p, role: value }))}
+					disabled={roleSelectLocked}
 				>
 					<SelectTrigger className="bg-background">
 						<SelectValue placeholder="Seleccionar rol" />
 					</SelectTrigger>
 					<SelectContent>
-						{roles.map((role) => (
-							<SelectItem key={role} value={role}>
+						{selectableRoles.map((role) => (
+							<SelectItem
+								key={role}
+								value={role}
+								disabled={role === 'Superadmin' && roleSelectLocked}
+							>
 								{role}
 							</SelectItem>
 						))}

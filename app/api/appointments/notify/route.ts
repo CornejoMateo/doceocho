@@ -4,6 +4,7 @@ import { getServerSupabaseClient } from '@/lib/get-server-supabase-client';
 import { getUserByUid } from '@/lib/users/users';
 import { sendAppointmentEmail } from '@/lib/appointments/send-appointment-email';
 import { normalizeTime } from '@/helpers/appointments/availability';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
 		const supabase = await getServerSupabaseClient();
 		const { data: reviewer } = await getUserByUid(user.id, supabase);
 
-		if (reviewer?.role !== 'Admin') {
+		if (!isAdminRole(reviewer?.role)) {
 			return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 		}
 

@@ -39,6 +39,7 @@ import {
 import { GlobalSearch } from '@/components/layout/global-search';
 import { UsersDialog } from '@/components/business/users/users-dialog';
 import { useChatUnread } from '../provider/chat-unread-provider';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -191,7 +192,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 					</nav>
 
 					<div className="px-3">
-						{user?.role === 'Admin' && (
+						{isAdminRole(user?.role) && (
 							<Button
 								variant="ghost"
 								size="sm"

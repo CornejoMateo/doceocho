@@ -56,6 +56,7 @@ import { WorksExportDialog } from '@/components/business/works/works-export-dial
 import { MetricsTab } from '@/components/business/works/metrics/metrics-tab';
 import { ClientDetailsDialog } from '@/components/business/clients/client-details-dialog';
 import { type Client } from '@/lib/clients/clients';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function WorksOpenings() {
 	// Single filter state shared by the list ("Obras") and the "Métricas" tab.
@@ -78,7 +79,7 @@ export function WorksOpenings() {
 	const [loadingClientWorkId, setLoadingClientWorkId] = useState<number | null>(null);
 
 	const isAuthorized = useMemo(() => {
-		return user?.role === 'Admin';
+		return isAdminRole(user?.role);
 	}, [user?.role]);
 
 	const options = useMemo(() => getFilterOptions(works), [works]);

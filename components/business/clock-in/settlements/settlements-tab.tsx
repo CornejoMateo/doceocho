@@ -219,7 +219,7 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 			if (Object.keys(userHours).length === 0) {
 				const usersToSeed =
 					selectedUserId === 'all'
-						? users.filter((user) => user.role !== 'Admin')
+						? users.filter((user) => user.role !== 'QR')
 						: users.filter((user) => user.uid_user === selectedUserId);
 
 				usersToSeed.forEach((user) => {
@@ -281,7 +281,7 @@ export function LiquidarTab({ users, onLiquidated }: LiquidarTabProps) {
 					<SelectContent>
 						<SelectItem value="all">Todos los empleados</SelectItem>
 						{users
-							.filter((user) => user.role === 'Taller')
+							.filter((user) => user.role !== 'QR')
 							.map((user) => (
 								<SelectItem key={user.uid_user} value={user.uid_user}>
 									{user.name && user.last_name ? `${user.name} ${user.last_name}` : user.username}

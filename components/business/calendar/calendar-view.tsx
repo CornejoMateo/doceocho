@@ -11,6 +11,7 @@ import { deleteEvent, deleteLastYearEvents, Event } from '@/lib/calendar/events'
 import { getEventTypeOptions } from '@/lib/calendar/event-types';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useLoadEvents } from '@/hooks/calendar/use-load-events';
+import { isAdminRole } from '@/constants/users/user-role';
 import { useToast } from '@/components/ui/use-toast';
 import {
 	Dialog,
@@ -99,7 +100,7 @@ export function CalendarView() {
 	}, [events]);
 
 	const { user } = useAuth();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 
 	const eventsByDate = useMemo(() => {
 		const filtered =
@@ -340,7 +341,7 @@ export function CalendarView() {
 				</div>
 			</Card>
 
-			{user?.role === 'Admin' && (
+			{isAdminRole(user?.role) && (
 				<Card className="p-4 bg-card border-border">
 					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 						<div className="flex-1 min-w-0">

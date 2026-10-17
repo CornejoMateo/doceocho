@@ -179,7 +179,7 @@ export async function getAdminPushSubscriptions(
 		const { data: admins, error: adminsError } = await client
 			.from('users')
 			.select('uid_user')
-			.eq('role', 'Admin');
+			.in('role', ['Admin', 'Superadmin']);
 
 		if (adminsError) {
 			return { data: null, error: adminsError.message };

@@ -36,11 +36,12 @@ import { SupplierDeleteDialog } from '@/components/business/suppliers/supplier-d
 import { SupplierDetailsDialog } from '@/components/business/suppliers/supplier-details-dialog';
 import { normalize as normalizeText } from '@/utils/normalize';
 import { translateError } from '@/lib/error-translator';
+import { isAdminRole } from '@/constants/users/user-role';
 
 export function SuppliersManagement() {
 	const { user, loading: authLoading } = useAuth();
 	const { toast } = useToast();
-	const isAuthorized = user?.role === 'Admin';
+	const isAuthorized = isAdminRole(user?.role);
 	const { suppliers, loading, error, refresh } = useSuppliers(isAuthorized);
 
 	const [search, setSearch] = useState('');
@@ -233,8 +234,6 @@ export function SuppliersManagement() {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="text-xl font-semibold">Proveedores</h2>
-
 			<div className="flex justify-end">
 				<Button onClick={() => openForm(null)} className="gap-2">
 					<Plus className="h-4 w-4" />

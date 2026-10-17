@@ -7,6 +7,7 @@ import {
 	sendVacationResolvedNotification,
 } from '@/lib/push/send-vacation-notification';
 import { formatCreatedAt } from '@/utils/format-date';
+import { isAdminRole } from '@/constants/users/user-role';
 
 type NotifyEvent = 'created' | 'resolved';
 
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
 		// Resolved: only an admin announces the decision, and only once it is taken.
 		const { data: reviewer } = await getUserByUid(user.id, supabase);
 
-		if (reviewer?.role !== 'Admin') {
+		if (!isAdminRole(reviewer?.role)) {
 			return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 403 });
 		}
 

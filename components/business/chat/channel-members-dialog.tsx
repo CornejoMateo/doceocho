@@ -28,6 +28,7 @@ import {
 } from '@/lib/chat/channel-members';
 import { ChannelWithLastMessage } from '@/lib/chat/chat-types';
 import { toast } from '@/components/ui/use-toast';
+import { isAdminRole } from '@/constants/users/user-role';
 
 interface ChannelMembersDialogProps {
 	open: boolean;
@@ -54,7 +55,7 @@ export function ChannelMembersDialog({
 		null
 	);
 
-	const isAdmin = currentUserRole === 'Admin';
+	const isAdmin = isAdminRole(currentUserRole);
 
 	useEffect(() => {
 		if (open && isAdmin) {
