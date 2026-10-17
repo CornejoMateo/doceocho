@@ -39,6 +39,7 @@ import { getAccountTypeLabel } from '@/constants/cashflow/cashflow';
 import { formatCurrency } from '@/utils/formats-money';
 import { BankAccountForm } from '@/components/business/cash-flow/bank-accounts/bank-account-form';
 import { BankAccountStats } from '@/components/business/cash-flow/bank-accounts/bank-account-stats';
+import { MonthlyCashFlowTable } from '@/components/business/cash-flow/bank-accounts/monthly-cash-flow-table';
 
 interface BankAccountsTabProps {
 	bankAccounts: BankAccount[];
@@ -275,6 +276,8 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 					</div>
 				</>
 			)}
+
+			<MonthlyCashFlowTable />
 
 			<BankAccountStats bankAccounts={bankAccounts} />
 

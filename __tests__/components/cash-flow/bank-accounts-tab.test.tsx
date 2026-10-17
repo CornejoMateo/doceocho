@@ -35,6 +35,10 @@ jest.mock('@/components/business/cash-flow/bank-accounts/bank-account-stats', ()
 	BankAccountStats: () => <div data-testid="bank-account-stats" />,
 }));
 
+jest.mock('@/components/business/cash-flow/bank-accounts/monthly-cash-flow-table', () => ({
+	MonthlyCashFlowTable: () => <div data-testid="monthly-cash-flow-table" />,
+}));
+
 const mockAccounts = [
 	{
 		id: 1,

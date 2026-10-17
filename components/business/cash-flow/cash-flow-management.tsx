@@ -48,6 +48,17 @@ import { PaymentsTab } from '@/components/business/cash-flow/collections-payment
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
 
+function CashFlowTabHeader({ value }: { value: CashFlowTabValue }) {
+	const tab = CASH_FLOW_TABS.find((t) => t.value === value);
+	if (!tab) return null;
+	return (
+		<div>
+			<h3 className="text-xl font-semibold text-foreground">{tab.title}</h3>
+			<p className="text-muted-foreground mt-1">{tab.description}</p>
+		</div>
+	);
+}
+
 function CashFlowTransactionsRealtime({
 	cashBoxId,
 	onTransactionsChange,
@@ -251,22 +262,26 @@ export function CashFlowManagement() {
 					</TabsList>
 				</div>
 
-				<TabsContent value="summary" className="min-w-0">
+				<TabsContent value="summary" className="space-y-6 min-w-0">
+					<CashFlowTabHeader value="summary" />
 					<SummaryTab />
 				</TabsContent>
 
-				<TabsContent value="bank-accounts">
+				<TabsContent value="bank-accounts" className="space-y-6">
+					<CashFlowTabHeader value="bank-accounts" />
 					<BankAccountsTab
 						bankAccounts={bankAccounts}
 						onBankAccountsUpdated={refreshBankAccounts}
 					/>
 				</TabsContent>
 
-				<TabsContent value="suppliers">
+				<TabsContent value="suppliers" className="space-y-6">
+					<CashFlowTabHeader value="suppliers" />
 					<SuppliersManagement />
 				</TabsContent>
 
-				<TabsContent value="checking-accounts">
+				<TabsContent value="checking-accounts" className="space-y-6">
+					<CashFlowTabHeader value="checking-accounts" />
 					<CheckingAccountsTab />
 				</TabsContent>
 
@@ -282,6 +297,7 @@ export function CashFlowManagement() {
 					);
 					return (
 						<TabsContent key={tabValue} value={tabValue} className="space-y-6 min-w-0">
+							<CashFlowTabHeader value={tabValue as CashFlowTabValue} />
 							{tabValue === 'fixed-expenses' ? (
 								<>
 									<div className="flex items-center justify-end">{categoriesConfig}</div>
@@ -312,7 +328,8 @@ export function CashFlowManagement() {
 						tab.value !== 'suppliers' &&
 						!(tab.value in CATEGORY_TABS)
 				).map((tab) => (
-					<TabsContent key={tab.value} value={tab.value}>
+					<TabsContent key={tab.value} value={tab.value} className="space-y-6">
+						<CashFlowTabHeader value={tab.value} />
 						<Card className="p-12 bg-card border-border text-center">
 							<p className="text-muted-foreground">Próximamente</p>
 						</Card>
