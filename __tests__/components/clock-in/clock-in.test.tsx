@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ClockIn } from '@/components/business/clock-in/clock-in';
 import { useAuth } from '@/components/provider/auth-provider';
-import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 import { getAttendanceSettings } from '@/lib/attendance/attendance-settings';
 import { getAttendanceStatus } from '@/lib/attendance/attendance-entries';
 import { getCurrentLocation } from '@/helpers/attendance/geolocation';
@@ -10,10 +9,6 @@ import { toast } from '@/components/ui/use-toast';
 
 jest.mock('@/components/provider/auth-provider', () => ({
 	useAuth: jest.fn(),
-}));
-
-jest.mock('@/hooks/use-optimized-realtime', () => ({
-	useOptimizedRealtime: jest.fn(),
 }));
 
 jest.mock('@/lib/attendance/attendance-settings', () => ({
@@ -42,10 +37,6 @@ jest.mock('@/components/ui/use-toast', () => ({
 
 jest.mock('@/lib/error-translator', () => ({
 	translateError: (e: any) => e?.message || 'Error desconocido',
-}));
-
-jest.mock('@/lib/users/users', () => ({
-	listUsers: jest.fn().mockResolvedValue({ data: [], error: null }),
 }));
 
 jest.mock('@/components/ui/button', () => ({
@@ -79,29 +70,6 @@ jest.mock('@/components/ui/card', () => ({
 	CardTitle: ({ children }: any) => <h3>{children}</h3>,
 }));
 
-jest.mock('@/components/business/clock-in/attendance-history', () => ({
-	AttendanceHistory: () => <div data-testid="attendance-history" />,
-}));
-
-jest.mock('@/components/business/clock-in/admin-attendance-history', () => ({
-	AdminAttendanceHistory: require('react').forwardRef((props: any, ref: any) => (
-		<div data-testid="admin-attendance-history" />
-	)),
-}));
-
-jest.mock('@/components/business/clock-in/attendance-settings', () => ({
-	AttendanceSettings: ({ open }: any) => (open ? <div data-testid="attendance-settings" /> : null),
-}));
-
-jest.mock('@/components/business/clock-in/attendance-entry-modal', () => ({
-	AttendanceEntryModal: ({ open }: any) =>
-		open ? <div data-testid="attendance-entry-modal" /> : null,
-}));
-
-jest.mock('@/components/business/clock-in/settlements/settlements-modal', () => ({
-	SettlementsModal: ({ open }: any) => (open ? <div data-testid="settlements-modal" /> : null),
-}));
-
 jest.mock('@/components/business/clock-in/attendance-qr-code', () => ({
 	__esModule: true,
 	default: () => <div data-testid="attendance-qr-code" />,
@@ -117,10 +85,6 @@ jest.mock('@/components/business/clock-in/attendance-qr-scanner', () => ({
 	),
 }));
 
-jest.mock('lucide-react', () => ({
-	Settings: () => <span>SettingsIcon</span>,
-}));
-
 jest.mock('next/navigation', () => ({
 	useRouter: () => ({
 		push: jest.fn(),
@@ -130,7 +94,6 @@ jest.mock('next/navigation', () => ({
 }));
 
 const mockUseAuth = useAuth as jest.Mock;
-const mockUseOptimizedRealtime = useOptimizedRealtime as jest.Mock;
 const mockGetAttendanceSettings = getAttendanceSettings as jest.Mock;
 const mockGetAttendanceStatus = getAttendanceStatus as jest.Mock;
 const mockGetCurrentLocation = getCurrentLocation as jest.Mock;
@@ -152,22 +115,11 @@ function setupAuth(role: string = 'Taller') {
 	});
 }
 
-function setupRealtime() {
-	mockUseOptimizedRealtime.mockReturnValue({
-		data: [],
-		loading: false,
-		error: null,
-		refresh: jest.fn(),
-		invalidateCache: jest.fn(),
-	});
-}
-
 function setupDefaults(overrides?: {
 	role?: string;
 	status?: { regularOpen: boolean; overtimeOpen: boolean };
 }) {
 	setupAuth(overrides?.role ?? 'Taller');
-	setupRealtime();
 	mockGetAttendanceSettings.mockResolvedValue({
 		data: { square_meters: 50, target_latitude: -34.6, target_longitude: -58.4 },
 		error: null,
@@ -214,46 +166,38 @@ describe('ClockIn', () => {
 	describe('Admin view', () => {
 		beforeEach(() => setupDefaults({ role: 'Admin' }));
 
-		it('renders admin buttons after loading', async () => {
+		it('renders clock-in buttons after loading, same as Taller', async () => {
 			render(<ClockIn />);
 
 			await waitFor(() => {
-				expect(screen.getByText('Crear registro')).toBeInTheDocument();
+				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
 			});
 
-			expect(screen.getByText('Liquidaciones')).toBeInTheDocument();
-			expect(screen.getByText('Configuración')).toBeInTheDocument();
+			expect(screen.getByText('Registrar entrada (horas extras)')).toBeInTheDocument();
 		});
 
-		it('renders AdminAttendanceHistory', async () => {
+		it('does not render QR card', async () => {
 			render(<ClockIn />);
 
 			await waitFor(() => {
-				expect(screen.getByTestId('admin-attendance-history')).toBeInTheDocument();
-			});
-		});
-
-		it('all admin buttons have type="button"', async () => {
-			render(<ClockIn />);
-
-			await waitFor(() => {
-				expect(screen.getByText('Crear registro')).toBeInTheDocument();
+				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
 			});
 
-			expect(screen.getByText('Crear registro')).toHaveAttribute('type', 'button');
-			expect(screen.getByText('Liquidaciones')).toHaveAttribute('type', 'button');
-			expect(screen.getByText('Configuración')).toHaveAttribute('type', 'button');
-		});
-
-		it('does not render Taller or QR sections', async () => {
-			render(<ClockIn />);
-
-			await waitFor(() => {
-				expect(screen.getByText('Crear registro')).toBeInTheDocument();
-			});
-
-			expect(screen.queryByText('Registrar entrada')).not.toBeInTheDocument();
 			expect(screen.queryByTestId('attendance-qr-code')).not.toBeInTheDocument();
+		});
+
+		it('opens scanner when clicking clock-in button', async () => {
+			render(<ClockIn />);
+
+			await waitFor(() => {
+				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
+			});
+
+			fireEvent.click(screen.getByText('Registrar entrada'));
+
+			await waitFor(() => {
+				expect(screen.getByTestId('qr-scanner')).toBeInTheDocument();
+			});
 		});
 	});
 
@@ -268,14 +212,6 @@ describe('ClockIn', () => {
 			});
 
 			expect(screen.getByText('Registrar entrada (horas extras)')).toBeInTheDocument();
-		});
-
-		it('renders AttendanceHistory', async () => {
-			render(<ClockIn />);
-
-			await waitFor(() => {
-				expect(screen.getByTestId('attendance-history')).toBeInTheDocument();
-			});
 		});
 
 		it('shows "Registrar salida" when clocked in', async () => {
@@ -322,14 +258,13 @@ describe('ClockIn', () => {
 			);
 		});
 
-		it('does not render Admin or QR sections', async () => {
+		it('does not render QR section', async () => {
 			render(<ClockIn />);
 
 			await waitFor(() => {
 				expect(screen.getByText('Registrar entrada')).toBeInTheDocument();
 			});
 
-			expect(screen.queryByText('Crear registro')).not.toBeInTheDocument();
 			expect(screen.queryByTestId('attendance-qr-code')).not.toBeInTheDocument();
 		});
 
@@ -403,6 +338,16 @@ describe('ClockIn', () => {
 			});
 
 			expect(screen.getByText(/Escaneá este código/)).toBeInTheDocument();
+		});
+
+		it('does not render clock-in buttons', async () => {
+			render(<ClockIn />);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('attendance-qr-code')).toBeInTheDocument();
+			});
+
+			expect(screen.queryByText('Registrar entrada')).not.toBeInTheDocument();
 		});
 	});
 
@@ -566,14 +511,13 @@ describe('ClockIn', () => {
 	});
 
 	describe('No user', () => {
-		it('shows no Taller or QR content when user is null', () => {
+		it('shows no clock or QR content when user is null', () => {
 			mockUseAuth.mockReturnValue({
 				user: null,
 				loading: false,
 				signIn: jest.fn(),
 				signOutUser: jest.fn(),
 			});
-			setupRealtime();
 			mockGetAttendanceSettings.mockResolvedValue({ data: null, error: null });
 			mockGetAttendanceStatus.mockResolvedValue({ data: null, error: null });
 
@@ -581,46 +525,6 @@ describe('ClockIn', () => {
 
 			expect(screen.queryByText('Registrar entrada')).not.toBeInTheDocument();
 			expect(screen.queryByTestId('attendance-qr-code')).not.toBeInTheDocument();
-		});
-	});
-
-	describe('Modal controls', () => {
-		beforeEach(() => setupDefaults({ role: 'Admin' }));
-
-		it('opens CreateEntryModal when clicking Crear registro', async () => {
-			render(<ClockIn />);
-
-			await waitFor(() => {
-				expect(screen.getByText('Crear registro')).toBeInTheDocument();
-			});
-
-			fireEvent.click(screen.getByText('Crear registro'));
-
-			expect(screen.getByTestId('attendance-entry-modal')).toBeInTheDocument();
-		});
-
-		it('opens SettlementsModal when clicking Liquidaciones', async () => {
-			render(<ClockIn />);
-
-			await waitFor(() => {
-				expect(screen.getByText('Liquidaciones')).toBeInTheDocument();
-			});
-
-			fireEvent.click(screen.getByText('Liquidaciones'));
-
-			expect(screen.getByTestId('settlements-modal')).toBeInTheDocument();
-		});
-
-		it('opens AttendanceSettings when clicking Configuración', async () => {
-			render(<ClockIn />);
-
-			await waitFor(() => {
-				expect(screen.getByText('Configuración')).toBeInTheDocument();
-			});
-
-			fireEvent.click(screen.getByText('Configuración'));
-
-			expect(screen.getByTestId('attendance-settings')).toBeInTheDocument();
 		});
 	});
 });

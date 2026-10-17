@@ -107,6 +107,14 @@ const mockUsers = [
 		last_name: 'User',
 		role: 'Admin' as const,
 	},
+	{
+		id: 3,
+		uid_user: 'user-3',
+		username: 'qr',
+		name: 'Kiosko',
+		last_name: 'QR',
+		role: 'QR' as const,
+	},
 ];
 
 describe('AttendanceEntryModal', () => {
@@ -173,7 +181,7 @@ describe('AttendanceEntryModal', () => {
 			expect(screen.getByText('Empleado')).toBeInTheDocument();
 		});
 
-		it('filters only users with role Taller in the select', () => {
+		it('includes Taller and Admin users but excludes QR users from the select', () => {
 			render(
 				<AttendanceEntryModal
 					entry={null}
@@ -185,7 +193,8 @@ describe('AttendanceEntryModal', () => {
 				/>
 			);
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
-			expect(screen.queryByText('Admin User')).not.toBeInTheDocument();
+			expect(screen.getByText('Admin User')).toBeInTheDocument();
+			expect(screen.queryByText('Kiosko QR')).not.toBeInTheDocument();
 		});
 
 		it('shows error toast if no employee is selected in admin mode', async () => {

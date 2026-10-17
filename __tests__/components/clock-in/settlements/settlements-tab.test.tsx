@@ -81,6 +81,7 @@ const mockUsers: User[] = [
 		role: 'Taller',
 	},
 	{ id: 3, uid_user: 'u3', name: 'Admin', last_name: 'User', username: 'admin', role: 'Admin' },
+	{ id: 4, uid_user: 'u4', name: 'Kiosko', last_name: 'QR', username: 'qr', role: 'QR' },
 ];
 
 function makeAttendanceEntry(userId: string, type: string, time: string) {
@@ -281,7 +282,7 @@ describe('LiquidarTab', () => {
 		fireEvent.click(screen.getByRole('button', { name: /liquidar/i }));
 
 		await waitFor(() => {
-			expect(upsertMonthlySettlement).toHaveBeenCalledTimes(2);
+			expect(upsertMonthlySettlement).toHaveBeenCalledTimes(3);
 		});
 
 		expect(upsertMonthlySettlement).toHaveBeenCalledWith(
@@ -289,6 +290,9 @@ describe('LiquidarTab', () => {
 		);
 		expect(upsertMonthlySettlement).toHaveBeenCalledWith(
 			expect.objectContaining({ user_id: 'u2', number_hours: 0 })
+		);
+		expect(upsertMonthlySettlement).toHaveBeenCalledWith(
+			expect.objectContaining({ user_id: 'u3', number_hours: 0 })
 		);
 	});
 
@@ -382,7 +386,7 @@ describe('LiquidarTab', () => {
 		expect(screen.queryByRole('button', { name: /calcular horas/i })).not.toBeInTheDocument();
 	});
 
-	it('filters out admin users from the employee select', () => {
+	it('includes admin users but filters out QR users from the employee select', () => {
 		render(<LiquidarTab users={mockUsers} onLiquidated={jest.fn()} />);
 
 		const select = screen.getAllByTestId('select-native')[0];
@@ -390,6 +394,7 @@ describe('LiquidarTab', () => {
 
 		expect(options).toContain('Juan Pérez');
 		expect(options).toContain('María García');
-		expect(options).not.toContain('Admin User');
+		expect(options).toContain('Admin User');
+		expect(options).not.toContain('Kiosko QR');
 	});
 });

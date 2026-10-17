@@ -225,12 +225,30 @@ describe('AdminAttendanceHistory', () => {
 		});
 	});
 
-	it('shows edit and delete buttons on entries', async () => {
+	it('does not show edit and delete buttons when canManageOthersAttendance is false (default)', async () => {
 		(getAttendanceEntriesForMonth as jest.Mock).mockResolvedValue({
 			data: sampleEntries,
 			error: null,
 		});
 		render(<AdminAttendanceHistory />);
+		fireEvent.click(screen.getByText('Ver historial de empleados'));
+		await waitFor(() => {
+			expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+		});
+		fireEvent.click(screen.getByText('Juan Pérez'));
+		await waitFor(() => {
+			expect(screen.getAllByText('Entrada').length).toBeGreaterThanOrEqual(1);
+		});
+		expect(screen.queryByText('edit-icon')).not.toBeInTheDocument();
+		expect(screen.queryByText('delete-icon')).not.toBeInTheDocument();
+	});
+
+	it('shows edit and delete buttons on entries when canManageOthersAttendance is true', async () => {
+		(getAttendanceEntriesForMonth as jest.Mock).mockResolvedValue({
+			data: sampleEntries,
+			error: null,
+		});
+		render(<AdminAttendanceHistory canManageOthersAttendance />);
 		fireEvent.click(screen.getByText('Ver historial de empleados'));
 		await waitFor(() => {
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
@@ -247,7 +265,7 @@ describe('AdminAttendanceHistory', () => {
 			data: sampleEntries,
 			error: null,
 		});
-		render(<AdminAttendanceHistory />);
+		render(<AdminAttendanceHistory canManageOthersAttendance />);
 		fireEvent.click(screen.getByText('Ver historial de empleados'));
 		await waitFor(() => {
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
@@ -268,7 +286,7 @@ describe('AdminAttendanceHistory', () => {
 			data: sampleEntries,
 			error: null,
 		});
-		render(<AdminAttendanceHistory />);
+		render(<AdminAttendanceHistory canManageOthersAttendance />);
 		fireEvent.click(screen.getByText('Ver historial de empleados'));
 		await waitFor(() => {
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
@@ -292,7 +310,7 @@ describe('AdminAttendanceHistory', () => {
 			error: null,
 		});
 		(deleteAttendanceEntry as jest.Mock).mockResolvedValue({ error: null });
-		render(<AdminAttendanceHistory />);
+		render(<AdminAttendanceHistory canManageOthersAttendance />);
 		fireEvent.click(screen.getByText('Ver historial de empleados'));
 		await waitFor(() => {
 			expect(screen.getByText('Juan Pérez')).toBeInTheDocument();

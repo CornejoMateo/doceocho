@@ -177,6 +177,42 @@ describe('POST /api/users', () => {
 		expect(res.status).toBe(400);
 		expect(body.error).toBe('User already exists');
 	});
+
+	it('returns 403 when a plain Admin tries to create a Superadmin', async () => {
+		mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'admin-uid', role: 'Admin' });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username: 'nuevo', password: '123456', role: 'Superadmin' }),
+		});
+
+		const res = await POST(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(403);
+		expect(body.error).toBe('Solo un Superadmin puede asignar el rol Superadmin');
+	});
+
+	it('allows a Superadmin to create a Superadmin', async () => {
+		const { chain, admin } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'super-uid', role: 'Superadmin' });
+		admin.createUser.mockResolvedValue({ data: { user: { id: 'new-uid' } }, error: null });
+		chain.insert.mockResolvedValue({ error: null });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username: 'nuevo', password: '123456', role: 'Superadmin' }),
+		});
+
+		const res = await POST(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(200);
+		expect(body.success).toBe(true);
+	});
 });
 
 describe('GET /api/users', () => {
@@ -383,6 +419,76 @@ describe('PUT /api/users', () => {
 		expect(res.status).toBe(400);
 		expect(body.error).toBe('Password too weak');
 	});
+
+	it('returns 403 when the caller tries to change their own role', async () => {
+		mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'admin-uid', role: 'Admin' });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ uid_user: 'admin-uid', role: 'Taller' }),
+		});
+		const res = await PUT(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(403);
+		expect(body.error).toBe('No podés cambiar tu propio rol');
+	});
+
+	it('returns 403 when a plain Admin tries to assign Superadmin', async () => {
+		const { chain } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'admin-uid', role: 'Admin' });
+		chain.single.mockResolvedValue({ data: { role: 'Taller' }, error: null });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ uid_user: 'abc', role: 'Superadmin' }),
+		});
+		const res = await PUT(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(403);
+		expect(body.error).toBe('Solo un Superadmin puede asignar o modificar el rol Superadmin');
+	});
+
+	it('returns 403 when a plain Admin tries to edit an existing Superadmin', async () => {
+		const { chain } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'admin-uid', role: 'Admin' });
+		chain.single.mockResolvedValue({ data: { role: 'Superadmin' }, error: null });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ uid_user: 'super-uid', role: 'Taller' }),
+		});
+		const res = await PUT(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(403);
+		expect(body.error).toBe('Solo un Superadmin puede asignar o modificar el rol Superadmin');
+	});
+
+	it('allows a Superadmin to assign Superadmin and edit an existing Superadmin', async () => {
+		const { chain } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'super-uid', role: 'Superadmin' });
+		chain.single
+			.mockResolvedValueOnce({ data: { role: 'Superadmin' }, error: null })
+			.mockResolvedValueOnce({
+				data: { uid_user: 'other-uid', username: 'u', role: 'Admin' },
+				error: null,
+			});
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ uid_user: 'other-uid', role: 'Admin' }),
+		});
+		const res = await PUT(req);
+
+		expect(res.status).toBe(200);
+	});
 });
 
 describe('DELETE /api/users', () => {
@@ -422,7 +528,8 @@ describe('DELETE /api/users', () => {
 	});
 
 	it('deletes a user successfully', async () => {
-		const { admin } = mockSupabase();
+		const { chain, admin } = mockSupabase();
+		chain.single.mockResolvedValue({ data: { role: 'Taller' }, error: null });
 		admin.deleteUser.mockResolvedValue({ error: null });
 
 		const req = new Request('http://localhost/api/users', {
@@ -439,7 +546,8 @@ describe('DELETE /api/users', () => {
 	});
 
 	it('returns 400 when auth delete fails', async () => {
-		const { admin } = mockSupabase();
+		const { chain, admin } = mockSupabase();
+		chain.single.mockResolvedValue({ data: { role: 'Taller' }, error: null });
 		admin.deleteUser.mockResolvedValue({
 			error: { message: 'User not found' },
 		});
@@ -454,5 +562,40 @@ describe('DELETE /api/users', () => {
 
 		expect(res.status).toBe(400);
 		expect(body.error).toBe('User not found');
+	});
+
+	it('returns 403 when a plain Admin tries to delete a Superadmin', async () => {
+		const { chain } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'admin-uid', role: 'Admin' });
+		chain.single.mockResolvedValue({ data: { role: 'Superadmin' }, error: null });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ uid_user: 'super-uid' }),
+		});
+		const res = await DELETE(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(403);
+		expect(body.error).toBe('Solo un Superadmin puede eliminar a otro Superadmin');
+	});
+
+	it('allows a Superadmin to delete a Superadmin', async () => {
+		const { chain, admin } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'super-uid', role: 'Superadmin' });
+		chain.single.mockResolvedValue({ data: { role: 'Superadmin' }, error: null });
+		admin.deleteUser.mockResolvedValue({ error: null });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'DELETE',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ uid_user: 'other-super-uid' }),
+		});
+		const res = await DELETE(req);
+		const body = await res.json();
+
+		expect(res.status).toBe(200);
+		expect(body.success).toBe(true);
 	});
 });

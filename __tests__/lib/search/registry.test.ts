@@ -38,13 +38,13 @@ describe('lib/search/registry', () => {
 		expect(getSearchProviders(undefined)).toEqual([]);
 	});
 
-	test('admin-only domains never declare another role', () => {
+	test('admin-only domains only declare Admin and Superadmin', () => {
 		const providers = getSearchProviders('Admin').filter((provider) =>
 			ADMIN_ONLY_PROVIDERS.includes(provider.id)
 		);
 
 		expect(providers).toHaveLength(ADMIN_ONLY_PROVIDERS.length);
-		providers.forEach((provider) => expect(provider.roles).toEqual(['Admin']));
+		providers.forEach((provider) => expect(provider.roles).toEqual(['Admin', 'Superadmin']));
 	});
 
 	test('every provider has a unique id', () => {
