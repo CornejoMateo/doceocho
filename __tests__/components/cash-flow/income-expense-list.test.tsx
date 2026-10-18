@@ -149,8 +149,8 @@ describe('IncomeExpenseList', () => {
 	});
 
 	describe('pagination', () => {
-		it('shows only 10 entries per page and navigates to the next page', () => {
-			const entries = Array.from({ length: 12 }, (_, i) =>
+		it('shows only 20 entries per page and navigates to the next page', () => {
+			const entries = Array.from({ length: 22 }, (_, i) =>
 				makeEntry({ id: i + 1, party_name: `Cliente ${i + 1}` })
 			);
 			render(
@@ -166,14 +166,14 @@ describe('IncomeExpenseList', () => {
 
 			const desktop = within(screen.getByTestId('income-expense-desktop'));
 			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
-			expect(desktop.getByText('Cliente 10')).toBeInTheDocument();
-			expect(desktop.queryByText('Cliente 11')).not.toBeInTheDocument();
-			expect(screen.getByText('Mostrando 1-10 de 12 movimientos')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 20')).toBeInTheDocument();
+			expect(desktop.queryByText('Cliente 21')).not.toBeInTheDocument();
+			expect(screen.getByText('Mostrando 1-20 de 22 movimientos')).toBeInTheDocument();
 
 			fireEvent.click(screen.getByText('Siguiente'));
 
-			expect(desktop.getByText('Cliente 11')).toBeInTheDocument();
-			expect(desktop.getByText('Cliente 12')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 21')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 22')).toBeInTheDocument();
 			expect(desktop.queryByText('Cliente 1')).not.toBeInTheDocument();
 		});
 
@@ -194,7 +194,7 @@ describe('IncomeExpenseList', () => {
 		});
 
 		it('resets to page 1 when pageResetKey changes (filters/search/year)', () => {
-			const entries = Array.from({ length: 12 }, (_, i) =>
+			const entries = Array.from({ length: 22 }, (_, i) =>
 				makeEntry({ id: i + 1, party_name: `Cliente ${i + 1}` })
 			);
 			const { rerender } = render(
@@ -211,7 +211,7 @@ describe('IncomeExpenseList', () => {
 
 			const desktop = within(screen.getByTestId('income-expense-desktop'));
 			fireEvent.click(screen.getByText('Siguiente'));
-			expect(desktop.getByText('Cliente 11')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 21')).toBeInTheDocument();
 
 			rerender(
 				<IncomeExpenseList
@@ -226,11 +226,11 @@ describe('IncomeExpenseList', () => {
 			);
 
 			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
-			expect(desktop.queryByText('Cliente 11')).not.toBeInTheDocument();
+			expect(desktop.queryByText('Cliente 21')).not.toBeInTheDocument();
 		});
 
 		it('clamps to the last valid page when a delete empties the current page', () => {
-			const entries = Array.from({ length: 11 }, (_, i) =>
+			const entries = Array.from({ length: 21 }, (_, i) =>
 				makeEntry({ id: i + 1, party_name: `Cliente ${i + 1}` })
 			);
 			const { rerender } = render(
@@ -247,10 +247,10 @@ describe('IncomeExpenseList', () => {
 
 			fireEvent.click(screen.getByText('Siguiente'));
 			const desktop = within(screen.getByTestId('income-expense-desktop'));
-			expect(desktop.getByText('Cliente 11')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 21')).toBeInTheDocument();
 
 			// Delete the only entry on page 2; same pageResetKey, so no forced reset to page 1.
-			const remaining = entries.slice(0, 10);
+			const remaining = entries.slice(0, 20);
 			rerender(
 				<IncomeExpenseList
 					entries={remaining}
@@ -264,7 +264,7 @@ describe('IncomeExpenseList', () => {
 			);
 
 			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
-			expect(desktop.getByText('Cliente 10')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 20')).toBeInTheDocument();
 		});
 	});
 });
