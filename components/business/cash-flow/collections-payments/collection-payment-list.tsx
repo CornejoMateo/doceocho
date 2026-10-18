@@ -10,8 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Edit, Trash2 } from 'lucide-react';
 import { CollectionPaymentEntry } from '@/hooks/collection-payment/use-collection-payment-tab';
+import { usePaginatedRows } from '@/hooks/use-paginated-rows';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
+
+const PAGE_SIZE = 10;
 
 type CollectionPaymentListProps = {
 	entries: CollectionPaymentEntry[];
@@ -20,6 +24,7 @@ type CollectionPaymentListProps = {
 	emptyLabel: string;
 	onEdit: (entry: CollectionPaymentEntry) => void;
 	onAskDelete: (entry: CollectionPaymentEntry) => void;
+	pageResetKey?: string;
 };
 
 export function CollectionPaymentList({
@@ -29,7 +34,14 @@ export function CollectionPaymentList({
 	emptyLabel,
 	onEdit,
 	onAskDelete,
+	pageResetKey = '',
 }: CollectionPaymentListProps) {
+	const { paginatedData, currentPage, totalPages, totalItems, setPage } = usePaginatedRows(
+		entries,
+		PAGE_SIZE,
+		pageResetKey
+	);
+
 	const renderActions = (entry: CollectionPaymentEntry, withLabel: boolean) => {
 		const size = withLabel ? 'default' : 'sm';
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
@@ -90,7 +102,7 @@ export function CollectionPaymentList({
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{entries.map((entry) => (
+									{paginatedData.map((entry) => (
 										<TableRow key={`${entry.source ?? 'g'}-${entry.id}`}>
 											<TableCell className="text-center whitespace-nowrap">
 												{formatDateOnly(entry.date)}
@@ -128,7 +140,7 @@ export function CollectionPaymentList({
 					</div>
 
 					<div className="md:hidden space-y-3" data-testid="collection-payment-mobile">
-						{entries.map((entry) => (
+						{paginatedData.map((entry) => (
 							<Card
 								key={`${entry.source ?? 'g'}-${entry.id}`}
 								className="bg-card border-border p-4 space-y-3"
@@ -172,6 +184,15 @@ export function CollectionPaymentList({
 							</Card>
 						))}
 					</div>
+
+					<PaginationControls
+						currentPage={currentPage}
+						totalPages={totalPages}
+						totalItems={totalItems}
+						itemsPerPage={PAGE_SIZE}
+						onPageChange={setPage}
+						itemLabel="movimientos"
+					/>
 				</>
 			)}
 		</div>

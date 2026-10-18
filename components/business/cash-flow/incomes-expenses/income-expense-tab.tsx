@@ -89,6 +89,15 @@ export function IncomeExpenseTab({
 						emptyLabel={emptyLabel}
 						onEdit={state.handleEdit}
 						onAskDelete={state.setEntryToDelete}
+						pageResetKey={[
+							state.year,
+							state.dateFrom,
+							state.dateTo,
+							state.filterWorkId,
+							state.filterPartyId,
+							state.filterCategoryId,
+							state.search,
+						].join('|')}
 					/>
 				</div>
 

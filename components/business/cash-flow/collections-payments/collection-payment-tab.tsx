@@ -39,7 +39,6 @@ export function CollectionPaymentTab({
 }: CollectionPaymentTabProps) {
 	return (
 		<div className="space-y-4 min-w-0">
-			{/* Año y categorías agrupados en una sola fila responsive */}
 			<div className="flex flex-wrap items-center justify-end gap-3">
 				<Select value={String(state.year)} onValueChange={(v) => state.setYear(Number(v))}>
 					<SelectTrigger className="w-28" aria-label="Año">
@@ -56,7 +55,6 @@ export function CollectionPaymentTab({
 				{categoriesConfig}
 			</div>
 
-			{/* Lista + filtros a la izquierda, resumen y grilla mensual en columna lateral, mismo esquema que Costos fijos */}
 			<div className="grid gap-6 lg:grid-cols-3">
 				<div className="lg:col-span-2 min-w-0 space-y-4">
 					<CollectionPaymentFilters
@@ -94,6 +92,16 @@ export function CollectionPaymentTab({
 						emptyLabel={emptyLabel}
 						onEdit={state.handleEdit}
 						onAskDelete={state.setEntryToDelete}
+						pageResetKey={[
+							state.year,
+							state.dateFrom,
+							state.dateTo,
+							state.filterWorkId,
+							state.filterPartyId,
+							state.filterCategoryId,
+							state.filterPaymentMethodId,
+							state.search,
+						].join('|')}
 					/>
 				</div>
 
