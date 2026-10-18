@@ -39,7 +39,7 @@ export function useSummaryTab() {
 	);
 	const monthOptions: MonthOption[] = useMemo(
 		() => [
-			{ value: 0, label: 'Todos' },
+			{ value: 0, label: 'Todos los meses' },
 			...MONTH_LABELS_ES.map((label, i) => ({ value: i + 1, label })),
 		],
 		[]
@@ -86,7 +86,7 @@ export function useSummaryTab() {
 
 	const workOptions: WorkOption[] = useMemo(
 		() => [
-			{ value: 0, label: 'Todos' },
+			{ value: 0, label: 'Todas las obras' },
 			...works.map((work) => ({ value: work.id, label: work.name || `Obra #${work.id}` })),
 		],
 		[works]

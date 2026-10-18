@@ -34,9 +34,9 @@ describe('useSummaryTab', () => {
 		expect(result.current.year).toBe(currentYear);
 		expect(result.current.month).toBe(0);
 		expect(result.current.workId).toBe(0);
-		expect(result.current.monthOptions[0]).toEqual({ value: 0, label: 'Todos' });
+		expect(result.current.monthOptions[0]).toEqual({ value: 0, label: 'Todos los meses' });
 		expect(result.current.monthOptions).toHaveLength(13);
-		expect(result.current.workOptions[0]).toEqual({ value: 0, label: 'Todos' });
+		expect(result.current.workOptions[0]).toEqual({ value: 0, label: 'Todas las obras' });
 
 		expect(listWorks).toHaveBeenCalledTimes(1);
 		expect(getSummaryMonthly).toHaveBeenCalledWith(currentYear);
@@ -72,7 +72,7 @@ describe('useSummaryTab', () => {
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
 		expect(result.current.workOptions).toEqual([
-			{ value: 0, label: 'Todos' },
+			{ value: 0, label: 'Todas las obras' },
 			{ value: 1, label: 'Casa Belgrano' },
 			{ value: 2, label: 'Obra #2' },
 		]);

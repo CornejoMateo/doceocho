@@ -26,13 +26,13 @@ function baseState(over: Partial<ReturnType<typeof useSummaryTab>> = {}) {
 		month: 0,
 		setMonth: jest.fn(),
 		monthOptions: [
-			{ value: 0, label: 'Todos' },
+			{ value: 0, label: 'Todos los meses' },
 			{ value: 1, label: 'Ene' },
 		],
 		workId: 0,
 		setWorkId: jest.fn(),
 		workOptions: [
-			{ value: 0, label: 'Todos' },
+			{ value: 0, label: 'Todas las obras' },
 			{ value: 1, label: 'Casa Belgrano' },
 		],
 		cards: {
@@ -101,5 +101,21 @@ describe('SummaryTab', () => {
 		fireEvent.click(screen.getByLabelText('Obra'));
 		fireEvent.click(screen.getByRole('option', { name: 'Casa Belgrano' }));
 		expect(setWorkId).toHaveBeenCalledWith(1);
+	});
+
+	it('shows "Filtrar por mes"/"Filtrar por obra" on the triggers when month/obra are "all"', () => {
+		(useSummaryTab as jest.Mock).mockReturnValue(baseState());
+		render(<SummaryTab />);
+
+		expect(screen.getByLabelText('Mes')).toHaveTextContent('Filtrar por mes');
+		expect(screen.getByLabelText('Obra')).toHaveTextContent('Filtrar por obra');
+	});
+
+	it('shows the selected label on the triggers when month/obra are not "all"', () => {
+		(useSummaryTab as jest.Mock).mockReturnValue(baseState({ month: 1, workId: 1 }));
+		render(<SummaryTab />);
+
+		expect(screen.getByLabelText('Mes')).toHaveTextContent('Ene');
+		expect(screen.getByLabelText('Obra')).toHaveTextContent('Casa Belgrano');
 	});
 });
