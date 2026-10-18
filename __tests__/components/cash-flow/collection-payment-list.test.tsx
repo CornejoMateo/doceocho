@@ -215,4 +215,124 @@ describe('CollectionPaymentList', () => {
 		expect(desktop.getAllByText('-').length).toBeGreaterThanOrEqual(1);
 		expect(mobile.getAllByText('-').length).toBeGreaterThanOrEqual(1);
 	});
+
+	describe('pagination', () => {
+		it('shows only 10 entries per page and navigates to the next page', () => {
+			const entries = Array.from({ length: 12 }, (_, i) =>
+				makeEntry({ id: i + 1, party_name: `Cliente ${i + 1}` })
+			);
+			render(
+				<CollectionPaymentList
+					entries={entries}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 10')).toBeInTheDocument();
+			expect(desktop.queryByText('Cliente 11')).not.toBeInTheDocument();
+			expect(screen.getByText('Mostrando 1-10 de 12 movimientos')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Siguiente'));
+
+			expect(desktop.getByText('Cliente 11')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 12')).toBeInTheDocument();
+			expect(desktop.queryByText('Cliente 1')).not.toBeInTheDocument();
+		});
+
+		it('hides the pager when there is a single page', () => {
+			const entries = Array.from({ length: 5 }, (_, i) => makeEntry({ id: i + 1 }));
+			render(
+				<CollectionPaymentList
+					entries={entries}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			expect(screen.queryByText('Siguiente')).not.toBeInTheDocument();
+		});
+
+		it('resets to page 1 when pageResetKey changes (filters/search/year)', () => {
+			const entries = Array.from({ length: 12 }, (_, i) =>
+				makeEntry({ id: i + 1, party_name: `Cliente ${i + 1}` })
+			);
+			const { rerender } = render(
+				<CollectionPaymentList
+					entries={entries}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					pageResetKey="2026"
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			fireEvent.click(screen.getByText('Siguiente'));
+			expect(desktop.getByText('Cliente 11')).toBeInTheDocument();
+
+			rerender(
+				<CollectionPaymentList
+					entries={entries}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					pageResetKey="2027"
+				/>
+			);
+
+			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
+			expect(desktop.queryByText('Cliente 11')).not.toBeInTheDocument();
+		});
+
+		it('clamps to the last valid page when a delete empties the current page', () => {
+			const entries = Array.from({ length: 11 }, (_, i) =>
+				makeEntry({ id: i + 1, party_name: `Cliente ${i + 1}` })
+			);
+			const { rerender } = render(
+				<CollectionPaymentList
+					entries={entries}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					pageResetKey="2026"
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Siguiente'));
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			expect(desktop.getByText('Cliente 11')).toBeInTheDocument();
+
+			// Delete the only entry on page 2; same pageResetKey, so no forced reset to page 1.
+			const remaining = entries.slice(0, 10);
+			rerender(
+				<CollectionPaymentList
+					entries={remaining}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					pageResetKey="2026"
+				/>
+			);
+
+			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
+			expect(desktop.getByText('Cliente 10')).toBeInTheDocument();
+		});
+	});
 });

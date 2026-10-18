@@ -329,3 +329,56 @@ create trigger trg_sync_balance_transaction_to_cash_box
 after insert on public.balance_transactions
 for each row
 execute function public.sync_balance_transaction_to_cash_box();
+
+------ RUN PRODUCTION: MIGRATE transactions_box EXPENSES TO payments ------
+
+select id, name from public.payment_methods where lower(name) = 'transferencia';
+
+select category, count(*) as filas,
+       count(*) filter (where round(amount, 2) <= 0) as monto_invalido
+from public.transactions_box
+where type = 'expense'
+group by category
+order by category;
+
+select coalesce(max(id), 0) as ultimo_id_antes from public.payments;
+
+begin;
+
+insert into public.payments (date, amount, payment_method_id, bank_account_id, description)
+select tb.created_at::date,
+       round(tb.amount, 2),
+       pm.id,
+       tb.bank_account_id,
+       left(nullif(trim(tb.description), ''), 300)
+from public.transactions_box tb
+join public.payment_methods pm on lower(pm.name) = 'transferencia'
+where tb.type = 'expense'
+  and round(tb.amount, 2) > 0
+order by tb.id;
+
+commit;
+
+select id,
+       description as antes,
+       nullif(trim(regexp_replace(
+         description,
+         '\[caja #[0-9]+\] ?(\[(salary|suppliers|services|other)\] ?)?', '', 'g'
+       )), '') as despues
+from public.payments
+where description like '%[caja #%'
+order by id;
+
+begin;
+
+update public.payments
+set description = nullif(trim(regexp_replace(
+      description,
+      '\[caja #[0-9]+\] ?(\[(salary|suppliers|services|other)\] ?)?', '', 'g'
+    )), '')
+where description like '%[caja #%';
+
+commit;
+
+select count(*) from public.payments where description like '%[caja #%';
+

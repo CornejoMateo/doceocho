@@ -10,8 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Edit, Trash2 } from 'lucide-react';
 import { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
+import { usePaginatedRows } from '@/hooks/use-paginated-rows';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
+
+const PAGE_SIZE = 10;
 
 type IncomeExpenseListProps = {
 	entries: IncomeExpenseEntry[];
@@ -20,6 +24,7 @@ type IncomeExpenseListProps = {
 	emptyLabel: string;
 	onEdit: (entry: IncomeExpenseEntry) => void;
 	onAskDelete: (entry: IncomeExpenseEntry) => void;
+	pageResetKey?: string;
 };
 
 export function IncomeExpenseList({
@@ -29,7 +34,14 @@ export function IncomeExpenseList({
 	emptyLabel,
 	onEdit,
 	onAskDelete,
+	pageResetKey = '',
 }: IncomeExpenseListProps) {
+	const { paginatedData, currentPage, totalPages, totalItems, setPage } = usePaginatedRows(
+		entries,
+		PAGE_SIZE,
+		pageResetKey
+	);
+
 	const renderActions = (entry: IncomeExpenseEntry, withLabel: boolean) => {
 		const size = withLabel ? 'default' : 'sm';
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
@@ -91,7 +103,7 @@ export function IncomeExpenseList({
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{entries.map((entry) => (
+									{paginatedData.map((entry) => (
 										<TableRow key={entry.id}>
 											<TableCell className="text-center whitespace-nowrap">
 												{entry.date.split('-').reverse().join('/')}
@@ -134,7 +146,7 @@ export function IncomeExpenseList({
 					</div>
 
 					<div className="md:hidden space-y-3" data-testid="income-expense-mobile">
-						{entries.map((entry) => (
+						{paginatedData.map((entry) => (
 							<Card key={entry.id} className="bg-card border-border p-4 space-y-3">
 								<div className="flex items-center justify-between gap-2">
 									<span className="font-medium">{formatDateOnly(entry.date)}</span>
@@ -179,6 +191,15 @@ export function IncomeExpenseList({
 							</Card>
 						))}
 					</div>
+
+					<PaginationControls
+						currentPage={currentPage}
+						totalPages={totalPages}
+						totalItems={totalItems}
+						itemsPerPage={PAGE_SIZE}
+						onPageChange={setPage}
+						itemLabel="movimientos"
+					/>
 				</>
 			)}
 		</div>

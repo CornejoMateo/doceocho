@@ -24,7 +24,11 @@ export function SummaryTab() {
 			<div className="flex flex-wrap items-center justify-end gap-2">
 				<Select value={String(state.month)} onValueChange={(v) => state.setMonth(Number(v))}>
 					<SelectTrigger className="w-32" aria-label="Mes">
-						<SelectValue />
+						<SelectValue>
+							{state.month === 0
+								? 'Filtrar por mes'
+								: state.monthOptions.find((option) => option.value === state.month)?.label}
+						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						{state.monthOptions.map((option) => (
@@ -48,7 +52,11 @@ export function SummaryTab() {
 				</Select>
 				<Select value={String(state.workId)} onValueChange={(v) => state.setWorkId(Number(v))}>
 					<SelectTrigger className="w-48" aria-label="Obra">
-						<SelectValue />
+						<SelectValue>
+							{state.workId === 0
+								? 'Filtrar por obra'
+								: state.workOptions.find((option) => option.value === state.workId)?.label}
+						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
 						{state.workOptions.map((option) => (
