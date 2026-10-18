@@ -3,5 +3,5 @@ export const PENDING_ACTION_ROUTES = {
 	appointments: '/calendar',
 	vacations: '/employees?tab=vacaciones',
 	signatures: '/clients',
-	receivables: '/reports',
+	receivables: '/cash-flow',
 } as const;
