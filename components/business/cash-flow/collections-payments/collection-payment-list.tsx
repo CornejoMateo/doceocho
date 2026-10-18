@@ -15,7 +15,7 @@ import { PaginationControls } from '@/components/ui/pagination-controls';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 type CollectionPaymentListProps = {
 	entries: CollectionPaymentEntry[];
