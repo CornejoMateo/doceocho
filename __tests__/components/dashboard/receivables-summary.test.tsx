@@ -55,6 +55,6 @@ describe('ReceivablesSummary', () => {
 			/>
 		);
 
-		expect(screen.getByRole('link')).toHaveAttribute('href', '/reports');
+		expect(screen.getByRole('link')).toHaveAttribute('href', '/cash-flow');
 	});
 });
