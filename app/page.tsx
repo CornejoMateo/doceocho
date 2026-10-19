@@ -1,24 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { DashboardHome } from '@/components/layout/dashboard-home';
 import { useAuth } from '@/components/provider/auth-provider';
-import { isAdminRole } from '@/constants/users/user-role';
+import { useCanView } from '@/hooks/permissions/use-can-view';
 
 export default function HomePage() {
 	const { user, loading } = useAuth();
-	const router = useRouter();
-
-	useEffect(() => {
-		if (loading) return;
-		if (!user) {
-			router.push('/login');
-		} else if (!isAdminRole(user.role)) {
-			router.replace('/supplies');
-		}
-	}, [user, loading, router]);
+	const canView = useCanView();
 
 	if (loading) {
 		return (
@@ -28,17 +17,7 @@ export default function HomePage() {
 		);
 	}
 
-	if (!user) {
-		return null;
-	}
-
-	if (!isAdminRole(user.role)) {
-		return null;
-	}
-
-	return (
-		<DashboardLayout>
-			<DashboardHome />
-		</DashboardLayout>
-	);
+	// The layout decides where users without the panel land, from their views.
+	// Redirecting here too (by role) fought with it and bounced between '/' and the home route.
+	return <DashboardLayout>{user && canView('panel') && <DashboardHome />}</DashboardLayout>;
 }
