@@ -8,7 +8,7 @@ import { createNavigationProvider } from '@/lib/search/providers/navigation-prov
 import { suppliesProvider } from '@/lib/search/providers/supplies-provider';
 import { worksProvider } from '@/lib/search/providers/works-provider';
 import type { SearchProvider } from '@/lib/search/types';
-import type { UserRole } from '@/constants/users/user-role';
+import { canView } from '@/helpers/permissions/views';
 
 /** Every domain the palette can search. Add a provider here to add a group. */
 const DATA_PROVIDERS: SearchProvider[] = [
@@ -23,13 +23,13 @@ const DATA_PROVIDERS: SearchProvider[] = [
 ];
 
 /**
- * Providers the given role is allowed to query, in display order.
+ * Providers the user's views allow, in display order.
  * Filtering here means a forbidden table is never even asked for.
  */
-export function getSearchProviders(role: UserRole | undefined): SearchProvider[] {
-	if (!role) return [];
+export function getSearchProviders(views: string[]): SearchProvider[] {
+	if (views.length === 0) return [];
 
-	const allowed = DATA_PROVIDERS.filter((provider) => provider.roles.includes(role));
+	const allowed = DATA_PROVIDERS.filter((provider) => canView(views, provider.view));
 
-	return [createNavigationProvider(role), ...allowed].sort((a, b) => a.order - b.order);
+	return [createNavigationProvider(views), ...allowed].sort((a, b) => a.order - b.order);
 }

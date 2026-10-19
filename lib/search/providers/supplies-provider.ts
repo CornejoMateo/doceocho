@@ -33,7 +33,7 @@ function toResult(supply: SupplyRow): SearchResult {
 export const suppliesProvider: SearchProvider = {
 	id: 'supplies',
 	label: 'Insumos',
-	roles: ['Admin', 'Superadmin', 'Taller'],
+	view: 'supplies',
 	order: 4,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

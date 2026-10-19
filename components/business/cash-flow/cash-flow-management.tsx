@@ -46,6 +46,7 @@ import { ExpensesTab } from '@/components/business/cash-flow/incomes-expenses/ex
 import { CollectionsTab } from '@/components/business/cash-flow/collections-payments/collections-tab';
 import { PaymentsTab } from '@/components/business/cash-flow/collections-payments/payments-tab';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
+import { useCanView } from '@/hooks/permissions/use-can-view';
 import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
 
 function CashFlowTabHeader({ value }: { value: CashFlowTabValue }) {
@@ -86,6 +87,12 @@ function CashFlowTransactionsRealtime({
 export function CashFlowManagement() {
 	const { toast } = useToast();
 	const [activeTab, setActiveTab] = useState<CashFlowTabValue>('summary');
+	const canView = useCanView();
+	const visibleTabs = CASH_FLOW_TABS.filter((tab) => canView(`cash-flow.${tab.value}`));
+	// A hidden tab can never be the open one; fall back to the first the user can see.
+	const currentTab = visibleTabs.some((tab) => tab.value === activeTab)
+		? activeTab
+		: visibleTabs[0]?.value;
 
 	const [isOpenCashBoxDialogOpen, setIsOpenCashBoxDialogOpen] = useState(false);
 
@@ -248,13 +255,13 @@ export function CashFlowManagement() {
 			</div>
 
 			<Tabs
-				value={activeTab}
+				value={currentTab}
 				onValueChange={(value) => setActiveTab(value as CashFlowTabValue)}
 				className="space-y-6"
 			>
 				<div className="overflow-x-auto">
 					<TabsList className="w-max flex-nowrap">
-						{CASH_FLOW_TABS.map((tab) => (
+						{visibleTabs.map((tab) => (
 							<TabsTrigger key={tab.value} value={tab.value} className="shrink-0">
 								{tab.label}
 							</TabsTrigger>

@@ -13,20 +13,28 @@ import {
 } from '@/components/ui/select';
 import { Eye, EyeOff } from 'lucide-react';
 import { User } from '@/lib/users/users';
-import { getSelectableRoles, isRoleSelectLocked, UserRole } from '@/constants/users/user-role';
+import {
+	getSelectableRoles,
+	isRoleSelectLocked,
+	isSuperadmin,
+	UserRole,
+} from '@/constants/users/user-role';
+import { UserViewsEditor } from '@/components/business/users/user-views-editor';
 
-interface FormData {
+export interface UserFormData {
 	username: string;
 	password: string;
 	role: string;
 	name: string;
 	last_name: string;
+	/** Custom views; null or missing means the role defaults. */
+	views?: string[] | null;
 }
 
 interface UsersDialogFormProps {
 	editingUser: User | null;
-	formData: FormData;
-	setFormData: (data: FormData | ((prev: FormData) => FormData)) => void;
+	formData: UserFormData;
+	setFormData: (data: UserFormData | ((prev: UserFormData) => UserFormData)) => void;
 	saving: boolean;
 	showPassword: boolean;
 	setShowPassword: (show: boolean | ((prev: boolean) => boolean)) => void;
@@ -145,6 +153,13 @@ export function UsersDialogForm({
 					</SelectContent>
 				</Select>
 			</div>
+			{isSuperadmin(callerRole) && (
+				<UserViewsEditor
+					role={formData.role}
+					views={formData.views ?? null}
+					onChange={(views) => setFormData((p) => ({ ...p, views }))}
+				/>
+			)}
 			<DialogFooter className="gap-2">
 				<Button variant="outline" onClick={onCancel}>
 					Cancelar

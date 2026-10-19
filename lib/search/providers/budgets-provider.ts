@@ -34,7 +34,7 @@ export const budgetsProvider: SearchProvider = {
 	id: 'budgets',
 	label: 'Presupuestos',
 	// Matches the table's own RLS, which is admin only.
-	roles: ['Admin', 'Superadmin'],
+	view: 'clients.budgets',
 	order: 3,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

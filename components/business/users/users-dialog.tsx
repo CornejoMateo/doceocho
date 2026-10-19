@@ -27,10 +27,19 @@ import {
 	updateUser,
 	updateUserPassword,
 } from '@/lib/users/users';
-import { UserRole } from '@/constants/users/user-role';
+import { isSuperadmin, UserRole } from '@/constants/users/user-role';
 import { useAuth } from '@/components/provider/auth-provider';
 import { UsersTable } from './users-table';
-import { UsersDialogForm } from './users-dialog-form';
+import { UsersDialogForm, type UserFormData } from './users-dialog-form';
+
+const EMPTY_FORM: UserFormData = {
+	username: '',
+	password: '',
+	role: '',
+	name: '',
+	last_name: '',
+	views: null,
+};
 
 interface UsersDialogProps {
 	open: boolean;
@@ -43,13 +52,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 	const [loading, setLoading] = useState(false);
 	const [showForm, setShowForm] = useState(false);
 	const [editingUser, setEditingUser] = useState<User | null>(null);
-	const [formData, setFormData] = useState({
-		username: '',
-		password: '',
-		role: '',
-		name: '',
-		last_name: '',
-	});
+	const [formData, setFormData] = useState<UserFormData>(EMPTY_FORM);
 	const [saving, setSaving] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -87,7 +90,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 			loadUsers();
 			setShowForm(false);
 			setEditingUser(null);
-			setFormData({ username: '', password: '', role: '', name: '', last_name: '' });
+			setFormData(EMPTY_FORM);
 		}
 	}, [open]);
 
@@ -99,6 +102,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 			role: user.role,
 			name: user.name || '',
 			last_name: user.last_name || '',
+			views: user.views ?? null,
 		});
 		setShowForm(true);
 	};
@@ -111,12 +115,16 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 
 		setSaving(true);
 
+		// Only a Superadmin can customize views; for anyone else they are left untouched.
+		const viewsChange = isSuperadmin(currentUser?.role) ? { views: formData.views ?? null } : {};
+
 		if (editingUser) {
 			const { error: updateError } = await updateUser(editingUser.uid_user!, {
 				username: formData.username,
 				role: formData.role as UserRole,
 				name: formData.name,
 				last_name: formData.last_name,
+				...viewsChange,
 			});
 
 			if (updateError) {
@@ -163,6 +171,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 				role: formData.role as UserRole,
 				name: formData.name,
 				last_name: formData.last_name,
+				...viewsChange,
 			});
 
 			if (error) {
@@ -183,7 +192,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 
 		setShowForm(false);
 		setEditingUser(null);
-		setFormData({ username: '', password: '', role: '', name: '', last_name: '' });
+		setFormData(EMPTY_FORM);
 		await loadUsers();
 		setSaving(false);
 	};
@@ -278,7 +287,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 						onCancel={() => {
 							setShowForm(false);
 							setEditingUser(null);
-							setFormData({ username: '', password: '', role: '', name: '', last_name: '' });
+							setFormData(EMPTY_FORM);
 						}}
 					/>
 				)}

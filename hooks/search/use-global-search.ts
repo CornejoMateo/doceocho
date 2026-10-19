@@ -16,7 +16,7 @@ export function useGlobalSearch() {
 
 	const abortRef = useRef<AbortController | null>(null);
 
-	const providers = useMemo(() => getSearchProviders(user?.role), [user?.role]);
+	const providers = useMemo(() => getSearchProviders(user?.views ?? []), [user?.views]);
 
 	const reset = useCallback(() => {
 		abortRef.current?.abort();
