@@ -39,7 +39,8 @@ export function GlobalSearch() {
 
 	useEffect(() => {
 		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key.toLowerCase() !== SEARCH_SHORTCUT_KEY) return;
+			// Picking a browser suggestion (datalist, autofill) fires a keydown with no key.
+			if (event.key?.toLowerCase() !== SEARCH_SHORTCUT_KEY) return;
 			if (!event.metaKey && !event.ctrlKey) return;
 
 			event.preventDefault();
