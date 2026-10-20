@@ -100,6 +100,7 @@ export function BudgetBuilderManagement() {
 				saveState={store.saveState}
 				onChange={store.updateBudget}
 				onBack={() => open(null)}
+				onFileInClient={store.fileInClient}
 			/>
 		);
 	}

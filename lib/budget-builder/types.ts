@@ -81,6 +81,10 @@ export type Budget = {
 	clientResponse: ClientResponse | null;
 	clientComment: string | null;
 	respondedAt: string | null;
+	/** Existing client; their budgets tab gets the PDF. null for someone not loaded as a client. */
+	clientId: number | null;
+	/** Row in the client's budgets tab holding the latest PDF. */
+	linkedBudgetId: number | null;
 };
 
 export type ClientResponse = 'aprobado' | 'rechazado';

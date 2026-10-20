@@ -125,6 +125,8 @@ export function createBudget(settings: BudgetBuilderSettings, existing: Budget[]
 		clientResponse: null,
 		clientComment: null,
 		respondedAt: null,
+		clientId: null,
+		linkedBudgetId: null,
 	};
 }
 

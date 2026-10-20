@@ -9,6 +9,7 @@ import {
 	updateBudget as saveBudget,
 } from '@/lib/budget-builder/budget-builder';
 import { clearLocalData, readLocalData } from '@/lib/budget-builder/local-storage';
+import { fileBudgetInClient } from '@/lib/budget-builder/client-budget';
 import { newId } from '@/helpers/budget-builder/calculate';
 import { DEFAULT_SETTINGS } from '@/constants/budget-builder/budget-builder';
 import { translateError } from '@/lib/error-translator';
@@ -161,6 +162,7 @@ export function useBudgetBuilder() {
 			insertBudget({
 				clientName: source.clientName,
 				clientContact: source.clientContact,
+				clientId: source.clientId,
 				marginPercent: source.marginPercent,
 				validityDays: source.validityDays,
 				notes: source.notes,
@@ -184,6 +186,24 @@ export function useBudgetBuilder() {
 		},
 		[reportSave]
 	);
+
+	/** Files the PDF in the chosen client's budgets tab and remembers which entry holds it. */
+	const fileInClient = useCallback(async (budget: Budget): Promise<{ error: any }> => {
+		const { linkedBudgetId, error } = await fileBudgetInClient(
+			budget,
+			latestSettings.current.company
+		);
+
+		if (linkedBudgetId && linkedBudgetId !== budget.linkedBudgetId) {
+			const linked = (current: Budget) =>
+				current.id === budget.id ? { ...current, linkedBudgetId } : current;
+			setBudgets((previous) => previous.map(linked));
+			const saved = savedBudgets.current.get(budget.id);
+			if (saved) savedBudgets.current.set(budget.id, linked(saved));
+		}
+
+		return { error };
+	}, []);
 
 	/** Fills an empty catalog with the sample supplies and furniture types. */
 	const loadExamples = useCallback(
@@ -230,6 +250,7 @@ export function useBudgetBuilder() {
 		updateBudget,
 		removeBudget,
 		duplicateBudget,
+		fileInClient,
 		loadExamples,
 		importLocalData,
 	};

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 			})
 			.eq('public_token', token)
 			.is('client_response', null)
-			.select('id, number, client_name')
+			.select('id, number, client_name, linked_budget_id')
 			.maybeSingle();
 
 		if (error) {
@@ -48,6 +48,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 				{ error: 'Este presupuesto ya fue respondido o no existe' },
 				{ status: 409 }
 			);
+		}
+
+		// An approval also marks the PDF filed in the client's budgets tab as the chosen one.
+		if (budget.linked_budget_id && parsed.decision === 'aprobado') {
+			const { error: chosenError } = await supabase
+				.from('budgets')
+				.update({ accepted: true })
+				.eq('id', budget.linked_budget_id);
+			if (chosenError) console.error('[budget-builder] Failed to mark client budget:', chosenError);
 		}
 
 		// A failed push must not lose the answer that is already saved.

@@ -81,6 +81,10 @@ create table if not exists public.budget_builder_budgets (
   client_comment text null,
   responded_at timestamp with time zone null,
   created_by uuid null,
+  -- Existing client this budget is for; its PDF is filed in that client's budgets tab.
+  client_id bigint null,
+  -- The row in the client's budgets tab that holds the PDF, replaced on every new version.
+  linked_budget_id bigint null,
   constraint budget_builder_budgets_pkey primary key (id),
   constraint budget_builder_budgets_number_key unique (number),
   constraint budget_builder_budgets_public_token_key unique (public_token),
@@ -96,6 +100,25 @@ create table if not exists public.budget_builder_budgets (
 
 alter sequence public.budget_builder_budgets_number_seq
   owned by public.budget_builder_budgets.number;
+
+-- For databases created before the link with clients existed.
+alter table public.budget_builder_budgets add column if not exists client_id bigint null;
+alter table public.budget_builder_budgets add column if not exists linked_budget_id bigint null;
+
+alter table public.budget_builder_budgets
+  drop constraint if exists budget_builder_budgets_client_id_fkey;
+alter table public.budget_builder_budgets
+  add constraint budget_builder_budgets_client_id_fkey foreign key (client_id)
+    references public.clients (id) on update cascade on delete set null;
+
+alter table public.budget_builder_budgets
+  drop constraint if exists budget_builder_budgets_linked_budget_id_fkey;
+alter table public.budget_builder_budgets
+  add constraint budget_builder_budgets_linked_budget_id_fkey foreign key (linked_budget_id)
+    references public.budgets (id) on update cascade on delete set null;
+
+create index if not exists budget_builder_budgets_client_id_idx
+  on public.budget_builder_budgets using btree (client_id) TABLESPACE pg_default;
 
 create index if not exists budget_builder_budgets_created_at_idx
   on public.budget_builder_budgets using btree (created_at desc) TABLESPACE pg_default;

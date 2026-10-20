@@ -17,7 +17,8 @@ import { Client, listClients } from '@/lib/clients/clients';
 
 interface ClientSelectProps {
 	value?: number | null;
-	onValueChange: (clientId: number | null, clientName: string | null) => void;
+	/** The whole client comes third, for callers that need more than the name (phone, email...). */
+	onValueChange: (clientId: number | null, clientName: string | null, client?: Client) => void;
 	onManualInput?: () => void;
 	placeholder?: string;
 	disabled?: boolean;
@@ -97,7 +98,7 @@ export function ClientSelect({
 											key={client.id}
 											value={client.id.toString()}
 											onSelect={() => {
-												onValueChange(client.id, formatClientName(client));
+												onValueChange(client.id, formatClientName(client), client);
 												setOpen(false);
 											}}
 										>

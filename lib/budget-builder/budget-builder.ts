@@ -30,6 +30,8 @@ type BudgetRow = {
 	client_response: Budget['clientResponse'];
 	client_comment: string | null;
 	responded_at: string | null;
+	client_id: number | null;
+	linked_budget_id: number | null;
 };
 
 export function budgetFromRow(row: BudgetRow): Budget {
@@ -48,6 +50,8 @@ export function budgetFromRow(row: BudgetRow): Budget {
 		clientResponse: row.client_response,
 		clientComment: row.client_comment,
 		respondedAt: row.responded_at,
+		clientId: row.client_id ?? null,
+		linkedBudgetId: row.linked_budget_id ?? null,
 	};
 }
 
@@ -61,6 +65,7 @@ function budgetToRow(budget: Partial<Budget>) {
 		validity_days: budget.validityDays,
 		notes: budget.notes,
 		items: budget.items,
+		client_id: budget.clientId,
 	};
 }
 

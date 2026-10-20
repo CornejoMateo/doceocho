@@ -15,6 +15,8 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { translateError } from '@/lib/error-translator';
+import { ClientSelect } from '@/components/ui/client-select';
 import type {
 	Budget,
 	BudgetBuilderSettings,
@@ -41,6 +43,7 @@ interface BudgetEditorProps {
 	saveState: SaveState;
 	onChange: (budget: Budget) => void;
 	onBack: () => void;
+	onFileInClient: (budget: Budget) => Promise<{ error: any }>;
 }
 
 const SAVE_LABELS: Record<SaveState, string> = {
@@ -52,9 +55,18 @@ const SAVE_LABELS: Record<SaveState, string> = {
 
 const onlyDigits = (value: string) => value.replace(/\D/g, '');
 
-export function BudgetEditor({ budget, settings, saveState, onChange, onBack }: BudgetEditorProps) {
+export function BudgetEditor({
+	budget,
+	settings,
+	saveState,
+	onChange,
+	onBack,
+	onFileInClient,
+}: BudgetEditorProps) {
 	const { toast } = useToast();
 	const [isSharing, setIsSharing] = useState(false);
+	// Typing a name by hand is for someone who is not loaded as a client yet.
+	const [manualClient, setManualClient] = useState(!budget.clientId && Boolean(budget.clientName));
 	const totals = useMemo(() => calculateBudget(budget), [budget]);
 
 	const set = (changes: Partial<Budget>) => onChange({ ...budget, ...changes });
@@ -108,12 +120,36 @@ export function BudgetEditor({ budget, settings, saveState, onChange, onBack }: 
 	// Sharing the budget is what "sending" means, so the status follows on its own.
 	const markSent = () => budget.status === 'borrador' && set({ status: 'enviado' });
 
+	// Every version that goes out is also filed in the client's budgets tab: one step instead of two.
+	const fileInClient = async () => {
+		if (!budget.clientId) return;
+		const { error } = await onFileInClient(budget);
+		toast(
+			error
+				? {
+						variant: 'destructive',
+						title: 'No se pudo guardar el PDF en el cliente',
+						description: translateError(error),
+					}
+				: {
+						title: 'Guardado en el cliente',
+						description: `El PDF quedó en Presupuestos de ${budget.clientName}.`,
+					}
+		);
+	};
+
+	const handleDownloadPdf = () => {
+		downloadBudgetPdf(toClientBudget(budget, settings.company));
+		fileInClient();
+	};
+
 	const handleCopyLink = async () => {
 		setIsSharing(true);
 		try {
 			await navigator.clipboard.writeText(await clientLink());
 			markSent();
 			toast({ title: 'Link copiado', description: 'Pegalo donde quieras enviárselo al cliente.' });
+			fileInClient();
 		} catch {
 			toast({ variant: 'destructive', title: 'No se pudo copiar el link' });
 		} finally {
@@ -131,6 +167,7 @@ export function BudgetEditor({ budget, settings, saveState, onChange, onBack }: 
 			const target = phone.length >= 8 ? `https://wa.me/${phone}` : 'https://wa.me/';
 			window.open(`${target}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
 			markSent();
+			fileInClient();
 		} finally {
 			setIsSharing(false);
 		}
@@ -175,7 +212,7 @@ export function BudgetEditor({ budget, settings, saveState, onChange, onBack }: 
 						variant="outline"
 						className="gap-2"
 						disabled={!hasItems}
-						onClick={() => downloadBudgetPdf(toClientBudget(budget, settings.company))}
+						onClick={handleDownloadPdf}
 					>
 						<FileDown className="h-4 w-4" />
 						PDF
@@ -218,12 +255,46 @@ export function BudgetEditor({ budget, settings, saveState, onChange, onBack }: 
 			<Card className="grid gap-3 border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
 				<div className="grid gap-1 lg:col-span-1">
 					<Label htmlFor="client-name">Cliente</Label>
-					<Input
-						id="client-name"
-						value={budget.clientName}
-						placeholder="Nombre y apellido"
-						onChange={(event) => set({ clientName: event.target.value })}
-					/>
+					{manualClient ? (
+						<div className="flex gap-1">
+							<Input
+								id="client-name"
+								value={budget.clientName}
+								placeholder="Nombre y apellido"
+								onChange={(event) => set({ clientName: event.target.value })}
+							/>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="shrink-0 px-2 text-xs"
+								onClick={() => setManualClient(false)}
+							>
+								Elegir
+							</Button>
+						</div>
+					) : (
+						<ClientSelect
+							value={budget.clientId}
+							placeholder="Elegí un cliente"
+							onValueChange={(clientId, clientName, client) =>
+								set({
+									clientId,
+									clientName: clientName ?? '',
+									// Their WhatsApp comes along, unless the seller already typed one.
+									clientContact: budget.clientContact || client?.phone_number || '',
+								})
+							}
+							onManualInput={() => {
+								set({ clientId: null });
+								setManualClient(true);
+							}}
+						/>
+					)}
+					{budget.clientId && (
+						<p className="text-[11px] text-muted-foreground">
+							El PDF se guarda solo en sus Presupuestos al enviarlo o descargarlo.
+						</p>
+					)}
 				</div>
 				<div className="grid gap-1">
 					<Label htmlFor="client-contact">WhatsApp del cliente</Label>

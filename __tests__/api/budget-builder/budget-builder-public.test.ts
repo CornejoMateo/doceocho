@@ -137,6 +137,27 @@ describe('POST /api/budget-builder/[token]/respond', () => {
 		expect(mockNotify).toHaveBeenCalledWith(expect.anything(), 'P-0007', 'Ana', 'aprobado', 'b1');
 	});
 
+	it('an approval also marks the PDF filed in the client as chosen', async () => {
+		mockMaybeSingle.mockResolvedValue({
+			data: { id: 'b1', number: 7, client_name: 'Ana', linked_budget_id: 55 },
+		});
+
+		const res = await POST(post({ decision: 'aprobado' }), params());
+
+		expect(res.status).toBe(200);
+		expect(mockUpdate).toHaveBeenCalledWith({ accepted: true });
+	});
+
+	it('a rejection leaves the client budget as it was', async () => {
+		mockMaybeSingle.mockResolvedValue({
+			data: { id: 'b1', number: 7, client_name: 'Ana', linked_budget_id: 55 },
+		});
+
+		await POST(post({ decision: 'rechazado' }), params());
+
+		expect(mockUpdate).not.toHaveBeenCalledWith({ accepted: true });
+	});
+
 	it('refuses a second answer', async () => {
 		mockMaybeSingle.mockResolvedValue({ data: null, error: null });
 
