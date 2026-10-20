@@ -16,7 +16,15 @@
 		"test:coverage": "jest --coverage",
 		"send:emails": "tsx scripts/send-email.ts",
 		"prepare": "husky",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"db:start": "supabase start && node scripts/local-db.mjs env",
+		"db:stop": "supabase stop",
+		"db:status": "supabase status",
+		"db:reset": "supabase db reset && node scripts/local-db.mjs users",
+		"db:apply": "node scripts/local-db.mjs apply",
+		"db:users": "node scripts/local-db.mjs users",
+		"db:local": "node scripts/local-db.mjs env",
+		"db:off": "node scripts/local-db.mjs off"
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",
