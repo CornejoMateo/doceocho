@@ -17,6 +17,7 @@
 		"send:emails": "tsx scripts/send-email.ts",
 		"prepare": "husky",
 		"format": "prettier --write .",
+		"db:pull": "node scripts/local-db.mjs pull",
 		"db:start": "supabase start && node scripts/local-db.mjs env",
 		"db:stop": "supabase stop",
 		"db:status": "supabase status",

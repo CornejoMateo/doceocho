@@ -21,28 +21,26 @@ levantar las veces que haga falta.
 2. **Abrí Docker Desktop** y esperá a que diga que está corriendo. La primera vez que levantes la
    base se descargan las imágenes de Supabase (unos minutos).
 
-3. **Sacá una foto de la estructura de develop.** Copia solo las tablas, funciones y políticas, sin
-   ningún dato. La dirección de conexión está en el panel de Supabase de develop:
-   **Connect → Session pooler**, con la contraseña de la base.
+3. **Copiá la estructura de develop y armá todo de una vez**
 
    ```bash
-   supabase db dump --db-url "postgresql://postgres.XXXX:CONTRASEÑA@aws-XXXX.pooler.supabase.com:5432/postgres" -f supabase/migrations/20261020000000_develop_baseline.sql
+   npm run db:pull
    ```
 
-   Commiteá ese archivo para que todo el equipo arranque de la misma base. Si develop cambia mucho,
-   se vuelve a sacar la foto y se reemplaza.
+   Te pide la dirección de conexión de develop (panel de Supabase → **Connect → Session pooler**, con
+   la contraseña de la base). No se muestra en pantalla ni se guarda. Copia solo la estructura
+   (tablas, funciones y políticas, sin datos), arma la base local, crea los usuarios de prueba y
+   deja la app apuntando a la base local.
 
-4. **Levantá todo y cargá los usuarios de prueba**
-
-   ```bash
-   npm run db:start
-   npm run db:reset
-   ```
+   El archivo que genera en `supabase/migrations/` conviene commitearlo, así el resto del equipo
+   arranca con `npm run db:start` y `npm run db:reset` sin pedir la contraseña. Si develop cambia
+   mucho, se vuelve a correr `npm run db:pull`.
 
 ## El día a día
 
 | Comando                                     | Qué hace                                                                 |
 | ------------------------------------------- | ------------------------------------------------------------------------ |
+| `npm run db:pull`                           | Copia de nuevo la estructura de develop y rearma la base local.          |
 | `npm run db:start`                          | Levanta la base local y hace que la app la use.                          |
 | `npm run db:apply -- schema-supabase/x.sql` | Corre un SQL en la base local (se pueden pasar varios).                  |
 | `npm run db:reset`                          | Vuelve a cero: estructura de develop + buckets + usuarios de prueba.     |
@@ -54,7 +52,7 @@ levantar las veces que haga falta.
 
 Después de `db:start`, `db:local` o `db:off`, **reiniciá `npm run dev`** para que tome el cambio.
 
-- **Panel (Studio):** http://127.0.0.1:54323, para ver tablas y datos como en el Supabase de siempre.
+- **Panel (Studio):** http://127.0.0.1:56323, para ver tablas y datos como en el Supabase de siempre.
 - **Usuarios de prueba:** superadmin, admin, taller y qr. Las contraseñas están en
   `scripts/local-db.mjs` y solo existen en la base local.
 
