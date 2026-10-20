@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Copy, Plus, Search, Settings, Trash2 } from 'lucide-react';
+import { Copy, Download, Plus, Search, Settings, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,12 +41,30 @@ export function BudgetBuilderManagement() {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [search, setSearch] = useState('');
 	const [toDelete, setToDelete] = useState<Budget | null>(null);
+	const [isCreating, setIsCreating] = useState(false);
+	const [isImporting, setIsImporting] = useState(false);
 
 	// The open budget lives in the URL, so a refresh or the back button keeps the place.
 	const openId = searchParams.get('id');
 	const openBudget = store.budgets.find((budget) => budget.id === openId) ?? null;
 
 	const open = (id: string | null) => router.push(id ? `?id=${id}` : '?', { scroll: false });
+
+	const openNew = async (create: () => Promise<Budget | null>) => {
+		setIsCreating(true);
+		const budget = await create();
+		setIsCreating(false);
+		if (budget) open(budget.id);
+	};
+
+	const handleImport = async () => {
+		setIsImporting(true);
+		await store.importLocalData();
+		setIsImporting(false);
+	};
+
+	const catalogIsEmpty =
+		store.settings.catalog.length === 0 && store.settings.templates.length === 0;
 
 	const rows = useMemo(() => {
 		const term = search.trim().toLowerCase();
@@ -62,11 +80,24 @@ export function BudgetBuilderManagement() {
 
 	if (!store.loaded) return null;
 
+	if (store.loadError) {
+		return (
+			<Card className="p-6 text-sm text-muted-foreground">
+				<p className="font-medium text-foreground">No se pudo cargar el presupuestador.</p>
+				<p className="mt-1">
+					Revisá que el SQL del presupuestador esté corrido en esta base
+					(schema-supabase/budget-builder/budget-builder.sql). Detalle: {store.loadError}
+				</p>
+			</Card>
+		);
+	}
+
 	if (openBudget) {
 		return (
 			<BudgetEditor
 				budget={openBudget}
 				settings={store.settings}
+				saveState={store.saveState}
 				onChange={store.updateBudget}
 				onBack={() => open(null)}
 			/>
@@ -87,12 +118,44 @@ export function BudgetBuilderManagement() {
 						<Settings className="h-4 w-4" />
 						Configuración
 					</Button>
-					<Button className="gap-2" onClick={() => open(store.addBudget().id)}>
+					<Button className="gap-2" disabled={isCreating} onClick={() => openNew(store.addBudget)}>
 						<Plus className="h-4 w-4" />
 						Nuevo presupuesto
 					</Button>
 				</div>
 			</div>
+
+			{store.localBudgetsCount > 0 && (
+				<Card className="flex flex-col gap-3 border-dashed border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+					<p className="text-sm text-muted-foreground">
+						Este navegador tiene {store.localBudgetsCount}{' '}
+						{store.localBudgetsCount === 1 ? 'presupuesto guardado' : 'presupuestos guardados'} de
+						la versión de prueba. Traelos para que los vea todo el equipo.
+					</p>
+					<Button
+						variant="outline"
+						className="gap-2 shrink-0"
+						disabled={isImporting}
+						onClick={handleImport}
+					>
+						<Download className="h-4 w-4" />
+						{isImporting ? 'Trayendo...' : 'Traer presupuestos'}
+					</Button>
+				</Card>
+			)}
+
+			{catalogIsEmpty && (
+				<Card className="flex flex-col gap-3 border-dashed border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+					<p className="text-sm text-muted-foreground">
+						Todavía no hay insumos ni tipos de mueble. Cargá los de ejemplo y ajustá los precios, o
+						armá los tuyos desde Configuración.
+					</p>
+					<Button variant="outline" className="gap-2 shrink-0" onClick={store.loadExamples}>
+						<Sparkles className="h-4 w-4" />
+						Cargar ejemplos
+					</Button>
+				</Card>
+			)}
 
 			<Card className="gap-0 border-border bg-card p-0">
 				<div className="border-b border-border p-3">
@@ -148,7 +211,8 @@ export function BudgetBuilderManagement() {
 											variant="ghost"
 											size="icon"
 											aria-label="Duplicar presupuesto"
-											onClick={() => open(store.duplicateBudget(budget).id)}
+											disabled={isCreating}
+											onClick={() => openNew(() => store.duplicateBudget(budget))}
 										>
 											<Copy className="h-4 w-4" />
 										</Button>

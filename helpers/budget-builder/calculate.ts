@@ -121,6 +121,10 @@ export function createBudget(settings: BudgetBuilderSettings, existing: Budget[]
 		validityDays: settings.defaultValidityDays,
 		notes: '',
 		items: [],
+		publicToken: '',
+		clientResponse: null,
+		clientComment: null,
+		respondedAt: null,
 	};
 }
 

@@ -75,7 +75,15 @@ export type Budget = {
 	validityDays: number;
 	notes: string;
 	items: BudgetItem[];
+	/** Secret in the link the client receives. */
+	publicToken: string;
+	/** What the client answered from their page, if they did. */
+	clientResponse: ClientResponse | null;
+	clientComment: string | null;
+	respondedAt: string | null;
 };
+
+export type ClientResponse = 'aprobado' | 'rechazado';
 
 export type CompanyInfo = {
 	name: string;

@@ -28,7 +28,8 @@ import {
 	itemFromTemplate,
 	newId,
 } from '@/helpers/budget-builder/calculate';
-import { encodeClientBudget, toClientBudget } from '@/helpers/budget-builder/share';
+import { toClientBudget } from '@/helpers/budget-builder/share';
+import type { SaveState } from '@/hooks/budget-builder/use-budget-builder';
 import { downloadBudgetPdf } from '@/helpers/budget-builder/pdf';
 import { formatCurrency } from '@/utils/formats-money';
 import { BudgetItemCard } from '@/components/business/budget-builder/budget-item-card';
@@ -37,13 +38,21 @@ import { FormulaHelp } from '@/components/business/budget-builder/formula-help';
 interface BudgetEditorProps {
 	budget: Budget;
 	settings: BudgetBuilderSettings;
+	saveState: SaveState;
 	onChange: (budget: Budget) => void;
 	onBack: () => void;
 }
 
+const SAVE_LABELS: Record<SaveState, string> = {
+	idle: 'Se guarda automáticamente.',
+	saving: 'Guardando...',
+	saved: 'Guardado.',
+	error: 'No se pudo guardar. Revisá la conexión.',
+};
+
 const onlyDigits = (value: string) => value.replace(/\D/g, '');
 
-export function BudgetEditor({ budget, settings, onChange, onBack }: BudgetEditorProps) {
+export function BudgetEditor({ budget, settings, saveState, onChange, onBack }: BudgetEditorProps) {
 	const { toast } = useToast();
 	const [isSharing, setIsSharing] = useState(false);
 	const totals = useMemo(() => calculateBudget(budget), [budget]);
@@ -92,10 +101,9 @@ export function BudgetEditor({ budget, settings, onChange, onBack }: BudgetEdito
 			],
 		});
 
-	const clientLink = async () => {
-		const token = await encodeClientBudget(toClientBudget(budget, settings.company));
-		return `${window.location.origin}${CLIENT_VIEW_PATH}#${token}`;
-	};
+	// Short link: the budget stays in the database and the page always shows its latest version.
+	const clientLink = async () =>
+		`${window.location.origin}${CLIENT_VIEW_PATH}/${budget.publicToken}`;
 
 	// Sharing the budget is what "sending" means, so the status follows on its own.
 	const markSent = () => budget.status === 'borrador' && set({ status: 'enviado' });
@@ -139,7 +147,11 @@ export function BudgetEditor({ budget, settings, onChange, onBack }: BudgetEdito
 					</Button>
 					<div>
 						<h2 className="text-2xl font-bold text-foreground">{budgetCode(budget)}</h2>
-						<p className="text-xs text-muted-foreground">Se guarda automáticamente.</p>
+						<p
+							className={`text-xs ${saveState === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}
+						>
+							{SAVE_LABELS[saveState]}
+						</p>
 					</div>
 				</div>
 
@@ -183,6 +195,25 @@ export function BudgetEditor({ budget, settings, onChange, onBack }: BudgetEdito
 					</Button>
 				</div>
 			</div>
+
+			{budget.clientResponse && (
+				<Card
+					className={`border-border p-4 text-sm ${budget.clientResponse === 'aprobado' ? 'bg-green-500/10' : 'bg-red-500/10'}`}
+				>
+					<p className="font-medium text-foreground">
+						El cliente {budget.clientResponse === 'aprobado' ? 'aprobó' : 'rechazó'} el presupuesto
+						{budget.respondedAt
+							? ` el ${new Date(budget.respondedAt).toLocaleDateString('es-AR')}`
+							: ''}
+						.
+					</p>
+					{budget.clientComment && (
+						<p className="mt-1 whitespace-pre-line text-muted-foreground">
+							“{budget.clientComment}”
+						</p>
+					)}
+				</Card>
+			)}
 
 			<Card className="grid gap-3 border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
 				<div className="grid gap-1 lg:col-span-1">
