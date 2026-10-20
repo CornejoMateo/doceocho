@@ -61,23 +61,94 @@ function disposeGroup(group: THREE.Object3D) {
 	});
 }
 
+type SceneState = {
+	renderer: THREE.WebGLRenderer;
+	scene: THREE.Scene;
+	camera: THREE.PerspectiveCamera;
+	controls: OrbitControls;
+	furniture: THREE.Group | null;
+	render: () => void;
+};
+
+let webglSupport: boolean | null = null;
+
+/** Asked once and the test context is released right away, so it never counts against the limit. */
+function supportsWebGL(): boolean {
+	if (webglSupport !== null) return webglSupport;
+	try {
+		const canvas = document.createElement('canvas');
+		const context = (canvas.getContext('webgl2') ??
+			canvas.getContext('webgl')) as WebGLRenderingContext | null;
+		context?.getExtension('WEBGL_lose_context')?.loseContext();
+		webglSupport = Boolean(context);
+	} catch {
+		webglSupport = false;
+	}
+	return webglSupport;
+}
+
+/** Swaps the piece in the scene and frames it from a three-quarter view, the way furniture is drawn. */
+function placeFurniture(
+	state: SceneState,
+	shape: FurnitureShape,
+	dimensions: FurnitureDimensions,
+	finish: string
+) {
+	if (state.furniture) {
+		state.scene.remove(state.furniture);
+		disposeGroup(state.furniture);
+	}
+
+	const furniture = buildFurniture(shape, dimensions, finish);
+	state.scene.add(furniture);
+	state.furniture = furniture;
+
+	const box = new THREE.Box3().setFromObject(furniture);
+	const center = box.getCenter(new THREE.Vector3());
+	const radius = box.getBoundingSphere(new THREE.Sphere()).radius || 1;
+	const distance = radius / Math.sin(THREE.MathUtils.degToRad(state.camera.fov / 2));
+	state.camera.position.set(
+		center.x + distance * 0.62,
+		center.y + distance * 0.42,
+		center.z + distance * 0.66
+	);
+	state.controls.target.copy(center);
+	state.controls.minDistance = radius * 1.2;
+	state.controls.maxDistance = distance * 3;
+	state.controls.update();
+	state.render();
+}
+
 /** Live model built from the same pieces as the price, so what the client sees is what is quoted. */
 export function Furniture3D({ shape, dimensions, finish, className }: Furniture3DProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	const stateRef = useRef<SceneState | null>(null);
+	// Latest props for when the scene is created later, as the viewer scrolls into view.
+	const propsRef = useRef({ shape, dimensions, finish });
 	const [unsupported, setUnsupported] = useState(false);
-	const stateRef = useRef<{
-		renderer: THREE.WebGLRenderer;
-		scene: THREE.Scene;
-		camera: THREE.PerspectiveCamera;
-		controls: OrbitControls;
-		furniture: THREE.Group | null;
-		render: () => void;
-	} | null>(null);
+	const [onScreen, setOnScreen] = useState(false);
 
-	// Scene, lights and controls are created once.
+	// Browsers only allow a handful of WebGL contexts at once, so a viewer only
+	// holds one while it is on (or near) the screen.
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
+
+		const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting), {
+			rootMargin: '200px',
+		});
+		observer.observe(container);
+		return () => observer.disconnect();
+	}, []);
+
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container || !onScreen) return;
+
+		if (!supportsWebGL()) {
+			setUnsupported(true);
+			return;
+		}
 
 		let renderer: THREE.WebGLRenderer;
 		try {
@@ -86,10 +157,12 @@ export function Furniture3D({ shape, dimensions, finish, className }: Furniture3
 			setUnsupported(true);
 			return;
 		}
+		setUnsupported(false);
 
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.shadowMap.enabled = true;
 		renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+		renderer.domElement.style.touchAction = 'pan-y';
 		container.appendChild(renderer.domElement);
 
 		const scene = new THREE.Scene();
@@ -116,7 +189,6 @@ export function Furniture3D({ shape, dimensions, finish, className }: Furniture3
 		// The wheel and vertical swipes keep scrolling the page; dragging sideways turns the piece.
 		controls.enableZoom = false;
 		controls.maxPolarAngle = Math.PI / 2 - 0.05;
-		renderer.domElement.style.touchAction = 'pan-y';
 
 		const render = () => renderer.render(scene, camera);
 		controls.addEventListener('change', render);
@@ -129,51 +201,31 @@ export function Furniture3D({ shape, dimensions, finish, className }: Furniture3
 			camera.updateProjectionMatrix();
 			render();
 		};
-		const observer = new ResizeObserver(resize);
-		observer.observe(container);
+		const resizeObserver = new ResizeObserver(resize);
+		resizeObserver.observe(container);
 
-		stateRef.current = { renderer, scene, camera, controls, furniture: null, render };
+		const state: SceneState = { renderer, scene, camera, controls, furniture: null, render };
+		stateRef.current = state;
 		resize();
+		const latest = propsRef.current;
+		placeFurniture(state, latest.shape, latest.dimensions, latest.finish);
 
 		return () => {
-			observer.disconnect();
+			resizeObserver.disconnect();
 			controls.dispose();
 			disposeGroup(scene);
+			// dispose() alone keeps the context alive until garbage collection; this frees it now.
+			renderer.forceContextLoss();
 			renderer.dispose();
 			renderer.domElement.remove();
 			stateRef.current = null;
 		};
-	}, []);
+	}, [onScreen]);
 
 	// The furniture is rebuilt on every change of size or finish.
 	useEffect(() => {
-		const state = stateRef.current;
-		if (!state) return;
-
-		if (state.furniture) {
-			state.scene.remove(state.furniture);
-			disposeGroup(state.furniture);
-		}
-
-		const furniture = buildFurniture(shape, dimensions, finish);
-		state.scene.add(furniture);
-		state.furniture = furniture;
-
-		// Frames the whole piece from a three-quarter view, the way furniture is usually drawn.
-		const box = new THREE.Box3().setFromObject(furniture);
-		const center = box.getCenter(new THREE.Vector3());
-		const radius = box.getBoundingSphere(new THREE.Sphere()).radius || 1;
-		const distance = radius / Math.sin(THREE.MathUtils.degToRad(state.camera.fov / 2));
-		state.camera.position.set(
-			center.x + distance * 0.62,
-			center.y + distance * 0.42,
-			center.z + distance * 0.66
-		);
-		state.controls.target.copy(center);
-		state.controls.minDistance = radius * 1.2;
-		state.controls.maxDistance = distance * 3;
-		state.controls.update();
-		state.render();
+		propsRef.current = { shape, dimensions, finish };
+		if (stateRef.current) placeFurniture(stateRef.current, shape, dimensions, finish);
 	}, [shape, dimensions, finish]);
 
 	return (
