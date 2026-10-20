@@ -13,8 +13,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import type { BudgetItem, CatalogItem, FurnitureShape } from '@/lib/budget-builder/types';
-import { FINISHES, SHAPES } from '@/constants/budget-builder/budget-builder';
+import type { BudgetItem, CatalogItem, Finish, FurnitureShape } from '@/lib/budget-builder/types';
+import { SHAPES } from '@/constants/budget-builder/budget-builder';
+import { applyFinish, finishOf } from '@/helpers/budget-builder/finishes';
 import type { ItemCost } from '@/helpers/budget-builder/calculate';
 import { formatCurrency } from '@/utils/formats-money';
 import { DimensionsFields } from '@/components/business/budget-builder/dimensions-fields';
@@ -26,6 +27,7 @@ interface BudgetItemCardProps {
 	calc: ItemCost;
 	price: number;
 	catalog: CatalogItem[];
+	finishes: Finish[];
 	onChange: (item: BudgetItem) => void;
 	onDuplicate: () => void;
 	onRemove: () => void;
@@ -36,11 +38,21 @@ export function BudgetItemCard({
 	calc,
 	price,
 	catalog,
+	finishes,
 	onChange,
 	onDuplicate,
 	onRemove,
 }: BudgetItemCardProps) {
 	const set = (changes: Partial<BudgetItem>) => onChange({ ...item, ...changes });
+	const currentFinish = finishOf(item);
+
+	// A finish removed from settings still shows on the pieces that already use it.
+	const finishOptions: Finish[] = finishes.some((finish) => finish.id === item.finish)
+		? finishes
+		: [
+				...finishes,
+				{ id: item.finish, name: currentFinish.name, color: currentFinish.color, price: 0 },
+			];
 
 	return (
 		<Card className="gap-0 overflow-hidden border-border bg-card p-0">
@@ -67,14 +79,14 @@ export function BudgetItemCard({
 
 			<div className="grid gap-4 p-3 lg:grid-cols-[1fr_20rem]">
 				<div className="space-y-3">
-					<div className="grid gap-2 sm:grid-cols-[1fr_1fr_5rem]">
-						<div className="grid gap-1">
+					<div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
+						<div className="grid min-w-0 gap-1">
 							<Label className="text-xs text-muted-foreground">Forma</Label>
 							<Select
 								value={item.shape}
 								onValueChange={(shape) => set({ shape: shape as FurnitureShape })}
 							>
-								<SelectTrigger className="w-full">
+								<SelectTrigger className="w-full min-w-0 overflow-hidden">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -86,28 +98,39 @@ export function BudgetItemCard({
 								</SelectContent>
 							</Select>
 						</div>
-						<div className="grid gap-1">
+						<div className="order-last col-span-2 grid min-w-0 gap-1">
 							<Label className="text-xs text-muted-foreground">Terminación</Label>
-							<Select value={item.finish} onValueChange={(finish) => set({ finish })}>
-								<SelectTrigger className="w-full">
+							<Select
+								value={item.finish}
+								onValueChange={(id) => {
+									const finish = finishOptions.find((option) => option.id === id);
+									if (finish) onChange(applyFinish(item, finish));
+								}}
+							>
+								<SelectTrigger className="w-full min-w-0 overflow-hidden">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{FINISHES.map((finish) => (
-										<SelectItem key={finish.value} value={finish.value}>
-											<span className="flex items-center gap-2">
+									{finishOptions.map((finish) => (
+										<SelectItem key={finish.id} value={finish.id}>
+											<span className="flex min-w-0 items-center gap-2">
 												<span
-													className="h-3 w-3 rounded-full border border-border"
+													className="h-3 w-3 shrink-0 rounded-full border border-border"
 													style={{ backgroundColor: finish.color }}
 												/>
-												{finish.label}
+												<span className="truncate">{finish.name}</span>
+												{finish.price > 0 && (
+													<span className="shrink-0 text-xs opacity-60">
+														{formatCurrency(finish.price)}/m²
+													</span>
+												)}
 											</span>
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 						</div>
-						<div className="grid gap-1">
+						<div className="grid min-w-0 gap-1">
 							<Label htmlFor={`${item.id}-units`} className="text-xs text-muted-foreground">
 								Cantidad
 							</Label>
@@ -139,7 +162,7 @@ export function BudgetItemCard({
 				<Furniture3D
 					shape={item.shape}
 					dimensions={item.dimensions}
-					finish={item.finish}
+					color={currentFinish.color}
 					className="h-64 lg:h-full lg:min-h-64"
 				/>
 			</div>

@@ -204,7 +204,7 @@ export function buildBudgetPdf(data: ClientBudget): jsPDF {
 		const { width, depth, height } = item.dimensions;
 		const details = [
 			`${width} × ${depth} × ${height} cm (ancho × prof. × alto)`,
-			finishLabel(item.finish),
+			finishLabel(item),
 			item.units > 1 ? `${item.units} unidades` : '',
 		].filter(Boolean);
 		details.forEach((line, i) => doc.text(line, textX, y + 10 + i * 4.5));

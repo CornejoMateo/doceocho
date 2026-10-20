@@ -5,12 +5,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { FurnitureDimensions, FurnitureShape } from '@/lib/budget-builder/types';
 import { buildParts, type PartKind } from '@/helpers/budget-builder/geometry';
-import { finishColor } from '@/helpers/budget-builder/calculate';
 
 interface Furniture3DProps {
 	shape: FurnitureShape;
 	dimensions: FurnitureDimensions;
-	finish: string;
+	/** Hex color of the finish. */
+	color: string;
 	className?: string;
 }
 
@@ -23,9 +23,9 @@ function colorFor(kind: PartKind, base: THREE.Color): THREE.Color {
 	return kind === 'back' ? base.clone().lerp(new THREE.Color(0xffffff), BACK_TINT) : base;
 }
 
-function buildFurniture(shape: FurnitureShape, dimensions: FurnitureDimensions, finish: string) {
+function buildFurniture(shape: FurnitureShape, dimensions: FurnitureDimensions, color: string) {
 	const group = new THREE.Group();
-	const base = new THREE.Color(finishColor(finish));
+	const base = new THREE.Color(color);
 	const edgeMaterial = new THREE.LineBasicMaterial({
 		color: EDGE_COLOR,
 		transparent: true,
@@ -92,14 +92,14 @@ function placeFurniture(
 	state: SceneState,
 	shape: FurnitureShape,
 	dimensions: FurnitureDimensions,
-	finish: string
+	color: string
 ) {
 	if (state.furniture) {
 		state.scene.remove(state.furniture);
 		disposeGroup(state.furniture);
 	}
 
-	const furniture = buildFurniture(shape, dimensions, finish);
+	const furniture = buildFurniture(shape, dimensions, color);
 	state.scene.add(furniture);
 	state.furniture = furniture;
 
@@ -120,11 +120,11 @@ function placeFurniture(
 }
 
 /** Live model built from the same pieces as the price, so what the client sees is what is quoted. */
-export function Furniture3D({ shape, dimensions, finish, className }: Furniture3DProps) {
+export function Furniture3D({ shape, dimensions, color, className }: Furniture3DProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const stateRef = useRef<SceneState | null>(null);
 	// Latest props for when the scene is created later, as the viewer scrolls into view.
-	const propsRef = useRef({ shape, dimensions, finish });
+	const propsRef = useRef({ shape, dimensions, color });
 	const [unsupported, setUnsupported] = useState(false);
 	const [onScreen, setOnScreen] = useState(false);
 
@@ -208,7 +208,7 @@ export function Furniture3D({ shape, dimensions, finish, className }: Furniture3
 		stateRef.current = state;
 		resize();
 		const latest = propsRef.current;
-		placeFurniture(state, latest.shape, latest.dimensions, latest.finish);
+		placeFurniture(state, latest.shape, latest.dimensions, latest.color);
 
 		return () => {
 			resizeObserver.disconnect();
@@ -224,9 +224,9 @@ export function Furniture3D({ shape, dimensions, finish, className }: Furniture3
 
 	// The furniture is rebuilt on every change of size or finish.
 	useEffect(() => {
-		propsRef.current = { shape, dimensions, finish };
-		if (stateRef.current) placeFurniture(stateRef.current, shape, dimensions, finish);
-	}, [shape, dimensions, finish]);
+		propsRef.current = { shape, dimensions, color };
+		if (stateRef.current) placeFurniture(stateRef.current, shape, dimensions, color);
+	}, [shape, dimensions, color]);
 
 	return (
 		<div

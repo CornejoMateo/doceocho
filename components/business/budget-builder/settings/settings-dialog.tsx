@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { BudgetBuilderSettings, CompanyInfo } from '@/lib/budget-builder/types';
 import { CatalogSettings } from '@/components/business/budget-builder/settings/catalog-settings';
 import { TemplatesSettings } from '@/components/business/budget-builder/settings/templates-settings';
+import { FinishesSettings } from '@/components/business/budget-builder/settings/finishes-settings';
 
 interface SettingsDialogProps {
 	open: boolean;
@@ -45,6 +46,7 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange }: Setti
 					<TabsList className="flex-wrap h-auto justify-start gap-1">
 						<TabsTrigger value="catalog">Insumos y precios</TabsTrigger>
 						<TabsTrigger value="templates">Tipos de mueble</TabsTrigger>
+						<TabsTrigger value="finishes">Terminaciones</TabsTrigger>
 						<TabsTrigger value="company">Empresa</TabsTrigger>
 					</TabsList>
 
@@ -60,6 +62,13 @@ export function SettingsDialog({ open, onOpenChange, settings, onChange }: Setti
 							templates={settings.templates}
 							catalog={settings.catalog}
 							onChange={(templates) => onChange({ ...settings, templates })}
+						/>
+					</TabsContent>
+
+					<TabsContent value="finishes">
+						<FinishesSettings
+							finishes={settings.finishes}
+							onChange={(finishes) => onChange({ ...settings, finishes })}
 						/>
 					</TabsContent>
 

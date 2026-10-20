@@ -4,6 +4,7 @@ import type {
 	BudgetBuilderSettings,
 	CatalogItem,
 	CompanyInfo,
+	Finish,
 	FurnitureTemplate,
 } from '@/lib/budget-builder/types';
 import { DEFAULT_SETTINGS } from '@/constants/budget-builder/budget-builder';
@@ -89,6 +90,8 @@ export async function loadSettings(): Promise<{ data: BudgetBuilderSettings | nu
 			),
 			defaultValidityDays:
 				settings.data?.default_validity_days ?? DEFAULT_SETTINGS.defaultValidityDays,
+			// Never saved yet means the built-in finishes; an empty list is a real choice.
+			finishes: (settings.data?.finishes as Finish[] | null) ?? DEFAULT_SETTINGS.finishes,
 			catalog: (catalog.data ?? []).map((row) => ({
 				id: row.id,
 				name: row.name,
@@ -119,7 +122,8 @@ export async function saveSettings(
 	if (
 		JSON.stringify(previous.company) !== JSON.stringify(next.company) ||
 		previous.defaultMarginPercent !== next.defaultMarginPercent ||
-		previous.defaultValidityDays !== next.defaultValidityDays
+		previous.defaultValidityDays !== next.defaultValidityDays ||
+		JSON.stringify(previous.finishes) !== JSON.stringify(next.finishes)
 	) {
 		writes.push(
 			supabase.from(SETTINGS_TABLE).upsert({
@@ -127,6 +131,7 @@ export async function saveSettings(
 				company: next.company,
 				default_margin_percent: next.defaultMarginPercent,
 				default_validity_days: next.defaultValidityDays,
+				finishes: next.finishes,
 			})
 		);
 	}

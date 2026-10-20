@@ -13,6 +13,15 @@ export type CatalogItem = {
 	price: number;
 };
 
+/** A finish (color, lacquer, stain) with its price per square meter of surface to finish. */
+export type Finish = {
+	id: string;
+	name: string;
+	/** Hex color for the 3D view. */
+	color: string;
+	price: number;
+};
+
 export type TemplateLine = {
 	itemId: string;
 	/** Formula over the furniture variables, e.g. `superficie * 0.12` or `patas * 4`. */
@@ -56,7 +65,10 @@ export type BudgetItem = {
 	templateId: string | null;
 	shape: FurnitureShape;
 	dimensions: FurnitureDimensions;
+	/** Finish id, plus a copy of its name and color so the budget keeps looking the same if it changes. */
 	finish: string;
+	finishName?: string;
+	finishColor?: string;
 	units: number;
 	notes: string;
 	lines: BudgetLine[];
@@ -100,6 +112,7 @@ export type BudgetBuilderSettings = {
 	company: CompanyInfo;
 	catalog: CatalogItem[];
 	templates: FurnitureTemplate[];
+	finishes: Finish[];
 	defaultMarginPercent: number;
 	defaultValidityDays: number;
 };

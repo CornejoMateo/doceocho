@@ -1,5 +1,6 @@
 import type {
 	BudgetBuilderSettings,
+	Finish,
 	BudgetStatus,
 	FurnitureDimensions,
 	FurnitureShape,
@@ -50,15 +51,15 @@ export const DIMENSION_LABELS: Record<keyof FurnitureDimensions, string> = {
 	doors: 'Puertas',
 };
 
-/** Finishes the 3D view and the drawings understand. */
-export const FINISHES: { value: string; label: string; color: string }[] = [
-	{ value: 'roble', label: 'Roble natural', color: '#c8a27a' },
-	{ value: 'paraiso', label: 'Paraíso', color: '#b98a5e' },
-	{ value: 'nogal', label: 'Nogal', color: '#6f4e37' },
-	{ value: 'pino', label: 'Pino', color: '#e0c39a' },
-	{ value: 'blanco', label: 'Laqueado blanco', color: '#f2f1ee' },
-	{ value: 'gris', label: 'Laqueado gris', color: '#9a9a96' },
-	{ value: 'negro', label: 'Laqueado negro', color: '#2b2b2b' },
+/** Starting finishes; editable in settings. Price is per m² of surface to finish. */
+export const DEFAULT_FINISHES: Finish[] = [
+	{ id: 'roble', name: 'Roble natural', color: '#c8a27a', price: 0 },
+	{ id: 'paraiso', name: 'Paraíso', color: '#b98a5e', price: 0 },
+	{ id: 'nogal', name: 'Nogal', color: '#6f4e37', price: 0 },
+	{ id: 'pino', name: 'Pino', color: '#e0c39a', price: 0 },
+	{ id: 'blanco', name: 'Laqueado blanco', color: '#f2f1ee', price: 0 },
+	{ id: 'gris', name: 'Laqueado gris', color: '#9a9a96', price: 0 },
+	{ id: 'negro', name: 'Laqueado negro', color: '#2b2b2b', price: 0 },
 ];
 
 export const BUDGET_STATUSES: { value: BudgetStatus; label: string }[] = [
@@ -81,6 +82,7 @@ export const DEFAULT_SETTINGS: BudgetBuilderSettings = {
 	company: { name: 'Doce Ocho', phone: '', email: '', address: '' },
 	defaultMarginPercent: 40,
 	defaultValidityDays: 15,
+	finishes: DEFAULT_FINISHES,
 	catalog: [
 		{ id: 'melamina-18', name: 'Melamina 18 mm', category: 'Placas', unit: 'm2', price: 28000 },
 		{ id: 'mdf-18', name: 'MDF 18 mm', category: 'Placas', unit: 'm2', price: 24000 },

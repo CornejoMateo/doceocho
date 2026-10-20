@@ -12,6 +12,8 @@ create table if not exists public.budget_builder_settings (
   company jsonb not null default '{}'::jsonb,
   default_margin_percent numeric not null default 40,
   default_validity_days integer not null default 15,
+  -- [{ "id", "name", "color", "price" }], price per m² to finish; null = the built-in finishes
+  finishes jsonb null,
   constraint budget_builder_settings_pkey primary key (id),
   constraint budget_builder_settings_single_row check (id = 1)
 ) TABLESPACE pg_default;
@@ -101,7 +103,8 @@ create table if not exists public.budget_builder_budgets (
 alter sequence public.budget_builder_budgets_number_seq
   owned by public.budget_builder_budgets.number;
 
--- For databases created before the link with clients existed.
+-- For databases created before these columns existed.
+alter table public.budget_builder_settings add column if not exists finishes jsonb null;
 alter table public.budget_builder_budgets add column if not exists client_id bigint null;
 alter table public.budget_builder_budgets add column if not exists linked_budget_id bigint null;
 

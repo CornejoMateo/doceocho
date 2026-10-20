@@ -12,7 +12,7 @@ import {
 } from '@/lib/budget-builder/public-client';
 import type { ClientResponse } from '@/lib/budget-builder/types';
 import { decodeClientBudget, type ClientBudget } from '@/helpers/budget-builder/share';
-import { finishLabel } from '@/helpers/budget-builder/calculate';
+import { finishColor, finishLabel } from '@/helpers/budget-builder/calculate';
 import { downloadBudgetPdf } from '@/helpers/budget-builder/pdf';
 import { formatCurrency } from '@/utils/formats-money';
 import { Furniture3D } from '@/components/business/budget-builder/furniture-3d';
@@ -89,7 +89,7 @@ export function ClientBudgetView({ token }: { token?: string }) {
 					<Furniture3D
 						shape={item.shape}
 						dimensions={item.dimensions}
-						finish={item.finish}
+						color={finishColor(item)}
 						className="h-72 sm:h-96"
 					/>
 					<div className="flex flex-wrap items-start justify-between gap-3">
@@ -100,7 +100,7 @@ export function ClientBudgetView({ token }: { token?: string }) {
 							<h2 className="text-lg font-semibold text-foreground">{item.name}</h2>
 							<p className="text-sm text-muted-foreground">
 								{item.dimensions.width} × {item.dimensions.depth} × {item.dimensions.height} cm ·{' '}
-								{finishLabel(item.finish)}
+								{finishLabel(item)}
 								{item.units > 1 ? ` · ${item.units} unidades` : ''}
 							</p>
 							{item.notes && <p className="max-w-prose text-sm text-muted-foreground">{item.notes}</p>}

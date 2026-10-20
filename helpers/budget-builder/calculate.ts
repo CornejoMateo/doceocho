@@ -6,15 +6,14 @@ import type {
 	CatalogItem,
 	FurnitureTemplate,
 } from '@/lib/budget-builder/types';
-import { FINISHES } from '@/constants/budget-builder/budget-builder';
 import { buildParts, computeVariables } from '@/helpers/budget-builder/geometry';
 import { tryEvaluateFormula } from '@/helpers/budget-builder/formula';
+import { newId } from '@/helpers/budget-builder/id';
+import { applyFinish, finishOf } from '@/helpers/budget-builder/finishes';
+import type { Finish } from '@/lib/budget-builder/types';
+import { DEFAULT_FINISHES } from '@/constants/budget-builder/budget-builder';
 
-export function newId(): string {
-	return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-		? crypto.randomUUID()
-		: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
+export { newId } from '@/helpers/budget-builder/id';
 
 export function lineFromCatalog(item: CatalogItem, quantity = '1'): BudgetLine {
 	return {
@@ -29,23 +28,29 @@ export function lineFromCatalog(item: CatalogItem, quantity = '1'): BudgetLine {
 }
 
 /** A template copied into the budget; later catalog changes do not alter a budget already made. */
-export function itemFromTemplate(template: FurnitureTemplate, catalog: CatalogItem[]): BudgetItem {
+export function itemFromTemplate(
+	template: FurnitureTemplate,
+	catalog: CatalogItem[],
+	finish: Finish = DEFAULT_FINISHES[0]
+): BudgetItem {
 	const lines = template.lines.flatMap((templateLine) => {
 		const item = catalog.find((candidate) => candidate.id === templateLine.itemId);
 		return item ? [lineFromCatalog(item, templateLine.quantity)] : [];
 	});
 
-	return {
+	const item: BudgetItem = {
 		id: newId(),
 		name: template.name,
 		templateId: template.id,
 		shape: template.shape,
 		dimensions: { ...template.dimensions },
-		finish: FINISHES[0].value,
+		finish: finish.id,
 		units: 1,
 		notes: '',
 		lines,
 	};
+
+	return applyFinish(item, finish);
 }
 
 export type EvaluatedLine = BudgetLine & { amount: number; subtotal: number; error: string | null };
@@ -135,12 +140,12 @@ export function formatDimensions(item: BudgetItem): string {
 	return `${width} × ${depth} × ${height} cm`;
 }
 
-export function finishLabel(value: string): string {
-	return FINISHES.find((finish) => finish.value === value)?.label ?? value;
+export function finishLabel(item: Parameters<typeof finishOf>[0]): string {
+	return finishOf(item).name;
 }
 
-export function finishColor(value: string): string {
-	return FINISHES.find((finish) => finish.value === value)?.color ?? FINISHES[0].color;
+export function finishColor(item: Parameters<typeof finishOf>[0]): string {
+	return finishOf(item).color;
 }
 
 export function budgetCode(budget: Pick<Budget, 'number'>): string {

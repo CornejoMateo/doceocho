@@ -5,6 +5,7 @@ import type {
 	FurnitureShape,
 } from '@/lib/budget-builder/types';
 import { budgetCode, calculateBudget } from '@/helpers/budget-builder/calculate';
+import { finishOf } from '@/helpers/budget-builder/finishes';
 
 /**
  * What the client gets. Only final prices: never internal costs, lines or margin.
@@ -22,6 +23,9 @@ export type ClientBudget = {
 		shape: FurnitureShape;
 		dimensions: FurnitureDimensions;
 		finish: string;
+		/** Missing on links made before finishes were configurable. */
+		finishName?: string;
+		finishColor?: string;
 		units: number;
 		notes: string;
 		price: number;
@@ -44,6 +48,8 @@ export function toClientBudget(budget: Budget, company: CompanyInfo): ClientBudg
 			shape: item.shape,
 			dimensions: item.dimensions,
 			finish: item.finish,
+			finishName: finishOf(item).name,
+			finishColor: finishOf(item).color,
 			units: item.units,
 			notes: item.notes,
 			price,

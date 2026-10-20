@@ -23,7 +23,12 @@ import type {
 	BudgetItem,
 	BudgetStatus,
 } from '@/lib/budget-builder/types';
-import { BUDGET_STATUSES, CLIENT_VIEW_PATH } from '@/constants/budget-builder/budget-builder';
+import {
+	BUDGET_STATUSES,
+	CLIENT_VIEW_PATH,
+	DEFAULT_FINISHES,
+} from '@/constants/budget-builder/budget-builder';
+import { applyFinish } from '@/helpers/budget-builder/finishes';
 import {
 	budgetCode,
 	calculateBudget,
@@ -76,32 +81,42 @@ export function BudgetEditor({
 
 	const addFromTemplate = (templateId: string) => {
 		const template = settings.templates.find((candidate) => candidate.id === templateId);
-		if (template) set({ items: [...budget.items, itemFromTemplate(template, settings.catalog)] });
+		if (template) {
+			set({
+				items: [
+					...budget.items,
+					itemFromTemplate(template, settings.catalog, settings.finishes[0] ?? DEFAULT_FINISHES[0]),
+				],
+			});
+		}
 	};
 
 	const addBlank = () =>
 		set({
 			items: [
 				...budget.items,
-				{
-					id: newId(),
-					name: 'Mueble a medida',
-					templateId: null,
-					shape: 'bloque',
-					dimensions: {
-						width: 100,
-						depth: 40,
-						height: 80,
-						thickness: 1.8,
-						legs: 0,
-						shelves: 0,
-						doors: 0,
+				applyFinish(
+					{
+						id: newId(),
+						name: 'Mueble a medida',
+						templateId: null,
+						shape: 'bloque',
+						dimensions: {
+							width: 100,
+							depth: 40,
+							height: 80,
+							thickness: 1.8,
+							legs: 0,
+							shelves: 0,
+							doors: 0,
+						},
+						finish: '',
+						units: 1,
+						notes: '',
+						lines: [],
 					},
-					finish: 'roble',
-					units: 1,
-					notes: '',
-					lines: [],
-				},
+					settings.finishes[0] ?? DEFAULT_FINISHES[0]
+				),
 			],
 		});
 
@@ -335,6 +350,7 @@ export function BudgetEditor({
 						calc={calc}
 						price={price}
 						catalog={settings.catalog}
+						finishes={settings.finishes}
 						onChange={setItem}
 						onDuplicate={() => duplicateItem(item)}
 						onRemove={() =>
