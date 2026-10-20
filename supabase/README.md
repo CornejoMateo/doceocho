@@ -27,7 +27,7 @@ levantar las veces que haga falta.
    npm run db:pull
    ```
 
-   Te pide la dirección de conexión de develop (panel de Supabase → **Connect → Session pooler**, con
+   Te pide la dirección de conexión de develop (panel de Supabase → **Connect → Direct → Session pooler**, con
    la contraseña de la base). No se muestra en pantalla ni se guarda. Copia solo la estructura
    (tablas, funciones y políticas, sin datos), arma la base local, crea los usuarios de prueba y
    deja la app apuntando a la base local.

@@ -14,7 +14,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { createInterface } from 'node:readline';
 
 const ENV_FILE = resolve('.env.development.local');
 const BASELINE = 'supabase/migrations/20261020000000_develop_baseline.sql';
@@ -178,18 +177,46 @@ async function seedUsers() {
 	}
 }
 
-/** Reads a line without echoing it, so the connection string never shows on screen. */
+/** Reads a line in raw mode without echoing a single character, so a secret never shows on screen. */
 function askHidden(question) {
 	return new Promise((resolvePromise) => {
-		const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-		rl._writeToOutput = (text) => {
-			if (text.includes(question)) process.stdout.write(text);
+		const { stdin, stdout } = process;
+		stdout.write(question);
+
+		// Piped input (not a terminal) has no echo to hide.
+		if (!stdin.isTTY) {
+			let buffer = '';
+			stdin.setEncoding('utf8');
+			stdin.on('data', (chunk) => (buffer += chunk));
+			stdin.on('end', () => resolvePromise(buffer.split('\n')[0].trim()));
+			return;
+		}
+
+		let answer = '';
+		stdin.setRawMode(true);
+		stdin.resume();
+		stdin.setEncoding('utf8');
+
+		const onData = (chunk) => {
+			for (const char of chunk) {
+				if (char === '\r' || char === '\n') {
+					stdin.setRawMode(false);
+					stdin.pause();
+					stdin.off('data', onData);
+					stdout.write('\n');
+					resolvePromise(answer.trim());
+					return;
+				}
+				if (char === '\u0003') {
+					stdin.setRawMode(false);
+					stdout.write('\n');
+					process.exit(130);
+				}
+				if (char === '\u007f' || char === '\b') answer = answer.slice(0, -1);
+				else answer += char;
+			}
 		};
-		rl.question(question, (answer) => {
-			rl.close();
-			process.stdout.write('\n');
-			resolvePromise(answer.trim());
-		});
+		stdin.on('data', onData);
 	});
 }
 
@@ -203,10 +230,21 @@ function run(commandName, commandArgs) {
  * Copies develop's structure (tables, functions, policies; never data) into a migration,
  * then rebuilds the local database from it, seeds users and points the app at it.
  */
-async function pullDevelop() {
-	console.log('Pegá la dirección de conexión de develop (Supabase → Connect → Session pooler).');
-	console.log('No se muestra en pantalla ni se guarda en ningún archivo.\n');
-	const dbUrl = await askHidden('Dirección: ');
+async function pullDevelop(template) {
+	let dbUrl;
+
+	if (template?.includes('[YOUR-PASSWORD]')) {
+		// The dashboard's string comes with a placeholder: only the password is asked for.
+		console.log('Escribí la contraseña de la base de develop y apretá Enter.');
+		console.log('No se muestra en pantalla ni se guarda en ningún archivo.\n');
+		const password = await askHidden('Contraseña: ');
+		if (!password) fail('No escribiste ninguna contraseña.');
+		dbUrl = template.replace('[YOUR-PASSWORD]', encodeURIComponent(password));
+	} else {
+		console.log('Pegá la dirección de conexión de develop (Supabase → Connect → Direct → Session pooler).');
+		console.log('No se muestra en pantalla ni se guarda en ningún archivo.\n');
+		dbUrl = await askHidden('Dirección: ');
+	}
 
 	if (!/^postgres(ql)?:\/\//.test(dbUrl)) fail('Eso no parece una dirección de Postgres (empieza con postgresql://).');
 	if (/@(localhost|127\.0\.0\.1)[:/]/.test(dbUrl)) fail('Esa dirección es local; tiene que ser la de develop.');
@@ -229,7 +267,7 @@ const commands = {
 	off: removeEnv,
 	apply: () => applySql(args),
 	users: seedUsers,
-	pull: pullDevelop,
+	pull: () => pullDevelop(args[0]),
 };
 
 if (!commands[command]) fail(`Comando desconocido "${command ?? ''}". Usá: env, off, apply, users o pull.`);
