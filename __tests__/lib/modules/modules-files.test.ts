@@ -256,7 +256,8 @@ describe('modules files lib', () => {
 			});
 			expect(storage.upload).toHaveBeenCalledWith(
 				expect.stringMatching(/^3\/[0-9a-f-]{36}\.jpg$/),
-				file
+				file,
+				undefined
 			);
 			expect(result.data).toEqual(FILE_RECORD);
 			expect(result.error).toBeNull();
@@ -311,7 +312,8 @@ describe('modules files lib', () => {
 
 			expect(storage.upload).toHaveBeenCalledWith(
 				expect.stringMatching(/^3\/[0-9a-f-]{36}\.mp4$/),
-				videoFile
+				videoFile,
+				undefined
 			);
 		});
 

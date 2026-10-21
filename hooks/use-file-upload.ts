@@ -14,6 +14,8 @@ interface UseFileUploadOptions {
 	clientId?: number;
 	claimId?: number | null;
 	allowedFileTypes?: readonly string[];
+	// Extra extensions allowed regardless of MIME (e.g. .skp); opt-in per caller
+	allowedExtensions?: readonly string[];
 	maxFileSize?: number;
 	getDefaultDisplayName?: (file: File) => string;
 	getDefaultDescription?: (file: File) => string;
@@ -32,6 +34,7 @@ export function useFileUpload({
 	clientId,
 	claimId,
 	allowedFileTypes = CLIENT_FILE_TYPES,
+	allowedExtensions = [],
 	maxFileSize,
 	getDefaultDisplayName,
 	getDefaultDescription,
@@ -50,7 +53,12 @@ export function useFileUpload({
 	const maxUploadSize = maxFileSize ?? (claimId ? MAX_FILE_SIZE_CLAIM : MAX_FILE_SIZE_CLIENT);
 
 	const prepareFileForUpload = (file: File) => {
-		const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
+		const validation = validateFileForUpload(
+			file,
+			allowedFileTypes,
+			maxUploadSize,
+			allowedExtensions
+		);
 		if (!validation.isValid) {
 			toast({
 				variant: 'destructive',
@@ -80,7 +88,12 @@ export function useFileUpload({
 			const invalidFiles: string[] = [];
 
 			Array.from(selectedFiles).forEach((file) => {
-				const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
+				const validation = validateFileForUpload(
+					file,
+					allowedFileTypes,
+					maxUploadSize,
+					allowedExtensions
+				);
 				if (validation.isValid) {
 					validFiles.push(file);
 				} else {
@@ -110,7 +123,12 @@ export function useFileUpload({
 		const file = selectedFiles[0];
 
 		if (file.type.startsWith('image/') && onImageFileSelect) {
-			const validation = validateFileForUpload(file, allowedFileTypes, maxUploadSize);
+			const validation = validateFileForUpload(
+				file,
+				allowedFileTypes,
+				maxUploadSize,
+				allowedExtensions
+			);
 			if (!validation.isValid) {
 				toast({
 					variant: 'destructive',
@@ -220,7 +238,12 @@ export function useFileUpload({
 					const optimizedFile = await optimizeFile(file);
 
 					// Validate optimized file (important for edited files that may have changed)
-					const validation = validateFileForUpload(optimizedFile, allowedFileTypes, maxUploadSize);
+					const validation = validateFileForUpload(
+						optimizedFile,
+						allowedFileTypes,
+						maxUploadSize,
+						allowedExtensions
+					);
 					if (!validation.isValid) {
 						console.error(
 							'File validation failed after optimization:',
@@ -310,6 +333,7 @@ export function useFileUpload({
 		handleCloseUploadDialog,
 		triggerFileUpload,
 		openUploadDialogForFile,
-		acceptedFileTypes: allowedFileTypes,
+		// Extensions are appended so the native file picker also surfaces types browsers can't map to a MIME (e.g. .skp)
+		acceptedFileTypes: [...allowedFileTypes, ...allowedExtensions],
 	};
 }
