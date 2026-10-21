@@ -3,6 +3,8 @@ import { IncomeExpenseFormDialog } from '@/components/business/cash-flow/incomes
 import type { CashFlowCategory } from '@/lib/categories/categories';
 import type { VoucherType } from '@/lib/voucher-types/voucher-types';
 import type { Work } from '@/lib/works/works';
+import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
+import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type {
 	PartyOption,
 	IncomeExpenseEntry,
@@ -68,6 +70,23 @@ const PARTIES: PartyOption[] = [
 	{ id: 1, name: 'Cliente 1' },
 	{ id: 2, name: 'Cliente 2' },
 ];
+const PAYMENT_METHOD: PaymentMethod = {
+	id: 1,
+	created_at: '2026-01-01',
+	name: 'Efectivo',
+	is_active: true,
+};
+const BANK_ACCOUNTS: BankAccount[] = [
+	{
+		id: 1,
+		name: 'Cuenta A',
+		bank: 'Banco Nación',
+		account_number: '123',
+		account_type: 'Caja de ahorro',
+		is_active: true,
+		initial_balance: 0,
+	},
+];
 
 function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDialog>> = {}) {
 	return {
@@ -82,6 +101,9 @@ function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDi
 		activeVoucherTypes: [VOUCHER_TYPE],
 		works: WORKS,
 		parties: PARTIES,
+		paymentMethods: [PAYMENT_METHOD],
+		activePaymentMethods: [PAYMENT_METHOD],
+		bankAccounts: BANK_ACCOUNTS,
 		date: '2026-01-10',
 		setDate: jest.fn(),
 		voucherNumber: '',
@@ -101,6 +123,10 @@ function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDi
 		ivaPercent: 21,
 		setIvaPercent: jest.fn(),
 		totalAmount: 0,
+		paymentMethodId: '',
+		setPaymentMethodId: jest.fn(),
+		bankAccountId: 'none',
+		setBankAccountId: jest.fn(),
 		saving: false,
 		onSubmit: jest.fn((e) => e.preventDefault()),
 		errors: {},
@@ -204,6 +230,10 @@ describe('IncomeExpenseFormDialog', () => {
 			iva_percent: 21,
 			iva_amount: 210,
 			total_amount: 1210,
+			payment_method_id: 1,
+			payment_method_name: 'Efectivo',
+			bank_account_id: null,
+			bank_account_name: null,
 		};
 		render(
 			<IncomeExpenseFormDialog
