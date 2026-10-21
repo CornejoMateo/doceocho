@@ -118,6 +118,8 @@ export function useSkpThumbnail({ source, size, enabled = true }: UseSkpThumbnai
 		let objectUrl: string | null = null;
 		const controller = new AbortController();
 
+		setThumbnailUrl(null);
+
 		const run = async () => {
 			setIsLoading(true);
 			const release = await acquireExtractionSlot();
