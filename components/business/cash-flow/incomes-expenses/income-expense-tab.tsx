@@ -126,6 +126,9 @@ export function IncomeExpenseTab({
 				activeVoucherTypes={state.activeVoucherTypes}
 				works={state.works}
 				parties={state.parties}
+				paymentMethods={state.paymentMethods}
+				activePaymentMethods={state.activePaymentMethods}
+				bankAccounts={state.bankAccounts}
 				date={state.date}
 				setDate={state.setDate}
 				voucherNumber={state.voucherNumber}
@@ -145,6 +148,10 @@ export function IncomeExpenseTab({
 				ivaPercent={state.ivaPercent}
 				setIvaPercent={state.setIvaPercent}
 				totalAmount={state.totalAmount}
+				paymentMethodId={state.paymentMethodId}
+				setPaymentMethodId={state.setPaymentMethodId}
+				bankAccountId={state.bankAccountId}
+				setBankAccountId={state.setBankAccountId}
 				saving={state.saving}
 				onSubmit={state.handleSubmit}
 				errors={state.errors}

@@ -16,6 +16,8 @@ export type Expense = {
 	iva_percent: number;
 	iva_amount: number;
 	total_amount: number;
+	payment_method_id: number | null;
+	bank_account_id: number | null;
 };
 
 export type ExpenseWithDetails = Expense & {
@@ -23,6 +25,8 @@ export type ExpenseWithDetails = Expense & {
 	work_name: string | null;
 	supplier_name: string;
 	category_name: string;
+	payment_method_name: string | null;
+	bank_account_name: string | null;
 };
 
 export type ExpenseInput = {
@@ -37,19 +41,32 @@ export type ExpenseInput = {
 	iva_percent: number;
 	iva_amount: number;
 	total_amount: number;
+	payment_method_id: number | null;
+	bank_account_id: number | null;
 };
 
 const TABLE = 'expenses';
-const SELECT = '*, voucher_types(name), works(name), suppliers(name), cash_flow_categories(name)';
+const SELECT =
+	'*, voucher_types(name), works(name), suppliers(name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank)';
 
 function mapRow(row: any): ExpenseWithDetails {
-	const { voucher_types, works, suppliers, cash_flow_categories, ...rest } = row;
+	const {
+		voucher_types,
+		works,
+		suppliers,
+		cash_flow_categories,
+		payment_methods,
+		bank_accounts,
+		...rest
+	} = row;
 	return {
 		...rest,
 		voucher_type_name: voucher_types?.name ?? '',
 		work_name: works?.name ?? null,
 		supplier_name: suppliers?.name ?? '',
 		category_name: cash_flow_categories?.name ?? '',
+		payment_method_name: payment_methods?.name ?? null,
+		bank_account_name: bank_accounts ? `${bank_accounts.bank} - ${bank_accounts.name}` : null,
 	};
 }
 
