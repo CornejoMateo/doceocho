@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CashFlowCategory, CategoryKind, listCategories } from '@/lib/categories/categories';
 import { Work, listWorks } from '@/lib/works/works';
 import { PaymentMethod, listPaymentMethods } from '@/lib/payment-methods/payment-methods';
-import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { BankAccount, listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { PartyOption } from '@/hooks/income-expense/use-income-expense-tab';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
@@ -121,6 +121,7 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 		() => paymentMethods.filter((m) => m.is_active),
 		[paymentMethods]
 	);
+	const activeBankAccounts = useMemo(() => bankAccounts.filter((b) => b.is_active), [bankAccounts]);
 
 	const fetchEntries = async (targetYear: number) => {
 		const requestId = ++entriesRequestIdRef.current;
@@ -166,8 +167,9 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 		setPaymentMethods(data ?? []);
 	};
 
+	// Fetches all accounts (not just active) so an edit can still show an account that was deactivated later.
 	const fetchBankAccounts = async () => {
-		const { data, error } = await listActiveBankAccounts();
+		const { data, error } = await listBankAccounts();
 		if (error) return;
 		setBankAccounts(data ?? []);
 	};
@@ -476,6 +478,7 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 		paymentMethods,
 		activePaymentMethods,
 		bankAccounts,
+		activeBankAccounts,
 		summary,
 		dateFrom,
 		setDateFrom,

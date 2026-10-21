@@ -94,6 +94,7 @@ function baseProps(over: Partial<React.ComponentProps<typeof CollectionPaymentFo
 		paymentMethods: [PAYMENT_METHOD],
 		activePaymentMethods: [PAYMENT_METHOD],
 		bankAccounts: [BANK_ACCOUNT],
+		activeBankAccounts: [BANK_ACCOUNT],
 		date: '2026-01-10',
 		setDate: jest.fn(),
 		receiptNumber: '',

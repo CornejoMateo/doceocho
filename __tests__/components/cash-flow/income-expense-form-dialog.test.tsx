@@ -104,6 +104,7 @@ function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDi
 		paymentMethods: [PAYMENT_METHOD],
 		activePaymentMethods: [PAYMENT_METHOD],
 		bankAccounts: BANK_ACCOUNTS,
+		activeBankAccounts: BANK_ACCOUNTS,
 		date: '2026-01-10',
 		setDate: jest.fn(),
 		voucherNumber: '',

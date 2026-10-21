@@ -45,6 +45,7 @@ type IncomeExpenseFormDialogProps = {
 	paymentMethods: PaymentMethod[];
 	activePaymentMethods: PaymentMethod[];
 	bankAccounts: BankAccount[];
+	activeBankAccounts: BankAccount[];
 	date: string;
 	setDate: (value: string) => void;
 	voucherNumber: string;
@@ -92,6 +93,7 @@ export function IncomeExpenseFormDialog({
 	paymentMethods,
 	activePaymentMethods,
 	bankAccounts,
+	activeBankAccounts,
 	date,
 	setDate,
 	voucherNumber,
@@ -168,6 +170,12 @@ export function IncomeExpenseFormDialog({
 		!!editingEntry
 	);
 	const paymentMethodRequired = !editingEntry;
+	const bankAccountOptions = withInactiveSelected(
+		activeBankAccounts,
+		bankAccounts,
+		bankAccountId,
+		!!editingEntry
+	);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -366,9 +374,10 @@ export function IncomeExpenseFormDialog({
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="none">Sin cuenta</SelectItem>
-									{bankAccounts.map((account) => (
+									{bankAccountOptions.map((account) => (
 										<SelectItem key={account.id} value={String(account.id)}>
 											{account.bank} - {account.name}
+											{!account.is_active && ' (inactiva)'}
 										</SelectItem>
 									))}
 								</SelectContent>

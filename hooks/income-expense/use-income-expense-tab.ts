@@ -5,7 +5,7 @@ import { CashFlowCategory, CategoryKind, listCategories } from '@/lib/categories
 import { VoucherType, listVoucherTypes } from '@/lib/voucher-types/voucher-types';
 import { Work, listWorks } from '@/lib/works/works';
 import { PaymentMethod, listPaymentMethods } from '@/lib/payment-methods/payment-methods';
-import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { BankAccount, listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { computeIvaAndTotal, IVA_RATES } from '@/constants/cashflow/iva';
@@ -117,6 +117,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		() => paymentMethods.filter((m) => m.is_active),
 		[paymentMethods]
 	);
+	const activeBankAccounts = useMemo(() => bankAccounts.filter((b) => b.is_active), [bankAccounts]);
 
 	const fetchEntries = async (targetYear: number) => {
 		const requestId = ++entriesRequestIdRef.current;
@@ -168,8 +169,9 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setPaymentMethods(data ?? []);
 	};
 
+	// Fetches all accounts (not just active) so an edit can still show an account that was deactivated later.
 	const fetchBankAccounts = async () => {
-		const { data, error } = await listActiveBankAccounts();
+		const { data, error } = await listBankAccounts();
 		if (error) return;
 		setBankAccounts(data ?? []);
 	};
@@ -406,6 +408,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		paymentMethods,
 		activePaymentMethods,
 		bankAccounts,
+		activeBankAccounts,
 		summary,
 		dateFrom,
 		setDateFrom,

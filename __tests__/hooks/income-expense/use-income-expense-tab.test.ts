@@ -8,7 +8,7 @@ import { listCategories } from '@/lib/categories/categories';
 import { listVoucherTypes } from '@/lib/voucher-types/voucher-types';
 import { listWorks } from '@/lib/works/works';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
-import { listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { getLocalDate } from '@/utils/format-date';
 
 jest.mock('@/lib/categories/categories', () => ({
@@ -24,7 +24,7 @@ jest.mock('@/lib/payment-methods/payment-methods', () => ({
 	listPaymentMethods: jest.fn(),
 }));
 jest.mock('@/lib/cash-flow/cash-flow', () => ({
-	listActiveBankAccounts: jest.fn(),
+	listBankAccounts: jest.fn(),
 }));
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: mockToast }),
@@ -86,7 +86,7 @@ describe('useIncomeExpenseTab', () => {
 		(listVoucherTypes as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listWorks as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
-		(listActiveBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 
 	describe('fetching by year', () => {

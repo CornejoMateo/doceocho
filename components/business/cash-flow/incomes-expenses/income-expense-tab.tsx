@@ -129,6 +129,7 @@ export function IncomeExpenseTab({
 				paymentMethods={state.paymentMethods}
 				activePaymentMethods={state.activePaymentMethods}
 				bankAccounts={state.bankAccounts}
+				activeBankAccounts={state.activeBankAccounts}
 				date={state.date}
 				setDate={state.setDate}
 				voucherNumber={state.voucherNumber}
