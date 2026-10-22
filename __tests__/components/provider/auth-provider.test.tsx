@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/components/provider/auth-provider';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { toast } from '@/components/ui/use-toast';
 import { UI } from 'react-day-picker';
+import { getDefaultViews } from '@/helpers/permissions/views';
 
 jest.mock('@/lib/supabase-client', () => ({
 	getSupabaseClient: jest.fn(),
@@ -137,6 +138,7 @@ describe('AuthProvider', () => {
 			name: 'Admin',
 			last_name: 'User',
 			uid: '12345',
+			views: getDefaultViews('Admin'),
 		});
 
 		expect(global.fetch).toHaveBeenCalledWith('/api/me', {
@@ -243,6 +245,7 @@ describe('AuthProvider', () => {
 				name: 'Juan',
 				last_name: 'Pérez',
 				uid: 'user-123',
+				views: getDefaultViews('Taller'),
 			});
 
 			expect(sessionUser).toEqual({
@@ -251,6 +254,7 @@ describe('AuthProvider', () => {
 				name: 'Juan',
 				last_name: 'Pérez',
 				uid: 'user-123',
+				views: getDefaultViews('Taller'),
 			});
 
 			expect(result.current.loading).toBe(false);

@@ -57,6 +57,7 @@ import { MetricsTab } from '@/components/business/works/metrics/metrics-tab';
 import { ClientDetailsDialog } from '@/components/business/clients/client-details-dialog';
 import { type Client } from '@/lib/clients/clients';
 import { isAdminRole } from '@/constants/users/user-role';
+import { useCanView } from '@/hooks/permissions/use-can-view';
 
 export function WorksOpenings() {
 	// Single filter state shared by the list ("Obras") and the "Métricas" tab.
@@ -68,6 +69,7 @@ export function WorksOpenings() {
 	const [chartSpec, setChartSpec] = useState<ChartSpec>(createDefaultSpec);
 
 	const { user } = useAuth();
+	const canView = useCanView();
 	const { works, loading, reload } = useWorksWithProgress();
 	const { eventTypes } = useLoadEventTypes();
 
@@ -293,7 +295,7 @@ export function WorksOpenings() {
 			<Tabs value={tab} onValueChange={setTab} className="gap-4">
 				<TabsList>
 					<TabsTrigger value="works">Obras</TabsTrigger>
-					{isAuthorized && <TabsTrigger value="metrics">Métricas</TabsTrigger>}
+					{canView('works.metrics') && <TabsTrigger value="metrics">Métricas</TabsTrigger>}
 				</TabsList>
 
 				<WorksFiltersBar

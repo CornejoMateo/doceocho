@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { useRouter } from 'next/navigation';
 
 import { UserRole } from '@/constants/users/user-role';
+import { resolveViews } from '@/helpers/permissions/views';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { clearChannelsCache } from '@/hooks/chat/use-chat-management';
 import { Spinner } from '@/components/ui/spinner';
@@ -47,6 +48,8 @@ export type SessionUser = {
 	last_name: string;
 	role: UserRole;
 	uid: string;
+	/** Modules and tabs this user can see, already resolved from role and customization. */
+	views: string[];
 };
 
 type AuthContextType = {
@@ -95,6 +98,7 @@ async function fetchProfile(token: string): Promise<SessionUser | null> {
 			name: json.data.name || '-',
 			last_name: json.data.last_name || '-',
 			uid: json.data.uid_user || '',
+			views: resolveViews(json.data.role, json.data.views),
 		};
 	} catch (err) {
 		if (err instanceof DOMException && err.name === 'AbortError') {
@@ -244,6 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				name: res.data.name || '-',
 				last_name: res.data.last_name || '-',
 				uid: res.data.uid_user || '',
+				views: resolveViews(res.data.role, null),
 			};
 
 			const {
@@ -255,7 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			}
 			const profile = await loadProfile();
 			if (profile) setUser(profile);
-			return sessionUser;
+			return profile ?? sessionUser;
 		} catch (err: any) {
 			throw err;
 		} finally {

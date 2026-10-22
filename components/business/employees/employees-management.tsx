@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/provider/auth-provider';
 import { useUsers } from '@/components/provider/users-provider';
-import type { UserRole } from '@/constants/users/user-role';
 import { ClockIn } from '@/components/business/clock-in/clock-in';
 import { AttendanceHistoryTab } from '@/components/business/clock-in/attendance-history-tab';
 import { ModuleManagement } from '@/components/business/modules/module-management';
@@ -13,6 +12,7 @@ import { EvaluationsTab } from '@/components/business/human-resources/evaluation
 import { VacationsTab } from '@/components/business/human-resources/vacations/vacations-tab';
 import { EmployeesTabValue, TABS } from '@/constants/employees/employees';
 import { isAdminRole } from '@/constants/users/user-role';
+import { useCanView } from '@/hooks/permissions/use-can-view';
 
 export function EmployeesManagement() {
 	const { user } = useAuth();
@@ -21,12 +21,15 @@ export function EmployeesManagement() {
 
 	const isAdmin = isAdminRole(user?.role);
 	const { users } = useUsers();
+	const canView = useCanView();
 
 	if (!user?.role) return null;
 
-	const visibleTabs = TABS.filter((tab) => tab.roles.includes(user.role as UserRole));
+	const visibleTabs = TABS.filter((tab) => canView(`employees.${tab.value}`));
 	const requestedTab = searchParams.get('tab') ?? '';
-	const activeTab = visibleTabs.some((tab) => tab.value === requestedTab) ? requestedTab : 'fichar';
+	const activeTab = visibleTabs.some((tab) => tab.value === requestedTab)
+		? requestedTab
+		: (visibleTabs[0]?.value ?? '');
 
 	const isVisible = (value: EmployeesTabValue) => visibleTabs.some((tab) => tab.value === value);
 

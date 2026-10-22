@@ -33,6 +33,17 @@ import { useClientWorks } from '@/hooks/clients/use-client-works';
 import { useClientBudgets } from '@/hooks/clients/use-client-budgets';
 import { useClientBalances } from '@/hooks/clients/use-client-balances';
 import { isAdminRole } from '@/constants/users/user-role';
+import { useCanView } from '@/hooks/permissions/use-can-view';
+
+type ClientTab = 'info' | 'works' | 'budgets' | 'balances' | 'images';
+
+const CLIENT_TABS: { value: ClientTab; label: string }[] = [
+	{ value: 'info', label: 'Información' },
+	{ value: 'works', label: 'Obras' },
+	{ value: 'budgets', label: 'Presupuestos' },
+	{ value: 'balances', label: 'Cuentas corrientes' },
+	{ value: 'images', label: 'Archivos' },
+];
 
 interface ClientDetailsDialogProps {
 	client: Client | null;
@@ -40,7 +51,7 @@ interface ClientDetailsDialogProps {
 	onClose: () => void;
 	onEdit?: () => void;
 	onClientUpdated?: () => void;
-	initialTab?: 'info' | 'works' | 'budgets' | 'balances' | 'images';
+	initialTab?: ClientTab;
 	onClientDataLoaded?: () => void;
 }
 
@@ -60,6 +71,12 @@ export function ClientDetailsDialog({
 	const { user } = useAuth();
 
 	const isAuthorized = isAdminRole(user?.role);
+	const canView = useCanView();
+	const visibleTabs = CLIENT_TABS.filter((tab) => canView(`clients.${tab.value}`));
+	const defaultTab =
+		initialTab && visibleTabs.some((tab) => tab.value === initialTab)
+			? initialTab
+			: visibleTabs[0]?.value;
 
 	// Auto-save hook for cover field
 	const {
@@ -206,12 +223,9 @@ export function ClientDetailsDialog({
 	useEffect(() => {
 		if (!isOpen || !client?.id) return;
 
-		if (initialTab === 'works') {
-			loadWorks();
-		} else if (initialTab === 'budgets') {
-			loadBudgets();
-		}
-	}, [isOpen, client?.id, initialTab]);
+		// The first tab shown loads its data right away, like a tab the user clicked.
+		if (defaultTab) handleTabChange(defaultTab);
+	}, [isOpen, client?.id, defaultTab]);
 
 	// Update local client data when client prop changes or dialog opens
 	useEffect(() => {
@@ -324,23 +338,13 @@ export function ClientDetailsDialog({
 					</div>
 
 					<div className="border-t pt-2">
-						<Tabs
-							defaultValue={initialTab ?? (isAuthorized ? 'info' : 'images')}
-							className="w-full "
-							onValueChange={handleTabChange}
-						>
+						<Tabs defaultValue={defaultTab} className="w-full " onValueChange={handleTabChange}>
 							<TabsList className="flex-wrap h-auto justify-start gap-1 w-full">
-								<>
-									{isAuthorized && <TabsTrigger value="info">Información</TabsTrigger>}
-									<TabsTrigger value="works">Obras</TabsTrigger>
-									{isAuthorized && (
-										<>
-											<TabsTrigger value="budgets">Presupuestos</TabsTrigger>
-											<TabsTrigger value="balances">Cuentas corrientes</TabsTrigger>
-										</>
-									)}
-									<TabsTrigger value="images">Archivos</TabsTrigger>
-								</>
+								{visibleTabs.map((tab) => (
+									<TabsTrigger key={tab.value} value={tab.value}>
+										{tab.label}
+									</TabsTrigger>
+								))}
 							</TabsList>
 
 							<div className="mt-2">
