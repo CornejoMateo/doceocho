@@ -22,6 +22,7 @@ import { BankAccount } from '@/lib/cash-flow/cash-flow';
 import { FUTURE_YEARS_AHEAD, IVA_RATES } from '@/constants/cashflow/fixed-expenses';
 import { formatCurrency, formatNumber } from '@/utils/formats-money';
 import { getLocalDate } from '@/utils/format-date';
+import { withInactiveSelected } from '@/utils/select-options';
 
 type FixedExpensePaymentDialogProps = {
 	open: boolean;
@@ -43,6 +44,7 @@ type FixedExpensePaymentDialogProps = {
 	paymentBankAccountId: string;
 	setPaymentBankAccountId: (value: string) => void;
 	bankAccounts: BankAccount[];
+	activeBankAccounts: BankAccount[];
 	payingSaving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 };
@@ -67,10 +69,18 @@ export function FixedExpensePaymentDialog({
 	paymentBankAccountId,
 	setPaymentBankAccountId,
 	bankAccounts,
+	activeBankAccounts,
 	payingSaving,
 	onSubmit,
 }: FixedExpensePaymentDialogProps) {
 	const maxPaymentMonth = `${Number(getLocalDate().slice(0, 4)) + FUTURE_YEARS_AHEAD}-12`;
+	// On create only active accounts show; on edit the saved-but-inactive one stays visible too.
+	const bankAccountOptions = withInactiveSelected(
+		activeBankAccounts,
+		bankAccounts,
+		paymentBankAccountId,
+		!!paymentToEdit
+	);
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
@@ -163,9 +173,10 @@ export function FixedExpensePaymentDialog({
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="none">Sin cuenta</SelectItem>
-								{bankAccounts.map((account) => (
+								{bankAccountOptions.map((account) => (
 									<SelectItem key={account.id} value={String(account.id)}>
 										{account.bank} - {account.name}
+										{!account.is_active && ' (inactiva)'}
 									</SelectItem>
 								))}
 							</SelectContent>

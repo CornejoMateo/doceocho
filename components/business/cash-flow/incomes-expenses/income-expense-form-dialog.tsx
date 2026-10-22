@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { CashFlowCategory } from '@/lib/categories/categories';
 import { VoucherType } from '@/lib/voucher-types/voucher-types';
 import { Work } from '@/lib/works/works';
+import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
+import { BankAccount } from '@/lib/cash-flow/cash-flow';
 import {
 	PartyOption,
 	IncomeExpenseEntry,
@@ -40,6 +42,10 @@ type IncomeExpenseFormDialogProps = {
 	activeVoucherTypes: VoucherType[];
 	works: Work[];
 	parties: PartyOption[];
+	paymentMethods: PaymentMethod[];
+	activePaymentMethods: PaymentMethod[];
+	bankAccounts: BankAccount[];
+	activeBankAccounts: BankAccount[];
 	date: string;
 	setDate: (value: string) => void;
 	voucherNumber: string;
@@ -59,6 +65,10 @@ type IncomeExpenseFormDialogProps = {
 	ivaPercent: number;
 	setIvaPercent: (value: number) => void;
 	totalAmount: number;
+	paymentMethodId: string;
+	setPaymentMethodId: (value: string) => void;
+	bankAccountId: string;
+	setBankAccountId: (value: string) => void;
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 	errors: IncomeExpenseFormErrors;
@@ -80,6 +90,10 @@ export function IncomeExpenseFormDialog({
 	activeVoucherTypes,
 	works,
 	parties,
+	paymentMethods,
+	activePaymentMethods,
+	bankAccounts,
+	activeBankAccounts,
 	date,
 	setDate,
 	voucherNumber,
@@ -99,6 +113,10 @@ export function IncomeExpenseFormDialog({
 	ivaPercent,
 	setIvaPercent,
 	totalAmount,
+	paymentMethodId,
+	setPaymentMethodId,
+	bankAccountId,
+	setBankAccountId,
 	saving,
 	onSubmit,
 	errors,
@@ -143,6 +161,19 @@ export function IncomeExpenseFormDialog({
 		activeVoucherTypes,
 		voucherTypes,
 		voucherTypeId,
+		!!editingEntry
+	);
+	const paymentMethodOptions = withInactiveSelected(
+		activePaymentMethods,
+		paymentMethods,
+		paymentMethodId,
+		!!editingEntry
+	);
+	const paymentMethodRequired = !editingEntry;
+	const bankAccountOptions = withInactiveSelected(
+		activeBankAccounts,
+		bankAccounts,
+		bankAccountId,
 		!!editingEntry
 	);
 
@@ -307,6 +338,50 @@ export function IncomeExpenseFormDialog({
 						<div className="space-y-2">
 							<Label>Total</Label>
 							<Input value={formatCurrency(totalAmount)} readOnly disabled />
+						</div>
+					</div>
+
+					<div className="grid gap-4 sm:grid-cols-2">
+						<div className="space-y-2">
+							<Label htmlFor="ie-payment-method">
+								Medio de pago
+								{!paymentMethodRequired && ' (opcional)'}
+							</Label>
+							<Select
+								value={paymentMethodId}
+								onValueChange={setPaymentMethodId}
+								required={paymentMethodRequired}
+							>
+								<SelectTrigger id="ie-payment-method" aria-invalid={!!errors.paymentMethodId}>
+									<SelectValue placeholder="Selecciona un medio" />
+								</SelectTrigger>
+								<SelectContent>
+									{paymentMethodOptions.map((method) => (
+										<SelectItem key={method.id} value={String(method.id)}>
+											{method.name}
+											{!method.is_active && ' (inactivo)'}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{errors.paymentMethodId && <FieldError message="Elegí un medio de pago" />}
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="ie-bank-account">Cuenta bancaria (opcional)</Label>
+							<Select value={bankAccountId} onValueChange={setBankAccountId}>
+								<SelectTrigger id="ie-bank-account">
+									<SelectValue placeholder="Selecciona una cuenta" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">Sin cuenta</SelectItem>
+									{bankAccountOptions.map((account) => (
+										<SelectItem key={account.id} value={String(account.id)}>
+											{account.bank} - {account.name}
+											{!account.is_active && ' (inactiva)'}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 

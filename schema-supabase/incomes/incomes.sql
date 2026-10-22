@@ -15,12 +15,16 @@ create table public.incomes (
   iva_percent numeric not null default 0,
   iva_amount numeric not null,
   total_amount numeric not null,
+  payment_method_id bigint null,
+  bank_account_id bigint null,
   constraint incomes_pkey primary key (id),
   constraint incomes_kind_check check (kind = 'income'),
   constraint incomes_voucher_type_id_fkey foreign key (voucher_type_id) references public.voucher_types (id) on delete restrict,
   constraint incomes_work_id_fkey foreign key (work_id) references public.works (id) on delete set null,
   constraint incomes_client_id_fkey foreign key (client_id) references public.clients (id) on delete restrict,
   constraint incomes_category_id_kind_fkey foreign key (category_id, kind) references public.cash_flow_categories (id, kind) on delete restrict,
+  constraint incomes_payment_method_id_fkey foreign key (payment_method_id) references public.payment_methods (id) on delete restrict,
+  constraint incomes_bank_account_id_fkey foreign key (bank_account_id) references public.bank_accounts (id) on delete set null,
   constraint incomes_voucher_number_length_check check (voucher_number is null or char_length(voucher_number) <= 60),
   constraint incomes_description_length_check check (description is null or char_length(description) <= 300),
   constraint incomes_net_amount_check check (net_amount >= 0),
@@ -38,6 +42,8 @@ create index incomes_voucher_type_id_idx on public.incomes (voucher_type_id);
 create index incomes_work_id_idx on public.incomes (work_id);
 create index incomes_client_id_idx on public.incomes (client_id);
 create index incomes_category_id_idx on public.incomes (category_id);
+create index incomes_payment_method_id_idx on public.incomes (payment_method_id);
+create index incomes_bank_account_id_idx on public.incomes (bank_account_id);
 
 ------ TRIGGER: DB IS SOURCE OF TRUTH FOR IVA/TOTAL, IGNORES CLIENT-SENT VALUES ------
 

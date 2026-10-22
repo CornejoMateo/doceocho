@@ -24,6 +24,10 @@ function makeEntry(over: Partial<IncomeExpenseEntry>): IncomeExpenseEntry {
 		iva_percent: 21,
 		iva_amount: 210,
 		total_amount: 1210,
+		payment_method_id: null,
+		payment_method_name: null,
+		bank_account_id: null,
+		bank_account_name: null,
 		...over,
 	};
 }

@@ -133,6 +133,7 @@ export function CollectionPaymentTab({
 				paymentMethods={state.paymentMethods}
 				activePaymentMethods={state.activePaymentMethods}
 				bankAccounts={state.bankAccounts}
+				activeBankAccounts={state.activeBankAccounts}
 				date={state.date}
 				setDate={state.setDate}
 				receiptNumber={state.receiptNumber}

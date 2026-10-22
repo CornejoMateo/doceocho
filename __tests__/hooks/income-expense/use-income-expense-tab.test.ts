@@ -7,6 +7,8 @@ import {
 import { listCategories } from '@/lib/categories/categories';
 import { listVoucherTypes } from '@/lib/voucher-types/voucher-types';
 import { listWorks } from '@/lib/works/works';
+import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
+import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { getLocalDate } from '@/utils/format-date';
 
 jest.mock('@/lib/categories/categories', () => ({
@@ -17,6 +19,12 @@ jest.mock('@/lib/voucher-types/voucher-types', () => ({
 }));
 jest.mock('@/lib/works/works', () => ({
 	listWorks: jest.fn(),
+}));
+jest.mock('@/lib/payment-methods/payment-methods', () => ({
+	listPaymentMethods: jest.fn(),
+}));
+jest.mock('@/lib/cash-flow/cash-flow', () => ({
+	listBankAccounts: jest.fn(),
 }));
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: mockToast }),
@@ -42,6 +50,10 @@ function entry(overrides: Partial<IncomeExpenseEntry> = {}): IncomeExpenseEntry 
 		iva_percent: 21,
 		iva_amount: 210,
 		total_amount: 1210,
+		payment_method_id: null,
+		payment_method_name: null,
+		bank_account_id: null,
+		bank_account_name: null,
 		...overrides,
 	};
 }
@@ -73,6 +85,8 @@ describe('useIncomeExpenseTab', () => {
 		(listCategories as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listVoucherTypes as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listWorks as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 
 	describe('fetching by year', () => {
@@ -402,11 +416,17 @@ describe('useIncomeExpenseTab', () => {
 				result.current.setCategoryId('10');
 				result.current.setNetAmount('1000,125');
 				result.current.setIvaPercent(21);
+				result.current.setPaymentMethodId('2');
 			});
 			await act(async () => result.current.handleSubmit(fakeEvent()));
 
 			expect(config.createEntry).toHaveBeenCalledWith(
-				expect.objectContaining({ net_amount: 1000.13, iva_amount: 210.03, total_amount: 1210.16 })
+				expect.objectContaining({
+					net_amount: 1000.13,
+					iva_amount: 210.03,
+					total_amount: 1210.16,
+					payment_method_id: 2,
+				})
 			);
 			expect(mockToast).toHaveBeenCalledWith({ title: 'Ingreso creado' });
 		});
@@ -438,6 +458,7 @@ describe('useIncomeExpenseTab', () => {
 				result.current.setPartyId('3');
 				result.current.setCategoryId('10');
 				result.current.setNetAmount('1000');
+				result.current.setPaymentMethodId('2');
 			});
 			await act(async () => result.current.handleSubmit(fakeEvent()));
 

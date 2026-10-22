@@ -178,6 +178,8 @@ describe('lib/incomes', () => {
 				iva_percent: 21,
 				iva_amount: 210,
 				total_amount: 1210,
+				payment_method_id: null,
+				bank_account_id: null,
 			});
 
 			expect(chain.insert).toHaveBeenCalledWith(
@@ -200,6 +202,8 @@ describe('lib/incomes', () => {
 				iva_percent: 0,
 				iva_amount: 0,
 				total_amount: 1000,
+				payment_method_id: null,
+				bank_account_id: null,
 			});
 
 			expect(chain.insert).toHaveBeenCalledWith(
@@ -223,6 +227,8 @@ describe('lib/incomes', () => {
 				iva_percent: 0,
 				iva_amount: 0,
 				total_amount: 1000,
+				payment_method_id: null,
+				bank_account_id: null,
 			});
 
 			expect(res).toEqual({ data: null, error: err });
@@ -245,6 +251,8 @@ describe('lib/incomes', () => {
 				iva_percent: 21,
 				iva_amount: 420,
 				total_amount: 2420,
+				payment_method_id: null,
+				bank_account_id: null,
 			});
 
 			expect(chain.update).toHaveBeenCalledWith(expect.objectContaining({ voucher_number: 'B-2' }));
