@@ -215,11 +215,15 @@ export function IncomeExpenseFormDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="ie-voucher-type">Tipo de comprobante (opcional)</Label>
-						<Select value={voucherTypeId} onValueChange={setVoucherTypeId}>
+						<Select
+							value={voucherTypeId}
+							onValueChange={(v) => setVoucherTypeId(v === 'none' ? '' : v)}
+						>
 							<SelectTrigger id="ie-voucher-type">
 								<SelectValue placeholder="Selecciona un tipo" />
 							</SelectTrigger>
 							<SelectContent>
+								<SelectItem value="none">Sin tipo de comprobante</SelectItem>
 								{voucherTypeOptions.map((voucherType) => (
 									<SelectItem key={voucherType.id} value={String(voucherType.id)}>
 										{voucherType.name}
@@ -232,15 +236,24 @@ export function IncomeExpenseFormDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="ie-party">{`${partyLabel} (opcional)`}</Label>
-						<EntityCombobox
-							id="ie-party"
-							value={partyId}
-							onValueChange={handlePartyChange}
-							options={partyOptions}
-							placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
-							searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
-							emptyLabel="No se encontraron resultados"
-						/>
+						<div className="flex gap-2">
+							<div className="flex-1">
+								<EntityCombobox
+									id="ie-party"
+									value={partyId}
+									onValueChange={handlePartyChange}
+									options={partyOptions}
+									placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
+									searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
+									emptyLabel="No se encontraron resultados"
+								/>
+							</div>
+							{partyId && (
+								<Button type="button" variant="outline" onClick={() => handlePartyChange('')}>
+									Quitar
+								</Button>
+							)}
+						</div>
 					</div>
 
 					<div className="space-y-2">
@@ -267,11 +280,12 @@ export function IncomeExpenseFormDialog({
 
 					<div className="space-y-2">
 						<Label htmlFor="ie-category">Categoría (opcional)</Label>
-						<Select value={categoryId} onValueChange={setCategoryId}>
+						<Select value={categoryId} onValueChange={(v) => setCategoryId(v === 'none' ? '' : v)}>
 							<SelectTrigger id="ie-category">
 								<SelectValue placeholder="Selecciona una categoría" />
 							</SelectTrigger>
 							<SelectContent>
+								<SelectItem value="none">Sin categoría</SelectItem>
 								{categoryOptions.map((category) => (
 									<SelectItem key={category.id} value={String(category.id)}>
 										{category.name}
