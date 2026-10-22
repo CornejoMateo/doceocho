@@ -44,7 +44,7 @@ export function IncomeExpenseByCategory({ entries, categories }: IncomeExpenseBy
 							</TableHeader>
 							<TableBody>
 								{byCategory.map((row) => (
-									<TableRow key={row.categoryId}>
+									<TableRow key={row.categoryId ?? 'none'}>
 										<TableCell className="text-center">{row.categoryName}</TableCell>
 										<TableCell className="text-center">{formatCurrency(row.net)}</TableCell>
 									</TableRow>

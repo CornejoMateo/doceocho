@@ -5,10 +5,10 @@ create table public.expenses (
   created_at timestamp with time zone not null default now(),
   date date not null,
   voucher_number text null,
-  voucher_type_id bigint not null,
+  voucher_type_id bigint null,
   work_id bigint null,
-  supplier_id bigint not null,
-  category_id bigint not null,
+  supplier_id bigint null,
+  category_id bigint null,
   kind text not null default 'expense',
   description text null,
   net_amount numeric not null,
@@ -160,3 +160,8 @@ create trigger trg_expenses_compute_iva_and_total
 before insert or update on public.expenses
 for each row
 execute function public.expenses_compute_iva_and_total();
+
+ALTER TABLE public.expenses
+  ALTER COLUMN voucher_type_id DROP NOT NULL,
+  ALTER COLUMN supplier_id DROP NOT NULL,
+  ALTER COLUMN category_id DROP NOT NULL;

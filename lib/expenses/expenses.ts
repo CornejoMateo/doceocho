@@ -6,10 +6,10 @@ export type Expense = {
 	created_at: string;
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	supplier_id: number;
-	category_id: number;
+	supplier_id: number | null;
+	category_id: number | null;
 	kind: 'expense';
 	description: string | null;
 	net_amount: number;
@@ -32,10 +32,10 @@ export type ExpenseWithDetails = Expense & {
 export type ExpenseInput = {
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	supplier_id: number;
-	category_id: number;
+	supplier_id: number | null;
+	category_id: number | null;
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;

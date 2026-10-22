@@ -143,18 +143,19 @@ describe('IncomeExpenseFormDialog', () => {
 		render(<IncomeExpenseFormDialog {...baseProps()} />);
 
 		const form = screen.getByLabelText('Detalle').closest('form')!;
-		const partyLabelEl = within(form).getByText('Cliente');
+		const partyLabelEl = within(form).getByText('Cliente (opcional)');
 		const workLabelEl = within(form).getByText('Obra (opcional)');
 		expect(
 			partyLabelEl.compareDocumentPosition(workLabelEl) & Node.DOCUMENT_POSITION_FOLLOWING
 		).toBeTruthy();
 	});
 
-	it('disables the work field with "Elegí un cliente primero" when no party is selected', () => {
+	it('shows every work (unfiltered) when no party is selected, since party is optional', () => {
 		render(<IncomeExpenseFormDialog {...baseProps({ partyId: '' })} />);
 
-		expect(workCombobox()).toBeDisabled();
-		expect(within(workCombobox()).getByText('Elegí un cliente primero')).toBeInTheDocument();
+		expect(workCombobox()).not.toBeDisabled();
+		expect(within(workCombobox()).getByText('Obra A')).toBeInTheDocument();
+		expect(within(workCombobox()).getByText('Obra B')).toBeInTheDocument();
 	});
 
 	it('shows "Sin obras para este cliente" when the selected client has no works', () => {

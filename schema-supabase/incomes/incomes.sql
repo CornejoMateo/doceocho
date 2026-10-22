@@ -5,10 +5,10 @@ create table public.incomes (
   created_at timestamp with time zone not null default now(),
   date date not null,
   voucher_number text null,
-  voucher_type_id bigint not null,
+  voucher_type_id bigint null,
   work_id bigint null,
-  client_id bigint not null,
-  category_id bigint not null,
+  client_id bigint null,
+  category_id bigint null,
   kind text not null default 'income',
   description text null,
   net_amount numeric not null,
@@ -160,3 +160,8 @@ create trigger trg_incomes_compute_iva_and_total
 before insert or update on public.incomes
 for each row
 execute function public.incomes_compute_iva_and_total();
+
+ALTER TABLE public.incomes
+  ALTER COLUMN voucher_type_id DROP NOT NULL,
+  ALTER COLUMN client_id DROP NOT NULL,
+  ALTER COLUMN category_id DROP NOT NULL;

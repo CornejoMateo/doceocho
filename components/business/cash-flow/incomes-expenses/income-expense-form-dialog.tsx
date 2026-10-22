@@ -131,13 +131,11 @@ export function IncomeExpenseFormDialog({
 		id: work.id,
 		label: work.name || `Obra #${work.id}`,
 	}));
+	// Party is optional now, so no party selected just shows every work instead of blocking the field.
 	const workPlaceholder =
-		filterWorksByParty && !selectedPartyId
-			? 'Elegí un cliente primero'
-			: filterWorksByParty && workOptions.length === 0
-				? 'Sin obras para este cliente'
-				: 'Sin obra';
-	const workDisabled = filterWorksByParty && !selectedPartyId;
+		filterWorksByParty && selectedPartyId && workOptions.length === 0
+			? 'Sin obras para este cliente'
+			: 'Sin obra';
 
 	const handlePartyChange = (newPartyId: string) => {
 		setPartyId(newPartyId);
@@ -216,9 +214,9 @@ export function IncomeExpenseFormDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-voucher-type">Tipo de comprobante</Label>
-						<Select value={voucherTypeId} onValueChange={setVoucherTypeId} required>
-							<SelectTrigger id="ie-voucher-type" aria-invalid={!!errors.voucherTypeId}>
+						<Label htmlFor="ie-voucher-type">Tipo de comprobante (opcional)</Label>
+						<Select value={voucherTypeId} onValueChange={setVoucherTypeId}>
+							<SelectTrigger id="ie-voucher-type">
 								<SelectValue placeholder="Selecciona un tipo" />
 							</SelectTrigger>
 							<SelectContent>
@@ -230,11 +228,10 @@ export function IncomeExpenseFormDialog({
 								))}
 							</SelectContent>
 						</Select>
-						{errors.voucherTypeId && <FieldError message="Elegí un tipo de comprobante" />}
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-party">{partyLabel}</Label>
+						<Label htmlFor="ie-party">{`${partyLabel} (opcional)`}</Label>
 						<EntityCombobox
 							id="ie-party"
 							value={partyId}
@@ -243,9 +240,7 @@ export function IncomeExpenseFormDialog({
 							placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
 							searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
 							emptyLabel="No se encontraron resultados"
-							invalid={!!errors.partyId}
 						/>
-						{errors.partyId && <FieldError message={`Elegí un ${partyLabel.toLowerCase()}`} />}
 					</div>
 
 					<div className="space-y-2">
@@ -260,7 +255,6 @@ export function IncomeExpenseFormDialog({
 									placeholder={workPlaceholder}
 									searchPlaceholder="Buscar obra..."
 									emptyLabel="No se encontraron obras"
-									disabled={workDisabled}
 								/>
 							</div>
 							{workId && (
@@ -272,9 +266,9 @@ export function IncomeExpenseFormDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-category">Categoría</Label>
-						<Select value={categoryId} onValueChange={setCategoryId} required>
-							<SelectTrigger id="ie-category" aria-invalid={!!errors.categoryId}>
+						<Label htmlFor="ie-category">Categoría (opcional)</Label>
+						<Select value={categoryId} onValueChange={setCategoryId}>
+							<SelectTrigger id="ie-category">
 								<SelectValue placeholder="Selecciona una categoría" />
 							</SelectTrigger>
 							<SelectContent>
@@ -286,7 +280,6 @@ export function IncomeExpenseFormDialog({
 								))}
 							</SelectContent>
 						</Select>
-						{errors.categoryId && <FieldError message="Elegí una categoría" />}
 					</div>
 
 					<div className="space-y-2">

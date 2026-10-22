@@ -24,13 +24,13 @@ export type IncomeExpenseEntry = {
 	id: number;
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	voucher_type_name: string;
 	work_id: number | null;
 	work_name: string | null;
-	party_id: number;
+	party_id: number | null;
 	party_name: string;
-	category_id: number;
+	category_id: number | null;
 	category_name: string;
 	description: string | null;
 	net_amount: number;
@@ -45,19 +45,16 @@ export type IncomeExpenseEntry = {
 
 // Boolean flags for fields that fail validation on submit; drives inline field errors in the dialog.
 export type IncomeExpenseFormErrors = Partial<
-	Record<
-		'date' | 'voucherTypeId' | 'partyId' | 'categoryId' | 'netAmount' | 'paymentMethodId',
-		boolean
-	>
+	Record<'date' | 'netAmount' | 'paymentMethodId', boolean>
 >;
 
 export type EntrySavePayload = {
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	party_id: number;
-	category_id: number;
+	party_id: number | null;
+	category_id: number | null;
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;
@@ -296,10 +293,10 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setEditingEntry(entry);
 		setDate(entry.date);
 		setVoucherNumber(entry.voucher_number ?? '');
-		setVoucherTypeId(String(entry.voucher_type_id));
+		setVoucherTypeId(entry.voucher_type_id ? String(entry.voucher_type_id) : '');
 		setWorkId(entry.work_id ? String(entry.work_id) : '');
-		setPartyId(String(entry.party_id));
-		setCategoryId(String(entry.category_id));
+		setPartyId(entry.party_id ? String(entry.party_id) : '');
+		setCategoryId(entry.category_id ? String(entry.category_id) : '');
 		setDescription(entry.description ?? '');
 		setNetAmount(formatCurrencyWithoutSymbol(entry.net_amount));
 		setIvaPercent(entry.iva_percent);
@@ -328,9 +325,6 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		e.preventDefault();
 		const nextErrors: IncomeExpenseFormErrors = {};
 		if (!date) nextErrors.date = true;
-		if (!voucherTypeId) nextErrors.voucherTypeId = true;
-		if (!partyId) nextErrors.partyId = true;
-		if (!categoryId) nextErrors.categoryId = true;
 		if (!Number.isFinite(parsedNetAmount) || parsedNetAmount < 0) nextErrors.netAmount = true;
 		// Required for new records; existing rows may not have one yet, so it stays optional on edit.
 		if (!editingEntry && !paymentMethodId) nextErrors.paymentMethodId = true;
@@ -345,10 +339,10 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 			const payload: EntrySavePayload = {
 				date,
 				voucher_number: voucherNumber.trim() || null,
-				voucher_type_id: Number(voucherTypeId),
+				voucher_type_id: voucherTypeId ? Number(voucherTypeId) : null,
 				work_id: workId ? Number(workId) : null,
-				party_id: Number(partyId),
-				category_id: Number(categoryId),
+				party_id: partyId ? Number(partyId) : null,
+				category_id: categoryId ? Number(categoryId) : null,
 				description: description.trim() || null,
 				net_amount: parsedNetAmount,
 				iva_percent: ivaPercent,
@@ -444,22 +438,13 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		voucherNumber,
 		setVoucherNumber,
 		voucherTypeId,
-		setVoucherTypeId: (value: string) => {
-			setVoucherTypeId(value);
-			clearError('voucherTypeId');
-		},
+		setVoucherTypeId,
 		workId,
 		setWorkId,
 		partyId,
-		setPartyId: (value: string) => {
-			setPartyId(value);
-			clearError('partyId');
-		},
+		setPartyId,
 		categoryId,
-		setCategoryId: (value: string) => {
-			setCategoryId(value);
-			clearError('categoryId');
-		},
+		setCategoryId,
 		description,
 		setDescription,
 		netAmount,

@@ -6,10 +6,10 @@ export type Income = {
 	created_at: string;
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	client_id: number;
-	category_id: number;
+	client_id: number | null;
+	category_id: number | null;
 	kind: 'income';
 	description: string | null;
 	net_amount: number;
@@ -32,10 +32,10 @@ export type IncomeWithDetails = Income & {
 export type IncomeInput = {
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	client_id: number;
-	category_id: number;
+	client_id: number | null;
+	category_id: number | null;
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;
