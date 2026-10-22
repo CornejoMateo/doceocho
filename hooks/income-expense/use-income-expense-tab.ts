@@ -165,7 +165,15 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 
 	const fetchPaymentMethods = async () => {
 		const { data, error } = await listPaymentMethods();
-		if (error) return;
+		if (error) {
+			// Surface the failure; otherwise the selector stays empty with no explanation on submit.
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'No se pudieron cargar los medios de pago',
+				variant: 'destructive',
+			});
+			return;
+		}
 		setPaymentMethods(data ?? []);
 	};
 
