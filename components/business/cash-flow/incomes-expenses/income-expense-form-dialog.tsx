@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { CashFlowCategory } from '@/lib/categories/categories';
 import { VoucherType } from '@/lib/voucher-types/voucher-types';
 import { Work } from '@/lib/works/works';
+import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
+import { BankAccount } from '@/lib/cash-flow/cash-flow';
 import {
 	PartyOption,
 	IncomeExpenseEntry,
@@ -40,6 +42,10 @@ type IncomeExpenseFormDialogProps = {
 	activeVoucherTypes: VoucherType[];
 	works: Work[];
 	parties: PartyOption[];
+	paymentMethods: PaymentMethod[];
+	activePaymentMethods: PaymentMethod[];
+	bankAccounts: BankAccount[];
+	activeBankAccounts: BankAccount[];
 	date: string;
 	setDate: (value: string) => void;
 	voucherNumber: string;
@@ -59,6 +65,10 @@ type IncomeExpenseFormDialogProps = {
 	ivaPercent: number;
 	setIvaPercent: (value: number) => void;
 	totalAmount: number;
+	paymentMethodId: string;
+	setPaymentMethodId: (value: string) => void;
+	bankAccountId: string;
+	setBankAccountId: (value: string) => void;
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 	errors: IncomeExpenseFormErrors;
@@ -80,6 +90,10 @@ export function IncomeExpenseFormDialog({
 	activeVoucherTypes,
 	works,
 	parties,
+	paymentMethods,
+	activePaymentMethods,
+	bankAccounts,
+	activeBankAccounts,
 	date,
 	setDate,
 	voucherNumber,
@@ -99,6 +113,10 @@ export function IncomeExpenseFormDialog({
 	ivaPercent,
 	setIvaPercent,
 	totalAmount,
+	paymentMethodId,
+	setPaymentMethodId,
+	bankAccountId,
+	setBankAccountId,
 	saving,
 	onSubmit,
 	errors,
@@ -113,13 +131,11 @@ export function IncomeExpenseFormDialog({
 		id: work.id,
 		label: work.name || `Obra #${work.id}`,
 	}));
+	// Party is optional now, so no party selected just shows every work instead of blocking the field.
 	const workPlaceholder =
-		filterWorksByParty && !selectedPartyId
-			? 'Elegí un cliente primero'
-			: filterWorksByParty && workOptions.length === 0
-				? 'Sin obras para este cliente'
-				: 'Sin obra';
-	const workDisabled = filterWorksByParty && !selectedPartyId;
+		filterWorksByParty && selectedPartyId && workOptions.length === 0
+			? 'Sin obras para este cliente'
+			: 'Sin obra';
 
 	const handlePartyChange = (newPartyId: string) => {
 		setPartyId(newPartyId);
@@ -143,6 +159,19 @@ export function IncomeExpenseFormDialog({
 		activeVoucherTypes,
 		voucherTypes,
 		voucherTypeId,
+		!!editingEntry
+	);
+	const paymentMethodOptions = withInactiveSelected(
+		activePaymentMethods,
+		paymentMethods,
+		paymentMethodId,
+		!!editingEntry
+	);
+	const paymentMethodRequired = !editingEntry;
+	const bankAccountOptions = withInactiveSelected(
+		activeBankAccounts,
+		bankAccounts,
+		bankAccountId,
 		!!editingEntry
 	);
 
@@ -185,12 +214,16 @@ export function IncomeExpenseFormDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-voucher-type">Tipo de comprobante</Label>
-						<Select value={voucherTypeId} onValueChange={setVoucherTypeId} required>
-							<SelectTrigger id="ie-voucher-type" aria-invalid={!!errors.voucherTypeId}>
+						<Label htmlFor="ie-voucher-type">Tipo de comprobante (opcional)</Label>
+						<Select
+							value={voucherTypeId}
+							onValueChange={(v) => setVoucherTypeId(v === 'none' ? '' : v)}
+						>
+							<SelectTrigger id="ie-voucher-type">
 								<SelectValue placeholder="Selecciona un tipo" />
 							</SelectTrigger>
 							<SelectContent>
+								<SelectItem value="none">Sin tipo de comprobante</SelectItem>
 								{voucherTypeOptions.map((voucherType) => (
 									<SelectItem key={voucherType.id} value={String(voucherType.id)}>
 										{voucherType.name}
@@ -199,22 +232,28 @@ export function IncomeExpenseFormDialog({
 								))}
 							</SelectContent>
 						</Select>
-						{errors.voucherTypeId && <FieldError message="Elegí un tipo de comprobante" />}
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-party">{partyLabel}</Label>
-						<EntityCombobox
-							id="ie-party"
-							value={partyId}
-							onValueChange={handlePartyChange}
-							options={partyOptions}
-							placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
-							searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
-							emptyLabel="No se encontraron resultados"
-							invalid={!!errors.partyId}
-						/>
-						{errors.partyId && <FieldError message={`Elegí un ${partyLabel.toLowerCase()}`} />}
+						<Label htmlFor="ie-party">{`${partyLabel} (opcional)`}</Label>
+						<div className="flex gap-2">
+							<div className="flex-1">
+								<EntityCombobox
+									id="ie-party"
+									value={partyId}
+									onValueChange={handlePartyChange}
+									options={partyOptions}
+									placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
+									searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
+									emptyLabel="No se encontraron resultados"
+								/>
+							</div>
+							{partyId && (
+								<Button type="button" variant="outline" onClick={() => handlePartyChange('')}>
+									Quitar
+								</Button>
+							)}
+						</div>
 					</div>
 
 					<div className="space-y-2">
@@ -229,7 +268,6 @@ export function IncomeExpenseFormDialog({
 									placeholder={workPlaceholder}
 									searchPlaceholder="Buscar obra..."
 									emptyLabel="No se encontraron obras"
-									disabled={workDisabled}
 								/>
 							</div>
 							{workId && (
@@ -241,12 +279,13 @@ export function IncomeExpenseFormDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-category">Categoría</Label>
-						<Select value={categoryId} onValueChange={setCategoryId} required>
-							<SelectTrigger id="ie-category" aria-invalid={!!errors.categoryId}>
+						<Label htmlFor="ie-category">Categoría (opcional)</Label>
+						<Select value={categoryId} onValueChange={(v) => setCategoryId(v === 'none' ? '' : v)}>
+							<SelectTrigger id="ie-category">
 								<SelectValue placeholder="Selecciona una categoría" />
 							</SelectTrigger>
 							<SelectContent>
+								<SelectItem value="none">Sin categoría</SelectItem>
 								{categoryOptions.map((category) => (
 									<SelectItem key={category.id} value={String(category.id)}>
 										{category.name}
@@ -255,7 +294,6 @@ export function IncomeExpenseFormDialog({
 								))}
 							</SelectContent>
 						</Select>
-						{errors.categoryId && <FieldError message="Elegí una categoría" />}
 					</div>
 
 					<div className="space-y-2">
@@ -307,6 +345,50 @@ export function IncomeExpenseFormDialog({
 						<div className="space-y-2">
 							<Label>Total</Label>
 							<Input value={formatCurrency(totalAmount)} readOnly disabled />
+						</div>
+					</div>
+
+					<div className="grid gap-4 sm:grid-cols-2">
+						<div className="space-y-2">
+							<Label htmlFor="ie-payment-method">
+								Medio de pago
+								{!paymentMethodRequired && ' (opcional)'}
+							</Label>
+							<Select
+								value={paymentMethodId}
+								onValueChange={setPaymentMethodId}
+								required={paymentMethodRequired}
+							>
+								<SelectTrigger id="ie-payment-method" aria-invalid={!!errors.paymentMethodId}>
+									<SelectValue placeholder="Selecciona un medio" />
+								</SelectTrigger>
+								<SelectContent>
+									{paymentMethodOptions.map((method) => (
+										<SelectItem key={method.id} value={String(method.id)}>
+											{method.name}
+											{!method.is_active && ' (inactivo)'}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{errors.paymentMethodId && <FieldError message="Elegí un medio de pago" />}
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="ie-bank-account">Cuenta bancaria (opcional)</Label>
+							<Select value={bankAccountId} onValueChange={setBankAccountId}>
+								<SelectTrigger id="ie-bank-account">
+									<SelectValue placeholder="Selecciona una cuenta" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="none">Sin cuenta</SelectItem>
+									{bankAccountOptions.map((account) => (
+										<SelectItem key={account.id} value={String(account.id)}>
+											{account.bank} - {account.name}
+											{!account.is_active && ' (inactiva)'}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 

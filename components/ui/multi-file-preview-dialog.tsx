@@ -14,7 +14,9 @@ import { Upload, X, Pencil, Loader2, Check } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { isImage, formatFileSize } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 
 interface FileWithPreview {
 	file: File;
@@ -222,6 +224,21 @@ export function MultiFilePreviewDialog({
 														Editada
 													</div>
 												)}
+											</div>
+										) : isSkpFileName(fileWithPreview.file.name) ? (
+											<div className="relative aspect-square rounded-md overflow-hidden bg-muted">
+												<SkpThumbnail
+													source={fileWithPreview.editedFile || fileWithPreview.file}
+													alt={fileWithPreview.file.name}
+													className="w-full h-full object-cover"
+													fallback={
+														<div className="w-full h-full flex items-center justify-center">
+															<p className="text-sm text-muted-foreground text-center p-2">
+																{fileWithPreview.file.name}
+															</p>
+														</div>
+													}
+												/>
 											</div>
 										) : (
 											<div className="aspect-square rounded-md bg-muted flex items-center justify-center">

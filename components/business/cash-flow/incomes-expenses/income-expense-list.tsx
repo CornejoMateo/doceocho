@@ -99,6 +99,7 @@ export function IncomeExpenseList({
 										<TableHead className="text-center">Neto</TableHead>
 										<TableHead className="text-center">IVA</TableHead>
 										<TableHead className="text-center">Total</TableHead>
+										<TableHead className="text-center">Medio de pago</TableHead>
 										<TableHead className="text-center">Acciones</TableHead>
 									</TableRow>
 								</TableHeader>
@@ -132,6 +133,16 @@ export function IncomeExpenseList({
 											</TableCell>
 											<TableCell className="text-center font-medium">
 												{formatCurrency(entry.total_amount)}
+											</TableCell>
+											<TableCell className="text-center">
+												<div className="flex flex-col">
+													<span>{entry.payment_method_name || '-'}</span>
+													{entry.bank_account_name && (
+														<span className="text-xs text-muted-foreground">
+															{entry.bank_account_name}
+														</span>
+													)}
+												</div>
 											</TableCell>
 											<TableCell className="text-center">
 												<div className="flex justify-center gap-2">
@@ -185,6 +196,13 @@ export function IncomeExpenseList({
 									<div className="flex justify-between gap-2">
 										<dt className="text-muted-foreground">IVA ({entry.iva_percent}%)</dt>
 										<dd>{formatCurrency(entry.iva_amount)}</dd>
+									</div>
+									<div className="flex justify-between gap-2">
+										<dt className="text-muted-foreground">Medio de pago</dt>
+										<dd className="text-right">
+											{entry.payment_method_name || '-'}
+											{entry.bank_account_name ? ` · ${entry.bank_account_name}` : ''}
+										</dd>
 									</div>
 								</dl>
 								<div className="flex gap-2 pt-1">{renderActions(entry, true)}</div>

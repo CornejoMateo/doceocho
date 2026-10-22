@@ -32,6 +32,10 @@ function toEntry(row: IncomeWithDetails): IncomeExpenseEntry {
 		iva_percent: row.iva_percent,
 		iva_amount: row.iva_amount,
 		total_amount: row.total_amount,
+		payment_method_id: row.payment_method_id,
+		payment_method_name: row.payment_method_name,
+		bank_account_id: row.bank_account_id,
+		bank_account_name: row.bank_account_name,
 	};
 }
 
@@ -48,6 +52,8 @@ function toIncomeInput(input: EntrySavePayload) {
 		iva_percent: input.iva_percent,
 		iva_amount: input.iva_amount,
 		total_amount: input.total_amount,
+		payment_method_id: input.payment_method_id,
+		bank_account_id: input.bank_account_id,
 	};
 }
 

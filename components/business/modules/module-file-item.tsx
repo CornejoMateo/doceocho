@@ -15,6 +15,7 @@ import {
 	Video,
 	FileText,
 } from 'lucide-react';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 
 export interface ModuleReviewPanelState {
 	reviewingFileId: number | null;
@@ -74,6 +75,18 @@ export function ModuleFileItem({
 					<span className="w-full h-full flex items-center justify-center bg-black">
 						<video src={file.url} className="w-full h-full object-cover" muted playsInline />
 					</span>
+				) : file.url && file.isSkp ? (
+					<SkpThumbnail
+						source={file.blob || file.url}
+						size={file.size}
+						alt={file.file_name || 'Archivo'}
+						className="w-full h-full object-cover"
+						fallback={
+							<span className="w-full h-full flex items-center justify-center text-muted-foreground">
+								<FileText className="h-5 w-5" />
+							</span>
+						}
+					/>
 				) : (
 					<span className="w-full h-full flex items-center justify-center text-muted-foreground">
 						{file.isVid ? <Video className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
@@ -240,7 +253,7 @@ export function ModuleFileItem({
 							</label>
 							<input
 								type="file"
-								accept="image/*,video/*"
+								accept="image/*,video/*,.skp"
 								disabled={correction.isSavingCorrection}
 								onChange={(e) => correction.setCorrectionFile(e.target.files?.[0] ?? null)}
 								className="text-xs text-muted-foreground file:mr-2 file:rounded-md file:border file:bg-background file:px-2 file:py-1 file:text-xs"

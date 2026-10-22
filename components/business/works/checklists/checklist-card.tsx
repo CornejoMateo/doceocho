@@ -12,6 +12,7 @@ import { Checklist, ChecklistItem } from '@/lib/checklists/checklists';
 import { uploadChecklistGalleryItem } from '@/lib/checklists/checklist-gallery';
 import { calculateProgress } from '@/helpers/checklists/progress';
 import { useFileUpload } from '@/hooks/use-file-upload';
+import { ALLOWED_EXTENSIONS } from '@/utils/file-upload-utils';
 import { ChecklistImages } from '@/components/business/works/checklists/checklist-images';
 import { ChecklistItemGallery } from '@/components/business/works/checklists/checklist-item-gallery';
 import { toast } from '@/components/ui/use-toast';
@@ -136,7 +137,7 @@ function SortableItemRow({ item, checklistId, saving, onToggle }: SortableItemPr
 								ref={fileInputRef}
 								type="file"
 								onChange={handleFileUpload}
-								accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,video/mp4,video/webm,application/pdf"
+								accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,video/mp4,video/webm,application/pdf,.skp"
 								className="hidden"
 							/>
 							<Button
@@ -182,6 +183,7 @@ export function ChecklistCard({
 
 	const {} = useFileUpload({
 		clientId: clientId || 0,
+		allowedExtensions: ALLOWED_EXTENSIONS,
 		getDefaultDisplayName: (file) => checklist.name || file.name.replace(/\.[^/.]+$/, ''),
 		getDefaultDescription: () => checklist.description || '',
 		onUploadSuccess: () => setImagesRefreshKey((prev) => prev + 1),

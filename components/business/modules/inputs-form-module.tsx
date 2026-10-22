@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Work } from '@/lib/works/works';
 import { formatFileSize } from '@/utils/file-upload-utils';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 import {
 	Camera,
 	Video,
@@ -31,11 +32,13 @@ export type PendingFile = {
 	file?: File;
 	preview: string;
 	isImage: boolean;
+	isSkp?: boolean;
 	displayName: string;
 	description: string;
 	editedFile?: File;
 	existingId?: number;
 	size?: number;
+	blob?: Blob;
 };
 
 export type WorkQuery = Work & {
@@ -179,7 +182,7 @@ export function InputsFormModule({
 					<input
 						ref={fileInputRef}
 						type="file"
-						accept="image/*,video/*"
+						accept="image/*,video/*,.skp"
 						multiple
 						className="hidden"
 						onChange={(e) => {
@@ -282,6 +285,25 @@ export function InputsFormModule({
 												Editada
 											</div>
 										)}
+									</div>
+								) : pending.isSkp ? (
+									<div className="relative aspect-square rounded-md overflow-hidden bg-muted">
+										<SkpThumbnail
+											source={pending.editedFile || pending.file || pending.blob || pending.preview}
+											size={pending.size ?? pending.file?.size}
+											alt={pending.displayName}
+											className="w-full h-full object-cover"
+											fallback={
+												<div className="w-full h-full flex items-center justify-center text-center p-2">
+													<div className="flex flex-col items-center gap-1">
+														<Video className="h-6 w-6 text-muted-foreground" />
+														<p className="text-[10px] text-muted-foreground truncate w-full">
+															{pending.displayName}
+														</p>
+													</div>
+												</div>
+											}
+										/>
 									</div>
 								) : (
 									<div className="aspect-square rounded-md bg-muted flex items-center justify-center text-center p-2">

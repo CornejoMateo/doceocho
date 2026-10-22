@@ -5,13 +5,16 @@ import { listModuleFiles, ModuleFile } from '@/lib/modules/modules-files';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { translateError } from '@/lib/error-translator';
 import { getFileKind, isImage, isVideo } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
 
 export type ModuleFileWithUrl = ModuleFile & {
 	url: string;
 	isImg: boolean;
 	isVid: boolean;
+	isSkp: boolean;
 	fileType: string;
 	size?: number;
+	blob?: Blob;
 };
 
 interface UseModuleDetailsFilesOptions {
@@ -66,8 +69,10 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 						return {
 							...file,
 							url: blob ? URL.createObjectURL(blob) : '',
+							blob: blob ?? undefined,
 							isImg: isImage(contentType) || kind === 'image',
 							isVid: isVideo(contentType) || kind === 'video',
+							isSkp: isSkpFileName(file.storage_path),
 							fileType,
 							size: blob?.size,
 						} as ModuleFileWithUrl;
@@ -78,6 +83,7 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 							url: '',
 							isImg: false,
 							isVid: false,
+							isSkp: isSkpFileName(file.storage_path),
 							fileType: '',
 						} as ModuleFileWithUrl;
 					}
@@ -125,8 +131,10 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 		let url = '';
 		let isImg = false;
 		let isVid = false;
+		const isSkp = isSkpFileName(updatedFile.storage_path);
 		let fileType = '';
 		let size: number | undefined;
+		let fileBlob: Blob | undefined;
 
 		try {
 			const { data: blob } = await supabase.storage
@@ -136,6 +144,7 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 			const sourceName = updatedFile.file_name || updatedFile.storage_path;
 			const kind = getFileKind(sourceName);
 			url = blob ? URL.createObjectURL(blob) : '';
+			fileBlob = blob ?? undefined;
 			isImg = isImage(contentType) || kind === 'image';
 			isVid = isVideo(contentType) || kind === 'video';
 			fileType =
@@ -150,7 +159,16 @@ export function useModuleDetailsFiles({ open, moduleId }: UseModuleDetailsFilesO
 			if (old?.url) URL.revokeObjectURL(old.url);
 			return prev.map((f) =>
 				f.id === id
-					? ({ ...updatedFile, url, isImg, isVid, fileType, size } as ModuleFileWithUrl)
+					? ({
+							...updatedFile,
+							url,
+							blob: fileBlob,
+							isImg,
+							isVid,
+							isSkp,
+							fileType,
+							size,
+						} as ModuleFileWithUrl)
 					: f
 			);
 		});

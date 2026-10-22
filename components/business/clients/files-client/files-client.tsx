@@ -23,7 +23,15 @@ import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
 import { MultiFilePreviewDialog } from '@/components/ui/multi-file-preview-dialog';
-import { formatFileSize, isVideo, isImage, getFileExtension } from '@/utils/file-upload-utils';
+import {
+	ALLOWED_EXTENSIONS,
+	formatFileSize,
+	isVideo,
+	isImage,
+	getFileExtension,
+} from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 import { useAuth } from '@/components/provider/auth-provider';
 import { isAdminRole } from '@/constants/users/user-role';
 
@@ -156,6 +164,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 		acceptedFileTypes,
 	} = useFileUpload({
 		clientId: client.id,
+		allowedExtensions: ALLOWED_EXTENSIONS,
 		onUploadSuccess: loadFiles,
 		onImageFileSelect: (file) => {
 			if (fileInputRef.current) {
@@ -311,6 +320,21 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 									</div>
 								) : isImage(file.mimetype) ? (
 									<img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+								) : isSkpFileName(file.name) ? (
+									<SkpThumbnail
+										source={file.url}
+										size={file.size}
+										alt={file.name}
+										className="w-full h-full object-cover"
+										fallback={
+											<div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+												<FileText className="h-16 w-16 text-primary mb-2" />
+												<p className="text-xs font-medium text-center text-foreground">
+													{getFileExtension(file.name)}
+												</p>
+											</div>
+										}
+									/>
 								) : (
 									<div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
 										<FileText className="h-16 w-16 text-primary mb-2" />

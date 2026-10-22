@@ -83,7 +83,9 @@ export async function uploadModuleFile(
 			return { data: null, error: dbError };
 		}
 
-		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+		const { error: uploadError } = await supabase.storage
+			.from(BUCKET)
+			.upload(filePath, file, file.type ? undefined : { contentType: 'application/octet-stream' });
 
 		if (uploadError) {
 			await supabase.from(TABLE).delete().eq('id', fileRecord.id);
@@ -193,7 +195,11 @@ export async function replaceModuleFileContent(
 
 		const { error: uploadError } = await supabase.storage
 			.from(BUCKET)
-			.upload(newStoragePath, newFile);
+			.upload(
+				newStoragePath,
+				newFile,
+				newFile.type ? undefined : { contentType: 'application/octet-stream' }
+			);
 
 		if (uploadError) {
 			return { data: null, error: uploadError };

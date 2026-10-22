@@ -113,7 +113,9 @@ export async function uploadClientFile(
 	const fileName = `${crypto.randomUUID()}.${fileExt}`;
 	const filePath = `${clientId}/${fileName}`;
 
-	const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+	const { error: uploadError } = await supabase.storage
+		.from(BUCKET)
+		.upload(filePath, file, file.type ? undefined : { contentType: 'application/octet-stream' });
 
 	if (uploadError) {
 		return { data: null, error: uploadError };

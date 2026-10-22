@@ -14,12 +14,15 @@ import {
 import { uploadEmployeeDocument } from '@/lib/human-resources/employee-documents';
 import { MAX_EMPLOYEE_DOCUMENT_SIZE } from '@/constants/human-resources/employees';
 import {
+	ALLOWED_EXTENSIONS,
 	CLIENT_FILE_TYPES,
 	formatFileSize,
 	getFileExtension,
 	isImage,
 	isVideo,
 } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 
 interface EmployeeDocumentsProps {
 	employeeId: number;
@@ -49,6 +52,7 @@ export function EmployeeDocuments({ employeeId, enabled = true }: EmployeeDocume
 		acceptedFileTypes,
 	} = useFileUpload({
 		allowedFileTypes: CLIENT_FILE_TYPES,
+		allowedExtensions: ALLOWED_EXTENSIONS,
 		maxFileSize: MAX_EMPLOYEE_DOCUMENT_SIZE,
 		uploadFile: async (file, title, fileDescription) => {
 			const { error } = await uploadEmployeeDocument(employeeId, file, title, fileDescription);
@@ -139,6 +143,21 @@ export function EmployeeDocuments({ employeeId, enabled = true }: EmployeeDocume
 									className="w-full h-full object-cover"
 									muted
 									playsInline
+								/>
+							) : isSkpFileName(document.name) ? (
+								<SkpThumbnail
+									source={document.url}
+									size={document.size}
+									alt={document.name}
+									className="w-full h-full object-cover"
+									fallback={
+										<div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+											<FileText className="h-16 w-16 text-primary mb-2" />
+											<p className="text-xs font-medium text-center text-foreground">
+												{getFileExtension(document.name)}
+											</p>
+										</div>
+									}
 								/>
 							) : (
 								<div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">

@@ -6,12 +6,15 @@ import { translateError } from '@/lib/error-translator';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { listModuleFiles } from '@/lib/modules/modules-files';
 import {
+	ALLOWED_EXTENSIONS,
 	isImage,
 	getFileKind,
+	hasAllowedExtension,
 	isValidFileSize,
 	MAX_MODULE_IMAGE_SIZE,
 	MAX_MODULE_VIDEO_SIZE,
 } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
 import { PendingFile } from '@/components/business/modules/inputs-form-module';
 
 const RECORDING_STOP_MARGIN = 1024 * 1024; // When the video reaches this point, it cuts off
@@ -75,7 +78,9 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 						return {
 							id: `existing-${f.id}`,
 							preview: blob ? URL.createObjectURL(blob) : '',
+							blob: blob ?? undefined,
 							isImage: isImg,
+							isSkp: isSkpFileName(f.storage_path),
 							displayName: f.file_name || 'Archivo',
 							description: f.description || '',
 							existingId: f.id,
@@ -87,6 +92,7 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 							id: `existing-${f.id}`,
 							preview: '',
 							isImage: false,
+							isSkp: isSkpFileName(f.storage_path),
 							displayName: f.file_name || 'Archivo',
 							description: f.description || '',
 							existingId: f.id,
@@ -154,7 +160,10 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 	};
 
 	const addFiles = useCallback((incoming: File[], opts?: { allowOversize?: boolean }) => {
-		const isAllowedType = (file: File) => isImage(file.type) || file.type.startsWith('video/');
+		const isAllowedType = (file: File) =>
+			isImage(file.type) ||
+			file.type.startsWith('video/') ||
+			hasAllowedExtension(file, ALLOWED_EXTENSIONS);
 		const isAllowedSize = (file: File) =>
 			opts?.allowOversize ||
 			isValidFileSize(file, isImage(file.type) ? MAX_MODULE_IMAGE_SIZE : MAX_MODULE_VIDEO_SIZE);
@@ -168,27 +177,28 @@ export function useModuleFiles({ moduleToEdit, enabled = true }: UseModuleFilesO
 					file,
 					preview: isImg ? URL.createObjectURL(file) : '',
 					isImage: isImg,
+					isSkp: isSkpFileName(file.name),
 					displayName: file.name.replace(/\.[^/.]+$/, ''),
 					description: '',
 				};
 			});
 
 		let rejectedImages = 0;
-		let rejectedVideos = 0;
+		let rejectedOthers = 0;
 		incoming.forEach((file) => {
 			if (!isAllowedType(file) || opts?.allowOversize) return;
 			if (
 				!isValidFileSize(file, isImage(file.type) ? MAX_MODULE_IMAGE_SIZE : MAX_MODULE_VIDEO_SIZE)
 			) {
 				if (isImage(file.type)) rejectedImages += 1;
-				else rejectedVideos += 1;
+				else rejectedOthers += 1;
 			}
 		});
 
-		if (rejectedImages > 0 || rejectedVideos > 0) {
+		if (rejectedImages > 0 || rejectedOthers > 0) {
 			const parts = [
 				rejectedImages > 0 ? `${rejectedImages} imagen(es) superan el límite de 10MB` : null,
-				rejectedVideos > 0 ? `${rejectedVideos} video(s) superan el límite de 50MB` : null,
+				rejectedOthers > 0 ? `${rejectedOthers} archivo(s) superan el límite de 50MB` : null,
 			].filter(Boolean);
 			toast({
 				variant: 'destructive',
