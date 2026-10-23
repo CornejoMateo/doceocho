@@ -1,5 +1,7 @@
 'use client';
 
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
+
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -26,7 +28,6 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { isAdminRole } from '@/constants/users/user-role';
 
 interface ChecklistCardProps {
 	checklist: Checklist;
@@ -187,7 +188,7 @@ export function ChecklistCard({
 		onUploadSuccess: () => setImagesRefreshKey((prev) => prev + 1),
 	});
 
-	const isAdmin = isAdminRole(user?.role);
+	const isAdmin = useScopedCanEdit('works');
 
 	const handleDragEnd = async (event: DragEndEvent) => {
 		const { active, over } = event;

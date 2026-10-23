@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MoreVertical, Pencil, Plus, StickyNote, Trash2, User } from 'lucide-react';
 import {
@@ -25,7 +26,6 @@ import { toast } from '@/components/ui/use-toast';
 import type { Client } from '@/lib/clients/clients';
 import type { List, Card, CardFormData } from './types';
 import { ClientSelect } from '@/components/ui/client-select';
-import { isAdminRole } from '@/constants/users/user-role';
 
 function DroppableList({
 	listId,
@@ -117,7 +117,7 @@ export function KanbanList({
 }: KanbanListProps) {
 	// Only use useCards hook if cards are not provided as props
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('kanban');
 
 	const { cards, loading, addCard } = useCards(list.id ? list.id : null);
 	const cardsToUse = propCards !== undefined ? propCards : cards;

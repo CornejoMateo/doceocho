@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useRef, useState } from 'react';
 import {
 	Dialog,
@@ -218,27 +220,31 @@ export function SupplierDetailsDialog({
 											onFilterToChange={setFilterTo}
 											onClear={clearFilters}
 										/>
-										<Button
-											size="sm"
-											className="min-h-11 gap-2 sm:min-h-9"
-											onClick={forms.handleNewPurchase}
-										>
-											<Plus className="h-4 w-4" />
-											Nueva compra
-										</Button>
-									</div>
-
-									{noPurchasesAtAll ? (
-										<Card className="space-y-3 p-6 text-center text-sm text-muted-foreground">
-											<p>Este proveedor no tiene compras registradas.</p>
+										<EditOnly edit="cash-flow.suppliers">
 											<Button
 												size="sm"
 												className="min-h-11 gap-2 sm:min-h-9"
 												onClick={forms.handleNewPurchase}
 											>
 												<Plus className="h-4 w-4" />
-												Registrar primera compra
+												Nueva compra
 											</Button>
+										</EditOnly>
+									</div>
+
+									{noPurchasesAtAll ? (
+										<Card className="space-y-3 p-6 text-center text-sm text-muted-foreground">
+											<p>Este proveedor no tiene compras registradas.</p>
+											<EditOnly edit="cash-flow.suppliers">
+												<Button
+													size="sm"
+													className="min-h-11 gap-2 sm:min-h-9"
+													onClick={forms.handleNewPurchase}
+												>
+													<Plus className="h-4 w-4" />
+													Registrar primera compra
+												</Button>
+											</EditOnly>
 										</Card>
 									) : (
 										<Tabs

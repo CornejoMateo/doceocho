@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,14 +109,16 @@ export function CashBoxTransactions({
 										{transaction.type === 'income' ? '+' : '-'}
 										{formatCurrency(Number(transaction.amount))}
 									</p>
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={() => onDeleteTransaction(transaction)}
-										className="text-destructive hover:text-destructive"
-									>
-										<Trash2 className="h-4 w-4" />
-									</Button>
+									<EditOnly edit="cash-flow">
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => onDeleteTransaction(transaction)}
+											className="text-destructive hover:text-destructive"
+										>
+											<Trash2 className="h-4 w-4" />
+										</Button>
+									</EditOnly>
 								</div>
 							</div>
 						))}

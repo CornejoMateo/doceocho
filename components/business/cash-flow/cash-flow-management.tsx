@@ -47,6 +47,7 @@ import { CollectionsTab } from '@/components/business/cash-flow/collections-paym
 import { PaymentsTab } from '@/components/business/cash-flow/collections-payments/payments-tab';
 import { CASH_FLOW_TABS, CashFlowTabValue } from '@/constants/cashflow/tabs';
 import { useCanView } from '@/hooks/permissions/use-can-view';
+import { EditScope } from '@/components/permissions/edit-scope';
 import { CATEGORY_TABS } from '@/constants/cashflow/category-tabs';
 
 function CashFlowTabHeader({ value }: { value: CashFlowTabValue }) {
@@ -275,21 +276,27 @@ export function CashFlowManagement() {
 				</TabsContent>
 
 				<TabsContent value="bank-accounts" className="space-y-6">
-					<CashFlowTabHeader value="bank-accounts" />
-					<BankAccountsTab
-						bankAccounts={bankAccounts}
-						onBankAccountsUpdated={refreshBankAccounts}
-					/>
+					<EditScope edit="cash-flow.bank-accounts">
+						<CashFlowTabHeader value="bank-accounts" />
+						<BankAccountsTab
+							bankAccounts={bankAccounts}
+							onBankAccountsUpdated={refreshBankAccounts}
+						/>
+					</EditScope>
 				</TabsContent>
 
 				<TabsContent value="suppliers" className="space-y-6">
-					<CashFlowTabHeader value="suppliers" />
-					<SuppliersManagement />
+					<EditScope edit="cash-flow.suppliers">
+						<CashFlowTabHeader value="suppliers" />
+						<SuppliersManagement />
+					</EditScope>
 				</TabsContent>
 
 				<TabsContent value="checking-accounts" className="space-y-6">
-					<CashFlowTabHeader value="checking-accounts" />
-					<CheckingAccountsTab />
+					<EditScope edit="cash-flow.checking-accounts">
+						<CashFlowTabHeader value="checking-accounts" />
+						<CheckingAccountsTab />
+					</EditScope>
 				</TabsContent>
 
 				{Object.entries(CATEGORY_TABS).map(([tabValue, config]) => {
@@ -304,25 +311,27 @@ export function CashFlowManagement() {
 					);
 					return (
 						<TabsContent key={tabValue} value={tabValue} className="space-y-6 min-w-0">
-							<CashFlowTabHeader value={tabValue as CashFlowTabValue} />
-							{tabValue === 'fixed-expenses' ? (
-								<>
-									<div className="flex items-center justify-end">{categoriesConfig}</div>
-									<FixedExpensesTab />
-								</>
-							) : tabValue === 'incomes' ? (
-								<IncomesTab categoriesConfig={categoriesConfig} />
-							) : tabValue === 'expenses' ? (
-								<ExpensesTab categoriesConfig={categoriesConfig} />
-							) : tabValue === 'collections' ? (
-								<CollectionsTab categoriesConfig={categoriesConfig} />
-							) : tabValue === 'payments' ? (
-								<PaymentsTab categoriesConfig={categoriesConfig} />
-							) : (
-								<Card className="p-12 bg-card border-border text-center">
-									<p className="text-muted-foreground">Próximamente</p>
-								</Card>
-							)}
+							<EditScope edit={`cash-flow.${tabValue}`}>
+								<CashFlowTabHeader value={tabValue as CashFlowTabValue} />
+								{tabValue === 'fixed-expenses' ? (
+									<>
+										<div className="flex items-center justify-end">{categoriesConfig}</div>
+										<FixedExpensesTab />
+									</>
+								) : tabValue === 'incomes' ? (
+									<IncomesTab categoriesConfig={categoriesConfig} />
+								) : tabValue === 'expenses' ? (
+									<ExpensesTab categoriesConfig={categoriesConfig} />
+								) : tabValue === 'collections' ? (
+									<CollectionsTab categoriesConfig={categoriesConfig} />
+								) : tabValue === 'payments' ? (
+									<PaymentsTab categoriesConfig={categoriesConfig} />
+								) : (
+									<Card className="p-12 bg-card border-border text-center">
+										<p className="text-muted-foreground">Próximamente</p>
+									</Card>
+								)}
+							</EditScope>
 						</TabsContent>
 					);
 				})}

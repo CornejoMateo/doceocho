@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import {
 	Work,
 	WorkFileItem,
@@ -42,7 +43,6 @@ import {
 	getFileKind,
 } from '@/utils/file-upload-utils';
 import { useAuth } from '@/components/provider/auth-provider';
-import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorkFilesDialogProps {
 	work: Work;
@@ -67,7 +67,7 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 	const [fileForEditor, setFileForEditor] = useState<File | null>(null);
 
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('works');
 
 	const loadRequestRef = useRef(0);
 

@@ -39,6 +39,7 @@ const EMPTY_FORM: UserFormData = {
 	name: '',
 	last_name: '',
 	views: null,
+	edits: null,
 };
 
 interface UsersDialogProps {
@@ -103,6 +104,7 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 			name: user.name || '',
 			last_name: user.last_name || '',
 			views: user.views ?? null,
+			edits: user.edits ?? null,
 		});
 		setShowForm(true);
 	};
@@ -115,8 +117,10 @@ export function UsersDialog({ open, onOpenChange }: UsersDialogProps) {
 
 		setSaving(true);
 
-		// Only a Superadmin can customize views; for anyone else they are left untouched.
-		const viewsChange = isSuperadmin(currentUser?.role) ? { views: formData.views ?? null } : {};
+		// Only a Superadmin can customize views and edits; for anyone else they are left untouched.
+		const viewsChange = isSuperadmin(currentUser?.role)
+			? { views: formData.views ?? null, edits: formData.edits ?? null }
+			: {};
 
 		if (editingUser) {
 			const { error: updateError } = await updateUser(editingUser.uid_user!, {

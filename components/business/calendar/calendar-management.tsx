@@ -1,5 +1,7 @@
 'use client';
 
+import { EditScope } from '@/components/permissions/edit-scope';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCanView } from '@/hooks/permissions/use-can-view';
 import { CalendarView } from '@/components/business/calendar/calendar-view';
@@ -25,7 +27,9 @@ export function CalendarManagement() {
 			</TabsContent>
 
 			<TabsContent value="appointments">
-				<AppointmentsTab />
+				<EditScope edit="calendar.appointments">
+					<AppointmentsTab />
+				</EditScope>
 			</TabsContent>
 		</Tabs>
 	);
