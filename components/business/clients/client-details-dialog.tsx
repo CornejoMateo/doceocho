@@ -32,8 +32,9 @@ import { translateError } from '@/lib/error-translator';
 import { useClientWorks } from '@/hooks/clients/use-client-works';
 import { useClientBudgets } from '@/hooks/clients/use-client-budgets';
 import { useClientBalances } from '@/hooks/clients/use-client-balances';
-import { isAdminRole } from '@/constants/users/user-role';
 import { useCanView } from '@/hooks/permissions/use-can-view';
+import { useCanEdit } from '@/hooks/permissions/use-can-edit';
+import { EditScope } from '@/components/permissions/edit-scope';
 
 type ClientTab = 'info' | 'works' | 'budgets' | 'balances' | 'images';
 
@@ -70,8 +71,8 @@ export function ClientDetailsDialog({
 	const [clientData, setClientData] = useState<Client | null>(null);
 	const { user } = useAuth();
 
-	const isAuthorized = isAdminRole(user?.role);
 	const canView = useCanView();
+	const canEdit = useCanEdit();
 	const visibleTabs = CLIENT_TABS.filter((tab) => canView(`clients.${tab.value}`));
 	const defaultTab =
 		initialTab && visibleTabs.some((tab) => tab.value === initialTab)
@@ -368,64 +369,73 @@ export function ClientDetailsDialog({
 												value={cover}
 												onChange={(e) => handleChange(e.target.value)}
 												onKeyDown={handleKeyDown}
-												placeholder="Escribe aquí..."
+												placeholder={canEdit('clients.info') ? 'Escribe aquí...' : ''}
+												readOnly={!canEdit('clients.info')}
 												className="min-h-[200px] bg-background"
 											/>
 										</div>
 									</div>
 								</TabsContent>
 								<TabsContent value="works" className="space-y-4">
-									<div>
-										{isLoadingWorks ? (
-											<p className="text-sm text-muted-foreground text-center py-4">
-												Cargando obras...
-											</p>
-										) : works.length > 0 ? (
-											<WorksList
-												works={works}
-												balances={balances}
-												onDelete={handleWorkDelete}
-												onCreateWork={() => setIsWorkFormOpen(true)}
-												onUpdate={handleWorkUpdate}
-												onOpenBalance={handleOpenWorkBalance}
-											/>
-										) : (
-											<div className="text-center py-8">
-												<p className="text-sm text-muted-foreground mb-4">
-													No hay obras registradas para este cliente.
+									<EditScope edit="clients.works">
+										<div>
+											{isLoadingWorks ? (
+												<p className="text-sm text-muted-foreground text-center py-4">
+													Cargando obras...
 												</p>
-												{isAuthorized && (
-													<Button onClick={() => setIsWorkFormOpen(true)} size="sm">
-														<Plus className="h-4 w-4 mr-1" />
-														Crear primera obra
-													</Button>
-												)}
-											</div>
-										)}
-									</div>
+											) : works.length > 0 ? (
+												<WorksList
+													works={works}
+													balances={balances}
+													onDelete={handleWorkDelete}
+													onCreateWork={() => setIsWorkFormOpen(true)}
+													onUpdate={handleWorkUpdate}
+													onOpenBalance={handleOpenWorkBalance}
+												/>
+											) : (
+												<div className="text-center py-8">
+													<p className="text-sm text-muted-foreground mb-4">
+														No hay obras registradas para este cliente.
+													</p>
+													{canEdit('clients.works') && (
+														<Button onClick={() => setIsWorkFormOpen(true)} size="sm">
+															<Plus className="h-4 w-4 mr-1" />
+															Crear primera obra
+														</Button>
+													)}
+												</div>
+											)}
+										</div>
+									</EditScope>
 								</TabsContent>
 								<TabsContent value="budgets">
-									<ClientBudgetsTab
-										clientId={clientData.id}
-										works={works}
-										loadWorks={loadWorks}
-										onBudgetsChange={loadBudgets}
-									/>
+									<EditScope edit="clients.budgets">
+										<ClientBudgetsTab
+											clientId={clientData.id}
+											works={works}
+											loadWorks={loadWorks}
+											onBudgetsChange={loadBudgets}
+										/>
+									</EditScope>
 								</TabsContent>
 								<TabsContent value="images" className="h-[calc(100%-2.5rem)]">
-									<ClientImagesGallery client={clientData} />
+									<EditScope edit="clients.images">
+										<ClientImagesGallery client={clientData} />
+									</EditScope>
 								</TabsContent>
 								<TabsContent value="balances" className="space-y-4">
-									<ClientBalances
-										clientId={clientData.id}
-										balances={balances}
-										isLoading={isLoadingBalances}
-										onRefresh={refresh}
-										onCreateBalance={async () => {
-											await loadBudgets();
-											setIsBalanceFormOpen(true);
-										}}
-									/>
+									<EditScope edit="clients.balances">
+										<ClientBalances
+											clientId={clientData.id}
+											balances={balances}
+											isLoading={isLoadingBalances}
+											onRefresh={refresh}
+											onCreateBalance={async () => {
+												await loadBudgets();
+												setIsBalanceFormOpen(true);
+											}}
+										/>
+									</EditScope>
 								</TabsContent>
 							</div>
 						</Tabs>

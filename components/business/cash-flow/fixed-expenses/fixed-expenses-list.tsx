@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import {
 	Table,
 	TableBody,
@@ -71,44 +72,50 @@ export function FixedExpensesList({
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
 		return (
 			<>
-				<Button
-					variant={withLabel ? 'outline' : 'ghost'}
-					size={size}
-					aria-label="Editar"
-					title="Editar"
-					className={buttonClass}
-					onClick={() => onEdit(expense)}
-					disabled={actionLoading}
-				>
-					<Edit className="h-4 w-4" />
-					{withLabel && 'Editar'}
-				</Button>
-				{expense.is_active ? (
+				<EditOnly edit="cash-flow">
 					<Button
 						variant={withLabel ? 'outline' : 'ghost'}
 						size={size}
-						aria-label="Desactivar"
-						title="Desactivar"
-						className={`text-destructive ${buttonClass}`}
-						onClick={() => onDeactivate(expense)}
-						disabled={actionLoading}
-					>
-						<Ban className="h-4 w-4" />
-						{withLabel && 'Desactivar'}
-					</Button>
-				) : (
-					<Button
-						variant={withLabel ? 'outline' : 'ghost'}
-						size={size}
-						aria-label="Reactivar"
-						title="Reactivar"
+						aria-label="Editar"
+						title="Editar"
 						className={buttonClass}
-						onClick={() => onReactivate(expense)}
+						onClick={() => onEdit(expense)}
 						disabled={actionLoading}
 					>
-						<RotateCcw className="h-4 w-4" />
-						{withLabel && 'Reactivar'}
+						<Edit className="h-4 w-4" />
+						{withLabel && 'Editar'}
 					</Button>
+				</EditOnly>
+				{expense.is_active ? (
+					<EditOnly edit="cash-flow">
+						<Button
+							variant={withLabel ? 'outline' : 'ghost'}
+							size={size}
+							aria-label="Desactivar"
+							title="Desactivar"
+							className={`text-destructive ${buttonClass}`}
+							onClick={() => onDeactivate(expense)}
+							disabled={actionLoading}
+						>
+							<Ban className="h-4 w-4" />
+							{withLabel && 'Desactivar'}
+						</Button>
+					</EditOnly>
+				) : (
+					<EditOnly edit="cash-flow">
+						<Button
+							variant={withLabel ? 'outline' : 'ghost'}
+							size={size}
+							aria-label="Reactivar"
+							title="Reactivar"
+							className={buttonClass}
+							onClick={() => onReactivate(expense)}
+							disabled={actionLoading}
+						>
+							<RotateCcw className="h-4 w-4" />
+							{withLabel && 'Reactivar'}
+						</Button>
+					</EditOnly>
 				)}
 			</>
 		);
@@ -125,10 +132,12 @@ export function FixedExpensesList({
 					/>
 					<Label htmlFor="show-inactive-fixed-expenses">Mostrar inactivas</Label>
 				</div>
-				<Button onClick={onAdd} className="gap-2">
-					<Plus className="h-4 w-4" />
-					Nuevo costo fijo
-				</Button>
+				<EditOnly edit="cash-flow">
+					<Button onClick={onAdd} className="gap-2">
+						<Plus className="h-4 w-4" />
+						Nuevo costo fijo
+					</Button>
+				</EditOnly>
 			</div>
 
 			{loading ? (

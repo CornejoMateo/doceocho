@@ -27,8 +27,9 @@ export interface UserFormData {
 	role: string;
 	name: string;
 	last_name: string;
-	/** Custom views; null or missing means the role defaults. */
+	/** Custom views and edits; null or missing means the role defaults. */
 	views?: string[] | null;
+	edits?: string[] | null;
 }
 
 interface UsersDialogFormProps {
@@ -156,8 +157,8 @@ export function UsersDialogForm({
 			{isSuperadmin(callerRole) && (
 				<UserViewsEditor
 					role={formData.role}
-					views={formData.views ?? null}
-					onChange={(views) => setFormData((p) => ({ ...p, views }))}
+					value={{ views: formData.views ?? null, edits: formData.edits ?? null }}
+					onChange={({ views, edits }) => setFormData((p) => ({ ...p, views, edits }))}
 				/>
 			)}
 			<DialogFooter className="gap-2">

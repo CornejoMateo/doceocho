@@ -259,6 +259,52 @@ describe('POST /api/users', () => {
 		);
 	});
 
+	it('stores the edit permissions a Superadmin sends', async () => {
+		const { chain, admin } = mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'super-uid', role: 'Superadmin' });
+		admin.createUser.mockResolvedValue({ data: { user: { id: 'new-uid' } }, error: null });
+		chain.insert.mockResolvedValue({ error: null });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				username: 'nuevo',
+				password: '123456',
+				role: 'Taller',
+				views: ['clients', 'clients.budgets'],
+				edits: ['clients.budgets', 'hack'],
+			}),
+		});
+
+		const res = await POST(req);
+
+		expect(res.status).toBe(200);
+		expect(chain.insert).toHaveBeenCalledWith(
+			expect.objectContaining({ edits: ['clients.budgets'] })
+		);
+	});
+
+	it('returns 403 when a plain Admin tries to change edit permissions', async () => {
+		mockSupabase();
+		requireAdmin.mockResolvedValue({ id: 'admin-uid', role: 'Admin' });
+
+		const req = new Request('http://localhost/api/users', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				username: 'nuevo',
+				password: '123456',
+				role: 'Taller',
+				edits: ['cash-flow'],
+			}),
+		});
+
+		const res = await POST(req);
+
+		expect(res.status).toBe(403);
+	});
+
 	it('rejects views without any module', async () => {
 		mockSupabase();
 		requireAdmin.mockResolvedValue({ id: 'super-uid', role: 'Superadmin' });

@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useMemo, useState } from 'react';
 import {
 	Table,
@@ -190,10 +192,17 @@ export function VoucherTypesConfig() {
 
 	return (
 		<>
-			<Button variant="outline" size="sm" className="gap-2" onClick={() => handleOpenChange(true)}>
-				<Receipt className="h-4 w-4" />
-				Configurar tipos de comprobante
-			</Button>
+			<EditOnly edit="cash-flow">
+				<Button
+					variant="outline"
+					size="sm"
+					className="gap-2"
+					onClick={() => handleOpenChange(true)}
+				>
+					<Receipt className="h-4 w-4" />
+					Configurar tipos de comprobante
+				</Button>
+			</EditOnly>
 
 			<Dialog open={open} onOpenChange={handleOpenChange}>
 				<DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">

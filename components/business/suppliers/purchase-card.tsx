@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -106,40 +107,42 @@ export function PurchaseCard({
 									{purchaseStatusLabel[status]}
 								</Badge>
 							</div>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										type="button"
-										variant="ghost"
-										size="sm"
-										className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
-										aria-label="Más acciones de la compra"
-									>
-										<MoreVertical className="h-4 w-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuItem
-										aria-label="Editar compra"
-										className="min-h-11 sm:min-h-9"
-										onSelect={onEditPurchase}
-									>
-										<Edit className="h-4 w-4" />
-										Editar
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										aria-label="Eliminar compra"
-										variant="destructive"
-										className="min-h-11 sm:min-h-9"
-										onSelect={() => {
-											deleteRafRef.current = requestAnimationFrame(onDeletePurchase);
-										}}
-									>
-										<Trash2 className="h-4 w-4" />
-										Eliminar
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
+							<EditOnly edit="cash-flow.suppliers">
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											type="button"
+											variant="ghost"
+											size="sm"
+											className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
+											aria-label="Más acciones de la compra"
+										>
+											<MoreVertical className="h-4 w-4" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										<DropdownMenuItem
+											aria-label="Editar compra"
+											className="min-h-11 sm:min-h-9"
+											onSelect={onEditPurchase}
+										>
+											<Edit className="h-4 w-4" />
+											Editar
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											aria-label="Eliminar compra"
+											variant="destructive"
+											className="min-h-11 sm:min-h-9"
+											onSelect={() => {
+												deleteRafRef.current = requestAnimationFrame(onDeletePurchase);
+											}}
+										>
+											<Trash2 className="h-4 w-4" />
+											Eliminar
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</EditOnly>
 						</div>
 					</div>
 
@@ -213,16 +216,18 @@ export function PurchaseCard({
 							</ol>
 						)}
 
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							className="min-h-11 gap-2 sm:min-h-9"
-							onClick={onNewPayment}
-						>
-							<Plus className="h-4 w-4" />
-							Registrar pago
-						</Button>
+						<EditOnly edit="cash-flow.suppliers">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="min-h-11 gap-2 sm:min-h-9"
+								onClick={onNewPayment}
+							>
+								<Plus className="h-4 w-4" />
+								Registrar pago
+							</Button>
+						</EditOnly>
 					</div>
 				</div>
 			)}

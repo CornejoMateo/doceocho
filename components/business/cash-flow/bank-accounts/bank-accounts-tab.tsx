@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useMemo, useState } from 'react';
 import {
 	Table,
@@ -129,44 +131,50 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
 		return (
 			<>
-				<Button
-					variant={withLabel ? 'outline' : 'ghost'}
-					size={size}
-					aria-label="Editar"
-					title="Editar"
-					className={buttonClass}
-					onClick={() => handleEdit(account)}
-					disabled={loading}
-				>
-					<Edit className="h-4 w-4" />
-					{withLabel && 'Editar'}
-				</Button>
-				{account.is_active ? (
+				<EditOnly edit="cash-flow">
 					<Button
 						variant={withLabel ? 'outline' : 'ghost'}
 						size={size}
-						aria-label="Desactivar"
-						title="Desactivar"
-						className={`text-destructive ${buttonClass}`}
-						onClick={() => setAccountToDeactivate(account)}
-						disabled={loading}
-					>
-						<Ban className="h-4 w-4" />
-						{withLabel && 'Desactivar'}
-					</Button>
-				) : (
-					<Button
-						variant={withLabel ? 'outline' : 'ghost'}
-						size={size}
-						aria-label="Reactivar"
-						title="Reactivar"
+						aria-label="Editar"
+						title="Editar"
 						className={buttonClass}
-						onClick={() => handleReactivate(account)}
+						onClick={() => handleEdit(account)}
 						disabled={loading}
 					>
-						<RotateCcw className="h-4 w-4" />
-						{withLabel && 'Reactivar'}
+						<Edit className="h-4 w-4" />
+						{withLabel && 'Editar'}
 					</Button>
+				</EditOnly>
+				{account.is_active ? (
+					<EditOnly edit="cash-flow">
+						<Button
+							variant={withLabel ? 'outline' : 'ghost'}
+							size={size}
+							aria-label="Desactivar"
+							title="Desactivar"
+							className={`text-destructive ${buttonClass}`}
+							onClick={() => setAccountToDeactivate(account)}
+							disabled={loading}
+						>
+							<Ban className="h-4 w-4" />
+							{withLabel && 'Desactivar'}
+						</Button>
+					</EditOnly>
+				) : (
+					<EditOnly edit="cash-flow">
+						<Button
+							variant={withLabel ? 'outline' : 'ghost'}
+							size={size}
+							aria-label="Reactivar"
+							title="Reactivar"
+							className={buttonClass}
+							onClick={() => handleReactivate(account)}
+							disabled={loading}
+						>
+							<RotateCcw className="h-4 w-4" />
+							{withLabel && 'Reactivar'}
+						</Button>
+					</EditOnly>
 				)}
 			</>
 		);
@@ -183,10 +191,12 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 					/>
 					<Label htmlFor="show-inactive-accounts">Mostrar inactivas</Label>
 				</div>
-				<Button onClick={handleAdd} className="gap-2">
-					<Plus className="h-4 w-4" />
-					Nueva cuenta
-				</Button>
+				<EditOnly edit="cash-flow">
+					<Button onClick={handleAdd} className="gap-2">
+						<Plus className="h-4 w-4" />
+						Nueva cuenta
+					</Button>
+				</EditOnly>
 			</div>
 
 			{visibleAccounts.length === 0 ? (

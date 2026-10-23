@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { UserRole } from '@/constants/users/user-role';
 import { resolveViews } from '@/helpers/permissions/views';
+import { resolveEdits } from '@/helpers/permissions/edits';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { clearChannelsCache } from '@/hooks/chat/use-chat-management';
 import { Spinner } from '@/components/ui/spinner';
@@ -50,6 +51,8 @@ export type SessionUser = {
 	uid: string;
 	/** Modules and tabs this user can see, already resolved from role and customization. */
 	views: string[];
+	/** Views this user can also create, change and delete in. */
+	edits: string[];
 };
 
 type AuthContextType = {
@@ -99,6 +102,7 @@ async function fetchProfile(token: string): Promise<SessionUser | null> {
 			last_name: json.data.last_name || '-',
 			uid: json.data.uid_user || '',
 			views: resolveViews(json.data.role, json.data.views),
+			edits: resolveEdits(json.data.role, json.data.edits),
 		};
 	} catch (err) {
 		if (err instanceof DOMException && err.name === 'AbortError') {
@@ -249,6 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				last_name: res.data.last_name || '-',
 				uid: res.data.uid_user || '',
 				views: resolveViews(res.data.role, null),
+				edits: resolveEdits(res.data.role, null),
 			};
 
 			const {

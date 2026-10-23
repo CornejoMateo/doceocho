@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import {
 	Table,
 	TableBody,
@@ -47,28 +48,32 @@ export function IncomeExpenseList({
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
 		return (
 			<>
-				<Button
-					variant={withLabel ? 'outline' : 'ghost'}
-					size={size}
-					aria-label="Editar"
-					title="Editar"
-					className={buttonClass}
-					onClick={() => onEdit(entry)}
-				>
-					<Edit className="h-4 w-4" />
-					{withLabel && 'Editar'}
-				</Button>
-				<Button
-					variant={withLabel ? 'outline' : 'ghost'}
-					size={size}
-					aria-label="Eliminar"
-					title="Eliminar"
-					className={`text-destructive ${buttonClass}`}
-					onClick={() => onAskDelete(entry)}
-				>
-					<Trash2 className="h-4 w-4" />
-					{withLabel && 'Eliminar'}
-				</Button>
+				<EditOnly edit="cash-flow">
+					<Button
+						variant={withLabel ? 'outline' : 'ghost'}
+						size={size}
+						aria-label="Editar"
+						title="Editar"
+						className={buttonClass}
+						onClick={() => onEdit(entry)}
+					>
+						<Edit className="h-4 w-4" />
+						{withLabel && 'Editar'}
+					</Button>
+				</EditOnly>
+				<EditOnly edit="cash-flow">
+					<Button
+						variant={withLabel ? 'outline' : 'ghost'}
+						size={size}
+						aria-label="Eliminar"
+						title="Eliminar"
+						className={`text-destructive ${buttonClass}`}
+						onClick={() => onAskDelete(entry)}
+					>
+						<Trash2 className="h-4 w-4" />
+						{withLabel && 'Eliminar'}
+					</Button>
+				</EditOnly>
 			</>
 		);
 	};

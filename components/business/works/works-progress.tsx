@@ -1,5 +1,7 @@
 'use client';
 
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Settings2 } from 'lucide-react';
@@ -56,7 +58,6 @@ import { WorksExportDialog } from '@/components/business/works/works-export-dial
 import { MetricsTab } from '@/components/business/works/metrics/metrics-tab';
 import { ClientDetailsDialog } from '@/components/business/clients/client-details-dialog';
 import { type Client } from '@/lib/clients/clients';
-import { isAdminRole } from '@/constants/users/user-role';
 import { useCanView } from '@/hooks/permissions/use-can-view';
 
 export function WorksOpenings() {
@@ -80,9 +81,7 @@ export function WorksOpenings() {
 	const [selectedClientForDialog, setSelectedClientForDialog] = useState<Client | null>(null);
 	const [loadingClientWorkId, setLoadingClientWorkId] = useState<number | null>(null);
 
-	const isAuthorized = useMemo(() => {
-		return isAdminRole(user?.role);
-	}, [user?.role]);
+	const isAuthorized = useScopedCanEdit('works');
 
 	const options = useMemo(() => getFilterOptions(works), [works]);
 

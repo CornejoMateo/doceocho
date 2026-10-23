@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -223,17 +225,19 @@ export function SupplierFileAttachments({
 		<div className="space-y-2">
 			<div className="flex items-center justify-between">
 				<Label className="text-sm font-medium">Archivos adjuntos</Label>
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					className="gap-2"
-					disabled={uploading}
-					onClick={() => inputRef.current?.click()}
-				>
-					<Upload className="h-4 w-4" />
-					{uploading ? 'Subiendo...' : 'Adjuntar'}
-				</Button>
+				<EditOnly edit="cash-flow.suppliers">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						className="gap-2"
+						disabled={uploading}
+						onClick={() => inputRef.current?.click()}
+					>
+						<Upload className="h-4 w-4" />
+						{uploading ? 'Subiendo...' : 'Adjuntar'}
+					</Button>
+				</EditOnly>
 				<input ref={inputRef} type="file" className="hidden" onChange={handleFileSelected} />
 			</div>
 
@@ -260,16 +264,18 @@ export function SupplierFileAttachments({
 									) : null}
 									<span className="truncate">{entry.fileName}</span>
 								</span>
-								<Button
-									variant="ghost"
-									size="sm"
-									aria-label="Eliminar"
-									title="Eliminar"
-									className="shrink-0 text-destructive"
-									onClick={() => setFileToDelete(entry)}
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
+								<EditOnly edit="cash-flow.suppliers">
+									<Button
+										variant="ghost"
+										size="sm"
+										aria-label="Eliminar"
+										title="Eliminar"
+										className="shrink-0 text-destructive"
+										onClick={() => setFileToDelete(entry)}
+									>
+										<Trash2 className="h-4 w-4" />
+									</Button>
+								</EditOnly>
 							</li>
 						))}
 					</ul>
@@ -301,16 +307,18 @@ export function SupplierFileAttachments({
 								>
 									<Download className="h-4 w-4" />
 								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									aria-label="Eliminar"
-									title="Eliminar"
-									className="text-destructive"
-									onClick={() => setFileToDelete(file)}
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
+								<EditOnly edit="cash-flow.suppliers">
+									<Button
+										variant="ghost"
+										size="sm"
+										aria-label="Eliminar"
+										title="Eliminar"
+										className="text-destructive"
+										onClick={() => setFileToDelete(file)}
+									>
+										<Trash2 className="h-4 w-4" />
+									</Button>
+								</EditOnly>
 							</span>
 						</li>
 					))}

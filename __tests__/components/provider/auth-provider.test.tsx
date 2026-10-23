@@ -139,6 +139,7 @@ describe('AuthProvider', () => {
 			last_name: 'User',
 			uid: '12345',
 			views: getDefaultViews('Admin'),
+			edits: getDefaultViews('Admin'),
 		});
 
 		expect(global.fetch).toHaveBeenCalledWith('/api/me', {
@@ -246,6 +247,7 @@ describe('AuthProvider', () => {
 				last_name: 'Pérez',
 				uid: 'user-123',
 				views: getDefaultViews('Taller'),
+				edits: [],
 			});
 
 			expect(sessionUser).toEqual({
@@ -255,6 +257,7 @@ describe('AuthProvider', () => {
 				last_name: 'Pérez',
 				uid: 'user-123',
 				views: getDefaultViews('Taller'),
+				edits: [],
 			});
 
 			expect(result.current.loading).toBe(false);

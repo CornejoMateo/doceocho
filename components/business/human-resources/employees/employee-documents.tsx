@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -92,19 +94,21 @@ export function EmployeeDocuments({ employeeId, enabled = true }: EmployeeDocume
 						onChange={handleFileSelect}
 						disabled={isUploading}
 					/>
-					<Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-						{isUploading ? (
-							<>
-								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-								Subiendo...
-							</>
-						) : (
-							<>
-								<Upload className="h-4 w-4 mr-2" />
-								Subir documento
-							</>
-						)}
-					</Button>
+					<EditOnly edit="employees.fichas">
+						<Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+							{isUploading ? (
+								<>
+									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									Subiendo...
+								</>
+							) : (
+								<>
+									<Upload className="h-4 w-4 mr-2" />
+									Subir documento
+								</>
+							)}
+						</Button>
+					</EditOnly>
 				</div>
 			</div>
 
@@ -150,18 +154,20 @@ export function EmployeeDocuments({ employeeId, enabled = true }: EmployeeDocume
 							)}
 
 							<div className="absolute top-2 right-2">
-								<Button
-									size="icon"
-									variant="destructive"
-									className="h-7 w-7"
-									aria-label="Eliminar documento"
-									onClick={(event) => {
-										event.stopPropagation();
-										setDocumentToDelete(document);
-									}}
-								>
-									<Trash2 className="h-3 w-3" />
-								</Button>
+								<EditOnly edit="employees.fichas">
+									<Button
+										size="icon"
+										variant="destructive"
+										className="h-7 w-7"
+										aria-label="Eliminar documento"
+										onClick={(event) => {
+											event.stopPropagation();
+											setDocumentToDelete(document);
+										}}
+									>
+										<Trash2 className="h-3 w-3" />
+									</Button>
+								</EditOnly>
 							</div>
 
 							<div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -4,15 +4,24 @@ import { handleAuthError } from '@/helpers/users/handle-errors';
 import { requireAdmin } from '@/helpers/users/auth-admin';
 import { isSuperadmin } from '@/constants/users/user-role';
 import { parseViewsInput } from '@/helpers/permissions/views';
+import { parseEditsInput } from '@/helpers/permissions/edits';
 
-const ONLY_SUPERADMIN_VIEWS = 'Solo un Superadmin puede personalizar las vistas';
+const ONLY_SUPERADMIN_VIEWS = 'Solo un Superadmin puede personalizar las vistas y los permisos';
 
 export async function POST(req: Request) {
 	try {
 		const token = req.headers.get('authorization')?.replace('Bearer ', '');
 		const caller = await requireAdmin(token);
 
-		const { username, password, role, name, last_name, views: viewsInput } = await req.json();
+		const {
+			username,
+			password,
+			role,
+			name,
+			last_name,
+			views: viewsInput,
+			edits: editsInput,
+		} = await req.json();
 
 		if (!username || !password || !role) {
 			return NextResponse.json(
@@ -29,14 +38,15 @@ export async function POST(req: Request) {
 			);
 		}
 
-		if (viewsInput !== undefined && !isSuperadmin(caller.role)) {
+		if ((viewsInput !== undefined || editsInput !== undefined) && !isSuperadmin(caller.role)) {
 			return NextResponse.json({ error: ONLY_SUPERADMIN_VIEWS }, { status: 403 });
 		}
 
 		const { views, error: viewsError } = parseViewsInput(viewsInput, role);
+		const { edits, error: editsError } = parseEditsInput(editsInput, role);
 
-		if (viewsError) {
-			return NextResponse.json({ error: viewsError }, { status: 400 });
+		if (viewsError || editsError) {
+			return NextResponse.json({ error: viewsError ?? editsError }, { status: 400 });
 		}
 
 		const supabase = createClient(
@@ -64,6 +74,7 @@ export async function POST(req: Request) {
 			name,
 			last_name,
 			views: views ?? null,
+			edits: edits ?? null,
 		});
 
 		if (dbError) {
@@ -134,7 +145,16 @@ export async function PUT(req: Request) {
 		const caller = await requireAdmin(token);
 
 		const body = await req.json();
-		const { uid_user, password, username, role, name, last_name, views: viewsInput } = body;
+		const {
+			uid_user,
+			password,
+			username,
+			role,
+			name,
+			last_name,
+			views: viewsInput,
+			edits: editsInput,
+		} = body;
 
 		if (!uid_user) {
 			return NextResponse.json({ error: 'Falta uid_user' }, { status: 400 });
@@ -145,7 +165,7 @@ export async function PUT(req: Request) {
 			process.env.SUPABASE_SERVICE_ROLE_KEY!
 		);
 
-		if (viewsInput !== undefined && !isSuperadmin(caller.role)) {
+		if ((viewsInput !== undefined || editsInput !== undefined) && !isSuperadmin(caller.role)) {
 			return NextResponse.json({ error: ONLY_SUPERADMIN_VIEWS }, { status: 403 });
 		}
 
@@ -175,20 +195,24 @@ export async function PUT(req: Request) {
 			}
 		}
 
-		// Views are checked against the role the user ends up with.
+		// Views and edits are checked against the role the user ends up with.
 		let views: string[] | null | undefined;
+		let edits: string[] | null | undefined;
 
-		if (viewsInput !== undefined) {
+		if (viewsInput !== undefined || editsInput !== undefined) {
 			const targetRole =
 				role ??
 				(await supabase.from('users').select('role').eq('uid_user', uid_user).single()).data?.role;
-			const parsed = parseViewsInput(viewsInput, targetRole);
+			const parsedViews = parseViewsInput(viewsInput, targetRole);
+			const parsedEdits = parseEditsInput(editsInput, targetRole);
+			const parseError = parsedViews.error ?? parsedEdits.error;
 
-			if (parsed.error) {
-				return NextResponse.json({ error: parsed.error }, { status: 400 });
+			if (parseError) {
+				return NextResponse.json({ error: parseError }, { status: 400 });
 			}
 
-			views = parsed.views;
+			views = parsedViews.views;
+			edits = parsedEdits.edits;
 		}
 
 		if (password) {
@@ -207,6 +231,7 @@ export async function PUT(req: Request) {
 		if (name !== undefined) dbUpdates.name = name;
 		if (last_name !== undefined) dbUpdates.last_name = last_name;
 		if (views !== undefined) dbUpdates.views = views;
+		if (edits !== undefined) dbUpdates.edits = edits;
 
 		if (Object.keys(dbUpdates).length > 0) {
 			const { data, error: dbError } = await supabase

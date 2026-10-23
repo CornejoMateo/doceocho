@@ -1,5 +1,7 @@
 'use client';
 
+import { EditScope } from '@/components/permissions/edit-scope';
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/components/provider/auth-provider';
@@ -81,13 +83,17 @@ export function EmployeesManagement() {
 
 				{isVisible('fichas') && (
 					<TabsContent value="fichas">
-						<EmployeesTab />
+						<EditScope edit="employees.fichas">
+							<EmployeesTab />
+						</EditScope>
 					</TabsContent>
 				)}
 
 				{isVisible('evaluaciones') && (
 					<TabsContent value="evaluaciones">
-						<EvaluationsTab />
+						<EditScope edit="employees.evaluaciones">
+							<EvaluationsTab />
+						</EditScope>
 					</TabsContent>
 				)}
 
