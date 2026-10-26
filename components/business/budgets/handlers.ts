@@ -1,3 +1,4 @@
+import { authFetch } from '@/lib/auth/auth-fetch';
 import { toast } from '@/components/ui/use-toast';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { BudgetWithWork } from '@/lib/balances/balances';
@@ -357,7 +358,7 @@ export const budgetHandlers: BudgetHandlers = {
 
 	async handleClientBudgetsUpdate(newUsdRate: number, clientId: number, refresh: () => void) {
 		try {
-			const response = await fetch('/api/budget-dollar-rate', {
+			const response = await authFetch('/api/budget-dollar-rate', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

@@ -1,3 +1,4 @@
+import { authFetch } from '@/lib/auth/auth-fetch';
 import { useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
@@ -72,7 +73,7 @@ export function useSupplyDialogs(
 			setImageViewerOpen(true);
 			setImageLoading(true);
 			const params = new URLSearchParams({ name_code: item.supply_code });
-			const res = await fetch(`/api/gallery/list?${params.toString()}`);
+			const res = await authFetch(`/api/gallery/list?${params.toString()}`);
 			const data = await res.json();
 
 			if (!data.success) {

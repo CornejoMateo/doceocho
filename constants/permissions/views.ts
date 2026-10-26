@@ -76,3 +76,23 @@ export const VIEW_CATALOG: ViewModule[] = [
 		})),
 	},
 ];
+
+/**
+ * Who may call each service-role API route. Those routes skip the database rules,
+ * so this is their only gate; keys match the views and edits above.
+ */
+export const API_PERMISSIONS = {
+	/** Read the official dollar rate (an external quote, no business data). */
+	dollarRateRead: {},
+	/** Change a checking account's dollar rate. */
+	dollarRateUpdate: { edit: ['clients.balances', 'cash-flow.checking-accounts'] },
+	/** Recalculate budgets in pesos from a new dollar rate. */
+	budgetDollarRate: { edit: ['clients.budgets'] },
+	/** Bulk update supply prices from a price list. */
+	updatePrices: { edit: ['supplies'] },
+	/** Supply photos. */
+	galleryList: { view: ['supplies'] },
+	galleryWrite: { edit: ['supplies'] },
+	/** Notify a client about a work by email or WhatsApp, from the work cards. */
+	notifyClient: { edit: ['works', 'clients.works'] },
+} as const;

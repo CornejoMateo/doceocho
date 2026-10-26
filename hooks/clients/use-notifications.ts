@@ -1,3 +1,4 @@
+import { authFetch } from '@/lib/auth/auth-fetch';
 import { useState } from 'react';
 import { getClientById } from '@/lib/clients/clients';
 import { WorkWithProgress } from '@/lib/works/works';
@@ -49,7 +50,7 @@ export function useNotifications() {
 		try {
 			setLoading(true);
 
-			const response = await fetch('/api/send-whatsapp', {
+			const response = await authFetch('/api/send-whatsapp', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(data),
@@ -78,7 +79,7 @@ export function useNotifications() {
 		try {
 			setLoading(true);
 
-			const response = await fetch('/api/send-email', {
+			const response = await authFetch('/api/send-email', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(data),

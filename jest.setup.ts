@@ -76,3 +76,8 @@ jest.mock('@/hooks/permissions/use-can-edit', () => ({
 		return (key: string) => canEdit(views, edits, key);
 	},
 }));
+
+// authFetch only adds the session token; component tests check the request itself, so it behaves as fetch.
+jest.mock('@/lib/auth/auth-fetch', () => ({
+	authFetch: (input: string, init?: RequestInit) => fetch(input, init),
+}));

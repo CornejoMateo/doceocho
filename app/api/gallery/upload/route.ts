@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 import sharp from 'sharp';
 
 export async function POST(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.galleryWrite);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
 		const formData = await req.formData();
 		const file = formData.get('file') as File;
 		const name_code = formData.get('name_code') as string;
@@ -14,11 +18,6 @@ export async function POST(req: Request) {
 				{ status: 400 }
 			);
 		}
-
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!
-		);
 
 		const path = 'supplies';
 		const galleryTable = 'gallery_supplies';
