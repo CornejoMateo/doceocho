@@ -173,6 +173,7 @@ export function FixedExpensesTab() {
 				paymentBankAccountId={paymentDialogState.paymentBankAccountId}
 				setPaymentBankAccountId={paymentDialogState.setPaymentBankAccountId}
 				bankAccounts={paymentDialogState.bankAccounts}
+				activeBankAccounts={paymentDialogState.activeBankAccounts}
 				payingSaving={paymentDialogState.payingSaving}
 				onSubmit={paymentDialogState.handleSubmitPayment}
 			/>

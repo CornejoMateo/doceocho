@@ -36,6 +36,9 @@ export const CLIENT_FILE_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES, ...DOCUMENT_TY
 // Only image types for claims
 export const CLAIM_FILE_TYPES = IMAGE_TYPES;
 
+// File extensions allowed by extension match (for types browsers don't recognize, e.g. SketchUp .skp)
+export const ALLOWED_EXTENSIONS = ['.skp'] as const;
+
 // File size limits
 export const MAX_FILE_SIZE_CLIENT = 50 * 1024 * 1024; // 50MB
 export const MAX_FILE_SIZE_CLAIM = 10 * 1024 * 1024; // 10MB
@@ -45,10 +48,26 @@ export const MAX_MODULE_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB for images
 export const MAX_MODULE_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB for videos
 
 /**
- * Validates if a file type is supported
+ * Checks if a file's name ends in one of the given allowed extensions
+ * (browsers often report an empty/octet-stream MIME for unrecognized types like .skp)
  */
-export const isValidFileType = (file: File, allowedTypes: readonly string[]): boolean => {
-	return allowedTypes.includes(file.type);
+export const hasAllowedExtension = (
+	file: File,
+	allowedExtensions: readonly string[] = []
+): boolean => {
+	const fileName = file.name.toLowerCase();
+	return allowedExtensions.some((ext) => fileName.endsWith(ext));
+};
+
+/**
+ * Validates if a file type is supported, by MIME type or by extension
+ */
+export const isValidFileType = (
+	file: File,
+	allowedTypes: readonly string[],
+	allowedExtensions: readonly string[] = []
+): boolean => {
+	return allowedTypes.includes(file.type) || hasAllowedExtension(file, allowedExtensions);
 };
 
 /**
@@ -75,13 +94,16 @@ export const formatFileSize = (bytes: number): string => {
 export const validateFileForUpload = (
 	file: File,
 	allowedTypes: readonly string[],
-	maxSize: number
+	maxSize: number,
+	allowedExtensions: readonly string[] = []
 ): { isValid: boolean; error?: string } => {
-	if (!isValidFileType(file, allowedTypes)) {
-		const typeNames = allowedTypes.map((type) => type.split('/')[1].toUpperCase()).join(', ');
+	if (!isValidFileType(file, allowedTypes, allowedExtensions)) {
+		const typeNames = allowedTypes.map((type) => type.split('/')[1]?.toUpperCase() ?? type);
+		const extensionNames = allowedExtensions.map((ext) => ext.slice(1).toUpperCase());
+		const allNames = [...typeNames, ...extensionNames].join(', ');
 		return {
 			isValid: false,
-			error: `Tipo de archivo no válido. Solo se permiten archivos: ${typeNames}.`,
+			error: `Tipo de archivo no válido. Solo se permiten archivos: ${allNames}.`,
 		};
 	}
 

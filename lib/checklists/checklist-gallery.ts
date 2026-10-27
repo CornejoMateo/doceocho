@@ -47,7 +47,11 @@ export async function uploadChecklistGalleryItem(
 
 	const { error: uploadError } = await supabase.storage
 		.from(BUCKET)
-		.upload(filePath, optimizedFile);
+		.upload(
+			filePath,
+			optimizedFile,
+			optimizedFile.type ? undefined : { contentType: 'application/octet-stream' }
+		);
 	if (uploadError) return { data: null, error: uploadError };
 
 	const { data, error: dbError } = await supabase

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { CashFlowCategory, CategoryKind, listCategories } from '@/lib/categories/categories';
 import { VoucherType, listVoucherTypes } from '@/lib/voucher-types/voucher-types';
 import { Work, listWorks } from '@/lib/works/works';
+import { PaymentMethod, listPaymentMethods } from '@/lib/payment-methods/payment-methods';
+import { BankAccount, listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { computeIvaAndTotal, IVA_RATES } from '@/constants/cashflow/iva';
@@ -22,38 +24,44 @@ export type IncomeExpenseEntry = {
 	id: number;
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	voucher_type_name: string;
 	work_id: number | null;
 	work_name: string | null;
-	party_id: number;
+	party_id: number | null;
 	party_name: string;
-	category_id: number;
+	category_id: number | null;
 	category_name: string;
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;
 	iva_amount: number;
 	total_amount: number;
+	payment_method_id: number | null;
+	payment_method_name: string | null;
+	bank_account_id: number | null;
+	bank_account_name: string | null;
 };
 
 // Boolean flags for fields that fail validation on submit; drives inline field errors in the dialog.
 export type IncomeExpenseFormErrors = Partial<
-	Record<'date' | 'voucherTypeId' | 'partyId' | 'categoryId' | 'netAmount', boolean>
+	Record<'date' | 'netAmount' | 'paymentMethodId', boolean>
 >;
 
 export type EntrySavePayload = {
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	party_id: number;
-	category_id: number;
+	party_id: number | null;
+	category_id: number | null;
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;
 	iva_amount: number;
 	total_amount: number;
+	payment_method_id: number | null;
+	bank_account_id: number | null;
 };
 
 type UseIncomeExpenseTabConfig = {
@@ -97,9 +105,16 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	const [voucherTypes, setVoucherTypes] = useState<VoucherType[]>([]);
 	const [works, setWorks] = useState<Work[]>([]);
 	const [parties, setParties] = useState<PartyOption[]>([]);
+	const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+	const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
 	const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
 	const activeVoucherTypes = useMemo(() => voucherTypes.filter((v) => v.is_active), [voucherTypes]);
+	const activePaymentMethods = useMemo(
+		() => paymentMethods.filter((m) => m.is_active),
+		[paymentMethods]
+	);
+	const activeBankAccounts = useMemo(() => bankAccounts.filter((b) => b.is_active), [bankAccounts]);
 
 	const fetchEntries = async (targetYear: number) => {
 		const requestId = ++entriesRequestIdRef.current;
@@ -145,11 +160,34 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setParties(data ?? []);
 	};
 
+	const fetchPaymentMethods = async () => {
+		const { data, error } = await listPaymentMethods();
+		if (error) {
+			// Surface the failure; otherwise the selector stays empty with no explanation on submit.
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'No se pudieron cargar los medios de pago',
+				variant: 'destructive',
+			});
+			return;
+		}
+		setPaymentMethods(data ?? []);
+	};
+
+	// Fetches all accounts (not just active) so an edit can still show an account that was deactivated later.
+	const fetchBankAccounts = async () => {
+		const { data, error } = await listBankAccounts();
+		if (error) return;
+		setBankAccounts(data ?? []);
+	};
+
 	useEffect(() => {
 		void fetchCategories();
 		void fetchVoucherTypes();
 		void fetchWorks();
 		void fetchParties();
+		void fetchPaymentMethods();
+		void fetchBankAccounts();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -218,6 +256,8 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	const [description, setDescription] = useState('');
 	const [netAmount, setNetAmount] = useState('');
 	const [ivaPercent, setIvaPercent] = useState<number>(IVA_RATES[0]);
+	const [paymentMethodId, setPaymentMethodId] = useState('');
+	const [bankAccountId, setBankAccountId] = useState('none');
 	const [saving, setSaving] = useState(false);
 	const [errors, setErrors] = useState<IncomeExpenseFormErrors>({});
 	const clearError = (field: keyof IncomeExpenseFormErrors) => {
@@ -238,6 +278,8 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setDescription('');
 		setNetAmount('');
 		setIvaPercent(IVA_RATES[0]);
+		setPaymentMethodId('');
+		setBankAccountId('none');
 		setErrors({});
 	};
 
@@ -251,13 +293,15 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setEditingEntry(entry);
 		setDate(entry.date);
 		setVoucherNumber(entry.voucher_number ?? '');
-		setVoucherTypeId(String(entry.voucher_type_id));
+		setVoucherTypeId(entry.voucher_type_id ? String(entry.voucher_type_id) : '');
 		setWorkId(entry.work_id ? String(entry.work_id) : '');
-		setPartyId(String(entry.party_id));
-		setCategoryId(String(entry.category_id));
+		setPartyId(entry.party_id ? String(entry.party_id) : '');
+		setCategoryId(entry.category_id ? String(entry.category_id) : '');
 		setDescription(entry.description ?? '');
 		setNetAmount(formatCurrencyWithoutSymbol(entry.net_amount));
 		setIvaPercent(entry.iva_percent);
+		setPaymentMethodId(entry.payment_method_id ? String(entry.payment_method_id) : '');
+		setBankAccountId(entry.bank_account_id ? String(entry.bank_account_id) : 'none');
 		setErrors({});
 		setIsFormOpen(true);
 	};
@@ -272,6 +316,8 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		if (!isFormOpen) return;
 		void fetchCategories();
 		void fetchVoucherTypes();
+		void fetchPaymentMethods();
+		void fetchBankAccounts();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isFormOpen]);
 
@@ -279,10 +325,9 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		e.preventDefault();
 		const nextErrors: IncomeExpenseFormErrors = {};
 		if (!date) nextErrors.date = true;
-		if (!voucherTypeId) nextErrors.voucherTypeId = true;
-		if (!partyId) nextErrors.partyId = true;
-		if (!categoryId) nextErrors.categoryId = true;
 		if (!Number.isFinite(parsedNetAmount) || parsedNetAmount < 0) nextErrors.netAmount = true;
+		// Required for new records; existing rows may not have one yet, so it stays optional on edit.
+		if (!editingEntry && !paymentMethodId) nextErrors.paymentMethodId = true;
 		if (Object.keys(nextErrors).length > 0) {
 			setErrors(nextErrors);
 			toast({ title: 'Completá los campos obligatorios', variant: 'destructive' });
@@ -294,15 +339,17 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 			const payload: EntrySavePayload = {
 				date,
 				voucher_number: voucherNumber.trim() || null,
-				voucher_type_id: Number(voucherTypeId),
+				voucher_type_id: voucherTypeId ? Number(voucherTypeId) : null,
 				work_id: workId ? Number(workId) : null,
-				party_id: Number(partyId),
-				category_id: Number(categoryId),
+				party_id: partyId ? Number(partyId) : null,
+				category_id: categoryId ? Number(categoryId) : null,
 				description: description.trim() || null,
 				net_amount: parsedNetAmount,
 				iva_percent: ivaPercent,
 				iva_amount: ivaAmount,
 				total_amount: totalAmount,
+				payment_method_id: paymentMethodId ? Number(paymentMethodId) : null,
+				bank_account_id: bankAccountId === 'none' ? null : Number(bankAccountId),
 			};
 			const { error } = editingEntry
 				? await config.updateEntry(editingEntry.id, payload)
@@ -360,6 +407,10 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		activeVoucherTypes,
 		works,
 		parties,
+		paymentMethods,
+		activePaymentMethods,
+		bankAccounts,
+		activeBankAccounts,
 		summary,
 		dateFrom,
 		setDateFrom,
@@ -387,22 +438,13 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		voucherNumber,
 		setVoucherNumber,
 		voucherTypeId,
-		setVoucherTypeId: (value: string) => {
-			setVoucherTypeId(value);
-			clearError('voucherTypeId');
-		},
+		setVoucherTypeId,
 		workId,
 		setWorkId,
 		partyId,
-		setPartyId: (value: string) => {
-			setPartyId(value);
-			clearError('partyId');
-		},
+		setPartyId,
 		categoryId,
-		setCategoryId: (value: string) => {
-			setCategoryId(value);
-			clearError('categoryId');
-		},
+		setCategoryId,
 		description,
 		setDescription,
 		netAmount,
@@ -415,6 +457,13 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setIvaPercent,
 		ivaAmount,
 		totalAmount,
+		paymentMethodId,
+		setPaymentMethodId: (value: string) => {
+			setPaymentMethodId(value);
+			clearError('paymentMethodId');
+		},
+		bankAccountId,
+		setBankAccountId,
 		saving,
 		handleAdd,
 		handleEdit,

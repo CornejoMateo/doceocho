@@ -7,6 +7,8 @@ import {
 import { listCategories } from '@/lib/categories/categories';
 import { listVoucherTypes } from '@/lib/voucher-types/voucher-types';
 import { listWorks } from '@/lib/works/works';
+import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
+import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { getLocalDate } from '@/utils/format-date';
 
 jest.mock('@/lib/categories/categories', () => ({
@@ -17,6 +19,12 @@ jest.mock('@/lib/voucher-types/voucher-types', () => ({
 }));
 jest.mock('@/lib/works/works', () => ({
 	listWorks: jest.fn(),
+}));
+jest.mock('@/lib/payment-methods/payment-methods', () => ({
+	listPaymentMethods: jest.fn(),
+}));
+jest.mock('@/lib/cash-flow/cash-flow', () => ({
+	listBankAccounts: jest.fn(),
 }));
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: mockToast }),
@@ -42,6 +50,10 @@ function entry(overrides: Partial<IncomeExpenseEntry> = {}): IncomeExpenseEntry 
 		iva_percent: 21,
 		iva_amount: 210,
 		total_amount: 1210,
+		payment_method_id: null,
+		payment_method_name: null,
+		bank_account_id: null,
+		bank_account_name: null,
 		...overrides,
 	};
 }
@@ -73,6 +85,8 @@ describe('useIncomeExpenseTab', () => {
 		(listCategories as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listVoucherTypes as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listWorks as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 
 	describe('fetching by year', () => {
@@ -330,29 +344,6 @@ describe('useIncomeExpenseTab', () => {
 			expect(config.createEntry).not.toHaveBeenCalled();
 		});
 
-		it('sets a party field error and shows a toast when the client is missing', async () => {
-			const config = baseConfig();
-			const { result } = renderHook(() => useIncomeExpenseTab(config));
-			await waitFor(() => expect(result.current.loadingList).toBe(false));
-
-			act(() => {
-				result.current.handleAdd();
-				result.current.setVoucherTypeId('1');
-				result.current.setCategoryId('10');
-				result.current.setNetAmount('1000');
-			});
-			await act(async () => result.current.handleSubmit(fakeEvent()));
-
-			expect(config.createEntry).not.toHaveBeenCalled();
-			expect(result.current.errors.partyId).toBe(true);
-			expect(mockToast).toHaveBeenCalledWith(
-				expect.objectContaining({
-					title: 'Completá los campos obligatorios',
-					variant: 'destructive',
-				})
-			);
-		});
-
 		it('sets an amount field error when the net amount is negative', async () => {
 			const config = baseConfig();
 			const { result } = renderHook(() => useIncomeExpenseTab(config));
@@ -371,25 +362,6 @@ describe('useIncomeExpenseTab', () => {
 			expect(result.current.errors.netAmount).toBe(true);
 		});
 
-		it('clears the party field error once a client is selected', async () => {
-			const config = baseConfig();
-			const { result } = renderHook(() => useIncomeExpenseTab(config));
-			await waitFor(() => expect(result.current.loadingList).toBe(false));
-
-			act(() => {
-				result.current.handleAdd();
-				result.current.setVoucherTypeId('1');
-				result.current.setCategoryId('10');
-				result.current.setNetAmount('1000');
-			});
-			await act(async () => result.current.handleSubmit(fakeEvent()));
-			expect(result.current.errors.partyId).toBe(true);
-
-			act(() => result.current.setPartyId('3'));
-
-			expect(result.current.errors.partyId).toBeFalsy();
-		});
-
 		it('creates a new entry with the rounded net amount and computed iva/total', async () => {
 			const config = baseConfig();
 			const { result } = renderHook(() => useIncomeExpenseTab(config));
@@ -402,11 +374,17 @@ describe('useIncomeExpenseTab', () => {
 				result.current.setCategoryId('10');
 				result.current.setNetAmount('1000,125');
 				result.current.setIvaPercent(21);
+				result.current.setPaymentMethodId('2');
 			});
 			await act(async () => result.current.handleSubmit(fakeEvent()));
 
 			expect(config.createEntry).toHaveBeenCalledWith(
-				expect.objectContaining({ net_amount: 1000.13, iva_amount: 210.03, total_amount: 1210.16 })
+				expect.objectContaining({
+					net_amount: 1000.13,
+					iva_amount: 210.03,
+					total_amount: 1210.16,
+					payment_method_id: 2,
+				})
 			);
 			expect(mockToast).toHaveBeenCalledWith({ title: 'Ingreso creado' });
 		});
@@ -438,6 +416,7 @@ describe('useIncomeExpenseTab', () => {
 				result.current.setPartyId('3');
 				result.current.setCategoryId('10');
 				result.current.setNetAmount('1000');
+				result.current.setPaymentMethodId('2');
 			});
 			await act(async () => result.current.handleSubmit(fakeEvent()));
 

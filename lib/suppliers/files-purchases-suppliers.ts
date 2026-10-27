@@ -73,7 +73,9 @@ export async function uploadFilePurchaseSupplier(
 			return { data: null, error: dbError };
 		}
 
-		const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+		const { error: uploadError } = await supabase.storage
+			.from(BUCKET)
+			.upload(filePath, file, file.type ? undefined : { contentType: 'application/octet-stream' });
 
 		if (uploadError) {
 			await supabase.from(TABLE).delete().eq('id', fileRecord.id);

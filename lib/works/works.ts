@@ -417,7 +417,7 @@ export async function uploadWorkFile(
 
 		const { error: uploadError } = await supabase.storage
 			.from('works-files')
-			.upload(filePath, file);
+			.upload(filePath, file, file.type ? undefined : { contentType: 'application/octet-stream' });
 
 		if (uploadError) {
 			return { data: null, error: uploadError };

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { PaymentMethod, listPaymentMethods } from '@/lib/payment-methods/payment-methods';
-import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { BankAccount, listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { IVA_RATES, computeIvaAndTotal } from '@/constants/cashflow/fixed-expenses';
 import {
 	FixedExpensePaymentWithDetails,
@@ -42,6 +42,7 @@ export function useFixedExpensePaymentDialog(onChanged: () => Promise<unknown>) 
 		() => paymentMethods.filter((m) => m.is_active),
 		[paymentMethods]
 	);
+	const activeBankAccounts = useMemo(() => bankAccounts.filter((b) => b.is_active), [bankAccounts]);
 	const unmarking = !!expenseToUnmark && togglingId === expenseToUnmark.id;
 	const paymentTotal = useMemo(
 		() => computeIvaAndTotal(parseArsToNumber(paymentNet), Number(paymentIvaPercent)).totalAmount,
@@ -52,9 +53,10 @@ export function useFixedExpensePaymentDialog(onChanged: () => Promise<unknown>) 
 		if (!expenseToPay && !paymentToEdit) return;
 		(async () => {
 			try {
+				// Fetches all accounts (not just active) so an edit can still show an account that was deactivated later.
 				const [methodsRes, accountsRes] = await Promise.all([
 					listPaymentMethods(),
-					listActiveBankAccounts(),
+					listBankAccounts(),
 				]);
 				if (methodsRes.error) throw methodsRes.error;
 				if (accountsRes.error) throw accountsRes.error;
@@ -214,6 +216,7 @@ export function useFixedExpensePaymentDialog(onChanged: () => Promise<unknown>) 
 		deletingPayment,
 		togglingId,
 		bankAccounts,
+		activeBankAccounts,
 		activePaymentMethods,
 		paymentMonth,
 		setPaymentMonth,

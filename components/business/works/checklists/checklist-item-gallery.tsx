@@ -17,6 +17,8 @@ import { useChecklistItemGallery } from '@/hooks/checklists/use-checklist-item-g
 import { toast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { getFileExtension, isImage, isVideo, type FileViewerItem } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 
 type Props = {
 	itemId: number;
@@ -103,6 +105,20 @@ export function ChecklistItemGallery({ itemId }: Props) {
 											<ImageIcon className="h-5 w-5 text-muted-foreground" />
 										</div>
 									)
+								) : isSkpFileName(image.name) ? (
+									<SkpThumbnail
+										source={image.url}
+										alt={image.title || image.name}
+										className="w-full h-full object-cover"
+										fallback={
+											<div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2">
+												<FileText className="h-6 w-6 text-muted-foreground" />
+												<span className="text-[10px] text-muted-foreground text-center leading-tight line-clamp-2">
+													{image.name}
+												</span>
+											</div>
+										}
+									/>
 								) : (
 									<div className="w-full h-full flex flex-col items-center justify-center gap-1 p-2">
 										{isVideoView ? (

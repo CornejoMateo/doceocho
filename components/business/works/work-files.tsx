@@ -36,12 +36,15 @@ import { UploadFileDialog } from '@/components/ui/upload-file-dialog';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import { ImageEditorDialog } from '@/components/ui/image-editor-dialog';
 import {
+	ALLOWED_EXTENSIONS,
 	formatFileSize,
 	isVideo,
 	isImage,
 	getFileExtension,
 	getFileKind,
 } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
+import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 import { useAuth } from '@/components/provider/auth-provider';
 
 interface WorkFilesDialogProps {
@@ -178,6 +181,7 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 		openUploadDialogForFile,
 		acceptedFileTypes,
 	} = useFileUpload({
+		allowedExtensions: ALLOWED_EXTENSIONS,
 		uploadFile: async (file, title, desc) => {
 			const { error } = await uploadWorkFile(work.id, file, title, desc);
 			return { error };
@@ -327,6 +331,21 @@ export function WorkFilesDialog({ work, open, onOpenChange }: WorkFilesDialogPro
 									</div>
 								) : isImage(file.mimetype) ? (
 									<img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+								) : isSkpFileName(file.name) ? (
+									<SkpThumbnail
+										source={file.url}
+										size={file.size}
+										alt={file.name}
+										className="w-full h-full object-cover"
+										fallback={
+											<div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+												<FileText className="h-16 w-16 text-primary mb-2" />
+												<p className="text-xs font-medium text-center text-foreground">
+													{getFileExtension(file.name)}
+												</p>
+											</div>
+										}
+									/>
 								) : (
 									<div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
 										<FileText className="h-16 w-16 text-primary mb-2" />
