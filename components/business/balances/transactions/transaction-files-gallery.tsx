@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import {
 	Dialog,
 	DialogContent,
@@ -85,19 +87,21 @@ export function TransactionFilesGallery({
 								e.target.value = '';
 							}}
 						/>
-						<Button
-							size="sm"
-							variant="outline"
-							disabled={isUploadingFiles}
-							onClick={handleTriggerUpload}
-						>
-							{isUploadingFiles ? (
-								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-							) : (
-								<Upload className="h-4 w-4 mr-2" />
-							)}
-							{isUploadingFiles ? 'Subiendo...' : 'Subir archivos'}
-						</Button>
+						<EditOnly edit="clients.balances">
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={isUploadingFiles}
+								onClick={handleTriggerUpload}
+							>
+								{isUploadingFiles ? (
+									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+								) : (
+									<Upload className="h-4 w-4 mr-2" />
+								)}
+								{isUploadingFiles ? 'Subiendo...' : 'Subir archivos'}
+							</Button>
+						</EditOnly>
 					</div>
 
 					{isLoadingFiles ? (

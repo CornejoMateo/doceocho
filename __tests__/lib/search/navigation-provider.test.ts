@@ -1,4 +1,8 @@
-import { createNavigationProvider } from '@/lib/search/providers/navigation-provider';
+import { createNavigationProvider as createForViews } from '@/lib/search/providers/navigation-provider';
+import { getDefaultViews } from '@/helpers/permissions/views';
+import type { UserRole } from '@/constants/users/user-role';
+
+const createNavigationProvider = (role: UserRole) => createForViews(getDefaultViews(role));
 
 const signal = new AbortController().signal;
 

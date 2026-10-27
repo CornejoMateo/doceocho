@@ -29,7 +29,7 @@ function toResult(work: WorkRow): SearchResult {
 export const worksProvider: SearchProvider = {
 	id: 'works',
 	label: 'Obras',
-	roles: ['Admin', 'Superadmin', 'Taller'],
+	view: 'works',
 	order: 2,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

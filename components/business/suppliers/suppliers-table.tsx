@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import {
 	Table,
 	TableBody,
@@ -109,51 +111,57 @@ export function SuppliersTable({
 		const cls = withLabel ? 'flex-1 gap-2' : '';
 		return (
 			<div className="justify-center items-center flex gap-1">
-				<Button
-					variant={variant}
-					size={size}
-					className={cls}
-					aria-label={`Editar ${s.name}`}
-					title={`Editar ${s.name}`}
-					onClick={(e) => {
-						e.stopPropagation();
-						onEdit(s);
-					}}
-					disabled={busy}
-				>
-					<Edit className="h-4 w-4" />
-					{withLabel && 'Editar'}
-				</Button>
-				<Button
-					variant={variant}
-					size={size}
-					className={cls}
-					aria-label={`${s.is_active ? 'Desactivar' : 'Activar'} ${s.name}`}
-					title={`${s.is_active ? 'Desactivar' : 'Activar'} ${s.name}`}
-					onClick={(e) => {
-						e.stopPropagation();
-						onToggleActive(s);
-					}}
-					disabled={busy}
-				>
-					{s.is_active ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
-					{withLabel && (s.is_active ? 'Desactivar' : 'Activar')}
-				</Button>
-				<Button
-					variant={variant}
-					size={size}
-					className={`text-destructive ${cls}`}
-					aria-label={`Eliminar ${s.name}`}
-					title={`Eliminar ${s.name}`}
-					onClick={(e) => {
-						e.stopPropagation();
-						onDelete(s);
-					}}
-					disabled={busy}
-				>
-					<Trash2 className="h-4 w-4" />
-					{withLabel && 'Eliminar'}
-				</Button>
+				<EditOnly edit="cash-flow.suppliers">
+					<Button
+						variant={variant}
+						size={size}
+						className={cls}
+						aria-label={`Editar ${s.name}`}
+						title={`Editar ${s.name}`}
+						onClick={(e) => {
+							e.stopPropagation();
+							onEdit(s);
+						}}
+						disabled={busy}
+					>
+						<Edit className="h-4 w-4" />
+						{withLabel && 'Editar'}
+					</Button>
+				</EditOnly>
+				<EditOnly edit="cash-flow.suppliers">
+					<Button
+						variant={variant}
+						size={size}
+						className={cls}
+						aria-label={`${s.is_active ? 'Desactivar' : 'Activar'} ${s.name}`}
+						title={`${s.is_active ? 'Desactivar' : 'Activar'} ${s.name}`}
+						onClick={(e) => {
+							e.stopPropagation();
+							onToggleActive(s);
+						}}
+						disabled={busy}
+					>
+						{s.is_active ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+						{withLabel && (s.is_active ? 'Desactivar' : 'Activar')}
+					</Button>
+				</EditOnly>
+				<EditOnly edit="cash-flow.suppliers">
+					<Button
+						variant={variant}
+						size={size}
+						className={`text-destructive ${cls}`}
+						aria-label={`Eliminar ${s.name}`}
+						title={`Eliminar ${s.name}`}
+						onClick={(e) => {
+							e.stopPropagation();
+							onDelete(s);
+						}}
+						disabled={busy}
+					>
+						<Trash2 className="h-4 w-4" />
+						{withLabel && 'Eliminar'}
+					</Button>
+				</EditOnly>
 			</div>
 		);
 	};

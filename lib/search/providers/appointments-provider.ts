@@ -32,7 +32,7 @@ export const appointmentsProvider: SearchProvider = {
 	id: 'appointments',
 	label: 'Citas',
 	// Matches the table's own RLS, which is admin only.
-	roles: ['Admin', 'Superadmin'],
+	view: 'calendar.appointments',
 	order: 7,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

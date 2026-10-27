@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import {
@@ -173,15 +175,17 @@ export function SupplierAttachmentsGallery({
 									)}
 									<span className="truncate">{displayName}</span>
 								</button>
-								<button
-									type="button"
-									aria-label="Eliminar archivo"
-									title="Eliminar archivo"
-									onClick={() => setFileToDelete(file)}
-									className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-destructive"
-								>
-									<Trash2 className="h-3 w-3" />
-								</button>
+								<EditOnly edit="cash-flow.suppliers">
+									<button
+										type="button"
+										aria-label="Eliminar archivo"
+										title="Eliminar archivo"
+										onClick={() => setFileToDelete(file)}
+										className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-destructive"
+									>
+										<Trash2 className="h-3 w-3" />
+									</button>
+								</EditOnly>
 							</div>
 						);
 					})}

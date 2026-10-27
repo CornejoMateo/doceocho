@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -66,18 +68,20 @@ export function BudgetCard({
 						<p className="text-xs text-muted-foreground">{formatCreatedAt(budget.created_at)}</p>
 					)}
 				</div>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={(e) => {
-						e.stopPropagation();
-						onDeleteBudget(budget.id);
-					}}
-					disabled={isLoading}
-					className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 w-9 sm:h-8 sm:w-8 p-0"
-				>
-					<Trash2 className="h-4 w-4" />
-				</Button>
+				<EditOnly edit="clients.budgets">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={(e) => {
+							e.stopPropagation();
+							onDeleteBudget(budget.id);
+						}}
+						disabled={isLoading}
+						className="text-destructive hover:text-destructive hover:bg-destructive/10 h-9 w-9 sm:h-8 sm:w-8 p-0"
+					>
+						<Trash2 className="h-4 w-4" />
+					</Button>
+				</EditOnly>
 			</div>
 
 			<div className="mt-auto flex flex-col gap-2 pt-4">
@@ -100,19 +104,21 @@ export function BudgetCard({
 					</div>
 				)}
 
-				<Button
-					variant={isChosen ? 'secondary' : 'default'}
-					size="sm"
-					disabled={isLoading}
-					onClick={(e) => {
-						e.stopPropagation();
-						onChooseBudget(budget.id);
-					}}
-					className="w-full gap-2"
-				>
-					<CheckCircle className="h-4 w-4" />
-					{isChosen ? 'Elegido' : 'Elegir'}
-				</Button>
+				<EditOnly edit="clients.budgets">
+					<Button
+						variant={isChosen ? 'secondary' : 'default'}
+						size="sm"
+						disabled={isLoading}
+						onClick={(e) => {
+							e.stopPropagation();
+							onChooseBudget(budget.id);
+						}}
+						className="w-full gap-2"
+					>
+						<CheckCircle className="h-4 w-4" />
+						{isChosen ? 'Elegido' : 'Elegir'}
+					</Button>
+				</EditOnly>
 			</div>
 
 			{(() => {

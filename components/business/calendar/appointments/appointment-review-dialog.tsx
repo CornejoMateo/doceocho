@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -190,25 +192,29 @@ export function AppointmentReviewDialog({
 					>
 						Cerrar
 					</Button>
-					<Button
-						type="button"
-						variant="destructive"
-						onClick={() => handleResolve('Rechazada')}
-						disabled={isBusy}
-						className="gap-2"
-					>
-						<X className="h-4 w-4" />
-						{pendingStatus === 'Rechazada' ? 'Rechazando...' : 'Rechazar'}
-					</Button>
-					<Button
-						type="button"
-						onClick={() => handleResolve('Aceptada')}
-						disabled={isBusy}
-						className="gap-2"
-					>
-						<Check className="h-4 w-4" />
-						{pendingStatus === 'Aceptada' ? 'Aceptando...' : 'Aceptar'}
-					</Button>
+					<EditOnly edit="calendar.appointments">
+						<Button
+							type="button"
+							variant="destructive"
+							onClick={() => handleResolve('Rechazada')}
+							disabled={isBusy}
+							className="gap-2"
+						>
+							<X className="h-4 w-4" />
+							{pendingStatus === 'Rechazada' ? 'Rechazando...' : 'Rechazar'}
+						</Button>
+					</EditOnly>
+					<EditOnly edit="calendar.appointments">
+						<Button
+							type="button"
+							onClick={() => handleResolve('Aceptada')}
+							disabled={isBusy}
+							className="gap-2"
+						>
+							<Check className="h-4 w-4" />
+							{pendingStatus === 'Aceptada' ? 'Aceptando...' : 'Aceptar'}
+						</Button>
+					</EditOnly>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

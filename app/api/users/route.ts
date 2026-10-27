@@ -3,13 +3,25 @@ import { createClient } from '@supabase/supabase-js';
 import { handleAuthError } from '@/helpers/users/handle-errors';
 import { requireAdmin } from '@/helpers/users/auth-admin';
 import { isSuperadmin } from '@/constants/users/user-role';
+import { parseViewsInput } from '@/helpers/permissions/views';
+import { parseEditsInput } from '@/helpers/permissions/edits';
+
+const ONLY_SUPERADMIN_VIEWS = 'Solo un Superadmin puede personalizar las vistas y los permisos';
 
 export async function POST(req: Request) {
 	try {
 		const token = req.headers.get('authorization')?.replace('Bearer ', '');
 		const caller = await requireAdmin(token);
 
-		const { username, password, role, name, last_name } = await req.json();
+		const {
+			username,
+			password,
+			role,
+			name,
+			last_name,
+			views: viewsInput,
+			edits: editsInput,
+		} = await req.json();
 
 		if (!username || !password || !role) {
 			return NextResponse.json(
@@ -24,6 +36,17 @@ export async function POST(req: Request) {
 				{ error: 'Solo un Superadmin puede asignar el rol Superadmin' },
 				{ status: 403 }
 			);
+		}
+
+		if ((viewsInput !== undefined || editsInput !== undefined) && !isSuperadmin(caller.role)) {
+			return NextResponse.json({ error: ONLY_SUPERADMIN_VIEWS }, { status: 403 });
+		}
+
+		const { views, error: viewsError } = parseViewsInput(viewsInput, role);
+		const { edits, error: editsError } = parseEditsInput(editsInput, role);
+
+		if (viewsError || editsError) {
+			return NextResponse.json({ error: viewsError ?? editsError }, { status: 400 });
 		}
 
 		const supabase = createClient(
@@ -50,6 +73,8 @@ export async function POST(req: Request) {
 			mail: email,
 			name,
 			last_name,
+			views: views ?? null,
+			edits: edits ?? null,
 		});
 
 		if (dbError) {
@@ -120,7 +145,16 @@ export async function PUT(req: Request) {
 		const caller = await requireAdmin(token);
 
 		const body = await req.json();
-		const { uid_user, password, username, role, name, last_name } = body;
+		const {
+			uid_user,
+			password,
+			username,
+			role,
+			name,
+			last_name,
+			views: viewsInput,
+			edits: editsInput,
+		} = body;
 
 		if (!uid_user) {
 			return NextResponse.json({ error: 'Falta uid_user' }, { status: 400 });
@@ -130,6 +164,10 @@ export async function PUT(req: Request) {
 			process.env.NEXT_PUBLIC_SUPABASE_URL!,
 			process.env.SUPABASE_SERVICE_ROLE_KEY!
 		);
+
+		if ((viewsInput !== undefined || editsInput !== undefined) && !isSuperadmin(caller.role)) {
+			return NextResponse.json({ error: ONLY_SUPERADMIN_VIEWS }, { status: 403 });
+		}
 
 		if (role !== undefined) {
 			// Nobody can change their own role through this route
@@ -157,6 +195,26 @@ export async function PUT(req: Request) {
 			}
 		}
 
+		// Views and edits are checked against the role the user ends up with.
+		let views: string[] | null | undefined;
+		let edits: string[] | null | undefined;
+
+		if (viewsInput !== undefined || editsInput !== undefined) {
+			const targetRole =
+				role ??
+				(await supabase.from('users').select('role').eq('uid_user', uid_user).single()).data?.role;
+			const parsedViews = parseViewsInput(viewsInput, targetRole);
+			const parsedEdits = parseEditsInput(editsInput, targetRole);
+			const parseError = parsedViews.error ?? parsedEdits.error;
+
+			if (parseError) {
+				return NextResponse.json({ error: parseError }, { status: 400 });
+			}
+
+			views = parsedViews.views;
+			edits = parsedEdits.edits;
+		}
+
 		if (password) {
 			const { error: authError } = await supabase.auth.admin.updateUserById(uid_user, {
 				password,
@@ -172,6 +230,8 @@ export async function PUT(req: Request) {
 		if (role !== undefined) dbUpdates.role = role;
 		if (name !== undefined) dbUpdates.name = name;
 		if (last_name !== undefined) dbUpdates.last_name = last_name;
+		if (views !== undefined) dbUpdates.views = views;
+		if (edits !== undefined) dbUpdates.edits = edits;
 
 		if (Object.keys(dbUpdates).length > 0) {
 			const { data, error: dbError } = await supabase
