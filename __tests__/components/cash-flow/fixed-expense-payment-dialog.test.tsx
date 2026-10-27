@@ -26,6 +26,7 @@ function setup() {
 			paymentBankAccountId="none"
 			setPaymentBankAccountId={noop}
 			bankAccounts={[]}
+			activeBankAccounts={[]}
 			payingSaving={false}
 			onSubmit={noop}
 		/>

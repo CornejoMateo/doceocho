@@ -46,7 +46,7 @@ export async function uploadEmployeeDocument(
 
 	const { error: uploadError } = await supabase.storage
 		.from(EMPLOYEE_DOCUMENTS_BUCKET)
-		.upload(filePath, file);
+		.upload(filePath, file, file.type ? undefined : { contentType: 'application/octet-stream' });
 
 	if (uploadError) {
 		return { data: null, error: uploadError };

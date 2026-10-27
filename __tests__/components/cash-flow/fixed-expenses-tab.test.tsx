@@ -14,7 +14,7 @@ import {
 } from '@/lib/fixed-expenses/fixed-expense-payments';
 import { listCategories } from '@/lib/categories/categories';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
-import { listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
+import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { getLocalDate } from '@/utils/format-date';
 
 const mockToast = jest.fn();
@@ -48,7 +48,7 @@ jest.mock('@/lib/payment-methods/payment-methods', () => ({
 }));
 
 jest.mock('@/lib/cash-flow/cash-flow', () => ({
-	listActiveBankAccounts: jest.fn(),
+	listBankAccounts: jest.fn(),
 }));
 
 jest.mock('@/lib/error-translator', () => ({
@@ -127,7 +127,7 @@ describe('FixedExpensesTab', () => {
 		(createFixedExpense as jest.Mock).mockResolvedValue({ data: { id: 2 }, error: null });
 		(deactivateFixedExpense as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [PAYMENT_METHOD], error: null });
-		(listActiveBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listFixedExpensePayments as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 

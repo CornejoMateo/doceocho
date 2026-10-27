@@ -5,22 +5,26 @@ create table public.expenses (
   created_at timestamp with time zone not null default now(),
   date date not null,
   voucher_number text null,
-  voucher_type_id bigint not null,
+  voucher_type_id bigint null,
   work_id bigint null,
-  supplier_id bigint not null,
-  category_id bigint not null,
+  supplier_id bigint null,
+  category_id bigint null,
   kind text not null default 'expense',
   description text null,
   net_amount numeric not null,
   iva_percent numeric not null default 0,
   iva_amount numeric not null,
   total_amount numeric not null,
+  payment_method_id bigint null,
+  bank_account_id bigint null,
   constraint expenses_pkey primary key (id),
   constraint expenses_kind_check check (kind = 'expense'),
   constraint expenses_voucher_type_id_fkey foreign key (voucher_type_id) references public.voucher_types (id) on delete restrict,
   constraint expenses_work_id_fkey foreign key (work_id) references public.works (id) on delete set null,
   constraint expenses_supplier_id_fkey foreign key (supplier_id) references public.suppliers (id) on delete restrict,
   constraint expenses_category_id_kind_fkey foreign key (category_id, kind) references public.cash_flow_categories (id, kind) on delete restrict,
+  constraint expenses_payment_method_id_fkey foreign key (payment_method_id) references public.payment_methods (id) on delete restrict,
+  constraint expenses_bank_account_id_fkey foreign key (bank_account_id) references public.bank_accounts (id) on delete set null,
   constraint expenses_voucher_number_length_check check (voucher_number is null or char_length(voucher_number) <= 60),
   constraint expenses_description_length_check check (description is null or char_length(description) <= 300),
   constraint expenses_net_amount_check check (net_amount >= 0),
@@ -38,6 +42,8 @@ create index expenses_voucher_type_id_idx on public.expenses (voucher_type_id);
 create index expenses_work_id_idx on public.expenses (work_id);
 create index expenses_supplier_id_idx on public.expenses (supplier_id);
 create index expenses_category_id_idx on public.expenses (category_id);
+create index expenses_payment_method_id_idx on public.expenses (payment_method_id);
+create index expenses_bank_account_id_idx on public.expenses (bank_account_id);
 
 ------ TRIGGER: DB IS SOURCE OF TRUTH FOR IVA/TOTAL, IGNORES CLIENT-SENT VALUES ------
 
@@ -154,3 +160,8 @@ create trigger trg_expenses_compute_iva_and_total
 before insert or update on public.expenses
 for each row
 execute function public.expenses_compute_iva_and_total();
+
+ALTER TABLE public.expenses
+  ALTER COLUMN voucher_type_id DROP NOT NULL,
+  ALTER COLUMN supplier_id DROP NOT NULL,
+  ALTER COLUMN category_id DROP NOT NULL;

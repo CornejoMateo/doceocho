@@ -23,6 +23,10 @@ function entry(overrides: Partial<IncomeExpenseEntry>): IncomeExpenseEntry {
 		iva_percent: 21,
 		iva_amount: 21,
 		total_amount: 121,
+		payment_method_id: null,
+		payment_method_name: null,
+		bank_account_id: null,
+		bank_account_name: null,
 		...overrides,
 	};
 }

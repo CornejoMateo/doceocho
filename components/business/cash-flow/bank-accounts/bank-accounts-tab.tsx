@@ -42,6 +42,7 @@ import { formatCurrency } from '@/utils/formats-money';
 import { BankAccountForm } from '@/components/business/cash-flow/bank-accounts/bank-account-form';
 import { BankAccountStats } from '@/components/business/cash-flow/bank-accounts/bank-account-stats';
 import { MonthlyCashFlowTable } from '@/components/business/cash-flow/bank-accounts/monthly-cash-flow-table';
+import { PaymentMethodsConfig } from '@/components/business/cash-flow/cash-box/payment-methods-config';
 
 interface BankAccountsTabProps {
 	bankAccounts: BankAccount[];
@@ -192,10 +193,13 @@ export function BankAccountsTab({ bankAccounts, onBankAccountsUpdated }: BankAcc
 					<Label htmlFor="show-inactive-accounts">Mostrar inactivas</Label>
 				</div>
 				<EditOnly edit="cash-flow">
-					<Button onClick={handleAdd} className="gap-2">
-						<Plus className="h-4 w-4" />
-						Nueva cuenta
-					</Button>
+					<div className="flex flex-wrap items-center gap-2">
+						<PaymentMethodsConfig />
+						<Button onClick={handleAdd} className="gap-2">
+							<Plus className="h-4 w-4" />
+							Nueva cuenta
+						</Button>
+					</div>
 				</EditOnly>
 			</div>
 

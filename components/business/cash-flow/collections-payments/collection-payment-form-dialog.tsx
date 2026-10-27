@@ -43,6 +43,7 @@ type CollectionPaymentFormDialogProps = {
 	paymentMethods: PaymentMethod[];
 	activePaymentMethods: PaymentMethod[];
 	bankAccounts: BankAccount[];
+	activeBankAccounts: BankAccount[];
 	date: string;
 	setDate: (value: string) => void;
 	receiptNumber: string;
@@ -93,6 +94,7 @@ export function CollectionPaymentFormDialog({
 	paymentMethods,
 	activePaymentMethods,
 	bankAccounts,
+	activeBankAccounts,
 	date,
 	setDate,
 	receiptNumber,
@@ -168,6 +170,12 @@ export function CollectionPaymentFormDialog({
 		activePaymentMethods,
 		paymentMethods,
 		paymentMethodId,
+		!!editingEntry
+	);
+	const bankAccountOptions = withInactiveSelected(
+		activeBankAccounts,
+		bankAccounts,
+		bankAccountId,
 		!!editingEntry
 	);
 
@@ -371,9 +379,10 @@ export function CollectionPaymentFormDialog({
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="none">Sin cuenta</SelectItem>
-								{bankAccounts.map((account) => (
+								{bankAccountOptions.map((account) => (
 									<SelectItem key={account.id} value={String(account.id)}>
 										{account.bank} - {account.name}
+										{!account.is_active && ' (inactiva)'}
 									</SelectItem>
 								))}
 							</SelectContent>

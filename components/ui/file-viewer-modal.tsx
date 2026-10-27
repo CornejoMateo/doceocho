@@ -9,6 +9,8 @@ import {
 	isVideo,
 } from '@/utils/file-upload-utils';
 import { FileViewerItem } from '@/utils/file-upload-utils';
+import { isSkpFileName } from '@/utils/skp-thumbnail';
+import { useSkpThumbnail } from '@/hooks/use-skp-thumbnail';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import { useEffect } from 'react';
 
@@ -56,11 +58,18 @@ export function FileViewerModal({
 		return () => window.removeEventListener('keydown', handleKeyDown);
 	}, [files, selectedIndex, onSelectedIndexChange]);
 
-	if (selectedIndex === null || !files[selectedIndex]) {
+	const currentFile = selectedIndex !== null ? files[selectedIndex] : undefined;
+	const isSkp = isSkpFileName(currentFile?.name);
+	const { thumbnailUrl: skpThumbnailUrl } = useSkpThumbnail({
+		source: currentFile?.url,
+		size: currentFile?.size,
+		enabled: isSkp,
+	});
+
+	if (selectedIndex === null || !currentFile) {
 		return null;
 	}
 
-	const currentFile = files[selectedIndex];
 	const currentMimeType = resolveMimeType(currentFile);
 	const canPreviewImage = isImage(currentMimeType);
 	const canPreviewVideo = isVideo(currentMimeType);
@@ -134,7 +143,15 @@ export function FileViewerModal({
 						/>
 					) : (
 						<div className="flex flex-col items-center justify-center p-8 bg-card rounded-lg border">
-							<FileText className="h-24 w-24 text-primary mb-4" />
+							{isSkp && skpThumbnailUrl ? (
+								<img
+									src={skpThumbnailUrl}
+									alt={currentFile.displayName || currentFile.name}
+									className="max-h-[50vh] max-w-full object-contain rounded-md mb-4"
+								/>
+							) : (
+								<FileText className="h-24 w-24 text-primary mb-4" />
+							)}
 							<p className="text-lg font-semibold text-foreground mb-2">
 								{getFileExtension(currentFile.name)}
 							</p>

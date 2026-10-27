@@ -6,16 +6,18 @@ export type Income = {
 	created_at: string;
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	client_id: number;
-	category_id: number;
+	client_id: number | null;
+	category_id: number | null;
 	kind: 'income';
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;
 	iva_amount: number;
 	total_amount: number;
+	payment_method_id: number | null;
+	bank_account_id: number | null;
 };
 
 export type IncomeWithDetails = Income & {
@@ -23,28 +25,40 @@ export type IncomeWithDetails = Income & {
 	work_name: string | null;
 	client_name: string;
 	category_name: string;
+	payment_method_name: string | null;
+	bank_account_name: string | null;
 };
 
 export type IncomeInput = {
 	date: string;
 	voucher_number: string | null;
-	voucher_type_id: number;
+	voucher_type_id: number | null;
 	work_id: number | null;
-	client_id: number;
-	category_id: number;
+	client_id: number | null;
+	category_id: number | null;
 	description: string | null;
 	net_amount: number;
 	iva_percent: number;
 	iva_amount: number;
 	total_amount: number;
+	payment_method_id: number | null;
+	bank_account_id: number | null;
 };
 
 const TABLE = 'incomes';
 const SELECT =
-	'*, voucher_types(name), works(name), clients(name, last_name), cash_flow_categories(name)';
+	'*, voucher_types(name), works(name), clients(name, last_name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank)';
 
 function mapRow(row: any): IncomeWithDetails {
-	const { voucher_types, works, clients, cash_flow_categories, ...rest } = row;
+	const {
+		voucher_types,
+		works,
+		clients,
+		cash_flow_categories,
+		payment_methods,
+		bank_accounts,
+		...rest
+	} = row;
 	const clientName = clients ? `${clients.name || ''} ${clients.last_name || ''}`.trim() : '';
 	return {
 		...rest,
@@ -52,6 +66,8 @@ function mapRow(row: any): IncomeWithDetails {
 		work_name: works?.name ?? null,
 		client_name: clientName,
 		category_name: cash_flow_categories?.name ?? '',
+		payment_method_name: payment_methods?.name ?? null,
+		bank_account_name: bank_accounts ? `${bank_accounts.bank} - ${bank_accounts.name}` : null,
 	};
 }
 

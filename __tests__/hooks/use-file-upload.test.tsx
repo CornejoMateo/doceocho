@@ -290,7 +290,12 @@ describe('useFileUpload', () => {
 		});
 
 		expect(onImageFileSelect).toHaveBeenCalledWith(file);
-		expect(validateFileForUpload).toHaveBeenCalledWith(file, expect.anything(), expect.anything());
+		expect(validateFileForUpload).toHaveBeenCalledWith(
+			file,
+			expect.anything(),
+			expect.anything(),
+			expect.anything()
+		);
 		expect(result.current.isUploadDialogOpen).toBe(false);
 		expect(result.current.selectedFile).toBeNull();
 	});
@@ -354,7 +359,12 @@ describe('useFileUpload', () => {
 		});
 
 		expect(onImageFileSelect).not.toHaveBeenCalled();
-		expect(validateFileForUpload).toHaveBeenCalledWith(file, expect.anything(), expect.anything());
+		expect(validateFileForUpload).toHaveBeenCalledWith(
+			file,
+			expect.anything(),
+			expect.anything(),
+			expect.anything()
+		);
 		expect(result.current.isUploadDialogOpen).toBe(true);
 		expect(result.current.selectedFile).toBe(file);
 	});

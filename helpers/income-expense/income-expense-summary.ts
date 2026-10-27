@@ -12,7 +12,7 @@ export type IncomeExpenseMonthRow = {
 };
 
 export type IncomeExpenseCategoryRow = {
-	categoryId: number;
+	categoryId: number | null;
 	categoryName: string;
 	net: number;
 };
@@ -46,24 +46,25 @@ export function computeIncomeExpenseByMonth(
 	}));
 }
 
-// Mirrors groupFixedExpensePaymentsByCategory but sorted by net descending (Excel "POR CATEGORIA" shows highest first)
-// and NETO-only (the Excel block for Ingresos/Gastos has no IVA/TOTAL columns here).
 export function computeIncomeExpenseByCategory(
 	entries: IncomeExpenseEntry[],
 	categories: CashFlowCategory[]
 ): IncomeExpenseCategoryRow[] {
-	const netByCategory = new Map<number, number>();
-	const nameByCategory = new Map<number, string>();
+	const netByCategory = new Map<number | null, number>();
+	const nameByCategory = new Map<number | null, string>();
 	for (const entry of entries) {
 		netByCategory.set(
 			entry.category_id,
 			(netByCategory.get(entry.category_id) ?? 0) + Number(entry.net_amount)
 		);
 		if (!nameByCategory.has(entry.category_id))
-			nameByCategory.set(entry.category_id, entry.category_name);
+			nameByCategory.set(
+				entry.category_id,
+				entry.category_id === null ? 'Sin categoría' : entry.category_name
+			);
 	}
 
-	const rows = new Map<number, IncomeExpenseCategoryRow>();
+	const rows = new Map<number | null, IncomeExpenseCategoryRow>();
 	for (const category of categories) {
 		// skip inactive categories with no movements, so they stay hidden
 		if (!category.is_active && !netByCategory.has(category.id)) continue;
