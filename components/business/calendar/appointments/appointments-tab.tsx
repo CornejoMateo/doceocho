@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -119,10 +121,12 @@ export function AppointmentsTab() {
 						Solicitudes de clientes desde el enlace público
 					</p>
 				</div>
-				<Button variant="outline" onClick={() => setIsSettingsOpen(true)} className="gap-2">
-					<Settings className="h-4 w-4" />
-					Configuración
-				</Button>
+				<EditOnly edit="calendar.appointments">
+					<Button variant="outline" onClick={() => setIsSettingsOpen(true)} className="gap-2">
+						<Settings className="h-4 w-4" />
+						Configuración
+					</Button>
+				</EditOnly>
 			</div>
 
 			<Card className="p-4 bg-card border-border">

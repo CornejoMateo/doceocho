@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 
 export async function DELETE(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.galleryWrite);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
 		const { searchParams } = new URL(req.url);
 		const code_name = searchParams.get('code_name')!;
 
 		if (!code_name) {
 			return NextResponse.json({ success: false, error: 'Código no completado' }, { status: 400 });
 		}
-
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!
-		);
 
 		const galleryTable = 'gallery_supplies';
 		const stockTable = 'stock_supplies';

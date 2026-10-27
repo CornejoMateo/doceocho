@@ -1,5 +1,7 @@
 'use client';
 
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
+
 import { Work } from '@/lib/works/works';
 import {
 	getChecklistsByWorkId,
@@ -19,7 +21,6 @@ import { paginateAndFilter } from '@/utils/pagination';
 import { useWorkChecklists } from '@/hooks/clients/use-works-checklists';
 import { BalanceWithBudget } from '@/lib/balances/balances';
 import { useAuth } from '@/components/provider/auth-provider';
-import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorksListProps {
 	works: Work[];
@@ -49,9 +50,7 @@ export function WorksList({
 	const itemsPerPage = 6;
 	const { user } = useAuth();
 
-	const isAuthorized = useMemo(() => {
-		return isAdminRole(user?.role);
-	}, [user]);
+	const isAuthorized = useScopedCanEdit('works');
 
 	const { workChecklists, loadingChecklists } = useWorkChecklists(initialWorks);
 

@@ -55,3 +55,29 @@ process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-key';
 // Silencia todos los logs y errores de consola durante los tests (son ruido, no afectan resultados)
 console.log = () => {};
 console.error = () => {};
+
+// Component tests render without a session. When a test mocks the logged-in user, edit permissions
+// follow that user's role (and customization) with the real rules; without one, everything is editable.
+jest.mock('@/hooks/permissions/use-can-edit', () => ({
+	useCanEdit: () => {
+		let user: { role?: string; views?: string[]; edits?: string[] } | undefined;
+		try {
+			user = require('@/components/provider/auth-provider').useAuth?.()?.user;
+		} catch {
+			return () => true;
+		}
+		if (!user?.role) return () => true;
+
+		const { resolveViews } = jest.requireActual('@/helpers/permissions/views');
+		const { resolveEdits, canEdit } = jest.requireActual('@/helpers/permissions/edits');
+		const views = user.views ?? resolveViews(user.role, null);
+		const edits = user.edits ?? resolveEdits(user.role, null);
+
+		return (key: string) => canEdit(views, edits, key);
+	},
+}));
+
+// authFetch only adds the session token; component tests check the request itself, so it behaves as fetch.
+jest.mock('@/lib/auth/auth-fetch', () => ({
+	authFetch: (input: string, init?: RequestInit) => fetch(input, init),
+}));

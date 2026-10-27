@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { Trash2, Edit, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,25 +96,29 @@ export function TransactionsTable({
 
 								<TableCell>
 									<div className="flex items-center justify-center gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-											onClick={() => onEditTransaction(transaction)}
-											aria-label="Editar transacción"
-										>
-											<Edit className="h-4 w-4" />
-										</Button>
+										<EditOnly edit="clients.balances">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+												onClick={() => onEditTransaction(transaction)}
+												aria-label="Editar transacción"
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+										</EditOnly>
 
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-											onClick={() => onDeleteTransaction(transaction)}
-											aria-label="Eliminar transacción"
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
+										<EditOnly edit="clients.balances">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+												onClick={() => onDeleteTransaction(transaction)}
+												aria-label="Eliminar transacción"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</EditOnly>
 									</div>
 								</TableCell>
 
@@ -165,25 +170,29 @@ export function TransactionsTable({
 									<ImageIcon className="h-4 w-4" />
 								</Button>
 
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-									onClick={() => onEditTransaction(transaction)}
-									aria-label="Editar transacción"
-								>
-									<Edit className="h-4 w-4" />
-								</Button>
+								<EditOnly edit="clients.balances">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+										onClick={() => onEditTransaction(transaction)}
+										aria-label="Editar transacción"
+									>
+										<Edit className="h-4 w-4" />
+									</Button>
+								</EditOnly>
 
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-									onClick={() => onDeleteTransaction(transaction)}
-									aria-label="Eliminar transacción"
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
+								<EditOnly edit="clients.balances">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+										onClick={() => onDeleteTransaction(transaction)}
+										aria-label="Eliminar transacción"
+									>
+										<Trash2 className="h-4 w-4" />
+									</Button>
+								</EditOnly>
 							</div>
 						</div>
 

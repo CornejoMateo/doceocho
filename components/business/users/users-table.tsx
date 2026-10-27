@@ -118,6 +118,7 @@ export function UsersTable({
 														<Label className="text-muted-foreground">{user.role}</Label>
 													)}
 												</Select>
+												{(user.views || user.edits) && <CustomViewsBadge />}
 											</div>
 										</TableCell>
 										<TableCell className="text-center">
@@ -222,6 +223,7 @@ export function UsersTable({
 											) : (
 												<Label className="text-muted-foreground text-sm">{user.role}</Label>
 											)}
+											{(user.views || user.edits) && <CustomViewsBadge />}
 										</div>
 									</div>
 								</CardContent>
@@ -231,5 +233,16 @@ export function UsersTable({
 				</>
 			)}
 		</div>
+	);
+}
+
+function CustomViewsBadge() {
+	return (
+		<span
+			className="whitespace-nowrap rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground"
+			title="Este usuario tiene vistas o permisos personalizados"
+		>
+			Permisos a medida
+		</span>
 	);
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 
 interface WhatsAppRequest {
 	clientId: string;
@@ -12,6 +13,9 @@ interface WhatsAppRequest {
 
 export async function POST(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.notifyClient);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
 		const body: WhatsAppRequest = await req.json();
 
 		const { clientId, workId, phoneNumber, message, scheduledDate, scheduledTime } = body;
@@ -40,11 +44,7 @@ export async function POST(req: Request) {
 			formattedPhoneNumber = cleanPhoneNumber;
 		}
 
-		// Get client and work information for logging
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-		);
+		// Client and work information for the message
 
 		const [clientResult, workResult] = await Promise.all([
 			supabase.from('clients').select('name, last_name').eq('id', clientId).single(),
@@ -102,8 +102,10 @@ export async function POST(req: Request) {
 }
 
 // GET endpoint to test WhatsApp configuration
-export async function GET() {
+export async function GET(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.notifyClient);
+		if ('response' in auth) return auth.response;
 		return NextResponse.json({
 			success: true,
 			message: 'Configuración de WhatsApp verificada exitosamente',

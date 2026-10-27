@@ -10,6 +10,10 @@ export type User = {
 	role: UserRole;
 	mail?: string;
 	uid_user: string;
+	/** Custom views; null means the role defaults. */
+	views?: string[] | null;
+	/** Custom edit permissions; null means the role defaults. */
+	edits?: string[] | null;
 };
 
 export type CreateUserInput = {
@@ -19,6 +23,8 @@ export type CreateUserInput = {
 	mail?: string;
 	name?: string;
 	last_name?: string;
+	views?: string[] | null;
+	edits?: string[] | null;
 };
 
 async function getAuthHeaders() {
@@ -126,7 +132,7 @@ export async function deleteUser(uid_user: string): Promise<{ error: string | nu
 
 export async function updateUser(
 	uid_user: string,
-	changes: Partial<Pick<User, 'username' | 'role' | 'name' | 'last_name'>>
+	changes: Partial<Pick<User, 'username' | 'role' | 'name' | 'last_name' | 'views' | 'edits'>>
 ): Promise<{ data: User | null; error: any }> {
 	try {
 		const body = await apiFetch('/api/users', {

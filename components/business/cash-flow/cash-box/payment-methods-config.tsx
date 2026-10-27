@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
 	Table,
@@ -204,10 +206,17 @@ export function PaymentMethodsConfig() {
 
 	return (
 		<>
-			<Button variant="outline" size="sm" className="gap-2" onClick={() => handleOpenChange(true)}>
-				<Settings className="h-4 w-4" />
-				Configurar métodos de pago
-			</Button>
+			<EditOnly edit="cash-flow">
+				<Button
+					variant="outline"
+					size="sm"
+					className="gap-2"
+					onClick={() => handleOpenChange(true)}
+				>
+					<Settings className="h-4 w-4" />
+					Configurar métodos de pago
+				</Button>
+			</EditOnly>
 
 			<Dialog open={open} onOpenChange={handleOpenChange}>
 				<DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">

@@ -20,6 +20,12 @@ jest.mock('nodemailer', () => ({
 	createTransport: jest.fn(),
 }));
 
+// The route checks the caller first; by default it is someone allowed to notify clients.
+const mockAuthorize = jest.fn();
+jest.mock('@/helpers/users/require-permission', () => ({
+	authorize: (...args: any[]) => mockAuthorize(...args),
+}));
+
 const mockCreateClient = jest.mocked(require('@supabase/supabase-js').createClient);
 const mockCreateTransport = jest.mocked(require('nodemailer').createTransport);
 
@@ -56,12 +62,62 @@ function buildRequest(body: Record<string, any>) {
 describe('POST /api/send-email', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		mockAuthorize.mockImplementation(async () => ({
+			uid: 'user-1',
+			role: 'Admin',
+			supabase: mockCreateClient(),
+		}));
 		mockTransporter();
 		process.env.SMTP_HOST = 'smtp.test.com';
 		process.env.SMTP_PORT = '587';
 		process.env.SMTP_USER = 'test@test.com';
 		process.env.SMTP_PASS = 'password';
 		process.env.EMAIL_FROM = 'noreply@test.com';
+	});
+
+	it('refuses a caller without a session or without permission, before doing anything', async () => {
+		mockAuthorize.mockResolvedValueOnce({
+			response: new Response(JSON.stringify({ error: 'No autenticado' }), { status: 401 }),
+		});
+		const { POST } = await import('@/app/api/send-email/route');
+
+		const res = await POST(
+			buildRequest({ clientId: 1, workId: 1, to: 'a@b.com', subject: 'x', message: 'y' })
+		);
+
+		expect(res.status).toBe(401);
+		expect(mockSendMail).not.toHaveBeenCalled();
+	});
+
+	it('only users who can edit works notify clients', async () => {
+		const { POST } = await import('@/app/api/send-email/route');
+
+		await POST(buildRequest({ clientId: 1, workId: 1 }));
+
+		expect(mockAuthorize).toHaveBeenCalledWith(expect.any(Request), {
+			edit: ['works', 'clients.works'],
+		});
+	});
+
+	it('sends what the user typed as text, never as HTML', async () => {
+		const chain = mockSupabase();
+		chain.single.mockResolvedValue({ data: null, error: null });
+		mockSendMail.mockResolvedValue({ messageId: 'msg-1' });
+		const { POST } = await import('@/app/api/send-email/route');
+
+		await POST(
+			buildRequest({
+				clientId: 1,
+				workId: 1,
+				to: 'a@b.com',
+				subject: 'x',
+				message: '<a href="https://phishing.test">Pagá acá</a>',
+			})
+		);
+
+		const html = mockSendMail.mock.calls[0][0].html;
+		expect(html).not.toContain('<a href="https://phishing.test">');
+		expect(html).toContain('&lt;a href=&quot;https://phishing.test&quot;&gt;');
 	});
 
 	it('returns 400 when required fields are missing', async () => {

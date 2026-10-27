@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -169,14 +171,16 @@ export function ClientBalances({
 					/>
 				</div>
 				{onCreateBalance && (
-					<Button
-						onClick={onCreateBalance}
-						size="default"
-						className="w-full sm:w-auto whitespace-nowrap"
-					>
-						<Plus className="h-4 w-4 mr-2" />
-						Crear Cuenta Corriente
-					</Button>
+					<EditOnly edit="clients.balances">
+						<Button
+							onClick={onCreateBalance}
+							size="default"
+							className="w-full sm:w-auto whitespace-nowrap"
+						>
+							<Plus className="h-4 w-4 mr-2" />
+							Crear Cuenta Corriente
+						</Button>
+					</EditOnly>
 				)}
 			</div>
 

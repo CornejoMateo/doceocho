@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react';
-import type { UserRole } from '@/constants/users/user-role';
 
 export type SearchResult = {
 	/** Unique across providers, built as `${providerId}:${entityId}`. */
@@ -21,8 +20,8 @@ export type SearchProvider = {
 	id: string;
 	/** Group heading shown above its results. */
 	label: string;
-	/** Roles allowed to see this group; every other role never queries it. */
-	roles: UserRole[];
+	/** View the user needs to see this group (see VIEW_CATALOG); everyone else never queries it. */
+	view: string;
 	/** Lower comes first in the palette. */
 	order: number;
 	search: (term: string, signal: AbortSignal) => Promise<SearchResult[]>;

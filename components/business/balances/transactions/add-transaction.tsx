@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Plus, Calendar as CalendarIcon, Upload, X, FileText } from 'lucide-react';
@@ -95,15 +96,17 @@ export function AddTransactionSection({
 	if (!addingMode) {
 		return (
 			<div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
-				<Button
-					variant="outline"
-					size="sm"
-					className="w-60 items-center flex justify-center"
-					onClick={onStartAddTransaction}
-				>
-					<Plus className="h-4 w-4 mr-2" />
-					Agregar transacción
-				</Button>
+				<EditOnly edit="clients.balances">
+					<Button
+						variant="outline"
+						size="sm"
+						className="w-60 items-center flex justify-center"
+						onClick={onStartAddTransaction}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Agregar transacción
+					</Button>
+				</EditOnly>
 			</div>
 		);
 	}

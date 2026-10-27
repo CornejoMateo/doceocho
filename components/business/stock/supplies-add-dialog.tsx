@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
@@ -19,7 +20,6 @@ import { toast } from '@/components/ui/use-toast';
 import { type SupplyItemStock } from '@/lib/stock/supplies-stock';
 import { useAuth } from '@/components/provider/auth-provider';
 import { formatCurrencyWithoutSymbol, formatNumber, parseArsToNumber } from '@/utils/formats-money';
-import { isAdminRole } from '@/constants/users/user-role';
 
 type FormData = {
 	category: string;
@@ -77,7 +77,7 @@ export function SupplyFormDialog({
 	const [changeQuantityFlag, setChangeQuantityFlag] = useState(false);
 
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('supplies');
 
 	useEffect(() => {
 		if (editItem) {

@@ -1,5 +1,7 @@
 'use client';
 
+import { authFetch } from '@/lib/auth/auth-fetch';
+
 import { useState } from 'react';
 import { deleteBalance } from '@/lib/balances/balances';
 import { BalanceWithTotals } from '@/components/business/balances/client-balances';
@@ -75,7 +77,7 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 		if (!balanceToUpdate) return;
 
 		try {
-			const response = await fetch('/api/dollar-rate', {
+			const response = await authFetch('/api/dollar-rate', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
