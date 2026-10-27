@@ -3,6 +3,7 @@ import {
 	ALL_VIEW_KEYS,
 	canView,
 	getDefaultViews,
+	resolveViews,
 	sanitizeViews,
 } from '@/helpers/permissions/views';
 
@@ -46,4 +47,27 @@ export function parseEditsInput(
 	if (!edits) return { error: 'Los permisos de edición tienen un formato inválido' };
 
 	return { edits };
+}
+
+export type PermissionCheck = {
+	/** Allowed when the user can edit any of these. */
+	edit?: readonly string[];
+	/** Allowed when the user can see any of these. */
+	view?: readonly string[];
+};
+
+/** Server-side check for API routes: the same rules the screens use, from the stored user row. */
+export function hasPermission(
+	role: UserRole | string | undefined | null,
+	customViews: string[] | null | undefined,
+	customEdits: string[] | null | undefined,
+	check: PermissionCheck
+): boolean {
+	const views = resolveViews(role, customViews);
+	const edits = resolveEdits(role, customEdits);
+
+	if (check.edit?.length && !check.edit.some((key) => canEdit(views, edits, key))) return false;
+	if (check.view?.length && !check.view.some((key) => canView(views, key))) return false;
+
+	return true;
 }

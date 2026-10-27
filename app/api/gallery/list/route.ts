@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 
 export async function GET(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.galleryList);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
 		const url = new URL(req.url);
-
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY!
-		);
 
 		const name_code = url.searchParams.get('name_code');
 

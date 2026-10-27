@@ -1,5 +1,7 @@
 'use client';
 
+import { authFetch } from '@/lib/auth/auth-fetch';
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,7 +50,7 @@ export function DollarUpdateModal({
 		try {
 			setIsLoading(true);
 			setError(null);
-			const response = await fetch('/api/dollar-rate');
+			const response = await authFetch('/api/dollar-rate');
 
 			if (!response.ok) {
 				throw new Error('No se pudo obtener el tipo de cambio');
@@ -92,7 +94,7 @@ export function DollarUpdateModal({
 		try {
 			setIsUpdating(true);
 
-			const response = await fetch('/api/dollar-rate', {
+			const response = await authFetch('/api/dollar-rate', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

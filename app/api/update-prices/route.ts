@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 
 interface Entry {
 	code: string;
@@ -15,6 +16,10 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 export async function POST(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.updatePrices);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
+
 		console.log('=== API update-prices called ===');
 		const body = await req.json();
 		console.log(`Received ${body.entries?.length || 0} entries`);
@@ -26,27 +31,6 @@ export async function POST(req: Request) {
 				{ status: 400 }
 			);
 		}
-
-		// Use service role key if available, otherwise fall back to anon key
-		const supabaseKey =
-			process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-		if (!supabaseKey) {
-			console.error('No Supabase key available (neither SERVICE_ROLE_KEY nor ANON_KEY)');
-			return NextResponse.json(
-				{
-					updated: 0,
-					errors: ['Supabase key no configurada'],
-				},
-				{ status: 500 }
-			);
-		}
-
-		console.log(
-			`Using key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SERVICE_ROLE_KEY' : 'ANON_KEY'}`
-		);
-
-		const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, supabaseKey);
 
 		const codes = entries.map((e) => e.code);
 		const now = new Date().toISOString();
