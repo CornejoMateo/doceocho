@@ -77,7 +77,7 @@ export function PurchaseCard({
 	}, []);
 
 	return (
-		<Card data-purchase-id={purchase.id} className="gap-0 overflow-hidden p-0">
+		<Card data-purchase-id={purchase.id} className="min-w-0 gap-0 overflow-hidden p-0">
 			<div className="flex items-start gap-1 p-3">
 				<button
 					type="button"
@@ -97,7 +97,11 @@ export function PurchaseCard({
 								{formatShortDate(purchase.created_at)}
 								{purchaseFileCount > 0 && ` · ${pluralArchivos(purchaseFileCount)}`}
 							</p>
-							{purchase.notes && <p className="truncate text-sm font-medium">{purchase.notes}</p>}
+							{purchase.notes && (
+								<p className="line-clamp-2 break-words text-sm font-medium [overflow-wrap:anywhere]">
+									{purchase.notes}
+								</p>
+							)}
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
 							<div className="text-right">

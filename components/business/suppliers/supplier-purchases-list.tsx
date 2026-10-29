@@ -86,7 +86,7 @@ export function SupplierPurchasesList({
 	}
 
 	return (
-		<div className="space-y-3">
+		<div className="min-w-0 space-y-3">
 			{purchases.map((purchase) => (
 				<PurchaseCard
 					key={purchase.id}

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useSupplierAccountTotals } from '@/hooks/suppliers/use-supplier-account-totals';
 import { useSupplierPaymentOptions } from '@/hooks/suppliers/use-supplier-payment-options';
 import { useSupplierPurchasesTab } from '@/hooks/suppliers/use-supplier-purchases-tab';
@@ -187,15 +187,29 @@ export function SupplierDetailsDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+			<DialogContent
+				className="sm:max-w-[700px] max-h-[85vh] min-w-0 overflow-y-auto overflow-x-hidden"
+				showCloseButton={forms.view !== 'detail'}
+			>
 				{forms.view === 'detail' && (
 					<>
 						<DialogHeader>
-							<DialogTitle>{supplierName}</DialogTitle>
+							<div className="flex items-center justify-between gap-2">
+								<DialogTitle className="min-w-0 truncate">{supplierName}</DialogTitle>
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => handleOpenChange(false)}
+									className="h-8 w-8 shrink-0"
+									aria-label="Cerrar"
+								>
+									<X className="h-4 w-4" />
+								</Button>
+							</div>
 							<DialogDescription>Cuenta corriente del proveedor</DialogDescription>
 						</DialogHeader>
 
-						<div className="space-y-4">
+						<div className="min-w-0 space-y-4">
 							{loadingTotals && !accountTotals ? (
 								<Card className="p-8 text-center text-muted-foreground">Cargando...</Card>
 							) : !accountTotals ? (
