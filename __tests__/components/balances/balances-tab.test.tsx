@@ -24,7 +24,6 @@ const row = (over: any = {}) => ({
 	balanceType: 'DEUDOR',
 	balanceAmountArs: 600,
 	usdContractRef: 0,
-	balanceInUseUsd: 0,
 	...over,
 });
 

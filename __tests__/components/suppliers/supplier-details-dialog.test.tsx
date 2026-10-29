@@ -411,7 +411,7 @@ describe('SupplierDetailsDialog', () => {
 			openDialog();
 			await waitFor(() => expect(getSupplierAccountTotals).toHaveBeenCalledTimes(1));
 
-			fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+			fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
 			await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
 			fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }));

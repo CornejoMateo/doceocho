@@ -252,8 +252,6 @@ describe('useCollections', () => {
 					payment_method: 'Transferencia',
 					payment_method_id: 2,
 					notes: 'Cuota mensual',
-					quote_usd: null,
-					usd_amount: null,
 				})
 			);
 			expect(createCollection).not.toHaveBeenCalled();
