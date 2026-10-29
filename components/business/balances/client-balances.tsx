@@ -18,7 +18,6 @@ import { Plus, Search } from 'lucide-react';
 import { BalanceWithBudget } from '@/lib/balances/balances';
 import { getTotalByBalanceId } from '@/lib/balances/balance_transactions';
 import { BalanceDetailsModal } from './balance-details-modal';
-import { DollarUpdateModal } from '@/components/ui/dollar-update-modal';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
 import { BalanceCard } from './balance-card';
 import { useBalanceHandlers } from '@/hooks/balances/use-balance-handlers';
@@ -59,14 +58,9 @@ export function ClientBalances({
 		balanceToDelete,
 		isDeleteDialogOpen,
 		setIsDeleteDialogOpen,
-		isDollarUpdateModalOpen,
-		setIsDollarUpdateModalOpen,
-		balanceToUpdate,
 		openDetailsModal,
 		openDeleteDialog,
-		openDollarUpdateModal,
 		handleDeleteBalance,
-		handleDollarUpdate,
 		handleBalanceUpdate,
 	} = useBalanceHandlers({
 		onBalanceDeleted,
@@ -201,7 +195,6 @@ export function ClientBalances({
 								balance={balance}
 								summary={summary}
 								onCardClick={() => openDetailsModal(balance)}
-								onDollarUpdate={() => openDollarUpdateModal(balance)}
 								onDeleteClick={() => openDeleteDialog(balance)}
 							/>
 						);
@@ -248,13 +241,6 @@ export function ClientBalances({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-
-			<DollarUpdateModal
-				isOpen={isDollarUpdateModalOpen}
-				onOpenChange={setIsDollarUpdateModalOpen}
-				balance={balanceToUpdate}
-				onUpdateConfirmed={handleDollarUpdate}
-			/>
 		</div>
 	);
 }

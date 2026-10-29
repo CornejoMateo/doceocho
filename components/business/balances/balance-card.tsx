@@ -13,7 +13,6 @@ interface BalanceCardProps {
 	};
 	summary: BalanceSummary;
 	onCardClick: () => void;
-	onDollarUpdate: () => void;
 	onDeleteClick: () => void;
 }
 
