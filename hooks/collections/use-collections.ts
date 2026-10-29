@@ -93,8 +93,6 @@ function toBalanceTransactionInput(input: EntrySavePayload) {
 		work_id: input.work_id,
 		category_id: input.category_id,
 		receipt_number: input.receipt_number,
-		quote_usd: null,
-		usd_amount: null,
 	};
 }
 

@@ -36,7 +36,6 @@ interface BalanceInformationProps {
 	usdCurrent?: number | null;
 
 	totalPaid: number;
-	totalPaidUsd: number;
 
 	summary: BalanceSummary;
 
@@ -53,7 +52,6 @@ export function BalanceInformation({
 	contractDateUsd,
 	usdCurrent,
 	totalPaid,
-	totalPaidUsd,
 	summary,
 	formatDate,
 	onUpdated,
@@ -182,10 +180,6 @@ export function BalanceInformation({
 
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-green-600">{formatCurrency(totalPaid)}</p>
-
-						{usdCurrent && (
-							<p className="text-xs text-muted-foreground">{formatCurrencyUSD(totalPaidUsd)}</p>
-						)}
 					</div>
 				</div>
 
@@ -195,10 +189,6 @@ export function BalanceInformation({
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-orange-600">
 							{formatCurrency(summary.remainingArs)}
-						</p>
-
-						<p className="text-xs text-muted-foreground">
-							{formatCurrencyUSD(summary.remainingUsd)}
 						</p>
 					</div>
 				</div>

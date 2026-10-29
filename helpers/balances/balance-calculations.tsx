@@ -3,7 +3,6 @@ interface BalanceCalculationInput {
 	budgetAmountUsd?: number | null;
 	usdCurrent?: number | null;
 	totalPaidArs?: number | null;
-	totalPaidUsd?: number | null;
 	budgetInitialArs?: number | null;
 	isSettled?: boolean;
 }
@@ -13,9 +12,7 @@ export interface BalanceSummary {
 	budgetUsd: number;
 	budgetArsCurrent: number;
 	totalPaidArs: number;
-	totalPaidUsd: number;
 	remainingArs: number;
-	remainingUsd: number;
 	progressPercentage: number;
 	type: string;
 	budgetInitialArs?: number | null;
@@ -28,9 +25,7 @@ export function calculateBalanceSummary(input: BalanceCalculationInput): Balance
 	const budgetUsd = toSafeNumber(input.budgetAmountUsd);
 	const budgetArsCurrent = toSafeNumber(input.budgetAmountArs);
 	const totalPaidArs = toSafeNumber(input.totalPaidArs);
-	const totalPaidUsd = toSafeNumber(input.totalPaidUsd);
 
-	const remainingUsd = budgetUsd - totalPaidUsd;
 	const remainingArs = budgetArsCurrent - totalPaidArs;
 	const progressBase = budgetArsCurrent > 0 ? budgetArsCurrent : budgetArsInitial;
 
@@ -42,9 +37,7 @@ export function calculateBalanceSummary(input: BalanceCalculationInput): Balance
 		budgetUsd,
 		budgetArsCurrent,
 		totalPaidArs,
-		totalPaidUsd,
 		remainingArs,
-		remainingUsd,
 		progressPercentage,
 		type: input.isSettled
 			? 'Saldado'

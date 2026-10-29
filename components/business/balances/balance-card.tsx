@@ -10,7 +10,6 @@ import { BalanceWithBudget } from '@/lib/balances/balances';
 interface BalanceCardProps {
 	balance: BalanceWithBudget & {
 		totalPaid?: number;
-		totalPaidUSD?: number;
 	};
 	summary: BalanceSummary;
 	onCardClick: () => void;
@@ -88,11 +87,6 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 									<p className="text-xs sm:text-sm font-bold text-green-600 truncate">
 										{formatCurrency(balance.totalPaid || 0)}
 									</p>
-									{balance.contract_date_usd && (
-										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.totalPaidUsd)}
-										</p>
-									)}
 								</div>
 							</div>
 							<div className="flex flex-col">
@@ -101,11 +95,6 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 									<p className="text-xs sm:text-sm font-bold text-orange-600 truncate">
 										{formatCurrency(summary.remainingArs)}
 									</p>
-									{balance.contract_date_usd && (
-										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.remainingUsd)}
-										</p>
-									)}
 								</div>
 							</div>
 						</div>

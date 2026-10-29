@@ -2,7 +2,6 @@ import { normalizeMoney } from '@/utils/formats-money';
 
 export type BalanceTotals = {
 	totalAmount: number;
-	totalAmountUSD: number;
 };
 
 export type ReceivableBalance = {

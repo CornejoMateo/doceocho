@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
 	BalanceTransaction,
 	getTransactionsByBalanceId,
@@ -16,10 +16,11 @@ import {
 	unmarkBalanceAsSettled,
 } from '@/lib/balances/balances';
 import { PaymentMethod, listPaymentMethods } from '@/lib/payment-methods/payment-methods';
+import { CashFlowCategory, listCategories } from '@/lib/categories/categories';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { format } from 'date-fns';
-import { formatNumber, parseArsToNumber } from '@/utils/formats-money';
+import { parseArsToNumber } from '@/utils/formats-money';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
 import { withInactiveSelected } from '@/utils/select-options';
 
@@ -48,15 +49,13 @@ export function useTransactionCrud(
 
 	const [isTogglingSettled, setIsTogglingSettled] = useState(false);
 
-	const skipNextAutoCalcRef = useRef(false);
-
 	const [transactionDate, setTransactionDate] = useState<Date>(new Date());
 	const [transactionAmount, setTransactionAmount] = useState('');
 	const [paymentMethodId, setPaymentMethodId] = useState('');
 	const [notes, setNotes] = useState('');
-	const [quoteUsd, setQuoteUsd] = useState('');
-	const [usdAmount, setUsdAmount] = useState('');
 	const [bankAccountId, setBankAccountId] = useState<string>('');
+	const [receiptNumber, setReceiptNumber] = useState('');
+	const [categoryId, setCategoryId] = useState('');
 
 	const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 	const activePaymentMethods = useMemo(
@@ -75,6 +74,13 @@ export function useTransactionCrud(
 		[activePaymentMethods, paymentMethods, paymentMethodId, editingTransaction]
 	);
 
+	const [categories, setCategories] = useState<CashFlowCategory[]>([]);
+	const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
+	const categoryOptions = useMemo(
+		() => withInactiveSelected(activeCategories, categories, categoryId, !!editingTransaction),
+		[activeCategories, categories, categoryId, editingTransaction]
+	);
+
 	useEffect(() => {
 		if (balance && isOpen) {
 			loadTransactions();
@@ -85,27 +91,8 @@ export function useTransactionCrud(
 	useEffect(() => {
 		if (!isOpen) return;
 		listPaymentMethods().then(({ data }) => setPaymentMethods(data ?? []));
+		listCategories('collection').then(({ data }) => setCategories(data ?? []));
 	}, [isOpen]);
-
-	useEffect(() => {
-		if (skipNextAutoCalcRef.current) {
-			skipNextAutoCalcRef.current = false;
-			return;
-		}
-		if (transactionAmount && quoteUsd && addingMode) {
-			const normalizedAmount = transactionAmount.replace(/\./g, '').replace(',', '.');
-			const normalizedQuote = quoteUsd.replace(/\./g, '').replace(',', '.');
-			const amountNumber = Number(normalizedAmount);
-			const rateNumber = Number(normalizedQuote);
-			if (!isNaN(amountNumber) && !isNaN(rateNumber)) {
-				setUsdAmount(formatNumber((amountNumber / rateNumber).toFixed(3).replace('.', ',')));
-			}
-		} else {
-			if (!transactionAmount || !quoteUsd) {
-				setUsdAmount('');
-			}
-		}
-	}, [quoteUsd, transactionAmount, addingMode, editingTransaction]);
 
 	const loadTransactions = async (): Promise<BalanceTransactionWithBankAccount[]> => {
 		if (!balance) return [];
@@ -138,7 +125,6 @@ export function useTransactionCrud(
 
 	const buildSummaryFromTransactions = (txs: BalanceTransactionWithBankAccount[]) => {
 		const paidArs = txs.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-		const paidUsd = txs.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
 
 		return calculateBalanceSummary({
 			budgetAmountArs: balance?.balance_amount_ars,
@@ -146,7 +132,6 @@ export function useTransactionCrud(
 			budgetInitialArs: balance?.budget?.amount_ars,
 			usdCurrent: balance?.usd_current,
 			totalPaidArs: paidArs,
-			totalPaidUsd: paidUsd,
 			isSettled: balance?.is_settled,
 		});
 	};
@@ -243,15 +228,6 @@ export function useTransactionCrud(
 
 		const beforeType = summary.type;
 
-		if (!quoteUsd) {
-			toast({
-				variant: 'destructive',
-				title: 'Error al crear transacción',
-				description: 'El campo "Cotización USD" es obligatorio.',
-			});
-			return;
-		}
-
 		setIsSavingTransaction(true);
 
 		try {
@@ -263,9 +239,10 @@ export function useTransactionCrud(
 				payment_method_id: paymentMethodId ? Number(paymentMethodId) : null,
 				payment_method: selectedMethod?.name ?? null,
 				notes: notes || null,
-				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
-				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
 				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
+				receipt_number: receiptNumber.trim() || null,
+				category_id: categoryId ? Number(categoryId) : null,
+				work_id: balance.budget?.folder_budget?.work_id ?? null,
 			});
 
 			if (error) {
@@ -399,16 +376,15 @@ export function useTransactionCrud(
 		setTransactionAmount('');
 		setPaymentMethodId('');
 		setNotes('');
-		setQuoteUsd('');
-		setUsdAmount('');
 		setBankAccountId('');
+		setReceiptNumber('');
+		setCategoryId('');
 		setTransactionFilesToUpload([]);
 		setAddingMode(null);
 	};
 
 	const handleEditTransaction = (transaction: BalanceTransaction) => {
 		setEditingTransaction(transaction);
-		skipNextAutoCalcRef.current = true;
 		setTransactionDate(transaction.date ? new Date(transaction.date + 'T00:00:00') : new Date());
 		setTransactionAmount(
 			transaction.amount
@@ -431,22 +407,8 @@ export function useTransactionCrud(
 		);
 		setBankAccountId(transaction.bank_account_id ? String(transaction.bank_account_id) : '');
 		setNotes(transaction.notes || '');
-		setQuoteUsd(
-			transaction.quote_usd
-				? transaction.quote_usd.toLocaleString('es-AR', {
-						minimumFractionDigits: 0,
-						maximumFractionDigits: 3,
-					})
-				: ''
-		);
-		setUsdAmount(
-			transaction.usd_amount
-				? transaction.usd_amount.toLocaleString('es-AR', {
-						minimumFractionDigits: 0,
-						maximumFractionDigits: 3,
-					})
-				: ''
-		);
+		setReceiptNumber(transaction.receipt_number || '');
+		setCategoryId(transaction.category_id ? String(transaction.category_id) : '');
 		setTransactionFilesToUpload([]);
 		setAddingMode('transaction');
 	};
@@ -466,9 +428,10 @@ export function useTransactionCrud(
 				payment_method_id: paymentMethodId ? Number(paymentMethodId) : null,
 				payment_method: selectedMethod?.name ?? null,
 				notes: notes || null,
-				quote_usd: quoteUsd ? parseArsToNumber(quoteUsd) : null,
-				usd_amount: usdAmount ? parseArsToNumber(usdAmount) : null,
 				bank_account_id: bankAccountId ? Number(bankAccountId) : null,
+				receipt_number: receiptNumber.trim() || null,
+				category_id: categoryId ? Number(categoryId) : null,
+				work_id: balance.budget?.folder_budget?.work_id ?? null,
 			});
 
 			if (error) {
@@ -515,7 +478,6 @@ export function useTransactionCrud(
 	};
 
 	const totalPaid = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-	const totalPaidUSD = transactions.reduce((sum, t) => sum + (Number(t.usd_amount) || 0), 0);
 
 	const summary = calculateBalanceSummary({
 		budgetAmountArs: balance?.balance_amount_ars,
@@ -523,7 +485,6 @@ export function useTransactionCrud(
 		budgetInitialArs: balance?.budget?.amount_ars,
 		usdCurrent: balance?.usd_current,
 		totalPaidArs: totalPaid,
-		totalPaidUsd: totalPaidUSD,
 		isSettled: balance?.is_settled,
 	});
 
@@ -560,10 +521,11 @@ export function useTransactionCrud(
 		bankAccountId,
 		notes,
 		setNotes,
-		quoteUsd,
-		setQuoteUsd,
-		usdAmount,
-		setUsdAmount,
+		receiptNumber,
+		setReceiptNumber,
+		categoryId,
+		setCategoryId,
+		categoryOptions,
 		loadTransactions,
 		handleAddTransaction,
 		handleDeleteTransaction,
@@ -572,7 +534,6 @@ export function useTransactionCrud(
 		handleEditTransaction,
 		handleUpdateTransaction,
 		totalPaid,
-		totalPaidUSD,
 		summary,
 		work,
 		showSettledReminder,
