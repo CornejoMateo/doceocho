@@ -1,68 +1,66 @@
 import { getSupabaseClient } from '../supabase-client';
 import { FileViewerItem } from '../../utils/file-upload-utils';
-import { fetchAllPages, fetchByIdsInChunks } from './pagination';
+import { fetchAllPages, fetchByIdsInChunks } from '@/lib/suppliers/pagination';
 
-export type FilePurchaseSupplier = {
+export type FileExpense = {
 	id: number;
 	created_at: string;
 	storage_path: string;
-	purchase_supplier_id: number;
+	expense_id: number;
 	file_name: string | null;
 	description: string | null;
 };
 
-const TABLE = 'files_purchases_suppliers';
+const TABLE = 'files_expenses';
 const BUCKET = 'suppliers-files';
 
-export async function listFilesByPurchaseSupplierId(
-	purchaseSupplierId: number
-): Promise<{ data: FilePurchaseSupplier[] | null; error: any }> {
+export async function listFilesByExpenseId(
+	expenseId: number
+): Promise<{ data: FileExpense[] | null; error: any }> {
 	const supabase = getSupabaseClient();
-
 	const { data, error } = await supabase
 		.from(TABLE)
 		.select('*')
-		.eq('purchase_supplier_id', purchaseSupplierId)
+		.eq('expense_id', expenseId)
 		.order('id', { ascending: true });
-
 	return { data, error };
 }
 
-// Batches the per-purchase lookup into one query to avoid an N+1 across purchases.
-export async function listFilesByPurchaseSupplierIds(
-	purchaseSupplierIds: number[]
-): Promise<{ data: FilePurchaseSupplier[] | null; error: any }> {
-	return fetchByIdsInChunks(purchaseSupplierIds, (chunk) =>
-		fetchAllPages<FilePurchaseSupplier>((from, to) => {
+// Batches the per-expense lookup into one query to avoid an N+1 across expenses.
+export async function listFilesByExpenseIds(
+	expenseIds: number[]
+): Promise<{ data: FileExpense[] | null; error: any }> {
+	return fetchByIdsInChunks(expenseIds, (chunk) =>
+		fetchAllPages<FileExpense>((from, to) => {
 			const supabase = getSupabaseClient();
 			return supabase
 				.from(TABLE)
 				.select('*')
-				.in('purchase_supplier_id', chunk)
+				.in('expense_id', chunk)
 				.order('id', { ascending: true })
 				.range(from, to);
 		})
 	);
 }
 
-export async function uploadFilePurchaseSupplier(
-	purchaseSupplierId: number,
+export async function uploadFileExpense(
+	expenseId: number,
 	file: File,
 	description?: string | null,
 	fileName?: string | null
-): Promise<{ data: FilePurchaseSupplier | null; error: any }> {
+): Promise<{ data: FileExpense | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
 		const fileExt = file.name.split('.').pop();
 		const storageName = `${crypto.randomUUID()}.${fileExt}`;
-		const filePath = `purchases/${purchaseSupplierId}/${storageName}`;
+		const filePath = `expenses/${expenseId}/${storageName}`;
 
 		const { data: fileRecord, error: dbError } = await supabase
 			.from(TABLE)
 			.insert({
 				storage_path: filePath,
-				purchase_supplier_id: purchaseSupplierId,
+				expense_id: expenseId,
 				file_name: fileName?.trim() || file.name,
 				description: description || null,
 			})
@@ -84,12 +82,12 @@ export async function uploadFilePurchaseSupplier(
 
 		return { data: fileRecord, error: null };
 	} catch (err) {
-		console.error('Unexpected error uploading purchase supplier file:', err);
+		console.error('Unexpected error uploading expense file:', err);
 		return { data: null, error: err };
 	}
 }
 
-export async function downloadFilePurchaseSupplier(
+export async function downloadFileExpense(
 	fileId: number
 ): Promise<{ data: Blob | null; error: any }> {
 	try {
@@ -112,14 +110,12 @@ export async function downloadFilePurchaseSupplier(
 		const { data, error } = await supabase.storage.from(BUCKET).download(fileRecord.storage_path);
 		return { data, error };
 	} catch (err) {
-		console.error('Unexpected error downloading purchase supplier file:', err);
+		console.error('Unexpected error downloading expense file:', err);
 		return { data: null, error: err };
 	}
 }
 
-export async function deleteFilePurchaseSupplier(
-	fileId: number
-): Promise<{ success: boolean; error: any }> {
+export async function deleteFileExpense(fileId: number): Promise<{ success: boolean; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
@@ -154,7 +150,7 @@ export async function deleteFilePurchaseSupplier(
 
 		return { success: true, error: null };
 	} catch (err) {
-		console.error('Unexpected error deleting purchase supplier file:', err);
+		console.error('Unexpected error deleting expense file:', err);
 		return { success: false, error: err };
 	}
 }
@@ -162,8 +158,8 @@ export async function deleteFilePurchaseSupplier(
 const SIGNED_URL_EXPIRY_SECONDS = 3600;
 
 // One batched createSignedUrls call per gallery load instead of per-file blob downloads.
-export async function signUrlsForPurchaseSupplierFiles(
-	files: FilePurchaseSupplier[]
+export async function signUrlsForExpenseFiles(
+	files: FileExpense[]
 ): Promise<{ data: FileViewerItem[] | null; error: any }> {
 	if (files.length === 0) {
 		return { data: [], error: null };
@@ -204,13 +200,13 @@ export async function signUrlsForPurchaseSupplierFiles(
 	return { data, error: null };
 }
 
-export async function listFilesWithUrlsByPurchaseSupplierId(
-	purchaseSupplierId: number
+export async function listFilesWithUrlsByExpenseId(
+	expenseId: number
 ): Promise<{ data: FileViewerItem[] | null; error: any }> {
-	const listResult = await listFilesByPurchaseSupplierId(purchaseSupplierId);
+	const listResult = await listFilesByExpenseId(expenseId);
 	if (listResult.error) {
 		return { data: null, error: listResult.error };
 	}
 
-	return signUrlsForPurchaseSupplierFiles(listResult.data ?? []);
+	return signUrlsForExpenseFiles(listResult.data ?? []);
 }
