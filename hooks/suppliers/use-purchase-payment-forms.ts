@@ -1,27 +1,29 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { formatCurrencyWithoutSymbol, parseArsToNumber } from '@/utils/formats-money';
 import {
-	createPurchaseSupplier,
-	updatePurchaseSupplier,
-	type PurchaseSupplierWithBalance,
-} from '@/lib/suppliers/purchases-suppliers';
-import {
-	createPaymentSupplier,
-	updatePaymentSupplier,
-	type PaymentSupplier,
-} from '@/lib/suppliers/payments-suppliers';
-import { uploadFilePurchaseSupplier } from '@/lib/suppliers/files-purchases-suppliers';
-import { uploadFilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
-import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/suppliers/suppliers';
+	formatCurrencyWithoutSymbol,
+	parseArsToNumber,
+	roundToTwoDecimals,
+} from '@/utils/formats-money';
+import { computeIvaAndTotal, IVA_RATES } from '@/constants/cashflow/iva';
+import { createExpense, updateExpense } from '@/lib/expenses/expenses';
+import { createPayment, updatePayment } from '@/lib/payments/payments';
+import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
+import type { PaymentWithDetails } from '@/lib/payments/payments';
+import { uploadFileExpense } from '@/lib/expenses/files-expenses';
+import { uploadFilePayment } from '@/lib/payments/files-payments';
+import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/attachments/attachments';
 import { getLocalDate } from '@/utils/format-date';
-import type { StagedFile } from '@/components/business/suppliers/supplier-file-attachments';
+import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
 
 export type ViewState = 'detail' | 'purchase-form' | 'payment-form';
 
 export const NO_BANK_ACCOUNT = '__none__';
 export const NO_PAYMENT_METHOD = '__none__';
+export const NO_WORK = '__none__';
+export const NO_CATEGORY = '__none__';
+export const NO_VOUCHER_TYPE = '__none__';
 
 type MutationContext = { kind: 'purchase' | 'payment'; purchaseId: number };
 
@@ -39,34 +41,62 @@ export function usePurchasePaymentForms({
 	const { toast } = useToast();
 	const [view, setView] = useState<ViewState>('detail');
 
-	const [editingPurchase, setEditingPurchase] = useState<PurchaseSupplierWithBalance | null>(null);
-	const [purchaseAmount, setPurchaseAmount] = useState('');
-	const [purchaseNotes, setPurchaseNotes] = useState('');
+	const [editingPurchase, setEditingPurchase] = useState<SupplierExpenseListItem | null>(null);
+	const [purchaseDate, setPurchaseDate] = useState(getLocalDate());
+	const [purchaseVoucherTypeId, setPurchaseVoucherTypeId] = useState(NO_VOUCHER_TYPE);
+	const [purchaseVoucherNumber, setPurchaseVoucherNumber] = useState('');
+	const [purchaseWorkId, setPurchaseWorkId] = useState(NO_WORK);
+	const [purchaseCategoryId, setPurchaseCategoryId] = useState(NO_CATEGORY);
+	const [purchaseDescription, setPurchaseDescription] = useState('');
+	const [purchaseNetAmount, setPurchaseNetAmount] = useState('');
+	const [purchaseIvaPercent, setPurchaseIvaPercent] = useState<number>(IVA_RATES[0]);
+	const [purchaseBankAccountId, setPurchaseBankAccountId] = useState(NO_BANK_ACCOUNT);
+	// Optional in both create and edit, so "Sin medio" is always a rendered SelectItem.
+	const [purchasePaymentMethodId, setPurchasePaymentMethodId] = useState(NO_PAYMENT_METHOD);
 	const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
 	const [stagedPurchaseFiles, setStagedPurchaseFiles] = useState<StagedFile[]>([]);
 
 	const [activePurchaseForPayment, setActivePurchaseForPayment] =
-		useState<PurchaseSupplierWithBalance | null>(null);
-	const [editingPayment, setEditingPayment] = useState<PaymentSupplier | null>(null);
+		useState<SupplierExpenseListItem | null>(null);
+	const [editingPayment, setEditingPayment] = useState<PaymentWithDetails | null>(null);
 	const [paymentAmount, setPaymentAmount] = useState('');
 	const [paymentDate, setPaymentDate] = useState(getLocalDate());
 	const [paymentBankAccountId, setPaymentBankAccountId] = useState(NO_BANK_ACCOUNT);
 	const [paymentMethodIdValue, setPaymentMethodIdValue] = useState(NO_PAYMENT_METHOD);
-	const [paymentNotes, setPaymentNotes] = useState('');
+	const [paymentReceiptNumber, setPaymentReceiptNumber] = useState('');
+	const [paymentCategoryId, setPaymentCategoryId] = useState(NO_CATEGORY);
+	const [paymentDescription, setPaymentDescription] = useState('');
 	const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 	const [stagedPaymentFiles, setStagedPaymentFiles] = useState<StagedFile[]>([]);
 
+	// Preview only; the DB trigger (expenses_compute_iva_and_total) recomputes authoritatively.
+	const parsedPurchaseNetAmount = roundToTwoDecimals(parseArsToNumber(purchaseNetAmount));
+	const { ivaAmount: purchaseIvaAmount, totalAmount: purchaseTotalAmount } = computeIvaAndTotal(
+		parsedPurchaseNetAmount,
+		purchaseIvaPercent
+	);
+
 	const resetFormState = () => {
 		setEditingPurchase(null);
-		setPurchaseAmount('');
-		setPurchaseNotes('');
+		setPurchaseDate(getLocalDate());
+		setPurchaseVoucherTypeId(NO_VOUCHER_TYPE);
+		setPurchaseVoucherNumber('');
+		setPurchaseWorkId(NO_WORK);
+		setPurchaseCategoryId(NO_CATEGORY);
+		setPurchaseDescription('');
+		setPurchaseNetAmount('');
+		setPurchaseIvaPercent(IVA_RATES[0]);
+		setPurchaseBankAccountId(NO_BANK_ACCOUNT);
+		setPurchasePaymentMethodId(NO_PAYMENT_METHOD);
 		setActivePurchaseForPayment(null);
 		setEditingPayment(null);
 		setPaymentAmount('');
 		setPaymentDate(getLocalDate());
 		setPaymentBankAccountId(NO_BANK_ACCOUNT);
 		setPaymentMethodIdValue(NO_PAYMENT_METHOD);
-		setPaymentNotes('');
+		setPaymentReceiptNumber('');
+		setPaymentCategoryId(NO_CATEGORY);
+		setPaymentDescription('');
 		setStagedPurchaseFiles([]);
 		setStagedPaymentFiles([]);
 	};
@@ -90,44 +120,75 @@ export function usePurchasePaymentForms({
 
 	const handleNewPurchase = () => {
 		setEditingPurchase(null);
-		setPurchaseAmount('');
-		setPurchaseNotes('');
+		setPurchaseDate(getLocalDate());
+		setPurchaseVoucherTypeId(NO_VOUCHER_TYPE);
+		setPurchaseVoucherNumber('');
+		setPurchaseWorkId(NO_WORK);
+		setPurchaseCategoryId(NO_CATEGORY);
+		setPurchaseDescription('');
+		setPurchaseNetAmount('');
+		setPurchaseIvaPercent(IVA_RATES[0]);
+		setPurchaseBankAccountId(NO_BANK_ACCOUNT);
+		setPurchasePaymentMethodId(NO_PAYMENT_METHOD);
 		setStagedPurchaseFiles([]);
 		setView('purchase-form');
 	};
 
-	const handleEditPurchase = (purchase: PurchaseSupplierWithBalance) => {
+	const handleEditPurchase = (purchase: SupplierExpenseListItem) => {
 		setEditingPurchase(purchase);
-		setPurchaseAmount(formatCurrencyWithoutSymbol(purchase.amount_ars));
-		setPurchaseNotes(purchase.notes ?? '');
+		setPurchaseDate(purchase.date);
+		setPurchaseVoucherTypeId(
+			purchase.voucher_type_id ? String(purchase.voucher_type_id) : NO_VOUCHER_TYPE
+		);
+		setPurchaseVoucherNumber(purchase.voucher_number ?? '');
+		setPurchaseWorkId(purchase.work_id ? String(purchase.work_id) : NO_WORK);
+		setPurchaseCategoryId(purchase.category_id ? String(purchase.category_id) : NO_CATEGORY);
+		setPurchaseDescription(purchase.description ?? '');
+		setPurchaseNetAmount(formatCurrencyWithoutSymbol(purchase.net_amount));
+		setPurchaseIvaPercent(purchase.iva_percent);
+		setPurchaseBankAccountId(
+			purchase.bank_account_id ? String(purchase.bank_account_id) : NO_BANK_ACCOUNT
+		);
+		setPurchasePaymentMethodId(
+			purchase.payment_method_id ? String(purchase.payment_method_id) : NO_PAYMENT_METHOD
+		);
 		setStagedPurchaseFiles([]);
 		setView('purchase-form');
 	};
 
-	const handleNewPayment = (purchase: PurchaseSupplierWithBalance) => {
+	const handleNewPayment = (purchase: SupplierExpenseListItem) => {
 		setActivePurchaseForPayment(purchase);
 		setEditingPayment(null);
 		setPaymentAmount('');
 		setPaymentDate(getLocalDate());
-		setPaymentBankAccountId(NO_BANK_ACCOUNT);
-		setPaymentMethodIdValue(NO_PAYMENT_METHOD);
-		setPaymentNotes('');
+		// Prefilled from the purchase, but still editable, since it's a sensible default.
+		setPaymentBankAccountId(
+			purchase.bank_account_id ? String(purchase.bank_account_id) : NO_BANK_ACCOUNT
+		);
+		setPaymentMethodIdValue(
+			purchase.payment_method_id ? String(purchase.payment_method_id) : NO_PAYMENT_METHOD
+		);
+		setPaymentReceiptNumber('');
+		setPaymentCategoryId(NO_CATEGORY);
+		setPaymentDescription('');
 		setStagedPaymentFiles([]);
 		setView('payment-form');
 	};
 
-	const handleEditPayment = (purchase: PurchaseSupplierWithBalance, payment: PaymentSupplier) => {
+	const handleEditPayment = (purchase: SupplierExpenseListItem, payment: PaymentWithDetails) => {
 		setActivePurchaseForPayment(purchase);
 		setEditingPayment(payment);
-		setPaymentAmount(formatCurrencyWithoutSymbol(payment.amount_ars));
-		setPaymentDate(payment.paid_date ?? getLocalDate());
+		setPaymentAmount(formatCurrencyWithoutSymbol(payment.amount));
+		setPaymentDate(payment.date ?? getLocalDate());
 		setPaymentBankAccountId(
 			payment.bank_account_id ? String(payment.bank_account_id) : NO_BANK_ACCOUNT
 		);
 		setPaymentMethodIdValue(
 			payment.payment_method_id ? String(payment.payment_method_id) : NO_PAYMENT_METHOD
 		);
-		setPaymentNotes(payment.notes ?? '');
+		setPaymentReceiptNumber(payment.receipt_number ?? '');
+		setPaymentCategoryId(payment.category_id ? String(payment.category_id) : NO_CATEGORY);
+		setPaymentDescription(payment.description ?? '');
 		setStagedPaymentFiles([]);
 		setView('payment-form');
 	};
@@ -142,8 +203,8 @@ export function usePurchasePaymentForms({
 			try {
 				const { error } =
 					kind === 'purchase'
-						? await uploadFilePurchaseSupplier(entityId, entry.file, null, entry.fileName)
-						: await uploadFilePaymentSupplier(entityId, entry.file, null, entry.fileName);
+						? await uploadFileExpense(entityId, entry.file, null, entry.fileName)
+						: await uploadFilePayment(entityId, entry.file, null, entry.fileName);
 				if (error) failed += 1;
 			} catch {
 				// Counted, not rethrown
@@ -156,31 +217,46 @@ export function usePurchasePaymentForms({
 	const handleSubmitPurchase = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!supplierId) return;
-		const parsedAmount = parseArsToNumber(purchaseAmount);
-		if (!purchaseAmount || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+		if (!Number.isFinite(parsedPurchaseNetAmount) || parsedPurchaseNetAmount < 0) {
 			toast({
 				title: 'Datos incompletos',
-				description: 'Ingresá un monto válido para la compra.',
+				description: 'Ingresá un neto válido para la compra.',
 				variant: 'destructive',
 			});
 			return;
 		}
 		setIsSubmittingPurchase(true);
 		try {
+			const payload = {
+				date: purchaseDate,
+				voucher_number: purchaseVoucherNumber.trim() || null,
+				voucher_type_id:
+					purchaseVoucherTypeId === NO_VOUCHER_TYPE ? null : Number(purchaseVoucherTypeId),
+				work_id: purchaseWorkId === NO_WORK ? null : Number(purchaseWorkId),
+				category_id: purchaseCategoryId === NO_CATEGORY ? null : Number(purchaseCategoryId),
+				description: purchaseDescription.trim() || null,
+				net_amount: parsedPurchaseNetAmount,
+				iva_percent: purchaseIvaPercent,
+				iva_amount: purchaseIvaAmount,
+				total_amount: purchaseTotalAmount,
+				payment_method_id:
+					purchasePaymentMethodId === NO_PAYMENT_METHOD ? null : Number(purchasePaymentMethodId),
+				bank_account_id:
+					purchaseBankAccountId === NO_BANK_ACCOUNT ? null : Number(purchaseBankAccountId),
+			};
 			if (editingPurchase) {
-				const { error } = await updatePurchaseSupplier(editingPurchase.id, {
-					amount_ars: parsedAmount,
-					notes: purchaseNotes.trim() || null,
+				const { error } = await updateExpense(editingPurchase.id, {
+					...payload,
+					supplier_id: supplierId,
 				});
 				if (error) throw error;
 				toast({ title: 'Compra actualizada' });
 				onChanged?.();
 				await returnToDetail({ kind: 'purchase', purchaseId: editingPurchase.id });
 			} else {
-				const { data, error } = await createPurchaseSupplier({
-					amount_ars: parsedAmount,
+				const { data, error } = await createExpense({
+					...payload,
 					supplier_id: supplierId,
-					notes: purchaseNotes.trim() || null,
 				});
 				if (error || !data) throw error;
 				const staged = stagedPurchaseFiles;
@@ -229,23 +305,27 @@ export function usePurchasePaymentForms({
 		setIsSubmittingPayment(true);
 		try {
 			const payload = {
-				amount_ars: parsedAmount,
-				paid_date: paymentDate,
+				date: paymentDate,
+				amount: roundToTwoDecimals(parsedAmount),
 				bank_account_id:
 					paymentBankAccountId === NO_BANK_ACCOUNT ? null : Number(paymentBankAccountId),
 				payment_method_id:
 					paymentMethodIdValue === NO_PAYMENT_METHOD ? null : Number(paymentMethodIdValue),
-				purchase_supplier_id: activePurchaseForPayment.id,
-				notes: paymentNotes.trim() || null,
+				expense_id: activePurchaseForPayment.id,
+				description: paymentDescription.trim() || null,
+				receipt_number: paymentReceiptNumber.trim() || null,
+				category_id: paymentCategoryId === NO_CATEGORY ? null : Number(paymentCategoryId),
+				// Obra isn't asked here: it's inherited from the purchase, not chosen per-payment.
+				work_id: activePurchaseForPayment.work_id ?? null,
 			};
 			if (editingPayment) {
-				const { error } = await updatePaymentSupplier(editingPayment.id, payload);
+				const { error } = await updatePayment(editingPayment.id, payload);
 				if (error) throw error;
 				toast({ title: 'Pago actualizado' });
 				onChanged?.();
 				await returnToDetail({ kind: 'payment', purchaseId: activePurchaseForPayment.id });
 			} else {
-				const { data, error } = await createPaymentSupplier(payload);
+				const { data, error } = await createPayment(payload);
 				if (error || !data) throw error;
 				const staged = stagedPaymentFiles;
 				const failed = await uploadStagedFiles(staged, data.id, 'payment');
@@ -279,7 +359,7 @@ export function usePurchasePaymentForms({
 	};
 
 	const remainingPurchaseBalance = activePurchaseForPayment
-		? activePurchaseForPayment.balanceArs + (editingPayment ? editingPayment.amount_ars : 0)
+		? activePurchaseForPayment.balanceArs + (editingPayment ? editingPayment.amount : 0)
 		: 0;
 	const parsedPaymentAmount = parseArsToNumber(paymentAmount);
 	const paymentExceedsBalance =
@@ -292,10 +372,28 @@ export function usePurchasePaymentForms({
 		view,
 		setView,
 		editingPurchase,
-		purchaseAmount,
-		setPurchaseAmount,
-		purchaseNotes,
-		setPurchaseNotes,
+		purchaseDate,
+		setPurchaseDate,
+		purchaseVoucherTypeId,
+		setPurchaseVoucherTypeId,
+		purchaseVoucherNumber,
+		setPurchaseVoucherNumber,
+		purchaseWorkId,
+		setPurchaseWorkId,
+		purchaseCategoryId,
+		setPurchaseCategoryId,
+		purchaseDescription,
+		setPurchaseDescription,
+		purchaseNetAmount,
+		setPurchaseNetAmount,
+		purchaseIvaPercent,
+		setPurchaseIvaPercent,
+		purchaseIvaAmount,
+		purchaseTotalAmount,
+		purchaseBankAccountId,
+		setPurchaseBankAccountId,
+		purchasePaymentMethodId,
+		setPurchasePaymentMethodId,
 		isSubmittingPurchase,
 		stagedPurchaseFiles,
 		setStagedPurchaseFiles,
@@ -309,8 +407,12 @@ export function usePurchasePaymentForms({
 		setPaymentBankAccountId,
 		paymentMethodIdValue,
 		setPaymentMethodIdValue,
-		paymentNotes,
-		setPaymentNotes,
+		paymentReceiptNumber,
+		setPaymentReceiptNumber,
+		paymentCategoryId,
+		setPaymentCategoryId,
+		paymentDescription,
+		setPaymentDescription,
 		isSubmittingPayment,
 		stagedPaymentFiles,
 		setStagedPaymentFiles,
