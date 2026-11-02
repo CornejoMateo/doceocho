@@ -93,6 +93,8 @@ WITH CHECK (
     )
 );
 
+------ RUN PRODUCTION ------
+
 CREATE OR REPLACE FUNCTION public.get_suppliers_accounts_summary()
 RETURNS TABLE (
     supplier_id bigint,

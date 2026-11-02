@@ -79,6 +79,7 @@ type IncomeExpenseFormDialogProps = {
 	attachmentsKind?: 'expense';
 	stagedFiles?: StagedFile[];
 	onStagedFilesChange?: (files: StagedFile[]) => void;
+	descriptionMaxLength?: number;
 };
 
 function FieldError({ message }: { message: string }) {
@@ -130,6 +131,7 @@ export function IncomeExpenseFormDialog({
 	attachmentsKind,
 	stagedFiles = [],
 	onStagedFilesChange,
+	descriptionMaxLength = 300,
 }: IncomeExpenseFormDialogProps) {
 	const filterWorksByParty = partyLabel === 'Cliente';
 	const selectedPartyId = partyId ? Number(partyId) : null;
@@ -311,7 +313,7 @@ export function IncomeExpenseFormDialog({
 							id="ie-description"
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							maxLength={300}
+							maxLength={descriptionMaxLength}
 						/>
 					</div>
 

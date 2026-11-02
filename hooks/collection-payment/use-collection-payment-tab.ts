@@ -101,6 +101,8 @@ type UseCollectionPaymentTabConfig = {
 		exclude?: LinkedEntityExclude
 	) => Promise<{ data: PartyOption[] | null; error: any }>;
 	linkedLabel?: string;
+	// Effective max is 2000 on the linked-entity route; otherwise this (default 300).
+	descriptionMaxLength?: number;
 	labels: {
 		entityLabel: string;
 		loadError: string;
@@ -140,6 +142,10 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 	const [expenseOptions, setExpenseOptions] = useState<PartyOption[]>([]);
 	const [expenseOptionsLoading, setExpenseOptionsLoading] = useState(false);
 	const supportsExpenseLink = !!config.listExpenseOptions;
+	// Options pinned by a prefill/edit (possibly outside the fetched year); kept for the hook's
+	// lifetime so a fetch that resolves later never drops the currently selected expense.
+	const pinnedExpenseOptionsRef = useRef<Map<number, PartyOption>>(new Map());
+	const expenseOptionsRequestIdRef = useRef(0);
 
 	const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
 	const activePaymentMethods = useMemo(
@@ -202,13 +208,22 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 
 	const fetchExpenseOptions = async (targetYear: number) => {
 		if (!config.listExpenseOptions) return;
+		const requestId = ++expenseOptionsRequestIdRef.current;
 		setExpenseOptionsLoading(true);
 		try {
 			const { data, error } = await config.listExpenseOptions(targetYear);
+			if (requestId !== expenseOptionsRequestIdRef.current) return;
 			if (error) return;
-			setExpenseOptions(data ?? []);
+			const fetched = data ?? [];
+			// Merge, never replace: keep pinned (prefill/edit) options missing from this year's
+			// fetch; the fetched label wins when the same id appears in both.
+			const fetchedIds = new Set(fetched.map((o) => o.id));
+			const stillPinned = Array.from(pinnedExpenseOptionsRef.current.values()).filter(
+				(o) => !fetchedIds.has(o.id)
+			);
+			setExpenseOptions([...fetched, ...stillPinned]);
 		} finally {
-			setExpenseOptionsLoading(false);
+			if (requestId === expenseOptionsRequestIdRef.current) setExpenseOptionsLoading(false);
 		}
 	};
 
@@ -312,6 +327,7 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 	const partyOptional = !!config.partyOptional;
 
 	const ensureExpenseOption = (id: number, label: string) => {
+		pinnedExpenseOptionsRef.current.set(id, { id, name: label });
 		setExpenseOptions((prev) =>
 			prev.some((o) => o.id === id) ? prev : [...prev, { id, name: label }]
 		);
@@ -360,6 +376,12 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 
 	// Amount is capped to 2 decimals (mirrors Neto in incomes/expenses).
 	const parsedAmount = roundToTwoDecimals(parseArsToNumber(amount));
+
+	// Single source of truth for the description cap: the linked-entity route (balance_transactions
+	// notes) always allows 2000; otherwise it's config.descriptionMaxLength (default 300). Used both
+	// for the value returned to the dialog and for the slice on submit, so they can never diverge.
+	const getDescriptionMaxLength = (isLinkedEntityRoute: boolean) =>
+		isLinkedEntityRoute ? 2000 : (config.descriptionMaxLength ?? 300);
 
 	const resetForm = () => {
 		setDate(getLocalDate());
@@ -493,9 +515,10 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 		try {
 			const isLinkedEntityRoute = partyOptional && !!partyId;
 			const trimmedDescription = description.trim();
-			const normalizedDescription = isLinkedEntityRoute
-				? trimmedDescription
-				: trimmedDescription.slice(0, 300);
+			const normalizedDescription = trimmedDescription.slice(
+				0,
+				getDescriptionMaxLength(isLinkedEntityRoute)
+			);
 			const payload: EntrySavePayload = {
 				date,
 				receipt_number: receiptNumber.trim() || null,
@@ -593,7 +616,7 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 		}
 	};
 
-	const descriptionMaxLength = partyOptional && partyId ? 2000 : 300;
+	const descriptionMaxLength = getDescriptionMaxLength(partyOptional && !!partyId);
 
 	return {
 		year,

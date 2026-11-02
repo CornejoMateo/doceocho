@@ -79,6 +79,8 @@ export function usePayments() {
 		hideParty: true,
 		attachmentsKind: 'payment',
 		paymentMethodOptional: true,
+		// payments.description allows 2000 (vs. the 300 default shared with Cobros' general route).
+		descriptionMaxLength: 2000,
 		listEntries: async (year) => {
 			const { data, error } = await listPayments({ year });
 			if (error) return { data: null, error };

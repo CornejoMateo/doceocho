@@ -40,7 +40,6 @@ AS $$
     SELECT extract(month from p.date)::int, p.work_id, 0, 0, 0, 0, 0, p.amount
     FROM public.payments p
     WHERE extract(year from p.date)::int = p_year
-    -- payments_suppliers branch removed: supplier payments are now plain `payments` rows (phase 1).
   )
   SELECT m.mv_month AS month, m.work_id,
          SUM(m.income_net) AS income_net,
@@ -55,6 +54,30 @@ $$;
 
 REVOKE ALL ON FUNCTION public.cash_flow_summary_monthly(int) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.cash_flow_summary_monthly(int) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.cash_flow_fixed_costs_monthly(p_year int)
+RETURNS TABLE (
+  month int,
+  net numeric,
+  iva numeric,
+  total numeric
+)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  SELECT extract(month from paid_date)::int AS month,
+         SUM(net_amount) AS net,
+         SUM(iva_amount) AS iva,
+         SUM(total_amount) AS total
+  FROM public.fixed_expense_payments
+  WHERE extract(year from paid_date)::int = p_year
+  GROUP BY extract(month from paid_date)::int;
+$$;
+
+REVOKE ALL ON FUNCTION public.cash_flow_fixed_costs_monthly(int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cash_flow_fixed_costs_monthly(int) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.cash_flow_movement_totals(
   p_group_by text,

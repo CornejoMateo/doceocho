@@ -61,6 +61,8 @@ export function useExpenses() {
 	return useIncomeExpenseTab({
 		categoryKind: 'expense',
 		attachmentsKind: 'expense',
+		// expenses.description allows 2000 (vs. the 300 default shared with Ingresos).
+		descriptionMaxLength: 2000,
 		listEntries: async (year) => {
 			const { data, error } = await listExpenses({ year });
 			if (error) return { data: null, error };

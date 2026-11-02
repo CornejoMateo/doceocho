@@ -73,6 +73,8 @@ type UseIncomeExpenseTabConfig = {
 	deleteEntry: (id: number) => Promise<{ error: any }>;
 	listParties: () => Promise<{ data: PartyOption[] | null; error: any }>;
 	attachmentsKind?: 'expense';
+	// Caps the description field; defaults to 300. Gastos sets 2000 (expenses.description).
+	descriptionMaxLength?: number;
 	labels: {
 		entityLabel: string;
 		loadError: string;
@@ -268,6 +270,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 
 	const parsedNetAmount = roundToTwoDecimals(parseArsToNumber(netAmount));
 	const { ivaAmount, totalAmount } = computeIvaAndTotal(parsedNetAmount, ivaPercent);
+	const descriptionMaxLength = config.descriptionMaxLength ?? 300;
 
 	const resetForm = () => {
 		setDate(getLocalDate());
@@ -367,7 +370,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 				work_id: workId ? Number(workId) : null,
 				party_id: partyId ? Number(partyId) : null,
 				category_id: categoryId ? Number(categoryId) : null,
-				description: description.trim() || null,
+				description: description.trim().slice(0, descriptionMaxLength) || null,
 				net_amount: parsedNetAmount,
 				iva_percent: ivaPercent,
 				iva_amount: ivaAmount,
@@ -470,6 +473,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		activePaymentMethods,
 		bankAccounts,
 		activeBankAccounts,
+		descriptionMaxLength,
 		summary,
 		dateFrom,
 		setDateFrom,

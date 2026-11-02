@@ -1,8 +1,3 @@
--- RUN PRODUCTION (unified-expenses-payments-single-table, phase 1): the payments_suppliers
--- branch was dropped -- supplier payments are now plain `payments` rows, already covered by
--- the `public.payments` branch below. Already deployed via
--- schema-supabase/migrations-unify/02-cash-flow-drop-supplier-branches.sql; this is the synced
--- canonical copy for fresh installs.
 CREATE OR REPLACE FUNCTION public.cash_flow_movement_totals(
   p_group_by text,
   p_start date DEFAULT NULL,

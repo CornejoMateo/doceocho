@@ -24,7 +24,9 @@ import { AttachmentsGallery } from '@/components/business/shared/attachments/att
 import { PaymentRow } from '@/components/business/suppliers/payment-row';
 
 const purchaseProgressPct = (purchase: SupplierExpenseListItem) =>
-	Math.min(100, Math.max(0, (purchase.totalPaidArs / purchase.total_amount) * 100));
+	purchase.total_amount > 0
+		? Math.min(100, Math.max(0, (purchase.totalPaidArs / purchase.total_amount) * 100))
+		: 100;
 
 // voucher number, category and obra, in that order, skipping any that are null.
 const purchaseMetaLine = (purchase: SupplierExpenseListItem): string =>

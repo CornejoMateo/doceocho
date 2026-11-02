@@ -270,6 +270,7 @@ export function IncomeExpenseTab({
 				attachmentsKind={attachmentsKind}
 				stagedFiles={state.stagedFiles}
 				onStagedFilesChange={state.setStagedFiles}
+				descriptionMaxLength={state.descriptionMaxLength}
 			/>
 
 			<ConfirmDialog
