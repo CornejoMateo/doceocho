@@ -332,6 +332,7 @@ export function PurchaseForm({
 					entityId={editingPurchase?.id}
 					staged={stagedFiles}
 					onStagedChange={onStagedChange}
+					editKey="cash-flow.suppliers"
 				/>
 
 				<div className="flex gap-2">

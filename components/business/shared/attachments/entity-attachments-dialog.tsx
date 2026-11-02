@@ -64,7 +64,7 @@ export function EntityAttachmentsDialog({
 				<div className="min-w-0 space-y-1.5">
 					<p className="text-xs font-medium text-muted-foreground">Archivos adjuntos</p>
 					{open && entityId != null && (
-						<AttachmentsGallery kind={kind} entityId={entityId} readOnly />
+						<AttachmentsGallery kind={kind} entityId={entityId} readOnly editKey="cash-flow" />
 					)}
 				</div>
 			</DialogContent>

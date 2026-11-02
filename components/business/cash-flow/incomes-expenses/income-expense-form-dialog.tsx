@@ -402,6 +402,7 @@ export function IncomeExpenseFormDialog({
 							entityId={editingEntry?.id}
 							staged={stagedFiles}
 							onStagedChange={onStagedFilesChange}
+							editKey={attachmentsKind === 'expense' ? 'cash-flow.expenses' : 'cash-flow.incomes'}
 						/>
 					)}
 

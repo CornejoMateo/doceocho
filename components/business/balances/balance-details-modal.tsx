@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import {
 	Dialog,
 	DialogContent,
@@ -172,19 +174,21 @@ export function BalanceDetailsModal({
 							<span className="text-base font-semibold sm:text-sm sm:font-medium">
 								Estado: {summary.type}
 							</span>
-							<Button
-								size="sm"
-								variant="outline"
-								className="h-10 w-full sm:h-8 sm:w-auto"
-								onClick={() => setIsSettleConfirmOpen(true)}
-								disabled={isTogglingSettled}
-							>
-								{isTogglingSettled
-									? 'Guardando...'
-									: currentBalance.is_settled
-										? 'Desmarcar como saldado'
-										: 'Marcar como saldado'}
-							</Button>
+							<EditOnly edit="clients.balances">
+								<Button
+									size="sm"
+									variant="outline"
+									className="h-10 w-full sm:h-8 sm:w-auto"
+									onClick={() => setIsSettleConfirmOpen(true)}
+									disabled={isTogglingSettled}
+								>
+									{isTogglingSettled
+										? 'Guardando...'
+										: currentBalance.is_settled
+											? 'Desmarcar como saldado'
+											: 'Marcar como saldado'}
+								</Button>
+							</EditOnly>
 						</div>
 
 						<BalanceInformation
@@ -253,14 +257,16 @@ export function BalanceDetailsModal({
 							<div className="flex items-center justify-between gap-2 mb-3">
 								<h4 className="font-semibold">Notas de la cuenta corriente</h4>
 								{!isEditingNotes && (
-									<button
-										onClick={() => setIsEditingNotes(true)}
-										className="shrink-0 text-sm text-primary hover:underline"
-									>
-										{currentBalance.notes && String(currentBalance.notes).trim() !== ''
-											? 'Editar notas'
-											: 'Agregar notas'}
-									</button>
+									<EditOnly edit="clients.balances">
+										<button
+											onClick={() => setIsEditingNotes(true)}
+											className="shrink-0 text-sm text-primary hover:underline"
+										>
+											{currentBalance.notes && String(currentBalance.notes).trim() !== ''
+												? 'Editar notas'
+												: 'Agregar notas'}
+										</button>
+									</EditOnly>
 								)}
 							</div>
 							{isEditingNotes ? (

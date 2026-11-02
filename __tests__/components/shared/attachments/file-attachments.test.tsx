@@ -66,7 +66,14 @@ const allLibMocks = () => [
 function StagedHarness({ kind = 'expense' }: { kind?: 'expense' | 'payment' }) {
 	const [staged, setStaged] = useState<StagedFile[]>([]);
 	harnessStaged = staged;
-	return <FileAttachments kind={kind} staged={staged} onStagedChange={setStaged} />;
+	return (
+		<FileAttachments
+			kind={kind}
+			editKey="cash-flow.suppliers"
+			staged={staged}
+			onStagedChange={setStaged}
+		/>
+	);
 }
 
 let harnessStaged: StagedFile[] = [];
@@ -224,7 +231,7 @@ describe('FileAttachments', () => {
 				],
 				error: null,
 			});
-			render(<FileAttachments kind="expense" entityId={7} />);
+			render(<FileAttachments kind="expense" editKey="cash-flow.suppliers" entityId={7} />);
 
 			expect(await screen.findByText('factura.pdf')).toBeInTheDocument();
 			expect(listFilesByExpenseId).toHaveBeenCalledWith(7);
@@ -250,7 +257,7 @@ describe('FileAttachments', () => {
 				],
 				error: null,
 			});
-			render(<FileAttachments kind="payment" entityId={4} />);
+			render(<FileAttachments kind="payment" editKey="cash-flow.suppliers" entityId={4} />);
 
 			expect(await screen.findByText('recibo.pdf')).toBeInTheDocument();
 			expect(listFilesByPaymentId).toHaveBeenCalledWith(4);
@@ -263,7 +270,7 @@ describe('FileAttachments', () => {
 		});
 
 		it('keeps the live empty state and offers download', async () => {
-			render(<FileAttachments kind="expense" entityId={7} />);
+			render(<FileAttachments kind="expense" editKey="cash-flow.suppliers" entityId={7} />);
 
 			expect(await screen.findByText('No hay archivos adjuntos.')).toBeInTheDocument();
 			expect(screen.queryByText('No hay archivos para adjuntar.')).not.toBeInTheDocument();
@@ -287,7 +294,7 @@ describe('FileAttachments', () => {
 				success: true,
 				error: null,
 			});
-			render(<FileAttachments kind="expense" entityId={7} />);
+			render(<FileAttachments kind="expense" editKey="cash-flow.suppliers" entityId={7} />);
 			await screen.findByText('factura.pdf');
 
 			fireEvent.click(screen.getByRole('button', { name: 'Descargar' }));
@@ -319,7 +326,7 @@ describe('FileAttachments', () => {
 					],
 					error: null,
 				});
-				render(<FileAttachments kind="expense" entityId={7} />);
+				render(<FileAttachments kind="expense" editKey="cash-flow.suppliers" entityId={7} />);
 
 				const nameSpan = await screen.findByText(name);
 				expect(nameSpan).toHaveClass('truncate');

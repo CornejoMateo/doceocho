@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 import { isBudgetLocked } from '@/constants/budgets/budget-status';
 
 interface BudgetDollarRateRequest {
@@ -10,6 +11,10 @@ interface BudgetDollarRateRequest {
 
 export async function POST(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.budgetDollarRate);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
+
 		const body: BudgetDollarRateRequest = await req.json();
 
 		const { budgetId, clientId, newUsdRate } = body;
@@ -29,20 +34,6 @@ export async function POST(req: Request) {
 				{ status: 400 }
 			);
 		}
-
-		// Use service role key if available, otherwise fall back to anon key
-		const supabaseKey =
-			process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-		if (!supabaseKey) {
-			console.error('No Supabase key available (neither SERVICE_ROLE_KEY nor ANON_KEY)');
-			return NextResponse.json(
-				{ error: 'Configuración de base de datos no disponible' },
-				{ status: 500 }
-			);
-		}
-
-		const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, supabaseKey);
 
 		let budgetsToUpdate;
 		let excludedLockedBudgets = 0;

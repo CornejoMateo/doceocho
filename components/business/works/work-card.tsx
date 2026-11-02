@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AddressLink } from '@/components/ui/address-link';
@@ -29,7 +30,6 @@ import { useState } from 'react';
 import { translateError } from '@/lib/error-translator';
 import { formatCreatedAt, formatDateOnly } from '@/utils/format-date';
 import { WorkStatusChangeModal } from '@/components/business/works/work-status-change-modal';
-import { isAdminRole } from '@/constants/users/user-role';
 
 interface WorkCardProps {
 	work: WorkWithProgress;
@@ -66,7 +66,7 @@ export function WorkCard({
 	const statusLabel = statusInfo?.label || 'Pendiente';
 	const statusColor = statusInfo?.color || 'text-gray-400 bg-gray-400/10';
 
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('works');
 	const canSendNotifications = isAuthorized;
 	const canEditNotes = isAuthorized;
 

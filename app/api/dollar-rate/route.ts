@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 
 interface DollarRateRequest {
 	balanceId: number;
@@ -9,6 +10,10 @@ interface DollarRateRequest {
 
 export async function POST(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.dollarRateUpdate);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
+
 		const body: DollarRateRequest = await req.json();
 
 		const { balanceId, newBalanceAmountARS, newUsdRate } = body;
@@ -27,20 +32,6 @@ export async function POST(req: Request) {
 				{ status: 400 }
 			);
 		}
-
-		// Use service role key if available, otherwise fall back to anon key
-		const supabaseKey =
-			process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-		if (!supabaseKey) {
-			console.error('No Supabase key available (neither SERVICE_ROLE_KEY nor ANON_KEY)');
-			return NextResponse.json(
-				{ error: 'Configuración de base de datos no disponible' },
-				{ status: 500 }
-			);
-		}
-
-		const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, supabaseKey);
 
 		// First, get the current balance to verify it exists and get the budget info
 		const { data: existingBalance, error: fetchError } = await supabase
@@ -110,6 +101,9 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.dollarRateRead);
+		if ('response' in auth) return auth.response;
+
 		// Fetch current dollar rate from external API
 		const response = await fetch('https://dolarapi.com/v1/dolares/oficial');
 

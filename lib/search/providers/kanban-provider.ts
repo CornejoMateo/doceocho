@@ -28,7 +28,7 @@ export const kanbanProvider: SearchProvider = {
 	id: 'kanban',
 	label: 'Tarjetas de Kanban',
 	// The table's RLS already narrows this to boards the user belongs to.
-	roles: ['Admin', 'Superadmin', 'Taller'],
+	view: 'kanban',
 	order: 6,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

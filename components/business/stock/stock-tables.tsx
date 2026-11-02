@@ -1,6 +1,7 @@
 import { Package, Edit, Plus, Minus } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/provider/auth-provider';
 import ImageViewer from '@/components/ui/image-viewer';
@@ -11,7 +12,6 @@ import { QuantityDialog } from './quantity-dialog';
 import { DeleteAlertDialog } from './delete-alert-dialog';
 import type { SuppliesTableProps } from './types';
 import { formatCreatedAt } from '@/utils/format-date';
-import { isAdminRole } from '@/constants/users/user-role';
 
 export function SuppliesTable({
 	filteredStock,
@@ -20,7 +20,7 @@ export function SuppliesTable({
 	onUpdateQuantity,
 }: SuppliesTableProps) {
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('supplies');
 
 	const {
 		showQuantityDialog,

@@ -251,6 +251,7 @@ export function PaymentForm({
 					entityId={editingPayment?.id}
 					staged={stagedFiles}
 					onStagedChange={onStagedChange}
+					editKey="cash-flow.suppliers"
 				/>
 
 				<div className="flex gap-2">

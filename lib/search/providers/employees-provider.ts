@@ -27,7 +27,7 @@ export const employeesProvider: SearchProvider = {
 	id: 'employees',
 	label: 'Empleados',
 	// Employee records are admin only, matching the module's own RLS.
-	roles: ['Admin', 'Superadmin'],
+	view: 'employees.fichas',
 	order: 8,
 	async search(term, signal) {
 		const supabase = getSupabaseClient();

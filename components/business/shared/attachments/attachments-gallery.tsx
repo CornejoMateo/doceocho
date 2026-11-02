@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import {
@@ -36,6 +38,8 @@ interface AttachmentsGalleryProps {
 	onCountChange?: (count: number) => void;
 	preloadedFiles?: FileExpense[] | FilePayment[];
 	readOnly?: boolean;
+	/** Permission key that governs deleting a file, e.g. "cash-flow" or "cash-flow.suppliers". */
+	editKey: string;
 }
 
 export function AttachmentsGallery({
@@ -45,6 +49,7 @@ export function AttachmentsGallery({
 	onCountChange,
 	preloadedFiles,
 	readOnly = false,
+	editKey,
 }: AttachmentsGalleryProps) {
 	const { toast } = useToast();
 	const [files, setFiles] = useState<FileViewerItem[]>([]);
@@ -193,15 +198,17 @@ export function AttachmentsGallery({
 									<span className="truncate">{displayName}</span>
 								</button>
 								{!readOnly && (
-									<button
-										type="button"
-										aria-label="Eliminar archivo"
-										title="Eliminar archivo"
-										onClick={() => setFileToDelete(file)}
-										className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-destructive"
-									>
-										<Trash2 className="h-3 w-3" />
-									</button>
+									<EditOnly edit={editKey}>
+										<button
+											type="button"
+											aria-label="Eliminar archivo"
+											title="Eliminar archivo"
+											onClick={() => setFileToDelete(file)}
+											className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-destructive"
+										>
+											<Trash2 className="h-3 w-3" />
+										</button>
+									</EditOnly>
 								)}
 							</div>
 						);

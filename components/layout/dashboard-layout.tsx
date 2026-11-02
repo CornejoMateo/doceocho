@@ -32,9 +32,9 @@ import { usePushNotifications } from '@/hooks/push/use-push-notifications';
 import { PushNotificationSettings } from '@/components/business/chat/push-notification-settings';
 import { cn } from '@/lib/utils';
 import {
-	getNavigationForRole,
-	HOME_ROUTE_BY_ROLE,
-	isRouteAllowedForRole,
+	getHomeRoute as resolveHomeRoute,
+	getNavigationForViews,
+	isRouteAllowedForViews,
 } from '@/constants/navigation/navigation';
 import { GlobalSearch } from '@/components/layout/global-search';
 import { UsersDialog } from '@/components/business/users/users-dialog';
@@ -60,17 +60,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 		unsubscribe,
 	} = usePushNotifications();
 
-	const filteredNavigation = useMemo(() => getNavigationForRole(user?.role), [user?.role]);
+	const views = user?.views;
+
+	const filteredNavigation = useMemo(() => getNavigationForViews(views ?? []), [views]);
 
 	const isRouteAllowed = useCallback(
-		(href: string) => isRouteAllowedForRole(href, user?.role),
-		[user?.role]
+		(href: string) => isRouteAllowedForViews(href, views ?? []),
+		[views]
 	);
 
 	const getHomeRoute = useMemo(() => {
 		if (!user?.role) return '/login';
-		return HOME_ROUTE_BY_ROLE[user.role] || '/';
-	}, [user?.role]);
+		return resolveHomeRoute(user.role, views ?? []) ?? '/login';
+	}, [user?.role, views]);
 
 	useEffect(() => {
 		if (loading) return;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -45,7 +46,6 @@ import { translateError } from '@/lib/error-translator';
 import { useWorkChecklistData } from '@/hooks/clients/use-works-checklists-data';
 import { calculateProgress } from '@/helpers/checklists/progress';
 import { ChecklistCard } from './checklist-card';
-import { isAdminRole } from '@/constants/users/user-role';
 
 type ChecklistCompletionModalProps = {
 	workId: number;
@@ -65,7 +65,7 @@ export function ChecklistCompletionModal({ workId, children }: ChecklistCompleti
 	const notesDebounceTimersRef = useRef<Record<string, number>>({});
 
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('works');
 
 	// Load checklists when modal opens
 	useEffect(() => {

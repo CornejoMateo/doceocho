@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -82,46 +83,49 @@ export function PaymentRow({
 							</p>
 						)}
 					</div>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
-								aria-label="Más acciones del pago"
-							>
-								<MoreVertical className="h-4 w-4" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuItem
-								aria-label="Editar pago"
-								className="min-h-11 sm:min-h-9"
-								onSelect={onEdit}
-							>
-								<Edit className="h-4 w-4" />
-								Editar
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								aria-label="Eliminar pago"
-								variant="destructive"
-								className="min-h-11 sm:min-h-9"
-								onSelect={() => {
-									deleteRafRef.current = requestAnimationFrame(onDelete);
-								}}
-							>
-								<Trash2 className="h-4 w-4" />
-								Eliminar
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+					<EditOnly edit="cash-flow.suppliers">
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
+									aria-label="Más acciones del pago"
+								>
+									<MoreVertical className="h-4 w-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem
+									aria-label="Editar pago"
+									className="min-h-11 sm:min-h-9"
+									onSelect={onEdit}
+								>
+									<Edit className="h-4 w-4" />
+									Editar
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									aria-label="Eliminar pago"
+									variant="destructive"
+									className="min-h-11 sm:min-h-9"
+									onSelect={() => {
+										deleteRafRef.current = requestAnimationFrame(onDelete);
+									}}
+								>
+									<Trash2 className="h-4 w-4" />
+									Eliminar
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</EditOnly>
 				</div>
 				<AttachmentsGallery
 					kind="payment"
 					entityId={payment.id}
 					preloadedFiles={preloadedFiles}
 					onCountChange={onCountChange}
+					editKey="cash-flow.suppliers"
 				/>
 			</div>
 		</li>

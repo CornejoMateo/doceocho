@@ -1,19 +1,18 @@
-import { getNavigationForRole } from '@/constants/navigation/navigation';
+import { getNavigationForViews } from '@/constants/navigation/navigation';
 import { matchesTerm, sortByScore } from '@/helpers/search/match';
 import type { SearchProvider, SearchResult } from '@/lib/search/types';
-import type { UserRole } from '@/constants/users/user-role';
 
 /**
- * Jumps to a module by name. Built per role instead of being a constant,
+ * Jumps to a module by name. Built per user instead of being a constant,
  * so the palette never offers a section the user cannot open.
  */
-export function createNavigationProvider(role: UserRole | undefined): SearchProvider {
-	const items = getNavigationForRole(role).filter((item) => !item.disabled);
+export function createNavigationProvider(views: string[]): SearchProvider {
+	const items = getNavigationForViews(views).filter((item) => !item.disabled);
 
 	return {
 		id: 'navigation',
 		label: 'Ir a',
-		roles: role ? [role] : [],
+		view: 'navigation',
 		order: 0,
 		// Static list: matched in the browser, no query needed.
 		async search(term) {

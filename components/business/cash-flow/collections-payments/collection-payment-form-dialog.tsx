@@ -454,6 +454,9 @@ export function CollectionPaymentFormDialog({
 							entityId={editingEntry?.id}
 							staged={stagedFiles}
 							onStagedChange={onStagedFilesChange}
+							editKey={
+								attachmentsKind === 'payment' ? 'cash-flow.payments' : 'cash-flow.collections'
+							}
 						/>
 					)}
 

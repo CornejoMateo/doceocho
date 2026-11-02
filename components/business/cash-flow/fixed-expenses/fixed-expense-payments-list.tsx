@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -70,28 +72,32 @@ export function FixedExpensePaymentsList({
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
 		return (
 			<>
-				<Button
-					variant={withLabel ? 'outline' : 'ghost'}
-					size={size}
-					aria-label="Editar pago"
-					title="Editar pago"
-					className={buttonClass}
-					onClick={() => onEdit(payment)}
-				>
-					<Pencil className="h-4 w-4" />
-					{withLabel && 'Editar'}
-				</Button>
-				<Button
-					variant={withLabel ? 'outline' : 'ghost'}
-					size={size}
-					aria-label="Eliminar pago"
-					title="Eliminar pago"
-					className={`text-destructive ${buttonClass}`}
-					onClick={() => onDelete(payment)}
-				>
-					<Trash2 className="h-4 w-4" />
-					{withLabel && 'Eliminar'}
-				</Button>
+				<EditOnly edit="cash-flow">
+					<Button
+						variant={withLabel ? 'outline' : 'ghost'}
+						size={size}
+						aria-label="Editar pago"
+						title="Editar pago"
+						className={buttonClass}
+						onClick={() => onEdit(payment)}
+					>
+						<Pencil className="h-4 w-4" />
+						{withLabel && 'Editar'}
+					</Button>
+				</EditOnly>
+				<EditOnly edit="cash-flow">
+					<Button
+						variant={withLabel ? 'outline' : 'ghost'}
+						size={size}
+						aria-label="Eliminar pago"
+						title="Eliminar pago"
+						className={`text-destructive ${buttonClass}`}
+						onClick={() => onDelete(payment)}
+					>
+						<Trash2 className="h-4 w-4" />
+						{withLabel && 'Eliminar'}
+					</Button>
+				</EditOnly>
 			</>
 		);
 	};

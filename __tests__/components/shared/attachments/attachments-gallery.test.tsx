@@ -91,7 +91,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		await waitFor(() => expect(listFilesWithUrlsByExpenseId).toHaveBeenCalledWith(11));
 		expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		const img = await screen.findByAltText('factura.jpg');
 		expect(img).toHaveAttribute('loading', 'lazy');
@@ -126,7 +126,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
 	});
@@ -137,7 +137,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		const img = await screen.findByAltText('factura.jpg');
 		fireEvent.error(img);
@@ -152,7 +152,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		await waitFor(() => expect(listFilesWithUrlsByExpenseId).toHaveBeenCalledWith(11));
 		expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
@@ -163,7 +163,7 @@ describe('AttachmentsGallery', () => {
 	});
 
 	it('renders the empty state in Spanish when there are no files', async () => {
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		expect(await screen.findByText('No hay archivos adjuntos.')).toBeInTheDocument();
 	});
@@ -174,7 +174,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="payment" entityId={22} />);
+		render(<AttachmentsGallery kind="payment" editKey="cash-flow" entityId={22} />);
 
 		await waitFor(() => expect(listFilesWithUrlsByPaymentId).toHaveBeenCalledWith(22));
 		expect(listFilesWithUrlsByExpenseId).not.toHaveBeenCalled();
@@ -187,7 +187,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		const openButton = (await screen.findByAltText('factura.jpg')).closest('button')!;
 		fireEvent.click(openButton);
@@ -201,7 +201,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		const trashBtns = await screen.findAllByRole('button', { name: 'Eliminar archivo' });
 		fireEvent.click(trashBtns[0]);
@@ -216,7 +216,7 @@ describe('AttachmentsGallery', () => {
 			.mockResolvedValueOnce({ data: [imageFile], error: null })
 			.mockResolvedValueOnce({ data: [], error: null });
 
-		render(<AttachmentsGallery kind="payment" entityId={22} />);
+		render(<AttachmentsGallery kind="payment" editKey="cash-flow" entityId={22} />);
 		fireEvent.click(await screen.findByRole('button', { name: 'Eliminar archivo' }));
 
 		fireEvent.click((await screen.findByText('Eliminar')).closest('button')!);
@@ -238,7 +238,7 @@ describe('AttachmentsGallery', () => {
 			error: null,
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 		fireEvent.click(await screen.findByRole('button', { name: 'Eliminar archivo' }));
 
 		fireEvent.click((await screen.findByText('Eliminar')).closest('button')!);
@@ -254,7 +254,7 @@ describe('AttachmentsGallery', () => {
 			error: { message: 'list failed' },
 		});
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		await waitFor(() => expect(destructiveToasts()).toHaveLength(1));
 		expect(destructiveToasts()[0].description).toBe('list failed');
@@ -268,7 +268,7 @@ describe('AttachmentsGallery', () => {
 			.mockResolvedValueOnce({ data: null, error: { message: 'list failed' } })
 			.mockResolvedValueOnce({ data: [pdfFile], error: null });
 
-		render(<AttachmentsGallery kind="expense" entityId={11} />);
+		render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 		await screen.findByRole('button', { name: 'Reintentar' });
 
@@ -285,6 +285,7 @@ describe('AttachmentsGallery', () => {
 		const withLabel = render(
 			<AttachmentsGallery
 				kind="payment"
+				editKey="cash-flow"
 				entityId={22}
 				label="Archivos del pago · $1.000 · 5/3/2026"
 			/>
@@ -294,7 +295,9 @@ describe('AttachmentsGallery', () => {
 
 		withLabel.unmount();
 
-		const withoutLabel = render(<AttachmentsGallery kind="payment" entityId={22} />);
+		const withoutLabel = render(
+			<AttachmentsGallery kind="payment" editKey="cash-flow" entityId={22} />
+		);
 
 		await screen.findByText('No hay archivos adjuntos.');
 		expect(withoutLabel.container.textContent).toBe('No hay archivos adjuntos.');
@@ -311,8 +314,10 @@ describe('AttachmentsGallery', () => {
 			)
 			.mockResolvedValueOnce({ data: [pdfFile], error: null });
 
-		const { rerender } = render(<AttachmentsGallery kind="expense" entityId={11} />);
-		rerender(<AttachmentsGallery kind="expense" entityId={12} />);
+		const { rerender } = render(
+			<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />
+		);
+		rerender(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={12} />);
 
 		// The second, current request settles first and wins.
 		expect(await screen.findByText('recibo.pdf')).toBeInTheDocument();
@@ -330,7 +335,7 @@ describe('AttachmentsGallery', () => {
 				error: null,
 			});
 
-			render(<AttachmentsGallery kind="expense" entityId={11} readOnly />);
+			render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} readOnly />);
 
 			await screen.findByAltText('factura.jpg');
 			expect(screen.queryByRole('button', { name: 'Eliminar archivo' })).not.toBeInTheDocument();
@@ -340,11 +345,13 @@ describe('AttachmentsGallery', () => {
 		});
 
 		it('still shows the loading and empty states', async () => {
-			const { rerender } = render(<AttachmentsGallery kind="expense" entityId={11} readOnly />);
+			const { rerender } = render(
+				<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} readOnly />
+			);
 			expect(screen.getByText('Cargando archivos...')).toBeInTheDocument();
 
 			await screen.findByText('No hay archivos adjuntos.');
-			rerender(<AttachmentsGallery kind="expense" entityId={11} readOnly />);
+			rerender(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} readOnly />);
 		});
 
 		it('shows the delete button when readOnly is not set (default behavior unaffected)', async () => {
@@ -353,7 +360,7 @@ describe('AttachmentsGallery', () => {
 				error: null,
 			});
 
-			render(<AttachmentsGallery kind="expense" entityId={11} />);
+			render(<AttachmentsGallery kind="expense" editKey="cash-flow" entityId={11} />);
 
 			expect(await screen.findByRole('button', { name: 'Eliminar archivo' })).toBeInTheDocument();
 		});
@@ -367,7 +374,12 @@ describe('AttachmentsGallery', () => {
 			});
 
 			render(
-				<AttachmentsGallery kind="expense" entityId={11} preloadedFiles={[purchaseFileRow]} />
+				<AttachmentsGallery
+					kind="expense"
+					editKey="cash-flow"
+					entityId={11}
+					preloadedFiles={[purchaseFileRow]}
+				/>
 			);
 
 			expect(await screen.findByAltText('factura.jpg')).toBeInTheDocument();
@@ -386,7 +398,12 @@ describe('AttachmentsGallery', () => {
 			});
 
 			render(
-				<AttachmentsGallery kind="expense" entityId={11} preloadedFiles={[purchaseFileRow]} />
+				<AttachmentsGallery
+					kind="expense"
+					editKey="cash-flow"
+					entityId={11}
+					preloadedFiles={[purchaseFileRow]}
+				/>
 			);
 			fireEvent.click(await screen.findByRole('button', { name: 'Eliminar archivo' }));
 			fireEvent.click((await screen.findByText('Eliminar')).closest('button')!);

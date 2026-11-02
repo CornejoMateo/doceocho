@@ -1,5 +1,7 @@
 'use client';
 
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
+
 import {
 	Dialog,
 	DialogContent,
@@ -23,7 +25,6 @@ import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
 import { Pencil } from 'lucide-react';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { format, parse } from 'date-fns';
-import { isAdminRole } from '@/constants/users/user-role';
 
 interface EventDetailsModalProps {
 	isOpen: boolean;
@@ -69,7 +70,7 @@ export function EventDetailsModal({
 	}, [event.work_id]);
 
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('calendar');
 
 	const handleRememberChange = async () => {
 		try {

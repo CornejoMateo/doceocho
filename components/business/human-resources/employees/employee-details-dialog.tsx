@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useState } from 'react';
 import {
 	Dialog,
@@ -167,10 +169,12 @@ export function EmployeeDetailsDialog({
 									)}
 
 									<div className="flex justify-end">
-										<Button variant="outline" onClick={onEdit} className="gap-2">
-											<Edit className="h-4 w-4" />
-											Editar
-										</Button>
+										<EditOnly edit="employees.fichas">
+											<Button variant="outline" onClick={onEdit} className="gap-2">
+												<Edit className="h-4 w-4" />
+												Editar
+											</Button>
+										</EditOnly>
 									</div>
 								</TabsContent>
 

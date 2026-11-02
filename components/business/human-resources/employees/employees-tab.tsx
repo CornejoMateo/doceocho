@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -165,10 +167,14 @@ export function EmployeesTab() {
 						Ficha con la información y documentación de cada empleado
 					</p>
 				</div>
-				<Button onClick={handleCreate} className="gap-2">
-					<Plus className="h-4 w-4" />
-					Nuevo empleado
-				</Button>
+				<EditOnly edit="employees.fichas">
+					<EditOnly edit="employees.fichas">
+						<Button onClick={handleCreate} className="gap-2">
+							<Plus className="h-4 w-4" />
+							Nuevo empleado
+						</Button>
+					</EditOnly>
+				</EditOnly>
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2">
@@ -301,15 +307,17 @@ export function EmployeesTab() {
 										<Eye className="h-4 w-4" />
 										Ver ficha
 									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										className="flex-1 gap-2 bg-transparent"
-										onClick={() => handleEdit(employee)}
-									>
-										<Edit className="h-4 w-4" />
-										Editar
-									</Button>
+									<EditOnly edit="employees.fichas">
+										<Button
+											variant="outline"
+											size="sm"
+											className="flex-1 gap-2 bg-transparent"
+											onClick={() => handleEdit(employee)}
+										>
+											<Edit className="h-4 w-4" />
+											Editar
+										</Button>
+									</EditOnly>
 								</div>
 							</div>
 						</Card>
