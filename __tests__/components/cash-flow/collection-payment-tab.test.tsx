@@ -76,10 +76,11 @@ jest.mock(
 jest.mock(
 	'@/components/business/cash-flow/collections-payments/collection-payment-form-dialog',
 	() => ({
-		CollectionPaymentFormDialog: ({ open, attachmentsKind }: any) =>
+		CollectionPaymentFormDialog: ({ open, attachmentsKind, descriptionMaxLength }: any) =>
 			open ? (
 				<div data-testid="form-dialog">
 					<span data-testid="attachments-kind">{attachmentsKind}</span>
+					<span data-testid="description-max-length">{descriptionMaxLength}</span>
 				</div>
 			) : null,
 	})
@@ -250,6 +251,13 @@ describe('CollectionPaymentTab', () => {
 		render(<CollectionPaymentTab state={makeState({ isFormOpen: true })} {...baseRenderProps} />);
 
 		expect(screen.getByTestId('attachments-kind')).toBeEmptyDOMElement();
+	});
+
+	it('passes the hook descriptionMaxLength through to the form dialog (e.g. 2000 for Pagos)', () => {
+		const state = makeState({ isFormOpen: true, descriptionMaxLength: 2000 });
+		render(<CollectionPaymentTab state={state} {...baseRenderProps} />);
+
+		expect(screen.getByTestId('description-max-length')).toHaveTextContent('2000');
 	});
 
 	describe('attachments detail dialog (Pagos only: attachmentsKind === "payment")', () => {

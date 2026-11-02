@@ -216,6 +216,18 @@ describe('IncomeExpenseFormDialog', () => {
 		expect(props.setNetAmount).toHaveBeenCalledWith('1.000,99');
 	});
 
+	it('defaults the description maxLength to 300 when not provided', () => {
+		render(<IncomeExpenseFormDialog {...baseProps()} />);
+
+		expect(screen.getByLabelText('Detalle')).toHaveAttribute('maxLength', '300');
+	});
+
+	it('uses the configured descriptionMaxLength (e.g. 2000 for Gastos)', () => {
+		render(<IncomeExpenseFormDialog {...baseProps({ descriptionMaxLength: 2000 })} />);
+
+		expect(screen.getByLabelText('Detalle')).toHaveAttribute('maxLength', '2000');
+	});
+
 	it('submits the form and calls onSubmit', () => {
 		const props = baseProps();
 		render(<IncomeExpenseFormDialog {...props} />);

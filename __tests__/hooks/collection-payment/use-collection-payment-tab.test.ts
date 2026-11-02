@@ -1001,6 +1001,246 @@ describe('useCollectionPaymentTab', () => {
 		});
 	});
 
+	describe('expense options: pinned (prefill/edit) options survive a fetch (Payments-only)', () => {
+		function expenseConfig(overrides: Partial<ReturnType<typeof baseConfig>> = {}) {
+			return baseConfig({
+				partyOptional: true,
+				listExpenseOptions: jest
+					.fn()
+					.mockResolvedValue({ data: [{ id: 42, name: 'Gasto 42' }], error: null }),
+				...overrides,
+			});
+		}
+
+		it('keeps a prefilled out-of-year expense option after the in-flight mount fetch resolves without it', async () => {
+			let resolveFetch!: (v: any) => void;
+			const fetchPromise = new Promise((resolve) => (resolveFetch = resolve));
+			const config = expenseConfig({
+				listExpenseOptions: jest.fn().mockReturnValue(fetchPromise),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() =>
+				result.current.handleAdd({ expense_id: 99, expense_label: 'Gasto 99 (fuera de año)' })
+			);
+			expect(result.current.expenseId).toBe('99');
+			expect(result.current.expenseOptions).toEqual([{ id: 99, name: 'Gasto 99 (fuera de año)' }]);
+
+			await act(async () => {
+				resolveFetch({ data: [{ id: 42, name: 'Gasto 42' }], error: null });
+			});
+
+			expect(result.current.expenseOptions).toEqual(
+				expect.arrayContaining([
+					{ id: 42, name: 'Gasto 42' },
+					{ id: 99, name: 'Gasto 99 (fuera de año)' },
+				])
+			);
+			expect(result.current.expenseId).toBe('99');
+		});
+
+		it('handleEdit of a payment linked to an out-of-year expense keeps its option after the mount fetch resolves', async () => {
+			let resolveFetch!: (v: any) => void;
+			const fetchPromise = new Promise((resolve) => (resolveFetch = resolve));
+			const config = expenseConfig({
+				listExpenseOptions: jest.fn().mockReturnValue(fetchPromise),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5, expense_id: 7, expense_label: 'Gasto histórico' });
+
+			act(() => result.current.handleEdit(target));
+			expect(result.current.expenseOptions).toEqual([{ id: 7, name: 'Gasto histórico' }]);
+
+			await act(async () => {
+				resolveFetch({ data: [{ id: 42, name: 'Gasto 42' }], error: null });
+			});
+
+			expect(result.current.expenseOptions).toEqual(
+				expect.arrayContaining([{ id: 7, name: 'Gasto histórico' }])
+			);
+			expect(result.current.expenseId).toBe('7');
+		});
+
+		it('ignores a stale (older) expense-options response that resolves after a newer one, on a fast year switch', async () => {
+			let resolveFirst!: (v: any) => void;
+			const firstPromise = new Promise((resolve) => (resolveFirst = resolve));
+			const config = expenseConfig({
+				listExpenseOptions: jest
+					.fn()
+					.mockReturnValueOnce(firstPromise)
+					.mockResolvedValueOnce({ data: [{ id: 2, name: 'Gasto año nuevo' }], error: null }),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => result.current.setYear(2020));
+			await waitFor(() => expect(config.listExpenseOptions).toHaveBeenCalledTimes(2));
+			await waitFor(() =>
+				expect(result.current.expenseOptions).toEqual([{ id: 2, name: 'Gasto año nuevo' }])
+			);
+
+			await act(async () => {
+				resolveFirst({ data: [{ id: 1, name: 'Gasto año viejo' }], error: null });
+			});
+
+			expect(result.current.expenseOptions).toEqual([{ id: 2, name: 'Gasto año nuevo' }]);
+		});
+
+		it('lets a fresh fetch replace a stale pinned label for the same id instead of duplicating it', async () => {
+			const config = expenseConfig({
+				listExpenseOptions: jest
+					.fn()
+					.mockResolvedValueOnce({ data: [], error: null })
+					.mockResolvedValueOnce({
+						data: [{ id: 42, name: 'Gasto 42 (actualizado)' }],
+						error: null,
+					}),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			await waitFor(() => expect(result.current.expenseOptions).toEqual([]));
+
+			act(() => result.current.handleAdd({ expense_id: 42, expense_label: 'Gasto 42 (viejo)' }));
+			expect(result.current.expenseOptions).toEqual([{ id: 42, name: 'Gasto 42 (viejo)' }]);
+
+			act(() => result.current.setYear(2020));
+
+			await waitFor(() =>
+				expect(result.current.expenseOptions).toEqual([{ id: 42, name: 'Gasto 42 (actualizado)' }])
+			);
+			expect(result.current.expenseOptions.filter((o) => o.id === 42)).toHaveLength(1);
+		});
+	});
+
+	describe('descriptionMaxLength (configurable per entity; always 2000 on the linked-entity route)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		it('defaults to 300 when config.descriptionMaxLength is not set', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.descriptionMaxLength).toBe(300);
+		});
+
+		it('uses the configured value (e.g. 2000 for Pagos) when there is no linked-entity route', async () => {
+			const config = baseConfig({ hideParty: true, descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.descriptionMaxLength).toBe(2000);
+		});
+
+		it('saves a 1500-char description whole on create when configured to 2000 (Pagos)', async () => {
+			const config = baseConfig({ hideParty: true, descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const longDescription = 'a'.repeat(1500);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+				result.current.setDescription(longDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: longDescription })
+			);
+		});
+
+		it('saves a full 2000-char description without cutting it when configured to 2000', async () => {
+			const config = baseConfig({ hideParty: true, descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const fullDescription = 'b'.repeat(2000);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+				result.current.setDescription(fullDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: fullDescription })
+			);
+		});
+
+		it('keeps a 1500-char description whole when editing (prefilled via handleEdit, then saved)', async () => {
+			const config = baseConfig({ hideParty: true, descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const longDescription = 'c'.repeat(1500);
+			const target = entry({ id: 5, description: longDescription, payment_method_id: 2 });
+
+			act(() => result.current.handleEdit(target));
+			expect(result.current.description).toBe(longDescription);
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.updateEntry).toHaveBeenCalledWith(
+				5,
+				expect.objectContaining({ description: longDescription }),
+				target
+			);
+		});
+
+		it('still truncates to 300 by default when not configured (Cobros general route unaffected)', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const longDescription = 'd'.repeat(500);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPartyId('3');
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+				result.current.setDescription(longDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: 'd'.repeat(300) })
+			);
+		});
+
+		it('still allows 2000 on the linked-entity route (partyOptional + partyId) regardless of config.descriptionMaxLength', async () => {
+			const config = baseConfig({
+				partyOptional: true,
+				loadPurchases: jest
+					.fn()
+					.mockResolvedValue({ data: [{ id: 9, name: 'Compra 9' }], error: null }),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const longDescription = 'e'.repeat(1800);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPartyId('3');
+			});
+			await waitFor(() => expect(result.current.purchasesLoading).toBe(false));
+			act(() => {
+				result.current.setPurchaseId('9');
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+				result.current.setDescription(longDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: longDescription })
+			);
+		});
+	});
+
 	describe('paymentMethodOptional (Pagos only; Cobros stays required)', () => {
 		function fakeEvent() {
 			return { preventDefault: jest.fn() } as unknown as FormEvent;

@@ -49,6 +49,7 @@ jest.mock(
 			receiptNumber,
 			hideParty,
 			attachmentsKind,
+			descriptionMaxLength,
 			saving,
 			stagedFiles,
 			onStagedFilesChange,
@@ -65,6 +66,7 @@ jest.mock(
 				<span data-testid="dialog-receipt-number">{receiptNumber}</span>
 				<span data-testid="dialog-hide-party">{hideParty ? 'true' : 'false'}</span>
 				<span data-testid="dialog-attachments-kind">{attachmentsKind}</span>
+				<span data-testid="dialog-description-max-length">{descriptionMaxLength}</span>
 				<span data-testid="dialog-saving">{saving ? 'saving' : 'idle'}</span>
 				<button
 					onClick={() =>
@@ -134,6 +136,22 @@ describe('AddPaymentFromExpenseDialog', () => {
 		expect(screen.getByTestId('dialog-receipt-number')).toHaveTextContent('0001-00000456');
 		expect(screen.getByTestId('dialog-hide-party')).toHaveTextContent('true');
 		expect(screen.getByTestId('dialog-attachments-kind')).toHaveTextContent('payment');
+		expect(screen.getByTestId('dialog-description-max-length')).toHaveTextContent('2000');
+	});
+
+	it('keeps a 1800-char description from the expense fully prefilled, uncut (usePayments allows up to 2000)', async () => {
+		const longDescription = 'a'.repeat(1800);
+		render(
+			<AddPaymentFromExpenseDialog
+				expense={mockExpense({ description: longDescription })}
+				onClose={jest.fn()}
+			/>
+		);
+
+		await waitFor(() => expect(screen.getByTestId('dialog-open')).toHaveTextContent('open'));
+
+		expect(screen.getByTestId('dialog-description')).toHaveTextContent(longDescription);
+		expect(screen.getByTestId('dialog-description-max-length')).toHaveTextContent('2000');
 	});
 
 	it('calls onClose after a successful save', async () => {

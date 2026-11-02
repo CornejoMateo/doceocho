@@ -71,7 +71,12 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-by-ca
 }));
 
 jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-form-dialog', () => ({
-	IncomeExpenseFormDialog: ({ open }: any) => (open ? <div data-testid="form-dialog" /> : null),
+	IncomeExpenseFormDialog: ({ open, descriptionMaxLength }: any) =>
+		open ? (
+			<div data-testid="form-dialog">
+				<span data-testid="description-max-length">{descriptionMaxLength}</span>
+			</div>
+		) : null,
 }));
 
 function makeState(over: Partial<ReturnType<typeof useIncomeExpenseTab>> = {}) {
@@ -227,6 +232,13 @@ describe('IncomeExpenseTab', () => {
 		render(<IncomeExpenseTab state={makeState({ isFormOpen: true })} {...baseRenderProps} />);
 
 		expect(screen.getByTestId('form-dialog')).toBeInTheDocument();
+	});
+
+	it('passes the hook descriptionMaxLength through to the form dialog (e.g. 2000 for Gastos)', () => {
+		const state = makeState({ isFormOpen: true, descriptionMaxLength: 2000 });
+		render(<IncomeExpenseTab state={state} {...baseRenderProps} />);
+
+		expect(screen.getByTestId('description-max-length')).toHaveTextContent('2000');
 	});
 
 	describe('cascadeDeleteWarning (Gastos only; Ingresos keeps the generic copy)', () => {

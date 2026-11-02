@@ -44,4 +44,10 @@ describe('SummaryKpis', () => {
 		const debeValue = screen.getByText('$0');
 		expect(debeValue.className).not.toContain('text-destructive');
 	});
+
+	it('does not highlight a negative debe as destructive', () => {
+		render(<SummaryKpis cards={cards({ debe: -200 })} />);
+		const debeValue = screen.getByText(/^-\$\s*200$/);
+		expect(debeValue.className).not.toContain('text-destructive');
+	});
 });

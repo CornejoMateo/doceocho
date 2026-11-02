@@ -782,6 +782,91 @@ describe('useIncomeExpenseTab', () => {
 		});
 	});
 
+	describe('descriptionMaxLength (configurable per entity)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		it('defaults to 300 when config.descriptionMaxLength is not set', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.descriptionMaxLength).toBe(300);
+		});
+
+		it('uses the configured value (e.g. 2000 for Gastos)', async () => {
+			const config = baseConfig({ descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.descriptionMaxLength).toBe(2000);
+		});
+
+		it('saves a 1500-char description whole on create when configured to 2000 (Gastos)', async () => {
+			const config = baseConfig({ descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const longDescription = 'a'.repeat(1500);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+				result.current.setDescription(longDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: longDescription })
+			);
+		});
+
+		it('saves a full 2000-char description without cutting it when configured to 2000', async () => {
+			const config = baseConfig({ descriptionMaxLength: 2000 });
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const fullDescription = 'b'.repeat(2000);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+				result.current.setDescription(fullDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: fullDescription })
+			);
+		});
+
+		it('still truncates to 300 by default when not configured (Ingresos unaffected)', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const longDescription = 'c'.repeat(500);
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+				result.current.setDescription(longDescription);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ description: 'c'.repeat(300) })
+			);
+		});
+	});
+
 	describe('close/reopen race while a submit is in flight', () => {
 		function fakeEvent() {
 			return { preventDefault: jest.fn() } as unknown as FormEvent;

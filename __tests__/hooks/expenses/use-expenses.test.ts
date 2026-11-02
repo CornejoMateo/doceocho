@@ -39,6 +39,14 @@ describe('useExpenses', () => {
 		);
 	});
 
+	it('configures descriptionMaxLength: 2000 (expenses.description allows the full length)', () => {
+		renderHook(() => useExpenses() as any);
+
+		expect(useIncomeExpenseTab).toHaveBeenCalledWith(
+			expect.objectContaining({ descriptionMaxLength: 2000 })
+		);
+	});
+
 	it('createEntry forwards the created row id so the caller can upload staged files against it', async () => {
 		(createExpense as jest.Mock).mockResolvedValue({ data: { id: 77 }, error: null });
 		const { result } = renderHook(() => useExpenses() as any);

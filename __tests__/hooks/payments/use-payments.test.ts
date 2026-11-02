@@ -57,6 +57,14 @@ describe('usePayments', () => {
 		);
 	});
 
+	it('configures descriptionMaxLength: 2000 (payments.description allows the full length)', () => {
+		renderHook(() => usePayments() as any);
+
+		expect(useCollectionPaymentTab).toHaveBeenCalledWith(
+			expect.objectContaining({ descriptionMaxLength: 2000 })
+		);
+	});
+
 	describe('listEntries', () => {
 		it('lists every payment from the single `payments` table, sorted by date desc', async () => {
 			(listPayments as jest.Mock).mockResolvedValue({
