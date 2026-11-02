@@ -10,6 +10,8 @@ import { listWorks } from '@/lib/works/works';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
 import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { getLocalDate } from '@/utils/format-date';
+import { uploadFileExpense } from '@/lib/expenses/files-expenses';
+import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
 
 jest.mock('@/lib/categories/categories', () => ({
 	listCategories: jest.fn(),
@@ -28,6 +30,9 @@ jest.mock('@/lib/cash-flow/cash-flow', () => ({
 }));
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: mockToast }),
+}));
+jest.mock('@/lib/expenses/files-expenses', () => ({
+	uploadFileExpense: jest.fn(),
 }));
 
 const mockToast = jest.fn();
@@ -87,6 +92,7 @@ describe('useIncomeExpenseTab', () => {
 		(listWorks as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(uploadFileExpense as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	});
 
 	describe('fetching by year', () => {
@@ -338,7 +344,10 @@ describe('useIncomeExpenseTab', () => {
 			const { result } = renderHook(() => useIncomeExpenseTab(config));
 			await waitFor(() => expect(result.current.loadingList).toBe(false));
 
-			act(() => result.current.handleAdd());
+			act(() => {
+				result.current.handleAdd();
+				result.current.setDate('');
+			});
 			await act(async () => result.current.handleSubmit(fakeEvent()));
 
 			expect(config.createEntry).not.toHaveBeenCalled();
@@ -389,6 +398,26 @@ describe('useIncomeExpenseTab', () => {
 			expect(mockToast).toHaveBeenCalledWith({ title: 'Ingreso creado' });
 		});
 
+		it('creates a new entry without selecting a payment method, sending null', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setVoucherTypeId('1');
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ payment_method_id: null })
+			);
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Ingreso creado' });
+		});
+
 		it('updates the editing entry instead of creating one', async () => {
 			const config = baseConfig();
 			const { result } = renderHook(() => useIncomeExpenseTab(config));
@@ -424,6 +453,441 @@ describe('useIncomeExpenseTab', () => {
 			expect(mockToast).toHaveBeenCalledWith(
 				expect.objectContaining({ title: 'Error', variant: 'destructive' })
 			);
+		});
+	});
+
+	describe('double-submit guard', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function fillValidForm(result: any) {
+			result.current.handleAdd();
+			result.current.setVoucherTypeId('1');
+			result.current.setPartyId('3');
+			result.current.setCategoryId('10');
+			result.current.setNetAmount('1000');
+		}
+
+		it('calls createEntry only once when handleSubmit fires twice in the same tick', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => fillValidForm(result));
+			await act(async () => {
+				const first = result.current.handleSubmit(fakeEvent());
+				const second = result.current.handleSubmit(fakeEvent());
+				await Promise.all([first, second]);
+			});
+
+			expect(config.createEntry).toHaveBeenCalledTimes(1);
+		});
+
+		it('allows a new submit once the previous one has settled', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => fillValidForm(result));
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+			expect(config.createEntry).toHaveBeenCalledTimes(1);
+
+			act(() => fillValidForm(result));
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledTimes(2);
+		});
+
+		it('does not leave the guard stuck after a validation failure', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setDate('');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+			expect(config.createEntry).not.toHaveBeenCalled();
+
+			act(() => fillValidForm(result));
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe('attachments (Gastos only; gated by config.attachmentsKind)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function stagedFile(fileName: string): StagedFile {
+			return { id: fileName, file: new File(['x'], fileName), fileName };
+		}
+
+		function setupCreate(configOverrides: Partial<Parameters<typeof useIncomeExpenseTab>[0]> = {}) {
+			const config = baseConfig({
+				attachmentsKind: 'expense',
+				createEntry: jest.fn().mockResolvedValue({ data: { id: 77 }, error: null }),
+				labels: {
+					entityLabel: 'gasto',
+					loadError: 'No se pudieron cargar los gastos.',
+					saveError: 'No se pudo guardar el gasto.',
+					deleteError: 'No se pudo eliminar el gasto.',
+					createdToast: 'Gasto creado',
+					updatedToast: 'Gasto actualizado',
+					deletedToast: 'Gasto eliminado',
+				},
+				...configOverrides,
+			});
+			return config;
+		}
+
+		it('uploads each staged file to the created id, with kind "expense"', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf'), stagedFile('b.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).toHaveBeenCalledTimes(2);
+			expect(uploadFileExpense).toHaveBeenCalledWith(77, files[0].file, null, 'a.pdf');
+			expect(uploadFileExpense).toHaveBeenCalledWith(77, files[1].file, null, 'b.pdf');
+			expect(result.current.stagedFiles).toEqual([]);
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					title: 'Gasto creado',
+					description: expect.stringContaining('2'),
+				})
+			);
+		});
+
+		it('uploads nothing and shows the plain toast when there are no staged files', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).not.toHaveBeenCalled();
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Gasto creado' });
+		});
+
+		it('shows a destructive toast counting failed uploads, without undoing the create', async () => {
+			(uploadFileExpense as jest.Mock)
+				.mockResolvedValueOnce({ data: { id: 1 }, error: null })
+				.mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf'), stagedFile('b.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					variant: 'destructive',
+					title: 'Archivos adjuntos pendientes',
+					description: expect.stringContaining('1'),
+				})
+			);
+			// The row save is not undone: the dialog closes and the list refetches like any other success.
+			expect(result.current.isFormOpen).toBe(false);
+			expect(result.current.stagedFiles).toEqual([]);
+		});
+
+		it('counts a throwing upload as a failed file, never as a failed create', async () => {
+			(uploadFileExpense as jest.Mock).mockRejectedValueOnce(new Error('network'));
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({ title: 'Archivos adjuntos pendientes' })
+			);
+			expect(mockToast).not.toHaveBeenCalledWith(
+				expect.objectContaining({ title: 'Error', description: 'No se pudo guardar el gasto.' })
+			);
+		});
+
+		it('uploads nothing and keeps the staged files when the create fails entirely', async () => {
+			const config = setupCreate({
+				createEntry: jest.fn().mockResolvedValue({ error: { message: 'boom' } }),
+			});
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).not.toHaveBeenCalled();
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toEqual(files);
+		});
+
+		it('never stages or uploads when attachmentsKind is not set (Ingresos), even if files are staged', async () => {
+			const config = baseConfig({
+				createEntry: jest.fn().mockResolvedValue({ data: { id: 77 }, error: null }),
+			});
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).not.toHaveBeenCalled();
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Ingreso creado' });
+		});
+
+		it('does not touch staged files on an edit submit', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5 });
+
+			act(() => {
+				result.current.handleEdit(target);
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).not.toHaveBeenCalled();
+			expect(config.updateEntry).toHaveBeenCalled();
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Gasto actualizado' });
+		});
+
+		it('clears staged files when handleEdit is called', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+			});
+			expect(result.current.stagedFiles).toHaveLength(1);
+
+			act(() => result.current.handleEdit(entry({ id: 5 })));
+
+			expect(result.current.stagedFiles).toEqual([]);
+		});
+
+		it('clears staged files when the dialog is cancelled/closed', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+			});
+			expect(result.current.stagedFiles).toHaveLength(1);
+
+			act(() => result.current.handleFormOpenChange(false));
+
+			expect(result.current.stagedFiles).toEqual([]);
+		});
+
+		it('creating without an id while files are staged shows an error, uploads nothing, and keeps the staged files', async () => {
+			const config = setupCreate({
+				createEntry: jest.fn().mockResolvedValue({ data: {}, error: null }),
+			});
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).not.toHaveBeenCalled();
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toEqual(files);
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({ title: 'Error', variant: 'destructive' })
+			);
+			expect(mockToast).not.toHaveBeenCalledWith(
+				expect.objectContaining({ title: 'Gasto creado' })
+			);
+		});
+
+		it('creating without an id but with no staged files still succeeds as a plain create (no attachments to lose)', async () => {
+			const config = setupCreate({
+				createEntry: jest.fn().mockResolvedValue({ data: {}, error: null }),
+			});
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFileExpense).not.toHaveBeenCalled();
+			expect(result.current.isFormOpen).toBe(false);
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Gasto creado' });
+		});
+	});
+
+	describe('close/reopen race while a submit is in flight', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function stagedFile(fileName: string): StagedFile {
+			return { id: fileName, file: new File(['x'], fileName), fileName };
+		}
+
+		function setupCreate(configOverrides: Partial<Parameters<typeof useIncomeExpenseTab>[0]> = {}) {
+			return baseConfig({
+				attachmentsKind: 'expense',
+				labels: {
+					entityLabel: 'gasto',
+					loadError: 'No se pudieron cargar los gastos.',
+					saveError: 'No se pudo guardar el gasto.',
+					deleteError: 'No se pudo eliminar el gasto.',
+					createdToast: 'Gasto creado',
+					updatedToast: 'Gasto actualizado',
+					deletedToast: 'Gasto eliminado',
+				},
+				...configOverrides,
+			});
+		}
+
+		it('ignores handleFormOpenChange(false) while saving, then allows it once the submit settles', async () => {
+			let releaseCreate!: (value: any) => void;
+			const config = setupCreate({
+				createEntry: jest
+					.fn()
+					.mockImplementation(() => new Promise((resolve) => (releaseCreate = resolve))),
+			});
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+
+			let submitPromise: Promise<void>;
+			act(() => {
+				submitPromise = result.current.handleSubmit(fakeEvent());
+			});
+			await waitFor(() => expect(result.current.saving).toBe(true));
+
+			// Escape/overlay-click while saving must not close the dialog or drop the staged files.
+			act(() => result.current.handleFormOpenChange(false));
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toHaveLength(1);
+
+			await act(async () => {
+				releaseCreate({ data: { id: 77 }, error: null });
+				await submitPromise;
+			});
+
+			expect(result.current.saving).toBe(false);
+			// Once settled, a real close request goes through again.
+			act(() => result.current.handleFormOpenChange(false));
+			expect(result.current.isFormOpen).toBe(false);
+		});
+
+		it('a stale create completion after a reset/reopen mid-flight does not wipe the new session or close the dialog', async () => {
+			let releaseCreate!: (value: any) => void;
+			const config = setupCreate({
+				createEntry: jest
+					.fn()
+					.mockImplementation(() => new Promise((resolve) => (releaseCreate = resolve))),
+			});
+			const { result } = renderHook(() => useIncomeExpenseTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			const staleFile = stagedFile('stale.pdf');
+			const freshFile = stagedFile('fresh.pdf');
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([staleFile]);
+				result.current.setPartyId('3');
+				result.current.setCategoryId('10');
+				result.current.setNetAmount('1000');
+			});
+
+			let submitPromise: Promise<void>;
+			act(() => {
+				submitPromise = result.current.handleSubmit(fakeEvent());
+			});
+			await waitFor(() => expect(result.current.saving).toBe(true));
+
+			// Defensive: the session changes (new add) while the earlier submit is still pending.
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([freshFile]);
+			});
+
+			await act(async () => {
+				releaseCreate({ data: { id: 77 }, error: null });
+				await submitPromise;
+			});
+
+			expect(uploadFileExpense).toHaveBeenCalledWith(77, staleFile.file, null, 'stale.pdf');
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toEqual([freshFile]);
 		});
 	});
 

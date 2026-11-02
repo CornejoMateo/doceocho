@@ -1,6 +1,11 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { IncomeExpenseTab } from '@/components/business/cash-flow/incomes-expenses/income-expense-tab';
 import type { useIncomeExpenseTab } from '@/hooks/income-expense/use-income-expense-tab';
+import { listPaymentsByExpenseIds } from '@/lib/payments/payments';
+
+jest.mock('@/lib/payments/payments', () => ({
+	listPaymentsByExpenseIds: jest.fn(),
+}));
 
 jest.mock('@/components/ui/select', () => ({
 	Select: ({ children, value, onValueChange }: any) => (
@@ -23,7 +28,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-filte
 }));
 
 jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-list', () => ({
-	IncomeExpenseList: ({ entries, loading, onEdit, onAskDelete }: any) => (
+	IncomeExpenseList: ({ entries, loading, onEdit, onAskDelete, onRowClick }: any) => (
 		<div data-testid="list">
 			{loading
 				? 'Cargando...'
@@ -32,10 +37,23 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-list'
 							{e.party_name}
 							<button onClick={() => onEdit(e)}>Editar {e.id}</button>
 							<button onClick={() => onAskDelete(e)}>Eliminar {e.id}</button>
+							{onRowClick && <button onClick={() => onRowClick(e)}>Ver detalle {e.id}</button>}
 						</div>
 					))}
 		</div>
 	),
+}));
+
+jest.mock('@/components/business/shared/attachments/entity-attachments-dialog', () => ({
+	EntityAttachmentsDialog: ({ open, kind, entityId, title, summary }: any) =>
+		open ? (
+			<div data-testid="attachments-dialog">
+				<span data-testid="attachments-kind">{kind}</span>
+				<span data-testid="attachments-entity-id">{entityId}</span>
+				<span data-testid="attachments-title">{title}</span>
+				<span data-testid="attachments-summary-count">{summary.length}</span>
+			</div>
+		) : null,
 }));
 
 jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-summary', () => ({
@@ -62,6 +80,7 @@ function makeState(over: Partial<ReturnType<typeof useIncomeExpenseTab>> = {}) {
 		setYear: jest.fn(),
 		yearOptions: [2025, 2026, 2027],
 		loadingList: false,
+		entries: [],
 		visibleEntries: [],
 		categories: [],
 		activeCategories: [],
@@ -130,6 +149,11 @@ const baseRenderProps = {
 };
 
 describe('IncomeExpenseTab', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({ data: [], error: null });
+	});
+
 	it('renders the controls row: year select, voucher types config and categories config', () => {
 		render(<IncomeExpenseTab state={makeState()} {...baseRenderProps} />);
 
@@ -203,5 +227,211 @@ describe('IncomeExpenseTab', () => {
 		render(<IncomeExpenseTab state={makeState({ isFormOpen: true })} {...baseRenderProps} />);
 
 		expect(screen.getByTestId('form-dialog')).toBeInTheDocument();
+	});
+
+	describe('cascadeDeleteWarning (Gastos only; Ingresos keeps the generic copy)', () => {
+		const expenseRenderProps = { ...baseRenderProps, entityLabel: 'gasto' };
+
+		it('shows the generic copy and "Eliminar" when cascadeDeleteWarning is not set (Ingresos)', () => {
+			const entry = { id: 1, party_name: 'Cliente 1', total_amount: 1000 };
+			const state = makeState({ entryToDelete: entry as any });
+			render(<IncomeExpenseTab state={state} {...baseRenderProps} />);
+
+			expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+			expect(listPaymentsByExpenseIds).not.toHaveBeenCalled();
+		});
+
+		it('fetches the linked payments count and shows a pluralized warning with "Eliminar gasto y pagos"', async () => {
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
+				data: [{ id: 1 }, { id: 2 }],
+				error: null,
+			});
+			const entry = { id: 7, party_name: 'Proveedor 1', total_amount: 5000 };
+			const state = makeState({ entryToDelete: entry as any });
+			render(<IncomeExpenseTab state={state} {...expenseRenderProps} cascadeDeleteWarning />);
+
+			await waitFor(() => expect(listPaymentsByExpenseIds).toHaveBeenCalledWith([7]));
+			expect(
+				await screen.findByText(
+					/también se eliminarán sus 2 pagos asociados y sus archivos adjuntos/
+				)
+			).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Eliminar gasto y pagos' })).toBeInTheDocument();
+		});
+
+		it('singularizes the copy when there is exactly one linked payment', async () => {
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({ data: [{ id: 1 }], error: null });
+			const entry = { id: 7, party_name: 'Proveedor 1', total_amount: 5000 };
+			const state = makeState({ entryToDelete: entry as any });
+			render(<IncomeExpenseTab state={state} {...expenseRenderProps} cascadeDeleteWarning />);
+
+			expect(
+				await screen.findByText(/también se eliminarán sus 1 pago asociado y sus archivos adjuntos/)
+			).toBeInTheDocument();
+		});
+
+		it('falls back to "no tiene pagos asociados" when the count is zero', async () => {
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({ data: [], error: null });
+			const entry = { id: 7, party_name: 'Proveedor 1', total_amount: 5000 };
+			const state = makeState({ entryToDelete: entry as any });
+			render(<IncomeExpenseTab state={state} {...expenseRenderProps} cascadeDeleteWarning />);
+
+			expect(await screen.findByText(/Este gasto no tiene pagos asociados/)).toBeInTheDocument();
+		});
+
+		it('keeps the strong generic warning when the count lookup fails', async () => {
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
+				data: null,
+				error: { message: 'boom' },
+			});
+			const entry = { id: 7, party_name: 'Proveedor 1', total_amount: 5000 };
+			const state = makeState({ entryToDelete: entry as any });
+			render(<IncomeExpenseTab state={state} {...expenseRenderProps} cascadeDeleteWarning />);
+
+			expect(
+				await screen.findByText(/sus pagos asociados \(si tiene\) y sus archivos adjuntos/)
+			).toBeInTheDocument();
+		});
+
+		it('shows a loading state while the count is being fetched', () => {
+			let resolveCount: (value: any) => void = () => {};
+			(listPaymentsByExpenseIds as jest.Mock).mockReturnValue(
+				new Promise((resolve) => {
+					resolveCount = resolve;
+				})
+			);
+			const entry = { id: 7, party_name: 'Proveedor 1', total_amount: 5000 };
+			const state = makeState({ entryToDelete: entry as any });
+			render(<IncomeExpenseTab state={state} {...expenseRenderProps} cascadeDeleteWarning />);
+
+			expect(screen.getByText('Verificando pagos asociados...')).toBeInTheDocument();
+			resolveCount({ data: [], error: null });
+		});
+
+		it('renders the cascade warning outside the dialog description, with no <p> wrapping block content', async () => {
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
+				data: [{ id: 1 }, { id: 2 }],
+				error: null,
+			});
+			const entry = { id: 7, party_name: 'Proveedor 1', total_amount: 5000 };
+			const state = makeState({ entryToDelete: entry as any });
+			const { baseElement } = render(
+				<IncomeExpenseTab state={state} {...expenseRenderProps} cascadeDeleteWarning />
+			);
+
+			await screen.findByText(/también se eliminarán sus 2 pagos asociados/);
+
+			const description = baseElement.querySelector('[data-slot="dialog-description"]');
+			expect(description?.tagName).toBe('P');
+			expect(description?.querySelector('[data-slot="alert"]')).toBeNull();
+
+			baseElement.querySelectorAll('p').forEach((p) => {
+				expect(p.querySelector('div, p, ul, ol, table, section')).toBeNull();
+			});
+		});
+	});
+
+	describe('attachments detail dialog (Gastos only: attachmentsKind === "expense")', () => {
+		const entry = {
+			id: 7,
+			date: '2026-04-01',
+			voucher_number: '0001-00000456',
+			voucher_type_name: 'Factura A',
+			work_name: 'Obra Norte',
+			party_name: 'Proveedor 1',
+			category_name: 'Materiales',
+			description: 'Compra de cemento',
+			net_amount: 413,
+			iva_amount: 87,
+			total_amount: 500,
+			payment_method_name: 'Transferencia',
+			bank_account_name: 'Banco Nación - Cuenta principal',
+		};
+
+		it('never renders the dialog, even when a row is clicked, without attachmentsKind (Ingresos)', () => {
+			const state = makeState({ visibleEntries: [entry] as any });
+			render(<IncomeExpenseTab state={state} {...baseRenderProps} />);
+
+			expect(screen.queryByText('Ver detalle 7')).not.toBeInTheDocument();
+			expect(screen.queryByTestId('attachments-dialog')).not.toBeInTheDocument();
+		});
+
+		it('opens the dialog with kind="expense" and the clicked entry id when attachmentsKind="expense"', () => {
+			const state = makeState({ entries: [entry] as any, visibleEntries: [entry] as any });
+			render(
+				<IncomeExpenseTab
+					state={state}
+					{...baseRenderProps}
+					entityLabel="gasto"
+					attachmentsKind="expense"
+				/>
+			);
+
+			expect(screen.queryByTestId('attachments-dialog')).not.toBeInTheDocument();
+
+			fireEvent.click(screen.getByText('Ver detalle 7'));
+
+			expect(screen.getByTestId('attachments-dialog')).toBeInTheDocument();
+			expect(screen.getByTestId('attachments-kind')).toHaveTextContent('expense');
+			expect(screen.getByTestId('attachments-entity-id')).toHaveTextContent('7');
+			expect(screen.getByTestId('attachments-title')).toHaveTextContent('Detalle del gasto');
+			expect(screen.getByTestId('attachments-summary-count')).toHaveTextContent('11');
+		});
+
+		it('keeps the dialog open, deriving the live entry from state.entries, when the row is filtered out of visibleEntries', () => {
+			const state = makeState({ entries: [entry] as any, visibleEntries: [entry] as any });
+			const { rerender } = render(
+				<IncomeExpenseTab
+					state={state}
+					{...baseRenderProps}
+					entityLabel="gasto"
+					attachmentsKind="expense"
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Ver detalle 7'));
+			expect(screen.getByTestId('attachments-dialog')).toBeInTheDocument();
+
+			// A filter change narrows visibleEntries, but the unfiltered `entries` still has it.
+			const filteredState = makeState({ entries: [entry] as any, visibleEntries: [] as any });
+			rerender(
+				<IncomeExpenseTab
+					state={filteredState}
+					{...baseRenderProps}
+					entityLabel="gasto"
+					attachmentsKind="expense"
+				/>
+			);
+
+			expect(screen.getByTestId('attachments-dialog')).toBeInTheDocument();
+			expect(screen.getByTestId('attachments-entity-id')).toHaveTextContent('7');
+		});
+
+		it('closes the dialog when the entry is no longer present in state.entries after a refetch (e.g. deleted elsewhere)', () => {
+			const state = makeState({ entries: [entry] as any, visibleEntries: [entry] as any });
+			const { rerender } = render(
+				<IncomeExpenseTab
+					state={state}
+					{...baseRenderProps}
+					entityLabel="gasto"
+					attachmentsKind="expense"
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Ver detalle 7'));
+			expect(screen.getByTestId('attachments-dialog')).toBeInTheDocument();
+
+			const afterDeleteState = makeState({ entries: [] as any, visibleEntries: [] as any });
+			rerender(
+				<IncomeExpenseTab
+					state={afterDeleteState}
+					{...baseRenderProps}
+					entityLabel="gasto"
+					attachmentsKind="expense"
+				/>
+			);
+
+			expect(screen.queryByTestId('attachments-dialog')).not.toBeInTheDocument();
+		});
 	});
 });

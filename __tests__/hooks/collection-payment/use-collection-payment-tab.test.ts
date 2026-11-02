@@ -9,6 +9,8 @@ import { listWorks } from '@/lib/works/works';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
 import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { getLocalDate } from '@/utils/format-date';
+import { uploadFilePayment } from '@/lib/payments/files-payments';
+import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
 
 jest.mock('@/lib/categories/categories', () => ({
 	listCategories: jest.fn(),
@@ -24,6 +26,9 @@ jest.mock('@/lib/cash-flow/cash-flow', () => ({
 }));
 jest.mock('@/components/ui/use-toast', () => ({
 	useToast: () => ({ toast: mockToast }),
+}));
+jest.mock('@/lib/payments/files-payments', () => ({
+	uploadFilePayment: jest.fn(),
 }));
 
 const mockToast = jest.fn();
@@ -77,6 +82,7 @@ describe('useCollectionPaymentTab', () => {
 		(listWorks as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listBankAccounts as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(uploadFilePayment as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	});
 
 	describe('fetching by year', () => {
@@ -462,6 +468,64 @@ describe('useCollectionPaymentTab', () => {
 		});
 	});
 
+	describe('double-submit guard', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function fillValidForm(result: any) {
+			result.current.handleAdd();
+			result.current.setPartyId('3');
+			result.current.setPaymentMethodId('2');
+			result.current.setAmount('1000');
+		}
+
+		it('calls createEntry only once when handleSubmit fires twice in the same tick', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => fillValidForm(result));
+			await act(async () => {
+				const first = result.current.handleSubmit(fakeEvent());
+				const second = result.current.handleSubmit(fakeEvent());
+				await Promise.all([first, second]);
+			});
+
+			expect(config.createEntry).toHaveBeenCalledTimes(1);
+		});
+
+		it('allows a new submit once the previous one has settled', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => fillValidForm(result));
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+			expect(config.createEntry).toHaveBeenCalledTimes(1);
+
+			act(() => fillValidForm(result));
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledTimes(2);
+		});
+
+		it('does not leave the guard stuck after a validation failure', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => result.current.handleAdd());
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+			expect(config.createEntry).not.toHaveBeenCalled();
+
+			act(() => fillValidForm(result));
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledTimes(1);
+		});
+	});
+
 	describe('payments-only: optional party and the "Compra" picker', () => {
 		function fakeEvent() {
 			return { preventDefault: jest.fn() } as unknown as FormEvent;
@@ -653,6 +717,44 @@ describe('useCollectionPaymentTab', () => {
 		});
 	});
 
+	describe('hideParty (Pagos: payments have no party column at all)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		it('does not require a party on submit, and works without a listParties config', async () => {
+			const config = baseConfig({ hideParty: true, listParties: undefined });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalled();
+			expect(result.current.parties).toEqual([]);
+		});
+
+		it('exposes hideParty: false by default (Cobros/other callers unaffected)', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.hideParty).toBe(false);
+		});
+
+		it('exposes hideParty: true when configured', async () => {
+			const config = baseConfig({ hideParty: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.hideParty).toBe(true);
+		});
+	});
+
 	describe('collections-only: optional party and the "Cuenta" picker (loadAccounts)', () => {
 		function fakeEvent() {
 			return { preventDefault: jest.fn() } as unknown as FormEvent;
@@ -754,6 +856,585 @@ describe('useCollectionPaymentTab', () => {
 
 			expect(result.current.purchaseId).toBe('8');
 			await waitFor(() => expect(config.loadAccounts).toHaveBeenCalledWith(3, undefined));
+		});
+	});
+
+	describe('expense link (Payments-only)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function expenseConfig(overrides: Partial<ReturnType<typeof baseConfig>> = {}) {
+			return baseConfig({
+				partyOptional: true,
+				listExpenseOptions: jest
+					.fn()
+					.mockResolvedValue({ data: [{ id: 42, name: 'Gasto 42' }], error: null }),
+				...overrides,
+			});
+		}
+
+		it('exposes supportsExpenseLink as false when the config has no listExpenseOptions (Collections)', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.supportsExpenseLink).toBe(false);
+		});
+
+		it('exposes supportsExpenseLink as true and fetches expense options on mount (Payments)', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.supportsExpenseLink).toBe(true);
+			await waitFor(() =>
+				expect(result.current.expenseOptions).toEqual([{ id: 42, name: 'Gasto 42' }])
+			);
+		});
+
+		it('refetches expense options when the selected year changes', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			(config.listExpenseOptions as jest.Mock).mockClear();
+
+			act(() => result.current.setYear(2020));
+
+			await waitFor(() => expect(config.listExpenseOptions).toHaveBeenCalledWith(2020));
+		});
+
+		it('handleAdd with a prefill sets amount, work, description, payment method, bank account, receipt number and expense', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() =>
+				result.current.handleAdd({
+					amount: 500,
+					work_id: 7,
+					description: 'Pago de gasto',
+					payment_method_id: 2,
+					bank_account_id: 4,
+					receipt_number: '0001-00000456',
+					expense_id: 99,
+					expense_label: 'Gasto 99 (fuera de año)',
+				})
+			);
+
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.amount).toBe('500');
+			expect(result.current.workId).toBe('7');
+			expect(result.current.description).toBe('Pago de gasto');
+			expect(result.current.paymentMethodId).toBe('2');
+			expect(result.current.bankAccountId).toBe('4');
+			expect(result.current.receiptNumber).toBe('0001-00000456');
+			expect(result.current.expenseId).toBe('99');
+			expect(result.current.expenseOptions).toEqual(
+				expect.arrayContaining([{ id: 99, name: 'Gasto 99 (fuera de año)' }])
+			);
+		});
+
+		it('handleEdit preloads expenseId and keeps the linked expense selectable even if outside the fetched options', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5, expense_id: 7, expense_label: 'Gasto histórico' });
+
+			act(() => result.current.handleEdit(target));
+
+			expect(result.current.expenseId).toBe('7');
+			expect(result.current.expenseOptions).toEqual(
+				expect.arrayContaining([{ id: 7, name: 'Gasto histórico' }])
+			);
+		});
+
+		it('handleEdit defaults expenseId to empty when the entry has no linked expense', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5, expense_id: null });
+
+			act(() => result.current.handleEdit(target));
+
+			expect(result.current.expenseId).toBe('');
+		});
+
+		it('submits with expense_id null when none is chosen', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ expense_id: null })
+			);
+		});
+
+		it('submits with the chosen expense_id, settable/changeable/clearable via setExpenseId', async () => {
+			const config = expenseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+				result.current.setExpenseId('42');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+			expect(config.createEntry).toHaveBeenCalledWith(expect.objectContaining({ expense_id: 42 }));
+
+			// Change to a different expense.
+			act(() => result.current.setExpenseId('43'));
+			expect(result.current.expenseId).toBe('43');
+
+			// Clear back to none.
+			act(() => result.current.setExpenseId(''));
+			expect(result.current.expenseId).toBe('');
+		});
+	});
+
+	describe('paymentMethodOptional (Pagos only; Cobros stays required)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		it('defaults paymentMethodId to "none" and exposes paymentMethodOptional: true when configured', async () => {
+			const config = baseConfig({ hideParty: true, paymentMethodOptional: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.paymentMethodOptional).toBe(true);
+			expect(result.current.paymentMethodId).toBe('none');
+		});
+
+		it('exposes paymentMethodOptional: false by default (Cobros/other callers unaffected)', async () => {
+			const config = baseConfig();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			expect(result.current.paymentMethodOptional).toBe(false);
+			expect(result.current.paymentMethodId).toBe('');
+		});
+
+		it('submits with payment_method_id null when "none" is left selected, without a validation error', async () => {
+			const config = baseConfig({ hideParty: true, paymentMethodOptional: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ payment_method_id: null })
+			);
+			expect(result.current.errors.paymentMethodId).toBeFalsy();
+		});
+
+		it('submits with the chosen numeric payment_method_id (never NaN) when a real method is picked', async () => {
+			const config = baseConfig({ hideParty: true, paymentMethodOptional: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setAmount('1000');
+				result.current.setPaymentMethodId('2');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(config.createEntry).toHaveBeenCalledWith(
+				expect.objectContaining({ payment_method_id: 2 })
+			);
+		});
+
+		it('handleEdit defaults paymentMethodId to "none" (not "") when the entry has no payment method', async () => {
+			const config = baseConfig({ hideParty: true, paymentMethodOptional: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5, payment_method_id: null, payment_method_name: null });
+
+			act(() => result.current.handleEdit(target));
+
+			expect(result.current.paymentMethodId).toBe('none');
+		});
+
+		it('handleEdit prefills a real paymentMethodId when the entry has one', async () => {
+			const config = baseConfig({ hideParty: true, paymentMethodOptional: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5, payment_method_id: 2 });
+
+			act(() => result.current.handleEdit(target));
+
+			expect(result.current.paymentMethodId).toBe('2');
+		});
+
+		it('resetForm (via handleAdd) goes back to "none" after a real method was previously chosen', async () => {
+			const config = baseConfig({ hideParty: true, paymentMethodOptional: true });
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+			});
+			expect(result.current.paymentMethodId).toBe('2');
+
+			act(() => result.current.handleAdd());
+
+			expect(result.current.paymentMethodId).toBe('none');
+		});
+	});
+
+	describe('attachments (Pagos only; gated by config.attachmentsKind)', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function stagedFile(fileName: string): StagedFile {
+			return { id: fileName, file: new File(['x'], fileName), fileName };
+		}
+
+		function setupCreate(
+			configOverrides: Partial<Parameters<typeof useCollectionPaymentTab>[0]> = {}
+		) {
+			return baseConfig({
+				hideParty: true,
+				attachmentsKind: 'payment',
+				createEntry: jest.fn().mockResolvedValue({ data: { id: 77 }, error: null }),
+				labels: {
+					entityLabel: 'pago',
+					loadError: 'No se pudieron cargar los pagos.',
+					saveError: 'No se pudo guardar el pago.',
+					deleteError: 'No se pudo eliminar el pago.',
+					createdToast: 'Pago creado',
+					updatedToast: 'Pago actualizado',
+					deletedToast: 'Pago eliminado',
+				},
+				...configOverrides,
+			});
+		}
+
+		it('uploads each staged file to the created id, with kind "payment"', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf'), stagedFile('b.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).toHaveBeenCalledTimes(2);
+			expect(uploadFilePayment).toHaveBeenCalledWith(77, files[0].file, null, 'a.pdf');
+			expect(uploadFilePayment).toHaveBeenCalledWith(77, files[1].file, null, 'b.pdf');
+			expect(result.current.stagedFiles).toEqual([]);
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({ title: 'Pago creado', description: expect.stringContaining('2') })
+			);
+		});
+
+		it('uploads nothing and shows the plain toast when there are no staged files', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).not.toHaveBeenCalled();
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago creado' });
+		});
+
+		it('shows a destructive toast counting failed uploads, without undoing the create', async () => {
+			(uploadFilePayment as jest.Mock)
+				.mockResolvedValueOnce({ data: { id: 1 }, error: null })
+				.mockResolvedValueOnce({ data: null, error: { message: 'boom' } });
+			const config = setupCreate();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf'), stagedFile('b.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					variant: 'destructive',
+					title: 'Archivos adjuntos pendientes',
+					description: expect.stringContaining('1'),
+				})
+			);
+			expect(result.current.isFormOpen).toBe(false);
+			expect(result.current.stagedFiles).toEqual([]);
+		});
+
+		it('uploads nothing and keeps the staged files when the create fails entirely', async () => {
+			const config = setupCreate({
+				createEntry: jest.fn().mockResolvedValue({ error: { message: 'boom' } }),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).not.toHaveBeenCalled();
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toEqual(files);
+		});
+
+		it('never stages or uploads when attachmentsKind is not set (Cobros), even if files are staged', async () => {
+			const config = baseConfig({
+				createEntry: jest.fn().mockResolvedValue({ data: { id: 77 }, error: null }),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+				result.current.setPartyId('3');
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).not.toHaveBeenCalled();
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Cobro creado' });
+		});
+
+		it('does not touch staged files on an edit submit', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const target = entry({ id: 5 });
+
+			act(() => {
+				result.current.handleEdit(target);
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).not.toHaveBeenCalled();
+			expect(config.updateEntry).toHaveBeenCalled();
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago actualizado' });
+		});
+
+		it('clears staged files when handleEdit is called', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+			});
+			expect(result.current.stagedFiles).toHaveLength(1);
+
+			act(() => result.current.handleEdit(entry({ id: 5 })));
+
+			expect(result.current.stagedFiles).toEqual([]);
+		});
+
+		it('clears staged files when the dialog is cancelled/closed', async () => {
+			const config = setupCreate();
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+			});
+			expect(result.current.stagedFiles).toHaveLength(1);
+
+			act(() => result.current.handleFormOpenChange(false));
+
+			expect(result.current.stagedFiles).toEqual([]);
+		});
+
+		it('creating without an id while files are staged shows an error, uploads nothing, and keeps the staged files', async () => {
+			const config = setupCreate({
+				createEntry: jest.fn().mockResolvedValue({ data: {}, error: null }),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+			const files = [stagedFile('a.pdf')];
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles(files);
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).not.toHaveBeenCalled();
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toEqual(files);
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({ title: 'Error', variant: 'destructive' })
+			);
+			expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ title: 'Pago creado' }));
+		});
+
+		it('creating without an id but with no staged files still succeeds as a plain create (no attachments to lose)', async () => {
+			const config = setupCreate({
+				createEntry: jest.fn().mockResolvedValue({ data: {}, error: null }),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+			await act(async () => result.current.handleSubmit(fakeEvent()));
+
+			expect(uploadFilePayment).not.toHaveBeenCalled();
+			expect(result.current.isFormOpen).toBe(false);
+			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago creado' });
+		});
+	});
+
+	describe('close/reopen race while a submit is in flight', () => {
+		function fakeEvent() {
+			return { preventDefault: jest.fn() } as unknown as FormEvent;
+		}
+
+		function stagedFile(fileName: string): StagedFile {
+			return { id: fileName, file: new File(['x'], fileName), fileName };
+		}
+
+		function setupCreate(
+			configOverrides: Partial<Parameters<typeof useCollectionPaymentTab>[0]> = {}
+		) {
+			return baseConfig({
+				hideParty: true,
+				attachmentsKind: 'payment',
+				labels: {
+					entityLabel: 'pago',
+					loadError: 'No se pudieron cargar los pagos.',
+					saveError: 'No se pudo guardar el pago.',
+					deleteError: 'No se pudo eliminar el pago.',
+					createdToast: 'Pago creado',
+					updatedToast: 'Pago actualizado',
+					deletedToast: 'Pago eliminado',
+				},
+				...configOverrides,
+			});
+		}
+
+		it('ignores handleFormOpenChange(false) while saving, then allows it once the submit settles', async () => {
+			let releaseCreate!: (value: any) => void;
+			const config = setupCreate({
+				createEntry: jest
+					.fn()
+					.mockImplementation(() => new Promise((resolve) => (releaseCreate = resolve))),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([stagedFile('a.pdf')]);
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+
+			let submitPromise: Promise<void>;
+			act(() => {
+				submitPromise = result.current.handleSubmit(fakeEvent());
+			});
+			await waitFor(() => expect(result.current.saving).toBe(true));
+
+			// Escape/overlay-click while saving must not close the dialog or drop the staged files.
+			act(() => result.current.handleFormOpenChange(false));
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toHaveLength(1);
+
+			await act(async () => {
+				releaseCreate({ data: { id: 77 }, error: null });
+				await submitPromise;
+			});
+
+			expect(result.current.saving).toBe(false);
+			// Once settled, a real close request goes through again.
+			act(() => result.current.handleFormOpenChange(false));
+			expect(result.current.isFormOpen).toBe(false);
+		});
+
+		it('a stale create completion after a reset/reopen mid-flight does not wipe the new session or close the dialog', async () => {
+			let releaseCreate!: (value: any) => void;
+			const config = setupCreate({
+				createEntry: jest
+					.fn()
+					.mockImplementation(() => new Promise((resolve) => (releaseCreate = resolve))),
+			});
+			const { result } = renderHook(() => useCollectionPaymentTab(config));
+			await waitFor(() => expect(result.current.loadingList).toBe(false));
+
+			const staleFile = stagedFile('stale.pdf');
+			const freshFile = stagedFile('fresh.pdf');
+
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([staleFile]);
+				result.current.setPaymentMethodId('2');
+				result.current.setAmount('1000');
+			});
+
+			let submitPromise: Promise<void>;
+			act(() => {
+				submitPromise = result.current.handleSubmit(fakeEvent());
+			});
+			await waitFor(() => expect(result.current.saving).toBe(true));
+
+			// Defensive: the session changes (new add) while the earlier submit is still pending.
+			act(() => {
+				result.current.handleAdd();
+				result.current.setStagedFiles([freshFile]);
+			});
+
+			await act(async () => {
+				releaseCreate({ data: { id: 77 }, error: null });
+				await submitPromise;
+			});
+
+			expect(uploadFilePayment).toHaveBeenCalledWith(77, staleFile.file, null, 'stale.pdf');
+			expect(result.current.isFormOpen).toBe(true);
+			expect(result.current.stagedFiles).toEqual([freshFile]);
 		});
 	});
 

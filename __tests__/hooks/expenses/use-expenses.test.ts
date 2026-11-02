@@ -31,6 +31,35 @@ describe('useExpenses', () => {
 		);
 	});
 
+	it('configures attachmentsKind: "expense" (Gastos only, enables staged uploads on create)', () => {
+		renderHook(() => useExpenses() as any);
+
+		expect(useIncomeExpenseTab).toHaveBeenCalledWith(
+			expect.objectContaining({ attachmentsKind: 'expense' })
+		);
+	});
+
+	it('createEntry forwards the created row id so the caller can upload staged files against it', async () => {
+		(createExpense as jest.Mock).mockResolvedValue({ data: { id: 77 }, error: null });
+		const { result } = renderHook(() => useExpenses() as any);
+
+		const res = await result.current.createEntry({
+			date: '2026-05-10',
+			voucher_number: null,
+			voucher_type_id: 1,
+			work_id: null,
+			party_id: 3,
+			category_id: 10,
+			description: null,
+			net_amount: 1000,
+			iva_percent: 21,
+			iva_amount: 210,
+			total_amount: 1210,
+		});
+
+		expect(res).toEqual({ data: { id: 77 }, error: null });
+	});
+
 	it('listEntries maps ExpenseWithDetails rows to IncomeExpenseEntry, using supplier as the party', async () => {
 		(listExpenses as jest.Mock).mockResolvedValue({
 			data: [
