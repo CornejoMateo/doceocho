@@ -69,8 +69,13 @@ describe('balance_transactions lib', () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.order = jest.fn().mockResolvedValue({
 				data: [
-					{ id: 1, amount: 100, payment_methods: { name: 'Transferencia' } },
-					{ id: 2, amount: 200, payment_methods: null },
+					{
+						id: 1,
+						amount: 100,
+						payment_methods: { name: 'Transferencia' },
+						cash_flow_categories: { name: 'Alquiler' },
+					},
+					{ id: 2, amount: 200, payment_methods: null, cash_flow_categories: null },
 				],
 				error: null,
 			});
@@ -79,13 +84,13 @@ describe('balance_transactions lib', () => {
 			const result = await getTransactionsByBalanceId(10);
 
 			expect(chain.select).toHaveBeenCalledWith(
-				'*, bank_account:bank_accounts(*), payment_methods(name)'
+				'*, bank_account:bank_accounts(*), payment_methods(name), cash_flow_categories(name)'
 			);
 			expect(chain.eq).toHaveBeenCalledWith('balance_id', 10);
 			expect(chain.order).toHaveBeenCalledWith('date', { ascending: false });
 			expect(result.data).toEqual([
-				{ id: 1, amount: 100, payment_method_name: 'Transferencia' },
-				{ id: 2, amount: 200, payment_method_name: null },
+				{ id: 1, amount: 100, payment_method_name: 'Transferencia', category_name: 'Alquiler' },
+				{ id: 2, amount: 200, payment_method_name: null, category_name: null },
 			]);
 		});
 
@@ -327,21 +332,16 @@ describe('balance_transactions lib', () => {
 		it('computes totals for a balance', async () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.eq = jest.fn().mockResolvedValue({
-				data: [
-					{ amount: 100, usd_amount: 5 },
-					{ amount: 200, usd_amount: 10 },
-					{ amount: 50, usd_amount: null },
-				],
+				data: [{ amount: 100 }, { amount: 200 }, { amount: 50 }],
 				error: null,
 			});
 			(getSupabaseClient as jest.Mock).mockReturnValue(supabase);
 
 			const result = await getTotalByBalanceId(1);
 
-			expect(chain.select).toHaveBeenCalledWith('amount, usd_amount');
+			expect(chain.select).toHaveBeenCalledWith('amount');
 			expect(result.data).toEqual({
 				totalAmount: 350,
-				totalAmountUSD: 15,
 			});
 		});
 
@@ -354,7 +354,6 @@ describe('balance_transactions lib', () => {
 
 			expect(result.data).toEqual({
 				totalAmount: 0,
-				totalAmountUSD: 0,
 			});
 		});
 	});
@@ -562,10 +561,10 @@ describe('balance_transactions lib', () => {
 			const { supabase, chain } = createSupabaseMock();
 			chain.in = jest.fn().mockResolvedValue({
 				data: [
-					{ balance_id: 1, amount: 100, usd_amount: 5 },
-					{ balance_id: 1, amount: 50, usd_amount: 2 },
-					{ balance_id: 2, amount: 300, usd_amount: 15 },
-					{ balance_id: 3, amount: 0, usd_amount: 0 },
+					{ balance_id: 1, amount: 100 },
+					{ balance_id: 1, amount: 50 },
+					{ balance_id: 2, amount: 300 },
+					{ balance_id: 3, amount: 0 },
 				],
 				error: null,
 			});
@@ -573,12 +572,12 @@ describe('balance_transactions lib', () => {
 
 			const result = await getTotalsByBalanceIds([1, 2, 3]);
 
-			expect(chain.select).toHaveBeenCalledWith('balance_id, amount, usd_amount');
+			expect(chain.select).toHaveBeenCalledWith('balance_id, amount');
 			expect(chain.in).toHaveBeenCalledWith('balance_id', [1, 2, 3]);
 			expect(result.data).toEqual({
-				1: { totalAmount: 150, totalAmountUSD: 7 },
-				2: { totalAmount: 300, totalAmountUSD: 15 },
-				3: { totalAmount: 0, totalAmountUSD: 0 },
+				1: { totalAmount: 150 },
+				2: { totalAmount: 300 },
+				3: { totalAmount: 0 },
 			});
 		});
 	});

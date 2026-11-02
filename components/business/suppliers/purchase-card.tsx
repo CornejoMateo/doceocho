@@ -11,38 +11,53 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown, ChevronRight, Edit, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
-import { purchaseStatus, pluralArchivos } from '@/helpers/suppliers/suppliers';
+import { formatDateOnly } from '@/utils/format-date';
+import { purchaseStatus } from '@/helpers/suppliers/suppliers';
+import { pluralArchivos } from '@/helpers/attachments/attachments';
 import { purchaseStatusBadgeClassName, purchaseStatusLabel } from '@/constants/suppliers/suppliers';
-import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
-import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
+import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
+import type { PaymentWithDetails } from '@/lib/payments/payments';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
-import type { FilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
-import { SupplierAttachmentsGallery } from '@/components/business/suppliers/supplier-attachments-gallery';
+import type { CashFlowCategory } from '@/lib/categories/categories';
+import type { FilePayment } from '@/lib/payments/files-payments';
+import { AttachmentsGallery } from '@/components/business/shared/attachments/attachments-gallery';
 import { PaymentRow } from '@/components/business/suppliers/payment-row';
 
-const purchaseProgressPct = (purchase: PurchaseSupplierWithBalance) =>
-	Math.min(100, Math.max(0, (purchase.totalPaidArs / purchase.amount_ars) * 100));
+const purchaseProgressPct = (purchase: SupplierExpenseListItem) =>
+	purchase.total_amount > 0
+		? Math.min(100, Math.max(0, (purchase.totalPaidArs / purchase.total_amount) * 100))
+		: 100;
+
+// voucher number, category and obra, in that order, skipping any that are null.
+const purchaseMetaLine = (purchase: SupplierExpenseListItem): string =>
+	[
+		purchase.voucher_number ? `N° ${purchase.voucher_number}` : null,
+		purchase.category_name,
+		purchase.work_name,
+	]
+		.filter((part): part is string => !!part)
+		.join(' · ');
 
 interface PurchaseCardProps {
-	purchase: PurchaseSupplierWithBalance;
+	purchase: SupplierExpenseListItem;
 	expanded: boolean;
 	onToggleExpand: () => void;
 	purchaseFileCount: number;
-	payments: PaymentSupplier[] | undefined;
+	payments: PaymentWithDetails[] | undefined;
 	paymentsLoading: boolean;
 	paymentsError: any;
 	onRetryPayments: () => void;
 	bankAccountById: Map<number, BankAccount>;
 	paymentMethodById: Map<number, PaymentMethod>;
+	paymentCategoryById: Map<number, CashFlowCategory>;
 	paymentFileCounts: Map<number, number>;
-	paymentFilesByPaymentId: Map<number, FilePaymentSupplier[]>;
+	paymentFilesByPaymentId: Map<number, FilePayment[]>;
 	onEditPurchase: () => void;
 	onDeletePurchase: () => void;
 	onNewPayment: () => void;
-	onEditPayment: (payment: PaymentSupplier) => void;
-	onDeletePayment: (payment: PaymentSupplier) => void;
+	onEditPayment: (payment: PaymentWithDetails) => void;
+	onDeletePayment: (payment: PaymentWithDetails) => void;
 	onPurchaseCountChange: (count: number) => void;
 	onPaymentCountChange: (paymentId: number, count: number) => void;
 }
@@ -58,6 +73,7 @@ export function PurchaseCard({
 	onRetryPayments,
 	bankAccountById,
 	paymentMethodById,
+	paymentCategoryById,
 	paymentFileCounts,
 	paymentFilesByPaymentId,
 	onEditPurchase,
@@ -78,7 +94,7 @@ export function PurchaseCard({
 	}, []);
 
 	return (
-		<Card data-purchase-id={purchase.id} className="gap-0 overflow-hidden p-0">
+		<Card data-purchase-id={purchase.id} className="min-w-0 gap-0 overflow-hidden p-0">
 			<div className="flex items-start gap-1 p-3">
 				<button
 					type="button"
@@ -95,14 +111,23 @@ export function PurchaseCard({
 					<div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
 						<div className="min-w-0">
 							<p className="text-xs text-muted-foreground">
-								{formatShortDate(purchase.created_at)}
+								{formatDateOnly(purchase.date)}
 								{purchaseFileCount > 0 && ` · ${pluralArchivos(purchaseFileCount)}`}
 							</p>
-							{purchase.notes && <p className="truncate text-sm font-medium">{purchase.notes}</p>}
+							{purchase.description && (
+								<p className="line-clamp-2 break-words text-sm font-medium [overflow-wrap:anywhere]">
+									{purchase.description}
+								</p>
+							)}
+							{purchaseMetaLine(purchase) && (
+								<p className="line-clamp-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+									{purchaseMetaLine(purchase)}
+								</p>
+							)}
 						</div>
 						<div className="flex shrink-0 items-center gap-2">
 							<div className="text-right">
-								<p className="font-semibold">{formatCurrency(purchase.amount_ars)}</p>
+								<p className="font-semibold">{formatCurrency(purchase.total_amount)}</p>
 								<Badge className={purchaseStatusBadgeClassName[status]}>
 									{purchaseStatusLabel[status]}
 								</Badge>
@@ -161,7 +186,7 @@ export function PurchaseCard({
 						</div>
 						<p className="text-xs text-muted-foreground">
 							Pagado {formatCurrency(purchase.totalPaidArs)} de{' '}
-							{formatCurrency(purchase.amount_ars)} · Deuda {formatCurrency(purchase.balanceArs)}
+							{formatCurrency(purchase.total_amount)} · Deuda {formatCurrency(purchase.balanceArs)}
 						</p>
 					</div>
 				</div>
@@ -171,10 +196,11 @@ export function PurchaseCard({
 				<div id={panelId} className="space-y-4 border-t border-border bg-muted/30 p-3">
 					<div className="space-y-1.5">
 						<p className="text-xs font-medium text-muted-foreground">Comprobantes de compra</p>
-						<SupplierAttachmentsGallery
-							kind="purchase"
+						<AttachmentsGallery
+							kind="expense"
 							entityId={purchase.id}
 							onCountChange={onPurchaseCountChange}
+							editKey="cash-flow.suppliers"
 						/>
 					</div>
 
@@ -206,6 +232,7 @@ export function PurchaseCard({
 										payment={payment}
 										bankAccountById={bankAccountById}
 										paymentMethodById={paymentMethodById}
+										categoryById={paymentCategoryById}
 										fileCount={paymentFileCounts.get(payment.id) ?? 0}
 										preloadedFiles={paymentFilesByPaymentId.get(payment.id)}
 										onEdit={() => onEditPayment(payment)}

@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Wallet } from 'lucide-react';
 import { IncomeExpenseEntry } from '@/hooks/income-expense/use-income-expense-tab';
 import { usePaginatedRows } from '@/hooks/use-paginated-rows';
 import { PaginationControls } from '@/components/ui/pagination-controls';
@@ -25,8 +25,12 @@ type IncomeExpenseListProps = {
 	emptyLabel: string;
 	onEdit: (entry: IncomeExpenseEntry) => void;
 	onAskDelete: (entry: IncomeExpenseEntry) => void;
+	onAddPayment?: (entry: IncomeExpenseEntry) => void;
 	pageResetKey?: string;
+	onRowClick?: (entry: IncomeExpenseEntry) => void;
 };
+
+const ROW_HINT = 'Ver detalle y archivos';
 
 export function IncomeExpenseList({
 	entries,
@@ -35,7 +39,9 @@ export function IncomeExpenseList({
 	emptyLabel,
 	onEdit,
 	onAskDelete,
+	onAddPayment,
 	pageResetKey = '',
+	onRowClick,
 }: IncomeExpenseListProps) {
 	const { paginatedData, currentPage, totalPages, totalItems, setPage } = usePaginatedRows(
 		entries,
@@ -43,11 +49,61 @@ export function IncomeExpenseList({
 		pageResetKey
 	);
 
+	// A text-selection drag that ends inside the row shouldn't open the detail dialog.
+	const hasActiveSelection = () => {
+		const selection = typeof window !== 'undefined' ? window.getSelection() : null;
+		return !!selection && selection.toString().length > 0;
+	};
+
+	const handleRowClick = (entry: IncomeExpenseEntry) => {
+		if (!onRowClick || hasActiveSelection()) return;
+		onRowClick(entry);
+	};
+
+	const handleRowKeyDown = (entry: IncomeExpenseEntry) => (e: React.KeyboardEvent) => {
+		if (!onRowClick) return;
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onRowClick(entry);
+		}
+	};
+
+	// Keeps clicks/keyboard activation on the action buttons from bubbling up to the row.
+	const stopActionsBubbling = {
+		onClick: (e: React.MouseEvent) => e.stopPropagation(),
+		onKeyDown: (e: React.KeyboardEvent) => e.stopPropagation(),
+	};
+
+	const rowActivationProps = (entry: IncomeExpenseEntry) =>
+		onRowClick
+			? {
+					tabIndex: 0,
+					'aria-label': ROW_HINT,
+					title: ROW_HINT,
+					onClick: () => handleRowClick(entry),
+					onKeyDown: handleRowKeyDown(entry),
+				}
+			: {};
+
 	const renderActions = (entry: IncomeExpenseEntry, withLabel: boolean) => {
 		const size = withLabel ? 'default' : 'sm';
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
+		const addPaymentButton = onAddPayment ? (
+			<Button
+				variant={withLabel ? 'outline' : 'ghost'}
+				size={size}
+				aria-label="Agregar pago"
+				title="Agregar pago"
+				className={buttonClass}
+				onClick={() => onAddPayment(entry)}
+			>
+				<Wallet className="h-4 w-4" />
+				{withLabel && 'Agregar pago'}
+			</Button>
+		) : null;
 		return (
 			<>
+				<EditOnly edit="cash-flow">{addPaymentButton}</EditOnly>
 				<EditOnly edit="cash-flow">
 					<Button
 						variant={withLabel ? 'outline' : 'ghost'}
@@ -110,7 +166,11 @@ export function IncomeExpenseList({
 								</TableHeader>
 								<TableBody>
 									{paginatedData.map((entry) => (
-										<TableRow key={entry.id}>
+										<TableRow
+											key={entry.id}
+											className={onRowClick ? 'cursor-pointer' : undefined}
+											{...rowActivationProps(entry)}
+										>
 											<TableCell className="text-center whitespace-nowrap">
 												{entry.date.split('-').reverse().join('/')}
 											</TableCell>
@@ -150,7 +210,7 @@ export function IncomeExpenseList({
 												</div>
 											</TableCell>
 											<TableCell className="text-center">
-												<div className="flex justify-center gap-2">
+												<div className="flex justify-center gap-2" {...stopActionsBubbling}>
 													{renderActions(entry, false)}
 												</div>
 											</TableCell>
@@ -163,7 +223,11 @@ export function IncomeExpenseList({
 
 					<div className="md:hidden space-y-3" data-testid="income-expense-mobile">
 						{paginatedData.map((entry) => (
-							<Card key={entry.id} className="bg-card border-border p-4 space-y-3">
+							<Card
+								key={entry.id}
+								className={`bg-card border-border p-4 space-y-3 ${onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+								{...rowActivationProps(entry)}
+							>
 								<div className="flex items-center justify-between gap-2">
 									<span className="font-medium">{formatDateOnly(entry.date)}</span>
 									<span className="font-semibold">{formatCurrency(entry.total_amount)}</span>
@@ -210,7 +274,9 @@ export function IncomeExpenseList({
 										</dd>
 									</div>
 								</dl>
-								<div className="flex gap-2 pt-1">{renderActions(entry, true)}</div>
+								<div className="flex gap-2 pt-1" {...stopActionsBubbling}>
+									{renderActions(entry, true)}
+								</div>
 							</Card>
 						))}
 					</div>

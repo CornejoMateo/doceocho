@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SummaryCards } from '@/helpers/cash-flow-stats/cash-flow-summary';
-import { formatCurrency, formatCurrencyWithoutSymbol } from '@/utils/formats-money';
+import { formatCurrency } from '@/utils/formats-money';
 
 type SummaryKpisProps = {
 	cards: SummaryCards;
@@ -14,14 +14,12 @@ export function SummaryKpis({ cards }: SummaryKpisProps) {
 		>
 			<Kpi label="Ingresos" value={formatCurrency(cards.incomeNet)} />
 			<Kpi label="Gastos" value={formatCurrency(cards.expenseNet)} />
+			<Kpi label="Gastos con IVA" value={formatCurrency(cards.expenseWithIva)} />
 			<Kpi
-				label="Margen"
-				value={formatCurrency(cards.margin)}
-				valueClassName={cards.margin < 0 ? 'text-destructive' : undefined}
-			/>
-			<Kpi
-				label="Rentabilidad"
-				value={`${formatCurrencyWithoutSymbol(cards.profitability * 100)}%`}
+				label="Debe"
+				value={formatCurrency(cards.debe)}
+				valueClassName={cards.debe > 0 ? 'text-destructive' : undefined}
+				helpText="Gastos con IVA menos pagos"
 			/>
 			<Kpi label="Cobros" value={formatCurrency(cards.collections)} />
 			<Kpi label="Pagos" value={formatCurrency(cards.payments)} />

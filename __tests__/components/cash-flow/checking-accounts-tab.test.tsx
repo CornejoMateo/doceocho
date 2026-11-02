@@ -35,7 +35,6 @@ const report = (over: any = {}) => ({
 			balanceType: 'DEUDOR',
 			balanceAmountArs: 600,
 			usdContractRef: 0,
-			balanceInUseUsd: 0,
 		},
 	],
 	searchTerm: '',

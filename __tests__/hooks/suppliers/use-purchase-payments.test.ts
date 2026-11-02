@@ -1,33 +1,34 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { usePurchasePayments } from '@/hooks/suppliers/use-purchase-payments';
-import { listPaymentsSuppliersByPurchaseIds } from '@/lib/suppliers/payments-suppliers';
-import { listFilesByPaymentSupplierIds } from '@/lib/suppliers/files-payments-suppliers';
+import { listPaymentsByExpenseIds } from '@/lib/payments/payments';
+import { listFilesByPaymentIds } from '@/lib/payments/files-payments';
 
-jest.mock('@/lib/suppliers/payments-suppliers', () => ({
-	listPaymentsSuppliersByPurchaseIds: jest.fn(),
+jest.mock('@/lib/payments/payments', () => ({
+	listPaymentsByExpenseIds: jest.fn(),
 }));
-jest.mock('@/lib/suppliers/files-payments-suppliers', () => ({
-	listFilesByPaymentSupplierIds: jest.fn(),
+jest.mock('@/lib/payments/files-payments', () => ({
+	listFilesByPaymentIds: jest.fn(),
 }));
 
 const payment = {
 	id: 88,
 	created_at: '2026-01-20',
-	amount_ars: 1000,
+	date: '2026-01-20',
+	amount: 1000,
 	bank_account_id: null,
 	payment_method_id: null,
-	purchase_supplier_id: 11,
-	notes: null,
+	expense_id: 11,
+	description: null,
 };
 
 describe('usePurchasePayments', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listFilesByPaymentIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 
 	it('loads payments for a purchase on demand, scoped to that purchase id', async () => {
-		(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
+		(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
 			data: [payment],
 			error: null,
 		});
@@ -37,12 +38,12 @@ describe('usePurchasePayments', () => {
 			await result.current.loadPayments(11);
 		});
 
-		expect(listPaymentsSuppliersByPurchaseIds).toHaveBeenCalledWith([11]);
+		expect(listPaymentsByExpenseIds).toHaveBeenCalledWith([11]);
 		expect(result.current.paymentsByPurchaseId.get(11)).toEqual([payment]);
 	});
 
 	it('ensureLoaded skips a purchase that already has payments cached', async () => {
-		(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
+		(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
 			data: [payment],
 			error: null,
 		});
@@ -55,11 +56,11 @@ describe('usePurchasePayments', () => {
 			result.current.ensureLoaded(11);
 		});
 
-		expect(listPaymentsSuppliersByPurchaseIds).toHaveBeenCalledTimes(1);
+		expect(listPaymentsByExpenseIds).toHaveBeenCalledTimes(1);
 	});
 
 	it('exposes an error for the purchase and clears it on a successful retry', async () => {
-		(listPaymentsSuppliersByPurchaseIds as jest.Mock)
+		(listPaymentsByExpenseIds as jest.Mock)
 			.mockResolvedValueOnce({ data: null, error: { message: 'boom' } })
 			.mockResolvedValueOnce({ data: [payment], error: null });
 
@@ -78,12 +79,12 @@ describe('usePurchasePayments', () => {
 	});
 
 	it('batches payment file counts once the payments resolve', async () => {
-		(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
+		(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
 			data: [payment],
 			error: null,
 		});
-		(listFilesByPaymentSupplierIds as jest.Mock).mockResolvedValue({
-			data: [{ id: 1, payment_supplier_id: 88 }],
+		(listFilesByPaymentIds as jest.Mock).mockResolvedValue({
+			data: [{ id: 1, payment_id: 88 }],
 			error: null,
 		});
 
@@ -92,12 +93,12 @@ describe('usePurchasePayments', () => {
 			await result.current.loadPayments(11);
 		});
 
-		expect(listFilesByPaymentSupplierIds).toHaveBeenCalledWith([88]);
+		expect(listFilesByPaymentIds).toHaveBeenCalledWith([88]);
 		expect(result.current.paymentFileCounts.get(88)).toBe(1);
 	});
 
 	it('dropPurchase removes a purchase from the cache and its error', async () => {
-		(listPaymentsSuppliersByPurchaseIds as jest.Mock).mockResolvedValue({
+		(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
 			data: null,
 			error: { message: 'boom' },
 		});
@@ -116,7 +117,7 @@ describe('usePurchasePayments', () => {
 
 	it('ignores a stale response from a retry superseded by a newer load for the same purchase', async () => {
 		let releaseFirst!: (value: any) => void;
-		(listPaymentsSuppliersByPurchaseIds as jest.Mock)
+		(listPaymentsByExpenseIds as jest.Mock)
 			.mockImplementationOnce(() => new Promise((resolve) => (releaseFirst = resolve)))
 			.mockResolvedValueOnce({ data: [payment], error: null });
 

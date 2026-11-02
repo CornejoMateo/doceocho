@@ -10,8 +10,8 @@ describe('helpers/dashboard/receivables', () => {
 				{ id: 2, balance_amount_ars: 50000, client_id: 20 },
 			],
 			{
-				1: { totalAmount: 40000, totalAmountUSD: 0 },
-				2: { totalAmount: 10000, totalAmountUSD: 0 },
+				1: { totalAmount: 40000 },
+				2: { totalAmount: 10000 },
 			}
 		);
 
@@ -20,7 +20,7 @@ describe('helpers/dashboard/receivables', () => {
 
 	test('leaves out accounts that are already settled', () => {
 		const result = calculateReceivables([{ id: 1, balance_amount_ars: 100000, client_id: 10 }], {
-			1: { totalAmount: 100000, totalAmountUSD: 0 },
+			1: { totalAmount: 100000 },
 		});
 
 		expect(result).toEqual(EMPTY_RECEIVABLES);
@@ -34,8 +34,8 @@ describe('helpers/dashboard/receivables', () => {
 				{ id: 2, balance_amount_ars: 50000, client_id: 20 },
 			],
 			{
-				1: { totalAmount: 40000, totalAmountUSD: 0 },
-				2: { totalAmount: 70000, totalAmountUSD: 0 },
+				1: { totalAmount: 40000 },
+				2: { totalAmount: 70000 },
 			}
 		);
 
@@ -65,7 +65,7 @@ describe('helpers/dashboard/receivables', () => {
 
 	test('survives an account with no amount loaded', () => {
 		const result = calculateReceivables([{ id: 1, balance_amount_ars: null, client_id: 10 }], {
-			1: { totalAmount: 0, totalAmountUSD: 0 },
+			1: { totalAmount: 0 },
 		});
 
 		expect(result).toEqual(EMPTY_RECEIVABLES);

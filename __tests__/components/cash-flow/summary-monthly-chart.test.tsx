@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { SummaryMonthlyChart } from '@/components/business/cash-flow/summary/summary-monthly-chart';
-import { MonthlyChartPoint } from '@/helpers/cash-flow-stats/cash-flow-summary';
+import { MonthlyCollectionsPaymentsPoint } from '@/helpers/cash-flow-stats/cash-flow-summary';
 
 // jsdom has no layout engine; ResponsiveContainer reports 0x0 and renders nothing without this mock.
 jest.mock('recharts', () => {
@@ -13,8 +13,10 @@ jest.mock('recharts', () => {
 	};
 });
 
-function point(over: Partial<MonthlyChartPoint> = {}): MonthlyChartPoint {
-	return { month: 1, label: 'Ene', incomeNet: 1000, expenseNet: 400, ...over };
+function point(
+	over: Partial<MonthlyCollectionsPaymentsPoint> = {}
+): MonthlyCollectionsPaymentsPoint {
+	return { month: 1, label: 'Ene', collections: 1000, payments: 400, ...over };
 }
 
 describe('SummaryMonthlyChart', () => {
@@ -22,7 +24,7 @@ describe('SummaryMonthlyChart', () => {
 		const data = Array.from({ length: 12 }, (_, i) => point({ month: i + 1, label: `M${i + 1}` }));
 		render(<SummaryMonthlyChart data={data} selectedMonth={0} />);
 
-		expect(screen.getByText('Ingresos vs Gastos por mes')).toBeInTheDocument();
+		expect(screen.getByText('Cobros vs Pagos por mes')).toBeInTheDocument();
 		expect(screen.getByTestId('summary-monthly-chart')).toBeInTheDocument();
 	});
 

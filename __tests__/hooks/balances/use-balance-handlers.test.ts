@@ -36,8 +36,6 @@ describe('useBalanceHandlers', () => {
 		expect(result.current.isDetailsModalOpen).toBe(false);
 		expect(result.current.balanceToDelete).toBeNull();
 		expect(result.current.isDeleteDialogOpen).toBe(false);
-		expect(result.current.isDollarUpdateModalOpen).toBe(false);
-		expect(result.current.balanceToUpdate).toBeNull();
 	});
 
 	it('opens details modal', () => {
@@ -60,17 +58,6 @@ describe('useBalanceHandlers', () => {
 
 		expect(result.current.balanceToDelete).toEqual(mockBalance);
 		expect(result.current.isDeleteDialogOpen).toBe(true);
-	});
-
-	it('opens dollar update modal', () => {
-		const { result } = renderHook(() => useBalanceHandlers({ onBalanceDeleted, onRefresh }));
-
-		act(() => {
-			result.current.openDollarUpdateModal(mockBalance as any);
-		});
-
-		expect(result.current.balanceToUpdate).toEqual(mockBalance);
-		expect(result.current.isDollarUpdateModalOpen).toBe(true);
 	});
 
 	it('deletes a balance successfully', async () => {

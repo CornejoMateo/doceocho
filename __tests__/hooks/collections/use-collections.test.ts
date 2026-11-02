@@ -54,6 +54,20 @@ describe('useCollections', () => {
 		);
 	});
 
+	it('does not set paymentMethodOptional (Cobros keeps payment_method_id required)', () => {
+		renderHook(() => useCollections() as any);
+
+		const config = (useCollectionPaymentTab as jest.Mock).mock.calls[0][0];
+		expect(config.paymentMethodOptional).toBeUndefined();
+	});
+
+	it('never configures attachmentsKind (Cobros never stages or uploads attachments)', () => {
+		renderHook(() => useCollections() as any);
+
+		const config = (useCollectionPaymentTab as jest.Mock).mock.calls[0][0];
+		expect(config.attachmentsKind).toBeUndefined();
+	});
+
 	describe('listEntries', () => {
 		it('merges general collections and client-sourced collections (balance_transactions), sorted by date desc', async () => {
 			(listCollections as jest.Mock).mockResolvedValue({
@@ -252,8 +266,6 @@ describe('useCollections', () => {
 					payment_method: 'Transferencia',
 					payment_method_id: 2,
 					notes: 'Cuota mensual',
-					quote_usd: null,
-					usd_amount: null,
 				})
 			);
 			expect(createCollection).not.toHaveBeenCalled();

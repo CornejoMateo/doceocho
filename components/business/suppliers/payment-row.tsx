@@ -10,19 +10,21 @@ import {
 import { Edit, MoreVertical, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
-import { pluralArchivos } from '@/helpers/suppliers/suppliers';
-import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
+import { pluralArchivos } from '@/helpers/attachments/attachments';
+import type { PaymentWithDetails } from '@/lib/payments/payments';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
-import type { FilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
-import { SupplierAttachmentsGallery } from '@/components/business/suppliers/supplier-attachments-gallery';
+import type { CashFlowCategory } from '@/lib/categories/categories';
+import type { FilePayment } from '@/lib/payments/files-payments';
+import { AttachmentsGallery } from '@/components/business/shared/attachments/attachments-gallery';
 
 interface PaymentRowProps {
-	payment: PaymentSupplier;
+	payment: PaymentWithDetails;
 	bankAccountById: Map<number, BankAccount>;
 	paymentMethodById: Map<number, PaymentMethod>;
+	categoryById: Map<number, CashFlowCategory>;
 	fileCount: number;
-	preloadedFiles?: FilePaymentSupplier[];
+	preloadedFiles?: FilePayment[];
 	onEdit: () => void;
 	onDelete: () => void;
 	onCountChange: (count: number) => void;
@@ -32,6 +34,7 @@ export function PaymentRow({
 	payment,
 	bankAccountById,
 	paymentMethodById,
+	categoryById,
 	fileCount,
 	preloadedFiles,
 	onEdit,
@@ -54,9 +57,9 @@ export function PaymentRow({
 			<div className="space-y-1.5 rounded-md bg-muted/50 p-2">
 				<div className="flex flex-wrap items-start justify-between gap-2">
 					<div className="min-w-0 text-sm">
-						<p className="font-medium">{formatCurrency(payment.amount_ars)}</p>
+						<p className="font-medium">{formatCurrency(payment.amount)}</p>
 						<p className="text-xs text-muted-foreground">
-							{formatDateOnly(payment.paid_date)}
+							{formatDateOnly(payment.date)}
 							{' · '}
 							{payment.bank_account_id
 								? (bankAccountById.get(payment.bank_account_id)?.name ?? 'Cuenta eliminada')
@@ -67,6 +70,18 @@ export function PaymentRow({
 								: 'Sin método'}
 							{fileCount > 0 && ` · ${pluralArchivos(fileCount)}`}
 						</p>
+						{(payment.receipt_number || payment.category_id) && (
+							<p className="line-clamp-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+								{[
+									payment.receipt_number ? `N° ${payment.receipt_number}` : null,
+									payment.category_id
+										? (categoryById.get(payment.category_id)?.name ?? 'Categoría eliminada')
+										: null,
+								]
+									.filter((part): part is string => !!part)
+									.join(' · ')}
+							</p>
+						)}
 					</div>
 					<EditOnly edit="cash-flow.suppliers">
 						<DropdownMenu>
@@ -105,11 +120,12 @@ export function PaymentRow({
 						</DropdownMenu>
 					</EditOnly>
 				</div>
-				<SupplierAttachmentsGallery
+				<AttachmentsGallery
 					kind="payment"
 					entityId={payment.id}
 					preloadedFiles={preloadedFiles}
 					onCountChange={onCountChange}
+					editKey="cash-flow.suppliers"
 				/>
 			</div>
 		</li>

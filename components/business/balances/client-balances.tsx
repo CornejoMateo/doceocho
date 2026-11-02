@@ -20,7 +20,6 @@ import { Plus, Search } from 'lucide-react';
 import { BalanceWithBudget } from '@/lib/balances/balances';
 import { getTotalByBalanceId } from '@/lib/balances/balance_transactions';
 import { BalanceDetailsModal } from './balance-details-modal';
-import { DollarUpdateModal } from '@/components/ui/dollar-update-modal';
 import { calculateBalanceSummary } from '@/helpers/balances/balance-calculations';
 import { BalanceCard } from './balance-card';
 import { useBalanceHandlers } from '@/hooks/balances/use-balance-handlers';
@@ -37,8 +36,6 @@ interface ClientBalancesProps {
 export interface BalanceWithTotals extends BalanceWithBudget {
 	totalPaid?: number;
 	remaining?: number;
-	totalPaidUSD?: number;
-	remainingUSD?: number;
 }
 
 export function ClientBalances({
@@ -63,14 +60,9 @@ export function ClientBalances({
 		balanceToDelete,
 		isDeleteDialogOpen,
 		setIsDeleteDialogOpen,
-		isDollarUpdateModalOpen,
-		setIsDollarUpdateModalOpen,
-		balanceToUpdate,
 		openDetailsModal,
 		openDeleteDialog,
-		openDollarUpdateModal,
 		handleDeleteBalance,
-		handleDollarUpdate,
 		handleBalanceUpdate,
 	} = useBalanceHandlers({
 		onBalanceDeleted,
@@ -97,22 +89,18 @@ export function ClientBalances({
 					balances.map(async (balance) => {
 						const { data: totals } = await getTotalByBalanceId(balance.id);
 						const totalPaid = totals?.totalAmount || 0;
-						const totalPaidUSD = totals?.totalAmountUSD || 0;
 						const summary = calculateBalanceSummary({
 							budgetAmountArs: balance.balance_amount_ars,
 							budgetAmountUsd: balance.balance_amount_usd,
 							usdCurrent: balance.usd_current,
 							totalPaidArs: totalPaid,
-							totalPaidUsd: totalPaidUSD,
 							isSettled: balance.is_settled,
 						});
 
 						return {
 							...balance,
 							totalPaid,
-							totalPaidUSD,
 							remaining: summary.remainingArs,
-							remainingUSD: summary.remainingUsd,
 						};
 					})
 				);
@@ -202,7 +190,6 @@ export function ClientBalances({
 							budgetAmountUsd: balance.balance_amount_usd,
 							usdCurrent: balance.usd_current,
 							totalPaidArs: balance.totalPaid,
-							totalPaidUsd: balance.totalPaidUSD,
 							isSettled: balance.is_settled,
 						});
 
@@ -212,7 +199,6 @@ export function ClientBalances({
 								balance={balance}
 								summary={summary}
 								onCardClick={() => openDetailsModal(balance)}
-								onDollarUpdate={() => openDollarUpdateModal(balance)}
 								onDeleteClick={() => openDeleteDialog(balance)}
 							/>
 						);
@@ -259,13 +245,6 @@ export function ClientBalances({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-
-			<DollarUpdateModal
-				isOpen={isDollarUpdateModalOpen}
-				onOpenChange={setIsDollarUpdateModalOpen}
-				balance={balanceToUpdate}
-				onUpdateConfirmed={handleDollarUpdate}
-			/>
 		</div>
 	);
 }

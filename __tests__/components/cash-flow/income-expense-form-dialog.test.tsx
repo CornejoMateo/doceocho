@@ -42,6 +42,17 @@ jest.mock('@/components/business/cash-flow/shared/entity-combobox', () => ({
 	),
 }));
 
+jest.mock('@/components/business/shared/attachments/file-attachments', () => ({
+	FileAttachments: ({ kind, entityId, staged, onStagedChange }: any) => (
+		<div data-testid="file-attachments">
+			kind={kind} entityId={entityId} staged={(staged ?? []).length}
+			<button onClick={() => onStagedChange?.([...(staged ?? []), { id: 'x', fileName: 'a.pdf' }])}>
+				Adjuntar
+			</button>
+		</div>
+	),
+}));
+
 const CATEGORY: CashFlowCategory = {
 	id: 1,
 	created_at: '2026-01-01',
@@ -124,7 +135,7 @@ function baseProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDi
 		ivaPercent: 21,
 		setIvaPercent: jest.fn(),
 		totalAmount: 0,
-		paymentMethodId: '',
+		paymentMethodId: 'none',
 		setPaymentMethodId: jest.fn(),
 		bankAccountId: 'none',
 		setBankAccountId: jest.fn(),
@@ -203,6 +214,18 @@ describe('IncomeExpenseFormDialog', () => {
 		fireEvent.change(screen.getByLabelText('Neto'), { target: { value: '1000,999' } });
 
 		expect(props.setNetAmount).toHaveBeenCalledWith('1.000,99');
+	});
+
+	it('defaults the description maxLength to 300 when not provided', () => {
+		render(<IncomeExpenseFormDialog {...baseProps()} />);
+
+		expect(screen.getByLabelText('Detalle')).toHaveAttribute('maxLength', '300');
+	});
+
+	it('uses the configured descriptionMaxLength (e.g. 2000 for Gastos)', () => {
+		render(<IncomeExpenseFormDialog {...baseProps({ descriptionMaxLength: 2000 })} />);
+
+		expect(screen.getByLabelText('Detalle')).toHaveAttribute('maxLength', '2000');
 	});
 
 	it('submits the form and calls onSubmit', () => {
@@ -302,5 +325,79 @@ describe('IncomeExpenseFormDialog', () => {
 		render(<IncomeExpenseFormDialog {...baseProps({ saving: true })} />);
 
 		expect(screen.getByText('Guardando...')).toBeDisabled();
+	});
+
+	it('disables "Cancelar" while saving so it cannot be used to close mid-submit', () => {
+		render(<IncomeExpenseFormDialog {...baseProps({ saving: true })} />);
+
+		expect(screen.getByText('Cancelar')).toBeDisabled();
+	});
+
+	it('shows the payment method as optional, with a "Sin medio" option, on create', () => {
+		render(<IncomeExpenseFormDialog {...baseProps()} />);
+
+		expect(screen.getByText('Medio de pago (opcional)')).toBeInTheDocument();
+		expect(screen.getByText('Sin medio')).toBeInTheDocument();
+	});
+
+	it('keeps the payment method optional when editing', () => {
+		const entry = { id: 1 } as IncomeExpenseEntry;
+		render(<IncomeExpenseFormDialog {...baseProps({ editingEntry: entry })} />);
+
+		expect(screen.getByText('Medio de pago (opcional)')).toBeInTheDocument();
+	});
+
+	describe('attachmentsKind (Gastos only; Ingresos never sets it)', () => {
+		it('renders no attachments section by default (Ingresos)', () => {
+			render(<IncomeExpenseFormDialog {...baseProps()} />);
+
+			expect(screen.queryByTestId('file-attachments')).not.toBeInTheDocument();
+			expect(
+				screen.queryByText('Podés adjuntar archivos después de guardar.')
+			).not.toBeInTheDocument();
+		});
+
+		it('renders the attachments section in staged mode on create (no entity yet)', () => {
+			render(<IncomeExpenseFormDialog {...baseProps({ attachmentsKind: 'expense' })} />);
+
+			expect(screen.getByTestId('file-attachments')).toHaveTextContent('kind=expense entityId=');
+			expect(
+				screen.queryByText('Podés adjuntar archivos después de guardar.')
+			).not.toBeInTheDocument();
+		});
+
+		it('passes stagedFiles and onStagedFilesChange through on create', () => {
+			const onStagedFilesChange = jest.fn();
+			render(
+				<IncomeExpenseFormDialog
+					{...baseProps({
+						attachmentsKind: 'expense',
+						stagedFiles: [{ id: '1', fileName: 'a.pdf' } as any],
+						onStagedFilesChange,
+					})}
+				/>
+			);
+
+			expect(screen.getByTestId('file-attachments')).toHaveTextContent('staged=1');
+			fireEvent.click(screen.getByText('Adjuntar'));
+			expect(onStagedFilesChange).toHaveBeenCalledWith([
+				{ id: '1', fileName: 'a.pdf' },
+				{ id: 'x', fileName: 'a.pdf' },
+			]);
+		});
+
+		it('renders the attachments gallery with the entry id once editing', () => {
+			const entry = { id: 42 } as IncomeExpenseEntry;
+			render(
+				<IncomeExpenseFormDialog
+					{...baseProps({ attachmentsKind: 'expense', editingEntry: entry })}
+				/>
+			);
+
+			expect(screen.getByTestId('file-attachments')).toHaveTextContent('kind=expense entityId=42');
+			expect(
+				screen.queryByText('Podés adjuntar archivos después de guardar.')
+			).not.toBeInTheDocument();
+		});
 	});
 });

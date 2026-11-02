@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import {
-	deletePurchaseSupplier,
-	type PurchaseSupplierWithBalance,
-} from '@/lib/suppliers/purchases-suppliers';
-import { deletePaymentSupplier, type PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
+import { deleteExpense } from '@/lib/expenses/expenses';
+import { deletePayment, type PaymentWithDetails } from '@/lib/payments/payments';
+import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
 
 type MutationContext = { kind: 'purchase' | 'payment'; purchaseId: number };
 
@@ -24,14 +22,12 @@ export function useDeleteConfirmations({
 }: UseDeleteConfirmationsArgs) {
 	const { toast } = useToast();
 
-	const [purchaseToDelete, setPurchaseToDelete] = useState<PurchaseSupplierWithBalance | null>(
-		null
-	);
+	const [purchaseToDelete, setPurchaseToDelete] = useState<SupplierExpenseListItem | null>(null);
 	const [deletingPurchase, setDeletingPurchase] = useState(false);
 
 	const [paymentToDelete, setPaymentToDelete] = useState<{
-		payment: PaymentSupplier;
-		purchase: PurchaseSupplierWithBalance;
+		payment: PaymentWithDetails;
+		purchase: SupplierExpenseListItem;
 	} | null>(null);
 	const [deletingPayment, setDeletingPayment] = useState(false);
 
@@ -40,7 +36,7 @@ export function useDeleteConfirmations({
 		const purchaseId = purchaseToDelete.id;
 		setDeletingPurchase(true);
 		try {
-			const { error, orphanedPaths } = await deletePurchaseSupplier(purchaseId);
+			const { error, orphanedPaths } = await deleteExpense(purchaseId);
 			if (error) throw error;
 			toast({ title: 'Compra eliminada' });
 			onChanged?.();
@@ -72,7 +68,7 @@ export function useDeleteConfirmations({
 		const purchaseId = paymentToDelete.purchase.id;
 		setDeletingPayment(true);
 		try {
-			const { error, orphanedPaths } = await deletePaymentSupplier(paymentId);
+			const { error, orphanedPaths } = await deletePayment(paymentId);
 			if (error) throw error;
 			toast({ title: 'Pago eliminado' });
 			onChanged?.();

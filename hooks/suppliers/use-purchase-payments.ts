@@ -1,23 +1,17 @@
 import { useRef, useState } from 'react';
-import {
-	listPaymentsSuppliersByPurchaseIds,
-	type PaymentSupplier,
-} from '@/lib/suppliers/payments-suppliers';
-import {
-	listFilesByPaymentSupplierIds,
-	type FilePaymentSupplier,
-} from '@/lib/suppliers/files-payments-suppliers';
+import { listPaymentsByExpenseIds, type PaymentWithDetails } from '@/lib/payments/payments';
+import { listFilesByPaymentIds, type FilePayment } from '@/lib/payments/files-payments';
 
 /** Lazily loads a purchase's payments (and their file counts) on expand. */
 export function usePurchasePayments() {
-	const [paymentsByPurchaseId, setPaymentsByPurchaseId] = useState<Map<number, PaymentSupplier[]>>(
-		new Map()
-	);
+	const [paymentsByPurchaseId, setPaymentsByPurchaseId] = useState<
+		Map<number, PaymentWithDetails[]>
+	>(new Map());
 	const [loadingPurchaseIds, setLoadingPurchaseIds] = useState<Set<number>>(new Set());
 	const [errorByPurchaseId, setErrorByPurchaseId] = useState<Map<number, any>>(new Map());
 	const [paymentFileCounts, setPaymentFileCounts] = useState<Map<number, number>>(new Map());
 	const [paymentFilesByPaymentId, setPaymentFilesByPaymentId] = useState<
-		Map<number, FilePaymentSupplier[]>
+		Map<number, FilePayment[]>
 	>(new Map());
 	const requestIdByPurchase = useRef<Map<number, number>>(new Map());
 
@@ -33,7 +27,7 @@ export function usePurchasePayments() {
 			return next;
 		});
 
-		const { data, error } = await listPaymentsSuppliersByPurchaseIds([purchaseId]);
+		const { data, error } = await listPaymentsByExpenseIds([purchaseId]);
 		if (!isCurrent()) return;
 		if (error) {
 			setErrorByPurchaseId((current) => new Map(current).set(purchaseId, error));
@@ -55,13 +49,13 @@ export function usePurchasePayments() {
 
 		const paymentIds = payments.map((payment) => payment.id);
 		if (paymentIds.length === 0) return;
-		const filesRes = await listFilesByPaymentSupplierIds(paymentIds);
+		const filesRes = await listFilesByPaymentIds(paymentIds);
 		if (!isCurrent() || filesRes.error) return;
 		const counts = new Map<number, number>(paymentIds.map((id) => [id, 0]));
-		const filesByPayment = new Map<number, FilePaymentSupplier[]>(paymentIds.map((id) => [id, []]));
+		const filesByPayment = new Map<number, FilePayment[]>(paymentIds.map((id) => [id, []]));
 		for (const file of filesRes.data ?? []) {
-			counts.set(file.payment_supplier_id, (counts.get(file.payment_supplier_id) ?? 0) + 1);
-			filesByPayment.get(file.payment_supplier_id)?.push(file);
+			counts.set(file.payment_id, (counts.get(file.payment_id) ?? 0) + 1);
+			filesByPayment.get(file.payment_id)?.push(file);
 		}
 		setPaymentFileCounts((current) => new Map([...current, ...counts]));
 		setPaymentFilesByPaymentId((current) => new Map([...current, ...filesByPayment]));

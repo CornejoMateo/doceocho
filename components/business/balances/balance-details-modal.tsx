@@ -109,10 +109,11 @@ export function BalanceDetailsModal({
 		paymentMethodOptions,
 		notes,
 		setNotes,
-		quoteUsd,
-		setQuoteUsd,
-		usdAmount,
-		setUsdAmount,
+		receiptNumber,
+		setReceiptNumber,
+		categoryId,
+		setCategoryId,
+		categoryOptions,
 		handleAddTransaction,
 		handleDeleteTransaction,
 		handleUpdateBalanceNotes,
@@ -120,7 +121,6 @@ export function BalanceDetailsModal({
 		handleEditTransaction,
 		handleUpdateTransaction,
 		totalPaid,
-		totalPaidUSD,
 		summary,
 		work,
 		showSettledReminder,
@@ -199,7 +199,6 @@ export function BalanceDetailsModal({
 							contractDateUsd={currentBalance.contract_date_usd}
 							usdCurrent={currentBalance.usd_current}
 							totalPaid={totalPaid}
-							totalPaidUsd={totalPaidUSD}
 							summary={summary}
 							formatDate={formatCreatedAt}
 							onUpdated={refreshBalance}
@@ -228,10 +227,6 @@ export function BalanceDetailsModal({
 							onTransactionDateChange={setTransactionDate}
 							transactionAmount={transactionAmount}
 							onTransactionAmountChange={setTransactionAmount}
-							usdAmount={usdAmount}
-							onUsdAmountChange={setUsdAmount}
-							quoteUsd={quoteUsd}
-							onQuoteUsdChange={setQuoteUsd}
 							notes={notes}
 							onNotesChange={setNotes}
 							paymentMethodId={paymentMethodId}
@@ -239,6 +234,11 @@ export function BalanceDetailsModal({
 							paymentMethodOptions={paymentMethodOptions}
 							onBankAccountIdChange={setBankAccountId}
 							bankAccountId={bankAccountId}
+							receiptNumber={receiptNumber}
+							onReceiptNumberChange={setReceiptNumber}
+							categoryId={categoryId}
+							onCategoryIdChange={setCategoryId}
+							categoryOptions={categoryOptions}
 							onCancel={resetTransactionForm}
 							onSave={editingTransaction ? handleUpdateTransaction : () => handleAddTransaction()}
 							onStartAddTransaction={() => setAddingMode('transaction')}

@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useSupplierAccountTotals } from '@/hooks/suppliers/use-supplier-account-totals';
 import { useSupplierPaymentOptions } from '@/hooks/suppliers/use-supplier-payment-options';
 import { useSupplierPurchasesTab } from '@/hooks/suppliers/use-supplier-purchases-tab';
@@ -173,6 +173,7 @@ export function SupplierDetailsDialog({
 			onRetryPayments={purchasePayments.loadPayments}
 			bankAccountById={paymentOptions.bankAccountById}
 			paymentMethodById={paymentOptions.paymentMethodById}
+			paymentCategoryById={paymentOptions.paymentCategoryById}
 			paymentFileCounts={purchasePayments.paymentFileCounts}
 			paymentFilesByPaymentId={purchasePayments.paymentFilesByPaymentId}
 			onEditPurchase={forms.handleEditPurchase}
@@ -189,15 +190,29 @@ export function SupplierDetailsDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-y-auto">
+			<DialogContent
+				className="sm:max-w-[700px] max-h-[85vh] min-w-0 overflow-y-auto overflow-x-hidden"
+				showCloseButton={forms.view !== 'detail'}
+			>
 				{forms.view === 'detail' && (
 					<>
 						<DialogHeader>
-							<DialogTitle>{supplierName}</DialogTitle>
+							<div className="flex items-center justify-between gap-2">
+								<DialogTitle className="min-w-0 truncate">{supplierName}</DialogTitle>
+								<Button
+									variant="ghost"
+									size="icon"
+									onClick={() => handleOpenChange(false)}
+									className="h-8 w-8 shrink-0"
+									aria-label="Cerrar"
+								>
+									<X className="h-4 w-4" />
+								</Button>
+							</div>
 							<DialogDescription>Cuenta corriente del proveedor</DialogDescription>
 						</DialogHeader>
 
-						<div className="space-y-4">
+						<div className="min-w-0 space-y-4">
 							{loadingTotals && !accountTotals ? (
 								<Card className="p-8 text-center text-muted-foreground">Cargando...</Card>
 							) : !accountTotals ? (
@@ -271,10 +286,36 @@ export function SupplierDetailsDialog({
 					<PurchaseForm
 						editingPurchase={forms.editingPurchase}
 						supplierName={supplierName}
-						purchaseAmount={forms.purchaseAmount}
-						onAmountChange={forms.setPurchaseAmount}
-						purchaseNotes={forms.purchaseNotes}
-						onNotesChange={forms.setPurchaseNotes}
+						purchaseDate={forms.purchaseDate}
+						onDateChange={forms.setPurchaseDate}
+						purchaseVoucherTypeId={forms.purchaseVoucherTypeId}
+						onVoucherTypeIdChange={forms.setPurchaseVoucherTypeId}
+						voucherTypes={paymentOptions.voucherTypes}
+						activeVoucherTypes={paymentOptions.activeVoucherTypes}
+						purchaseVoucherNumber={forms.purchaseVoucherNumber}
+						onVoucherNumberChange={forms.setPurchaseVoucherNumber}
+						purchaseWorkId={forms.purchaseWorkId}
+						onWorkIdChange={forms.setPurchaseWorkId}
+						works={paymentOptions.works}
+						purchaseCategoryId={forms.purchaseCategoryId}
+						onCategoryIdChange={forms.setPurchaseCategoryId}
+						expenseCategories={paymentOptions.expenseCategories}
+						activeExpenseCategories={paymentOptions.activeExpenseCategories}
+						purchaseDescription={forms.purchaseDescription}
+						onDescriptionChange={forms.setPurchaseDescription}
+						purchaseNetAmount={forms.purchaseNetAmount}
+						onNetAmountChange={forms.setPurchaseNetAmount}
+						purchaseIvaPercent={forms.purchaseIvaPercent}
+						onIvaPercentChange={forms.setPurchaseIvaPercent}
+						purchaseTotalAmount={forms.purchaseTotalAmount}
+						purchaseBankAccountId={forms.purchaseBankAccountId}
+						onBankAccountChange={forms.setPurchaseBankAccountId}
+						bankAccounts={paymentOptions.bankAccounts}
+						activeBankAccounts={paymentOptions.activeBankAccounts}
+						purchasePaymentMethodId={forms.purchasePaymentMethodId}
+						onPaymentMethodChange={forms.setPurchasePaymentMethodId}
+						paymentMethods={paymentOptions.paymentMethods}
+						activePaymentMethods={paymentOptions.activePaymentMethods}
 						isSubmitting={forms.isSubmittingPurchase}
 						stagedFiles={forms.stagedPurchaseFiles}
 						onStagedChange={forms.setStagedPurchaseFiles}
@@ -295,12 +336,20 @@ export function SupplierDetailsDialog({
 						paymentExceedsBalance={forms.paymentExceedsBalance}
 						paymentBankAccountId={forms.paymentBankAccountId}
 						onBankAccountChange={forms.setPaymentBankAccountId}
+						bankAccounts={paymentOptions.bankAccounts}
 						activeBankAccounts={paymentOptions.activeBankAccounts}
 						paymentMethodIdValue={forms.paymentMethodIdValue}
 						onPaymentMethodChange={forms.setPaymentMethodIdValue}
+						paymentMethods={paymentOptions.paymentMethods}
 						activePaymentMethods={paymentOptions.activePaymentMethods}
-						paymentNotes={forms.paymentNotes}
-						onNotesChange={forms.setPaymentNotes}
+						paymentReceiptNumber={forms.paymentReceiptNumber}
+						onReceiptNumberChange={forms.setPaymentReceiptNumber}
+						paymentCategoryId={forms.paymentCategoryId}
+						onCategoryIdChange={forms.setPaymentCategoryId}
+						paymentCategories={paymentOptions.paymentCategories}
+						activePaymentCategories={paymentOptions.activePaymentCategories}
+						paymentDescription={forms.paymentDescription}
+						onDescriptionChange={forms.setPaymentDescription}
 						isSubmitting={forms.isSubmittingPayment}
 						stagedFiles={forms.stagedPaymentFiles}
 						onStagedChange={forms.setStagedPaymentFiles}

@@ -3,9 +3,11 @@ import {
 	sumByWork,
 	buildSummaryCards,
 	buildMonthlyChartData,
+	buildMonthlyCollectionsPaymentsChartData,
 	buildWorkResultRows,
 } from '@/helpers/cash-flow-stats/cash-flow-summary';
 import { SummaryMonthlyRow, FixedCostsMonthlyRow } from '@/lib/cash-flow-stats/cash-flow-summary';
+import { roundToTwoDecimals } from '@/utils/formats-money';
 
 function row(over: Partial<SummaryMonthlyRow> = {}): SummaryMonthlyRow {
 	return {
@@ -96,28 +98,89 @@ describe('buildSummaryCards', () => {
 		expect(cards.ivaOfMonth).toBe(21);
 	});
 
-	it('computes margin as ingresos - gastos', () => {
-		const periodRows = [row({ incomeNet: 1000, expenseNet: 400 })];
+	it('computes debe as gastos con IVA menos pagos (positive: se debe)', () => {
+		const periodRows = [row({ expenseNet: 100, expenseIva: 21, paymentAmount: 50 })];
 		const cards = buildSummaryCards(periodRows, [], null);
-		expect(cards.margin).toBe(600);
+		expect(cards.debe).toBe(71); // (100 + 21) - 50
 	});
 
-	it('returns 0 profitability when income is 0 (never divides by zero)', () => {
-		const periodRows = [row({ incomeNet: 0, expenseNet: 400 })];
+	it('computes debe as zero when gastos con IVA equal pagos', () => {
+		const periodRows = [row({ expenseNet: 100, expenseIva: 21, paymentAmount: 121 })];
 		const cards = buildSummaryCards(periodRows, [], null);
-		expect(cards.profitability).toBe(0);
+		expect(cards.debe).toBe(0);
 	});
 
-	it('computes profitability as margin / income when income is non-zero', () => {
-		const periodRows = [row({ incomeNet: 1000, expenseNet: 750 })];
+	it('computes debe as negative when pagos exceed gastos con IVA (overpaid)', () => {
+		const periodRows = [row({ expenseNet: 100, expenseIva: 21, paymentAmount: 500 })];
 		const cards = buildSummaryCards(periodRows, [], null);
-		expect(cards.profitability).toBeCloseTo(0.25);
+		expect(cards.debe).toBe(-379); // (100 + 21) - 500
+	});
+
+	it('includes fixed costs on both sides of debe (gastos con IVA and pagos), so they cancel out', () => {
+		const periodRows = [row({ expenseNet: 100, expenseIva: 21, paymentAmount: 50 })];
+		const fixedCosts = [fixedRow({ net: 1000, iva: 210, total: 1210 })];
+
+		// fixed.total feeds both "gastos con IVA" and "pagos" equally, same as the Pagos card already does.
+		const allObras = buildSummaryCards(periodRows, fixedCosts, null);
+		expect(allObras.debe).toBe(71); // (100 + 21 + 1210) - (50 + 1210)
+
+		const periodRowsForWork = [
+			row({ workId: 1, expenseNet: 100, expenseIva: 21, paymentAmount: 50 }),
+		];
+		const oneObra = buildSummaryCards(periodRowsForWork, fixedCosts, 1);
+		expect(oneObra.debe).toBe(71); // fixed costs excluded when an obra is selected
+	});
+
+	it('respects the month filter already applied to periodRows/periodFixedCosts', () => {
+		const periodRows = [row({ month: 3, expenseNet: 100, expenseIva: 21, paymentAmount: 50 })];
+		const cards = buildSummaryCards(periodRows, [], null);
+		expect(cards.debe).toBe(71);
 	});
 
 	it('IVA del mes can go negative (crédito a favor) when ingresos IVA exceeds the rest', () => {
 		const periodRows = [row({ expenseIva: 10, incomeIva: 100 })];
 		const cards = buildSummaryCards(periodRows, [], null);
 		expect(cards.ivaOfMonth).toBe(-90);
+	});
+
+	describe('expenseWithIva', () => {
+		it('equals expenseNet + expenseIva (no fixed costs)', () => {
+			const periodRows = [row({ expenseNet: 100, expenseIva: 21 })];
+			const cards = buildSummaryCards(periodRows, [], null);
+			expect(cards.expenseWithIva).toBe(121);
+		});
+
+		it('is zero when there are no expenses', () => {
+			const cards = buildSummaryCards([], [], null);
+			expect(cards.expenseWithIva).toBe(0);
+		});
+
+		it('includes fixed costs total when workId is null (Todos)', () => {
+			const periodRows = [row({ expenseNet: 100, expenseIva: 21 })];
+			const fixedCosts = [fixedRow({ net: 1000, iva: 210, total: 1210 })];
+			const cards = buildSummaryCards(periodRows, fixedCosts, null);
+			expect(cards.expenseWithIva).toBe(1331); // (100 + 21) + 1210
+		});
+
+		it('excludes fixed costs when a specific obra is selected', () => {
+			const periodRows = [row({ workId: 1, expenseNet: 100, expenseIva: 21 })];
+			const fixedCosts = [fixedRow({ net: 1000, iva: 210, total: 1210 })];
+			const cards = buildSummaryCards(periodRows, fixedCosts, 1);
+			expect(cards.expenseWithIva).toBe(121);
+		});
+
+		it('respects the month filter already applied to periodRows', () => {
+			const periodRows = [row({ month: 3, expenseNet: 100, expenseIva: 21 })];
+			const cards = buildSummaryCards(periodRows, [], null);
+			expect(cards.expenseWithIva).toBe(121);
+		});
+
+		it('matches debe + payments, so the two can never diverge', () => {
+			const periodRows = [row({ expenseNet: 100, expenseIva: 21, paymentAmount: 50 })];
+			const fixedCosts = [fixedRow({ net: 1000, iva: 210, total: 1210 })];
+			const cards = buildSummaryCards(periodRows, fixedCosts, null);
+			expect(cards.debe).toBe(roundToTwoDecimals(cards.expenseWithIva - cards.payments));
+		});
 	});
 });
 
@@ -148,6 +211,85 @@ describe('buildMonthlyChartData', () => {
 
 		const oneObra = buildMonthlyChartData(rows, fixedCosts, 1);
 		expect(oneObra[2].expenseNet).toBe(40);
+	});
+});
+
+describe('buildMonthlyCollectionsPaymentsChartData (Cobros vs Pagos)', () => {
+	it('always returns 12 months, zero-filled for months with no data', () => {
+		const data = buildMonthlyCollectionsPaymentsChartData([], [], null);
+		expect(data).toHaveLength(12);
+		expect(data.every((d) => d.collections === 0 && d.payments === 0)).toBe(true);
+		expect(data[0].label).toBe('Ene');
+		expect(data[11].label).toBe('Dic');
+	});
+
+	it('computes collections/payments per month from collectionAmount/paymentAmount', () => {
+		const rows = [
+			row({ month: 3, workId: 1, collectionAmount: 500, paymentAmount: 200 }),
+			row({ month: 3, workId: 2, collectionAmount: 300, paymentAmount: 100 }),
+		];
+		const data = buildMonthlyCollectionsPaymentsChartData(rows, [], null);
+		expect(data[2]).toEqual(expect.objectContaining({ month: 3, collections: 800, payments: 300 }));
+	});
+
+	it('omits fixed costs when a specific obra is selected', () => {
+		const rows = [row({ month: 3, workId: 1, paymentAmount: 200 })];
+		const fixedCosts = [fixedRow({ month: 3, total: 1000 })];
+
+		const oneObra = buildMonthlyCollectionsPaymentsChartData(rows, fixedCosts, 1);
+		expect(oneObra[2].payments).toBe(200);
+	});
+
+	it('includes the fixed costs TOTAL when Todos (workId null)', () => {
+		const rows = [row({ month: 3, workId: 1, paymentAmount: 200 })];
+		const fixedCosts = [fixedRow({ month: 3, total: 1000 })];
+
+		const allObras = buildMonthlyCollectionsPaymentsChartData(rows, fixedCosts, null);
+		expect(allObras[2].payments).toBe(1200);
+	});
+
+	it('gives zeros for a month with no data', () => {
+		const rows = [row({ month: 3, collectionAmount: 500, paymentAmount: 200 })];
+		const data = buildMonthlyCollectionsPaymentsChartData(rows, [], null);
+		expect(data[0]).toEqual(expect.objectContaining({ month: 1, collections: 0, payments: 0 }));
+	});
+
+	it('the sum of the 12 months of payments/collections equals the Pagos/Cobros KPI cards (Todos)', () => {
+		const rows = [
+			row({ month: 1, workId: 1, collectionAmount: 500, paymentAmount: 200 }),
+			row({ month: 2, workId: null, collectionAmount: 300, paymentAmount: 100 }),
+			row({ month: 6, workId: 2, collectionAmount: 50, paymentAmount: 400 }),
+		];
+		const fixedCosts = [fixedRow({ month: 1, total: 1000 }), fixedRow({ month: 6, total: 500 })];
+
+		const chart = buildMonthlyCollectionsPaymentsChartData(rows, fixedCosts, null);
+		const chartPaymentsSum = roundToTwoDecimals(chart.reduce((sum, p) => sum + p.payments, 0));
+		const chartCollectionsSum = roundToTwoDecimals(
+			chart.reduce((sum, p) => sum + p.collections, 0)
+		);
+
+		const cards = buildSummaryCards(rows, fixedCosts, null);
+		expect(chartPaymentsSum).toBe(cards.payments);
+		expect(chartCollectionsSum).toBe(cards.collections);
+	});
+
+	it('the sum of the 12 months of payments/collections equals the Pagos/Cobros KPI cards (one obra)', () => {
+		const rows = [
+			row({ month: 1, workId: 1, collectionAmount: 500, paymentAmount: 200 }),
+			row({ month: 2, workId: 1, collectionAmount: 300, paymentAmount: 100 }),
+			row({ month: 6, workId: 2, collectionAmount: 50, paymentAmount: 400 }),
+		];
+		const fixedCosts = [fixedRow({ month: 1, total: 1000 }), fixedRow({ month: 6, total: 500 })];
+
+		const chart = buildMonthlyCollectionsPaymentsChartData(rows, fixedCosts, 1);
+		const chartPaymentsSum = roundToTwoDecimals(chart.reduce((sum, p) => sum + p.payments, 0));
+		const chartCollectionsSum = roundToTwoDecimals(
+			chart.reduce((sum, p) => sum + p.collections, 0)
+		);
+
+		const cards = buildSummaryCards(rows, fixedCosts, 1);
+		expect(chartPaymentsSum).toBe(cards.payments);
+		expect(chartCollectionsSum).toBe(cards.collections);
 	});
 });
 

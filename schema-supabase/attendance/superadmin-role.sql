@@ -2665,6 +2665,145 @@ USING (
 
 
 
+-- ===== From schema-supabase/expenses/files_expenses.sql =====
+-- NOTE: these two policy sections were added after the original Superadmin rollout (hence why
+-- they're appended here instead of sitting alphabetically); see migrations-unify/04 for the fix
+-- applied directly in production.
+
+DROP POLICY IF EXISTS "Public select files_expenses" ON public.files_expenses;
+CREATE POLICY "Public select files_expenses"
+ON public.files_expenses
+FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public insert files_expenses" ON public.files_expenses;
+CREATE POLICY "Public insert files_expenses"
+ON public.files_expenses
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public delete files_expenses" ON public.files_expenses;
+CREATE POLICY "Public delete files_expenses"
+ON public.files_expenses
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public update files_expenses" ON public.files_expenses;
+CREATE POLICY "Public update files_expenses"
+ON public.files_expenses
+FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+
+
+-- ===== From schema-supabase/payments/files_payments.sql =====
+
+DROP POLICY IF EXISTS "Public select files_payments" ON public.files_payments;
+CREATE POLICY "Public select files_payments"
+ON public.files_payments
+FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public insert files_payments" ON public.files_payments;
+CREATE POLICY "Public insert files_payments"
+ON public.files_payments
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public delete files_payments" ON public.files_payments;
+CREATE POLICY "Public delete files_payments"
+ON public.files_payments
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public update files_payments" ON public.files_payments;
+CREATE POLICY "Public update files_payments"
+ON public.files_payments
+FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+
+
 -- ===== From schema-supabase/suppliers/files_bucket.sql =====
 
 DROP POLICY IF EXISTS "Suppliers files bucket select" ON storage.objects;
@@ -2726,280 +2865,6 @@ USING (
             AND public.is_admin_role(u.role)
     )
 );
-
-
-
--- ===== From schema-supabase/suppliers/files_payments_suppliers.sql =====
-
-DROP POLICY IF EXISTS "Public select files_payments_suppliers" ON public.files_payments_suppliers;
-CREATE POLICY "Public select files_payments_suppliers"
-ON public.files_payments_suppliers
-FOR SELECT
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public insert files_payments_suppliers" ON public.files_payments_suppliers;
-CREATE POLICY "Public insert files_payments_suppliers"
-ON public.files_payments_suppliers
-FOR INSERT
-TO authenticated
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public delete files_payments_suppliers" ON public.files_payments_suppliers;
-CREATE POLICY "Public delete files_payments_suppliers"
-ON public.files_payments_suppliers
-FOR DELETE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public update files_payments_suppliers" ON public.files_payments_suppliers;
-CREATE POLICY "Public update files_payments_suppliers"
-ON public.files_payments_suppliers
-FOR UPDATE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-)
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-
-
--- ===== From schema-supabase/suppliers/files_purchases_suppliers.sql =====
-
-DROP POLICY IF EXISTS "Public select files_purchases_suppliers" ON public.files_purchases_suppliers;
-CREATE POLICY "Public select files_purchases_suppliers"
-ON public.files_purchases_suppliers
-FOR SELECT
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public insert files_purchases_suppliers" ON public.files_purchases_suppliers;
-CREATE POLICY "Public insert files_purchases_suppliers"
-ON public.files_purchases_suppliers
-FOR INSERT
-TO authenticated
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public delete files_purchases_suppliers" ON public.files_purchases_suppliers;
-CREATE POLICY "Public delete files_purchases_suppliers"
-ON public.files_purchases_suppliers
-FOR DELETE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public update files_purchases_suppliers" ON public.files_purchases_suppliers;
-CREATE POLICY "Public update files_purchases_suppliers"
-ON public.files_purchases_suppliers
-FOR UPDATE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-)
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-
-
--- ===== From schema-supabase/suppliers/payments_suppliers.sql =====
-
-DROP POLICY IF EXISTS "Public select payments_suppliers" ON public.payments_suppliers;
-CREATE POLICY "Public select payments_suppliers"
-ON public.payments_suppliers
-FOR SELECT
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public insert payments_suppliers" ON public.payments_suppliers;
-CREATE POLICY "Public insert payments_suppliers"
-ON public.payments_suppliers
-FOR INSERT
-TO authenticated
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public delete payments_suppliers" ON public.payments_suppliers;
-CREATE POLICY "Public delete payments_suppliers"
-ON public.payments_suppliers
-FOR DELETE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public update payments_suppliers" ON public.payments_suppliers;
-CREATE POLICY "Public update payments_suppliers"
-ON public.payments_suppliers
-FOR UPDATE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-)
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-
-
--- ===== From schema-supabase/suppliers/purchases_suppliers.sql =====
-
-DROP POLICY IF EXISTS "Public select purchases_suppliers" ON public.purchases_suppliers;
-CREATE POLICY "Public select purchases_suppliers"
-ON public.purchases_suppliers
-FOR SELECT
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public insert purchases_suppliers" ON public.purchases_suppliers;
-CREATE POLICY "Public insert purchases_suppliers"
-ON public.purchases_suppliers
-FOR INSERT
-TO authenticated
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public delete purchases_suppliers" ON public.purchases_suppliers;
-CREATE POLICY "Public delete purchases_suppliers"
-ON public.purchases_suppliers
-FOR DELETE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-DROP POLICY IF EXISTS "Public update purchases_suppliers" ON public.purchases_suppliers;
-CREATE POLICY "Public update purchases_suppliers"
-ON public.purchases_suppliers
-FOR UPDATE
-TO authenticated
-USING (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-)
-WITH CHECK (
-    EXISTS (
-        SELECT 1
-        FROM public.users u
-        WHERE u.uid_user = auth.uid()
-            AND public.is_admin_role(u.role)
-    )
-);
-
-
 
 -- ===== From schema-supabase/suppliers/suppliers.sql =====
 

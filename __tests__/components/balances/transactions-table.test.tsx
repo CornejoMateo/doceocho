@@ -3,7 +3,6 @@ import { TransactionsTable } from '@/components/business/balances/transactions/t
 
 jest.mock('@/utils/formats-money', () => ({
 	formatCurrency: (v: any) => `$${v || 0}`,
-	formatCurrencyUSD: (v: any) => `USD ${v || 0}`,
 }));
 
 const mockTransactions = [
@@ -11,25 +10,25 @@ const mockTransactions = [
 		id: 1,
 		date: '2024-06-15',
 		amount: 50000,
-		usd_amount: 50,
-		quote_usd: 1000,
 		payment_method_id: 2,
 		payment_method_name: 'Transferencia Bancaria',
 		notes: 'Pago inicial',
 		bank_account_id: 7,
 		bank_account: { id: 7, name: 'Cuenta Principal', bank: 'Santander' },
+		receipt_number: 'A-0001',
+		category_name: 'Alquiler',
 	},
 	{
 		id: 2,
 		date: '2024-07-01',
 		amount: 10000,
-		usd_amount: 10,
-		quote_usd: 1000,
 		payment_method_id: 1,
 		payment_method_name: 'Efectivo',
 		notes: 'Compra de insumos',
 		bank_account_id: null,
 		bank_account: null,
+		receipt_number: null,
+		category_name: null,
 	},
 ];
 
@@ -72,13 +71,12 @@ describe('TransactionsTable', () => {
 		expect(table.getByText('Pago inicial')).toBeInTheDocument();
 		expect(table.getByText('Compra de insumos')).toBeInTheDocument();
 		expect(table.getByText('$50000')).toBeInTheDocument();
-		expect(table.getByText('USD 50')).toBeInTheDocument();
 		expect(table.getByText('$10000')).toBeInTheDocument();
 		expect(table.getByText('Transferencia Bancaria')).toBeInTheDocument();
 		expect(table.getByText('Efectivo')).toBeInTheDocument();
 	});
 
-	it('shows "-" when the transaction has no payment method name', () => {
+	it('shows "-" when the transaction has no payment method, receipt number or category', () => {
 		renderTable({
 			transactions: [
 				{ ...mockTransactions[1], payment_method_id: null, payment_method_name: null },
@@ -86,7 +84,25 @@ describe('TransactionsTable', () => {
 		});
 
 		const table = within(screen.getByRole('table'));
-		expect(table.getByText('-')).toBeInTheDocument();
+		// payment method, receipt number and category all fall back to '-' for this row.
+		expect(table.getAllByText('-')).toHaveLength(3);
+	});
+
+	it('shows receipt number and category when present', () => {
+		renderTable();
+
+		const table = within(screen.getByRole('table'));
+
+		expect(table.getByText('A-0001')).toBeInTheDocument();
+		expect(table.getByText('Alquiler')).toBeInTheDocument();
+	});
+
+	it('shows "-" for receipt number and category when absent', () => {
+		renderTable({ transactions: [mockTransactions[1]] });
+
+		const table = within(screen.getByRole('table'));
+		// payment method is present ('Efectivo'); only receipt number and category fall back.
+		expect(table.getAllByText('-')).toHaveLength(2);
 	});
 
 	it('shows bank account details when present', () => {

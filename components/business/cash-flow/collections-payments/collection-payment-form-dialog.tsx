@@ -29,6 +29,10 @@ import {
 import { formatNumber } from '@/utils/formats-money';
 import { EntityCombobox } from '@/components/business/cash-flow/shared/entity-combobox';
 import { withInactiveSelected } from '@/utils/select-options';
+import {
+	FileAttachments,
+	type StagedFile,
+} from '@/components/business/shared/attachments/file-attachments';
 
 type CollectionPaymentFormDialogProps = {
 	open: boolean;
@@ -60,21 +64,37 @@ type CollectionPaymentFormDialogProps = {
 	setAmount: (value: string) => void;
 	paymentMethodId: string;
 	setPaymentMethodId: (value: string) => void;
+	// Only Pagos sets this; Cobros keeps payment_method_id required (medio-de-pago-optional.md).
+	paymentMethodOptional?: boolean;
 	bankAccountId: string;
 	setBankAccountId: (value: string) => void;
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 	errors: CollectionPaymentFormErrors;
 	partyOptional?: boolean;
+	// Hides the party select (and the dependent linked-purchase select); used when the caller's
+	// flow has no supplier, e.g. "Agregar pago" from a Gasto.
+	hideParty?: boolean;
 	purchaseId?: string;
 	setPurchaseId?: (value: string) => void;
 	purchases?: PartyOption[];
 	purchasesLoading?: boolean;
 	descriptionMaxLength?: number;
 	linkedLabel?: string;
+	supportsExpenseLink?: boolean;
+	expenseId?: string;
+	setExpenseId?: (value: string) => void;
+	expenseOptions?: PartyOption[];
+	expenseOptionsLoading?: boolean;
+	// Pagos-only; Cobros never sets this (unified-expenses-payments-single-table.md).
+	attachmentsKind?: 'payment';
+	// Only meaningful when attachmentsKind is set; staged-attachments-on-create.md.
+	stagedFiles?: StagedFile[];
+	onStagedFilesChange?: (files: StagedFile[]) => void;
 };
 
 const NO_CATEGORY = '__none__';
+const NO_EXPENSE = 0;
 
 // Short red inline message shown under a field once it's marked invalid.
 function FieldError({ message }: { message: string }) {
@@ -111,23 +131,33 @@ export function CollectionPaymentFormDialog({
 	setAmount,
 	paymentMethodId,
 	setPaymentMethodId,
+	paymentMethodOptional = false,
 	bankAccountId,
 	setBankAccountId,
 	saving,
 	onSubmit,
 	errors,
 	partyOptional = false,
+	hideParty = false,
 	purchaseId = '',
 	setPurchaseId,
 	purchases = [],
 	purchasesLoading = false,
 	descriptionMaxLength = 300,
 	linkedLabel = 'Compra',
+	supportsExpenseLink = false,
+	expenseId = '',
+	setExpenseId,
+	expenseOptions = [],
+	expenseOptionsLoading = false,
+	attachmentsKind,
+	stagedFiles = [],
+	onStagedFilesChange,
 }: CollectionPaymentFormDialogProps) {
 	// Works only belong to a client, so filtering by counterpart only makes sense for Cliente (not Proveedor).
 	const filterWorksByParty = partyLabel === 'Cliente';
 	const selectedPartyId = partyId ? Number(partyId) : null;
-	// Origin is locked on edit to avoid moving rows between payments/payments_suppliers.
+	// Origin is locked on edit to avoid moving a collection row between `collections` and `balance_transactions`.
 	const partyDisabled = partyOptional && !!editingEntry && editingEntry.source === 'general';
 	const canClearParty = partyOptional && !editingEntry;
 	const purchaseOptions = purchases.map((purchase) => ({ id: purchase.id, label: purchase.name }));
@@ -178,10 +208,15 @@ export function CollectionPaymentFormDialog({
 		bankAccountId,
 		!!editingEntry
 	);
+	const showExpenseLink = supportsExpenseLink;
+	const expenseComboboxOptions = [
+		{ id: NO_EXPENSE, label: 'Sin gasto' },
+		...expenseOptions.map((expense) => ({ id: expense.id, label: expense.name })),
+	];
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[560px] max-h-[85vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-[560px] max-h-[85vh] min-w-0 overflow-x-hidden overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
 						{editingEntry ? `Editar ${entityLabel}` : `Nuevo ${entityLabel}`}
@@ -192,7 +227,7 @@ export function CollectionPaymentFormDialog({
 							: `Registra un nuevo ${entityLabel}`}
 					</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={onSubmit} className="space-y-4">
+				<form onSubmit={onSubmit} className="min-w-0 space-y-4">
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="cp-date">Fecha</Label>
@@ -217,35 +252,37 @@ export function CollectionPaymentFormDialog({
 						</div>
 					</div>
 
-					<div className="space-y-2">
-						<Label htmlFor="cp-party">
-							{partyLabel}
-							{partyOptional && ' (opcional)'}
-						</Label>
-						<div className="flex gap-2">
-							<div className="flex-1">
-								<EntityCombobox
-									id="cp-party"
-									value={partyId}
-									onValueChange={handlePartyChange}
-									options={partyOptions}
-									placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
-									searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
-									emptyLabel="No se encontraron resultados"
-									disabled={partyDisabled}
-									invalid={!!errors.partyId}
-								/>
+					{!hideParty && (
+						<div className="space-y-2">
+							<Label htmlFor="cp-party">
+								{partyLabel}
+								{partyOptional && ' (opcional)'}
+							</Label>
+							<div className="flex gap-2">
+								<div className="flex-1">
+									<EntityCombobox
+										id="cp-party"
+										value={partyId}
+										onValueChange={handlePartyChange}
+										options={partyOptions}
+										placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
+										searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
+										emptyLabel="No se encontraron resultados"
+										disabled={partyDisabled}
+										invalid={!!errors.partyId}
+									/>
+								</div>
+								{canClearParty && partyId && (
+									<Button type="button" variant="outline" onClick={() => handlePartyChange('')}>
+										Quitar
+									</Button>
+								)}
 							</div>
-							{canClearParty && partyId && (
-								<Button type="button" variant="outline" onClick={() => handlePartyChange('')}>
-									Quitar
-								</Button>
-							)}
+							{errors.partyId && <FieldError message={`Elegí un ${partyLabel.toLowerCase()}`} />}
 						</div>
-						{errors.partyId && <FieldError message={`Elegí un ${partyLabel.toLowerCase()}`} />}
-					</div>
+					)}
 
-					{partyOptional && partyId && (
+					{!hideParty && partyOptional && partyId && (
 						<div className="space-y-2">
 							<Label htmlFor="cp-purchase">{linkedLabel}</Label>
 							<EntityCombobox
@@ -321,6 +358,21 @@ export function CollectionPaymentFormDialog({
 						</Select>
 					</div>
 
+					{showExpenseLink && (
+						<div className="space-y-2">
+							<Label htmlFor="cp-expense">Gasto (opcional)</Label>
+							<EntityCombobox
+								id="cp-expense"
+								value={expenseId || String(NO_EXPENSE)}
+								onValueChange={(v) => setExpenseId?.(v === String(NO_EXPENSE) ? '' : v)}
+								options={expenseComboboxOptions}
+								placeholder={expenseOptionsLoading ? 'Cargando gastos...' : 'Selecciona un gasto'}
+								searchPlaceholder="Buscar gasto..."
+								emptyLabel="No se encontraron gastos"
+							/>
+						</div>
+					)}
+
 					<div className="space-y-2">
 						<Label htmlFor="cp-description">Detalle</Label>
 						<Input
@@ -353,12 +405,19 @@ export function CollectionPaymentFormDialog({
 							{errors.amount && <FieldError message="Ingresá un monto mayor a 0" />}
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="cp-payment-method">Medio de pago</Label>
-							<Select value={paymentMethodId} onValueChange={setPaymentMethodId} required>
+							<Label htmlFor="cp-payment-method">
+								Medio de pago{paymentMethodOptional && ' (opcional)'}
+							</Label>
+							<Select
+								value={paymentMethodId}
+								onValueChange={setPaymentMethodId}
+								required={!paymentMethodOptional}
+							>
 								<SelectTrigger id="cp-payment-method" aria-invalid={!!errors.paymentMethodId}>
 									<SelectValue placeholder="Selecciona un medio" />
 								</SelectTrigger>
 								<SelectContent>
+									{paymentMethodOptional && <SelectItem value="none">Sin medio</SelectItem>}
 									{paymentMethodOptions.map((method) => (
 										<SelectItem key={method.id} value={String(method.id)}>
 											{method.name}
@@ -389,11 +448,28 @@ export function CollectionPaymentFormDialog({
 						</Select>
 					</div>
 
+					{attachmentsKind && (
+						<FileAttachments
+							kind={attachmentsKind}
+							entityId={editingEntry?.id}
+							staged={stagedFiles}
+							onStagedChange={onStagedFilesChange}
+							editKey={
+								attachmentsKind === 'payment' ? 'cash-flow.payments' : 'cash-flow.collections'
+							}
+						/>
+					)}
+
 					<div className="flex gap-2">
 						<Button type="submit" disabled={saving} className="flex-1">
 							{saving ? 'Guardando...' : editingEntry ? 'Actualizar' : 'Crear'}
 						</Button>
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							disabled={saving}
+						>
 							Cancelar
 						</Button>
 					</div>

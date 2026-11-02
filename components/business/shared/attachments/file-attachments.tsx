@@ -20,20 +20,19 @@ import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { formatShortDate } from '@/utils/format-date';
 import {
-	listFilesByPurchaseSupplierId,
-	uploadFilePurchaseSupplier,
-	downloadFilePurchaseSupplier,
-	deleteFilePurchaseSupplier,
-} from '@/lib/suppliers/files-purchases-suppliers';
+	listFilesByExpenseId,
+	uploadFileExpense,
+	downloadFileExpense,
+	deleteFileExpense,
+} from '@/lib/expenses/files-expenses';
 import {
-	listFilesByPaymentSupplierId,
-	uploadFilePaymentSupplier,
-	downloadFilePaymentSupplier,
-	deleteFilePaymentSupplier,
-} from '@/lib/suppliers/files-payments-suppliers';
+	listFilesByPaymentId,
+	uploadFilePayment,
+	downloadFilePayment,
+	deleteFilePayment,
+} from '@/lib/payments/files-payments';
 
-// I'm defining the types here since they don't belong to either the payment files or the purchase files
-type SupplierFile = {
+type AttachmentFile = {
 	id: number;
 	created_at: string;
 	storage_path: string;
@@ -48,26 +47,29 @@ export type StagedFile = {
 	previewUrl?: string;
 };
 
-interface SupplierFileAttachmentsProps {
-	kind: 'purchase' | 'payment';
+interface FileAttachmentsProps {
+	kind: 'expense' | 'payment';
 	entityId?: number;
 	staged?: StagedFile[];
 	onStagedChange?: (files: StagedFile[]) => void;
+	/** Permission key that governs uploading/deleting a file, e.g. "cash-flow.suppliers". */
+	editKey: string;
 }
 
-export function SupplierFileAttachments({
+export function FileAttachments({
 	kind,
 	entityId,
 	staged,
 	onStagedChange,
-}: SupplierFileAttachmentsProps) {
+	editKey,
+}: FileAttachmentsProps) {
 	const { toast } = useToast();
 	const isStagedMode = entityId === undefined;
-	const [files, setFiles] = useState<SupplierFile[]>([]);
+	const [files, setFiles] = useState<AttachmentFile[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const [downloadingId, setDownloadingId] = useState<number | null>(null);
-	const [fileToDelete, setFileToDelete] = useState<SupplierFile | StagedFile | null>(null);
+	const [fileToDelete, setFileToDelete] = useState<AttachmentFile | StagedFile | null>(null);
 	const [deleting, setDeleting] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 
@@ -76,9 +78,9 @@ export function SupplierFileAttachments({
 		setLoading(true);
 		try {
 			const { data, error } =
-				kind === 'purchase'
-					? await listFilesByPurchaseSupplierId(entityId)
-					: await listFilesByPaymentSupplierId(entityId);
+				kind === 'expense'
+					? await listFilesByExpenseId(entityId)
+					: await listFilesByPaymentId(entityId);
 			if (error) throw error;
 			setFiles(data ?? []);
 		} catch (error) {
@@ -126,8 +128,6 @@ export function SupplierFileAttachments({
 		const file = e.target.files?.[0];
 		if (!file) return;
 		if (isStagedMode) {
-			// Only images get a preview: an objectURL for a PDF or video is
-			// dead weight the browser holds for the life of the entry.
 			const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
 			if (previewUrl) heldPreviewUrls.current.add(previewUrl);
 			onStagedChange?.([
@@ -140,9 +140,9 @@ export function SupplierFileAttachments({
 		setUploading(true);
 		try {
 			const { error } =
-				kind === 'purchase'
-					? await uploadFilePurchaseSupplier(entityId, file)
-					: await uploadFilePaymentSupplier(entityId, file);
+				kind === 'expense'
+					? await uploadFileExpense(entityId, file)
+					: await uploadFilePayment(entityId, file);
 			if (error) throw error;
 			toast({ title: 'Archivo adjuntado' });
 			await fetchFiles();
@@ -158,13 +158,13 @@ export function SupplierFileAttachments({
 		}
 	};
 
-	const handleDownload = async (file: SupplierFile) => {
+	const handleDownload = async (file: AttachmentFile) => {
 		setDownloadingId(file.id);
 		try {
 			const { data: blob, error } =
-				kind === 'purchase'
-					? await downloadFilePurchaseSupplier(file.id)
-					: await downloadFilePaymentSupplier(file.id);
+				kind === 'expense'
+					? await downloadFileExpense(file.id)
+					: await downloadFilePayment(file.id);
 			if (error || !blob) {
 				throw error ?? new Error('El archivo no está disponible.');
 			}
@@ -196,9 +196,9 @@ export function SupplierFileAttachments({
 		setDeleting(true);
 		try {
 			const { success, error } =
-				kind === 'purchase'
-					? await deleteFilePurchaseSupplier((fileToDelete as SupplierFile).id)
-					: await deleteFilePaymentSupplier((fileToDelete as SupplierFile).id);
+				kind === 'expense'
+					? await deleteFileExpense((fileToDelete as AttachmentFile).id)
+					: await deleteFilePayment((fileToDelete as AttachmentFile).id);
 			if (!success) throw error;
 			toast({ title: 'Archivo eliminado' });
 			await fetchFiles();
@@ -222,10 +222,10 @@ export function SupplierFileAttachments({
 				: fileToDelete.file_name || 'seleccionado';
 
 	return (
-		<div className="space-y-2">
+		<div className="min-w-0 space-y-2">
 			<div className="flex items-center justify-between">
 				<Label className="text-sm font-medium">Archivos adjuntos</Label>
-				<EditOnly edit="cash-flow.suppliers">
+				<EditOnly edit={editKey}>
 					<Button
 						type="button"
 						variant="outline"
@@ -247,11 +247,11 @@ export function SupplierFileAttachments({
 				(staged ?? []).length === 0 ? (
 					<p className="text-sm text-muted-foreground">No hay archivos para adjuntar.</p>
 				) : (
-					<ul className="space-y-1">
+					<ul className="min-w-0 space-y-1">
 						{(staged ?? []).map((entry) => (
 							<li
 								key={entry.id}
-								className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-sm"
+								className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border p-2 text-sm"
 							>
 								<span className="flex min-w-0 items-center gap-2">
 									<Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -262,9 +262,11 @@ export function SupplierFileAttachments({
 											className="h-8 w-8 shrink-0 rounded object-cover"
 										/>
 									) : null}
-									<span className="truncate">{entry.fileName}</span>
+									<span className="truncate" title={entry.fileName}>
+										{entry.fileName}
+									</span>
 								</span>
-								<EditOnly edit="cash-flow.suppliers">
+								<EditOnly edit={editKey}>
 									<Button
 										variant="ghost"
 										size="sm"
@@ -283,15 +285,17 @@ export function SupplierFileAttachments({
 			) : files.length === 0 ? (
 				<p className="text-sm text-muted-foreground">No hay archivos adjuntos.</p>
 			) : (
-				<ul className="space-y-1">
+				<ul className="min-w-0 space-y-1">
 					{files.map((file) => (
 						<li
 							key={file.id}
-							className="flex items-center justify-between gap-2 rounded-md border border-border p-2 text-sm"
+							className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border p-2 text-sm"
 						>
 							<span className="flex min-w-0 items-center gap-2">
 								<Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
-								<span className="truncate">{file.file_name || 'Archivo'}</span>
+								<span className="truncate" title={file.file_name || 'Archivo'}>
+									{file.file_name || 'Archivo'}
+								</span>
 								<span className="shrink-0 text-xs text-muted-foreground">
 									{formatShortDate(file.created_at)}
 								</span>
@@ -307,7 +311,7 @@ export function SupplierFileAttachments({
 								>
 									<Download className="h-4 w-4" />
 								</Button>
-								<EditOnly edit="cash-flow.suppliers">
+								<EditOnly edit={editKey}>
 									<Button
 										variant="ghost"
 										size="sm"
@@ -336,7 +340,10 @@ export function SupplierFileAttachments({
 						<AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
 						<AlertDialogDescription>
 							Esta acción no se puede deshacer. Se eliminará permanentemente el archivo{' '}
-							<span className="font-semibold">{pendingFileName}</span>.
+							<span className="break-all font-semibold [overflow-wrap:anywhere]">
+								{pendingFileName}
+							</span>
+							.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
