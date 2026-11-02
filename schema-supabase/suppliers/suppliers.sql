@@ -93,7 +93,6 @@ WITH CHECK (
     )
 );
 
---- RPC method to get suppliers accounts summary (total purchases, total payments, balance) in ARS
 CREATE OR REPLACE FUNCTION public.get_suppliers_accounts_summary()
 RETURNS TABLE (
     supplier_id bigint,
@@ -104,34 +103,274 @@ RETURNS TABLE (
 )
 LANGUAGE sql
 STABLE
+SECURITY INVOKER
+SET search_path = public
 AS $$
     WITH purchases AS (
-        SELECT
-            supplier_id,
-            SUM(amount_ars) AS total_purchases_ars
-        FROM public.purchases_suppliers
-        GROUP BY supplier_id
+        SELECT e.supplier_id, SUM(e.total_amount) AS total_purchases_ars
+        FROM public.expenses e
+        WHERE e.supplier_id IS NOT NULL
+        GROUP BY e.supplier_id
     ),
-    payments AS (
-        SELECT
-            p.supplier_id,
-            SUM(ps.amount_ars) AS total_payments_ars
-        FROM public.payments_suppliers ps
-        INNER JOIN public.purchases_suppliers p
-            ON p.id = ps.purchase_supplier_id
-        GROUP BY p.supplier_id
+    payments_agg AS (
+        SELECT e.supplier_id, SUM(p.amount) AS total_payments_ars
+        FROM public.payments p
+        JOIN public.expenses e ON e.id = p.expense_id
+        WHERE e.supplier_id IS NOT NULL
+        GROUP BY e.supplier_id
     )
     SELECT
         s.id AS supplier_id,
         s.name AS supplier_name,
-        COALESCE(p.total_purchases_ars, 0) AS total_purchases_ars,
+        COALESCE(pur.total_purchases_ars, 0) AS total_purchases_ars,
         COALESCE(pay.total_payments_ars, 0) AS total_payments_ars,
-        COALESCE(p.total_purchases_ars, 0)
+        COALESCE(pur.total_purchases_ars, 0)
             - COALESCE(pay.total_payments_ars, 0) AS balance_ars
     FROM public.suppliers s
-    LEFT JOIN purchases p
-        ON p.supplier_id = s.id
-    LEFT JOIN payments pay
+    LEFT JOIN purchases pur
+        ON pur.supplier_id = s.id
+    LEFT JOIN payments_agg pay
         ON pay.supplier_id = s.id
     ORDER BY s.name;
 $$;
+
+REVOKE ALL ON FUNCTION public.get_suppliers_accounts_summary() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_suppliers_accounts_summary() TO authenticated;
+
+DROP FUNCTION IF EXISTS public.list_supplier_purchases(bigint, text, date, date, int, int);
+
+CREATE FUNCTION public.list_supplier_purchases(
+  p_supplier_id bigint,
+  p_status text,
+  p_from date DEFAULT NULL,
+  p_to date DEFAULT NULL,
+  p_limit int DEFAULT 20,
+  p_offset int DEFAULT 0
+)
+RETURNS TABLE (
+  id bigint,
+  created_at timestamp with time zone,
+  date date,
+  voucher_number text,
+  voucher_type_id bigint,
+  voucher_type_name text,
+  work_id bigint,
+  work_name text,
+  category_id bigint,
+  category_name text,
+  payment_method_id bigint,
+  payment_method_name text,
+  bank_account_id bigint,
+  bank_account_name text,
+  description text,
+  net_amount numeric,
+  iva_percent numeric,
+  iva_amount numeric,
+  total_amount numeric,
+  total_paid_ars numeric,
+  balance_ars numeric,
+  total_count bigint
+)
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+STABLE
+AS $$
+DECLARE
+  v_limit int := LEAST(GREATEST(COALESCE(p_limit, 20), 1), 100);
+  v_offset int := GREATEST(COALESCE(p_offset, 0), 0);
+BEGIN
+  IF p_status NOT IN ('pending', 'paid') THEN
+    RAISE EXCEPTION 'Estado inválido: % (debe ser pending o paid)', p_status;
+  END IF;
+
+  RETURN QUERY
+  WITH payments_agg AS (
+    -- aliased: unqualified cols would clash with the OUT params id/supplier_id (see
+    -- .kb/bugs/list-supplier-purchases-ambiguous-column.md)
+    SELECT pp.expense_id, SUM(pp.amount) AS total_paid
+    FROM public.payments pp
+    WHERE pp.expense_id IN (
+      SELECT ee.id FROM public.expenses ee WHERE ee.supplier_id = p_supplier_id
+    )
+    GROUP BY pp.expense_id
+  ),
+  filtered AS (
+    SELECT
+      e.id,
+      e.created_at,
+      e.date,
+      e.voucher_number,
+      e.voucher_type_id,
+      e.work_id,
+      e.category_id,
+      e.payment_method_id,
+      e.bank_account_id,
+      e.description,
+      e.net_amount,
+      e.iva_percent,
+      e.iva_amount,
+      e.total_amount,
+      COALESCE(pa.total_paid, 0) AS total_paid_ars,
+      e.total_amount - COALESCE(pa.total_paid, 0) AS balance_ars
+    FROM public.expenses e
+    LEFT JOIN payments_agg pa ON pa.expense_id = e.id
+    WHERE e.supplier_id = p_supplier_id
+      AND (p_from IS NULL OR e.date >= p_from)
+      AND (p_to IS NULL OR e.date <= p_to)
+      AND (
+        (p_status = 'pending' AND e.total_amount - COALESCE(pa.total_paid, 0) > 0)
+        OR (p_status = 'paid' AND e.total_amount - COALESCE(pa.total_paid, 0) <= 0)
+      )
+  )
+  SELECT
+    f.id,
+    f.created_at,
+    f.date,
+    f.voucher_number,
+    f.voucher_type_id,
+    vt.name AS voucher_type_name,
+    f.work_id,
+    w.name AS work_name,
+    f.category_id,
+    c.name AS category_name,
+    f.payment_method_id,
+    pm.name AS payment_method_name,
+    f.bank_account_id,
+    (CASE WHEN ba.id IS NULL THEN NULL ELSE ba.bank || ' - ' || ba.name END) AS bank_account_name,
+    f.description,
+    f.net_amount,
+    f.iva_percent,
+    f.iva_amount,
+    f.total_amount,
+    f.total_paid_ars,
+    f.balance_ars,
+    COUNT(*) OVER() AS total_count
+  FROM filtered f
+  LEFT JOIN public.voucher_types vt ON vt.id = f.voucher_type_id
+  LEFT JOIN public.works w ON w.id = f.work_id
+  LEFT JOIN public.cash_flow_categories c ON c.id = f.category_id
+  LEFT JOIN public.payment_methods pm ON pm.id = f.payment_method_id
+  LEFT JOIN public.bank_accounts ba ON ba.id = f.bank_account_id
+  ORDER BY f.date DESC, f.id DESC
+  LIMIT v_limit
+  OFFSET v_offset;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.list_supplier_purchases(bigint, text, date, date, int, int) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.list_supplier_purchases(bigint, text, date, date, int, int) TO authenticated;
+
+--- RPC: supplier account totals, independent of date filters, now over expenses/payments --------
+
+CREATE OR REPLACE FUNCTION public.get_supplier_account_totals(p_supplier_id bigint)
+RETURNS TABLE (
+  total_purchases_ars numeric,
+  total_payments_ars numeric,
+  balance_ars numeric,
+  pending_count bigint,
+  paid_count bigint
+)
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+STABLE
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH payments_agg AS (
+    SELECT pp.expense_id, SUM(pp.amount) AS total_paid
+    FROM public.payments pp
+    WHERE pp.expense_id IN (
+      SELECT ee.id FROM public.expenses ee WHERE ee.supplier_id = p_supplier_id
+    )
+    GROUP BY pp.expense_id
+  ),
+  purchases_with_balance AS (
+    SELECT
+      e.total_amount,
+      e.total_amount - COALESCE(pa.total_paid, 0) AS balance_ars
+    FROM public.expenses e
+    LEFT JOIN payments_agg pa ON pa.expense_id = e.id
+    WHERE e.supplier_id = p_supplier_id
+  )
+  SELECT
+    COALESCE(SUM(pwb.total_amount), 0) AS total_purchases_ars,
+    COALESCE(SUM(pwb.total_amount - pwb.balance_ars), 0) AS total_payments_ars,
+    COALESCE(SUM(pwb.balance_ars), 0) AS balance_ars,
+    COUNT(*) FILTER (WHERE pwb.balance_ars > 0) AS pending_count,
+    COUNT(*) FILTER (WHERE pwb.balance_ars <= 0) AS paid_count
+  FROM purchases_with_balance pwb;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_supplier_account_totals(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_supplier_account_totals(bigint) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.delete_purchase_supplier(p_id bigint)
+RETURNS text[]
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  v_expense_file_paths text[];
+  v_payment_file_paths text[];
+  v_deleted_id bigint;
+BEGIN
+  PERFORM 1 FROM public.expenses WHERE id = p_id FOR UPDATE;
+  PERFORM 1 FROM public.payments WHERE expense_id = p_id FOR UPDATE;
+
+  SELECT array_agg(fp.storage_path) INTO v_payment_file_paths
+  FROM public.files_payments fp
+  JOIN public.payments p ON p.id = fp.payment_id
+  WHERE p.expense_id = p_id;
+
+  SELECT array_agg(storage_path) INTO v_expense_file_paths
+  FROM public.files_expenses
+  WHERE expense_id = p_id;
+
+  DELETE FROM public.expenses
+  WHERE id = p_id
+  RETURNING id INTO v_deleted_id;
+
+  IF v_deleted_id IS NULL THEN
+    RAISE EXCEPTION 'No se pudo eliminar la compra (no existe o no tenés permisos)';
+  END IF;
+
+  RETURN COALESCE(v_expense_file_paths, ARRAY[]::text[])
+    || COALESCE(v_payment_file_paths, ARRAY[]::text[]);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.delete_purchase_supplier(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_purchase_supplier(bigint) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.delete_payment_supplier(p_id bigint)
+RETURNS text[]
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  v_file_paths text[];
+  v_deleted_id bigint;
+BEGIN
+  SELECT array_agg(storage_path) INTO v_file_paths
+  FROM public.files_payments
+  WHERE payment_id = p_id;
+
+  DELETE FROM public.payments
+  WHERE id = p_id
+  RETURNING id INTO v_deleted_id;
+
+  IF v_deleted_id IS NULL THEN
+    RAISE EXCEPTION 'No se pudo eliminar el pago (no existe o no tenés permisos)';
+  END IF;
+
+  RETURN COALESCE(v_file_paths, ARRAY[]::text[]);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.delete_payment_supplier(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_payment_supplier(bigint) TO authenticated;
