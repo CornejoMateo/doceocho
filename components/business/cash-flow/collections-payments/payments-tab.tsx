@@ -18,6 +18,7 @@ export function PaymentsTab({ categoriesConfig }: PaymentsTabProps) {
 			emptyLabel="No hay pagos registrados"
 			monthlyGridTitle="Pagos por mes"
 			categoriesConfig={categoriesConfig}
+			attachmentsKind="payment"
 		/>
 	);
 }

@@ -9,11 +9,11 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
-import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
+import { formatDateOnly } from '@/utils/format-date';
+import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
 
 interface DeletePurchaseDialogProps {
-	purchaseToDelete: PurchaseSupplierWithBalance | null;
+	purchaseToDelete: SupplierExpenseListItem | null;
 	deleting: boolean;
 	onCancel: () => void;
 	onConfirm: () => void;
@@ -38,10 +38,10 @@ export function DeletePurchaseDialog({
 					<AlertDialogDescription>
 						Esta acción no se puede deshacer. Se eliminará permanentemente la compra por{' '}
 						<span className="font-semibold">
-							{purchaseToDelete ? formatCurrency(purchaseToDelete.amount_ars) : ''}
+							{purchaseToDelete ? formatCurrency(purchaseToDelete.total_amount) : ''}
 						</span>{' '}
-						del {purchaseToDelete ? formatShortDate(purchaseToDelete.created_at) : ''}, junto con
-						sus archivos y pagos asociados.
+						del {purchaseToDelete ? formatDateOnly(purchaseToDelete.date) : ''}, junto con sus pagos
+						y archivos adjuntos asociados.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

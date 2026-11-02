@@ -9,12 +9,12 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatCurrency } from '@/utils/formats-money';
-import { formatShortDate } from '@/utils/format-date';
-import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
-import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
+import { formatDateOnly } from '@/utils/format-date';
+import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
+import type { PaymentWithDetails } from '@/lib/payments/payments';
 
 interface DeletePaymentDialogProps {
-	paymentToDelete: { payment: PaymentSupplier; purchase: PurchaseSupplierWithBalance } | null;
+	paymentToDelete: { payment: PaymentWithDetails; purchase: SupplierExpenseListItem } | null;
 	deleting: boolean;
 	onCancel: () => void;
 	onConfirm: () => void;
@@ -39,10 +39,10 @@ export function DeletePaymentDialog({
 					<AlertDialogDescription>
 						Esta acción no se puede deshacer. Se eliminará permanentemente el pago por{' '}
 						<span className="font-semibold">
-							{paymentToDelete ? formatCurrency(paymentToDelete.payment.amount_ars) : ''}
+							{paymentToDelete ? formatCurrency(paymentToDelete.payment.amount) : ''}
 						</span>{' '}
-						del {paymentToDelete ? formatShortDate(paymentToDelete.payment.created_at) : ''} junto
-						con sus archivos adjuntos.
+						del {paymentToDelete ? formatDateOnly(paymentToDelete.payment.date) : ''} junto con sus
+						archivos adjuntos.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
