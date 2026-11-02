@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import {
 	Dialog,
 	DialogContent,
@@ -107,10 +109,11 @@ export function BalanceDetailsModal({
 		paymentMethodOptions,
 		notes,
 		setNotes,
-		quoteUsd,
-		setQuoteUsd,
-		usdAmount,
-		setUsdAmount,
+		receiptNumber,
+		setReceiptNumber,
+		categoryId,
+		setCategoryId,
+		categoryOptions,
 		handleAddTransaction,
 		handleDeleteTransaction,
 		handleUpdateBalanceNotes,
@@ -118,7 +121,6 @@ export function BalanceDetailsModal({
 		handleEditTransaction,
 		handleUpdateTransaction,
 		totalPaid,
-		totalPaidUSD,
 		summary,
 		work,
 		showSettledReminder,
@@ -172,19 +174,21 @@ export function BalanceDetailsModal({
 							<span className="text-base font-semibold sm:text-sm sm:font-medium">
 								Estado: {summary.type}
 							</span>
-							<Button
-								size="sm"
-								variant="outline"
-								className="h-10 w-full sm:h-8 sm:w-auto"
-								onClick={() => setIsSettleConfirmOpen(true)}
-								disabled={isTogglingSettled}
-							>
-								{isTogglingSettled
-									? 'Guardando...'
-									: currentBalance.is_settled
-										? 'Desmarcar como saldado'
-										: 'Marcar como saldado'}
-							</Button>
+							<EditOnly edit="clients.balances">
+								<Button
+									size="sm"
+									variant="outline"
+									className="h-10 w-full sm:h-8 sm:w-auto"
+									onClick={() => setIsSettleConfirmOpen(true)}
+									disabled={isTogglingSettled}
+								>
+									{isTogglingSettled
+										? 'Guardando...'
+										: currentBalance.is_settled
+											? 'Desmarcar como saldado'
+											: 'Marcar como saldado'}
+								</Button>
+							</EditOnly>
 						</div>
 
 						<BalanceInformation
@@ -195,7 +199,6 @@ export function BalanceDetailsModal({
 							contractDateUsd={currentBalance.contract_date_usd}
 							usdCurrent={currentBalance.usd_current}
 							totalPaid={totalPaid}
-							totalPaidUsd={totalPaidUSD}
 							summary={summary}
 							formatDate={formatCreatedAt}
 							onUpdated={refreshBalance}
@@ -224,10 +227,6 @@ export function BalanceDetailsModal({
 							onTransactionDateChange={setTransactionDate}
 							transactionAmount={transactionAmount}
 							onTransactionAmountChange={setTransactionAmount}
-							usdAmount={usdAmount}
-							onUsdAmountChange={setUsdAmount}
-							quoteUsd={quoteUsd}
-							onQuoteUsdChange={setQuoteUsd}
 							notes={notes}
 							onNotesChange={setNotes}
 							paymentMethodId={paymentMethodId}
@@ -235,6 +234,11 @@ export function BalanceDetailsModal({
 							paymentMethodOptions={paymentMethodOptions}
 							onBankAccountIdChange={setBankAccountId}
 							bankAccountId={bankAccountId}
+							receiptNumber={receiptNumber}
+							onReceiptNumberChange={setReceiptNumber}
+							categoryId={categoryId}
+							onCategoryIdChange={setCategoryId}
+							categoryOptions={categoryOptions}
 							onCancel={resetTransactionForm}
 							onSave={editingTransaction ? handleUpdateTransaction : () => handleAddTransaction()}
 							onStartAddTransaction={() => setAddingMode('transaction')}
@@ -253,14 +257,16 @@ export function BalanceDetailsModal({
 							<div className="flex items-center justify-between gap-2 mb-3">
 								<h4 className="font-semibold">Notas de la cuenta corriente</h4>
 								{!isEditingNotes && (
-									<button
-										onClick={() => setIsEditingNotes(true)}
-										className="shrink-0 text-sm text-primary hover:underline"
-									>
-										{currentBalance.notes && String(currentBalance.notes).trim() !== ''
-											? 'Editar notas'
-											: 'Agregar notas'}
-									</button>
+									<EditOnly edit="clients.balances">
+										<button
+											onClick={() => setIsEditingNotes(true)}
+											className="shrink-0 text-sm text-primary hover:underline"
+										>
+											{currentBalance.notes && String(currentBalance.notes).trim() !== ''
+												? 'Editar notas'
+												: 'Agregar notas'}
+										</button>
+									</EditOnly>
 								)}
 							</div>
 							{isEditingNotes ? (

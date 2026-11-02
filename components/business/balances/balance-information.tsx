@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { useState } from 'react';
 import { Pencil, Info } from 'lucide-react';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
@@ -36,7 +37,6 @@ interface BalanceInformationProps {
 	usdCurrent?: number | null;
 
 	totalPaid: number;
-	totalPaidUsd: number;
 
 	summary: BalanceSummary;
 
@@ -53,7 +53,6 @@ export function BalanceInformation({
 	contractDateUsd,
 	usdCurrent,
 	totalPaid,
-	totalPaidUsd,
 	summary,
 	formatDate,
 	onUpdated,
@@ -159,13 +158,15 @@ export function BalanceInformation({
 					<div className="flex items-center gap-2 mb-1">
 						<p className="text-xs text-muted-foreground">Presupuesto actual</p>
 
-						<button
-							type="button"
-							onClick={() => setOpen(true)}
-							className="text-muted-foreground hover:text-primary transition-colors"
-						>
-							<Pencil className="w-3.5 h-3.5" />
-						</button>
+						<EditOnly edit="clients.balances">
+							<button
+								type="button"
+								onClick={() => setOpen(true)}
+								className="text-muted-foreground hover:text-primary transition-colors"
+							>
+								<Pencil className="w-3.5 h-3.5" />
+							</button>
+						</EditOnly>
 					</div>
 
 					<div className="flex flex-col">
@@ -182,10 +183,6 @@ export function BalanceInformation({
 
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-green-600">{formatCurrency(totalPaid)}</p>
-
-						{usdCurrent && (
-							<p className="text-xs text-muted-foreground">{formatCurrencyUSD(totalPaidUsd)}</p>
-						)}
 					</div>
 				</div>
 
@@ -195,10 +192,6 @@ export function BalanceInformation({
 					<div className="flex flex-col">
 						<p className="text-sm font-bold text-orange-600">
 							{formatCurrency(summary.remainingArs)}
-						</p>
-
-						<p className="text-xs text-muted-foreground">
-							{formatCurrencyUSD(summary.remainingUsd)}
 						</p>
 					</div>
 				</div>

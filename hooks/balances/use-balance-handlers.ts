@@ -16,8 +16,6 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 	const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 	const [balanceToDelete, setBalanceToDelete] = useState<BalanceWithTotals | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [isDollarUpdateModalOpen, setIsDollarUpdateModalOpen] = useState(false);
-	const [balanceToUpdate, setBalanceToUpdate] = useState<BalanceWithTotals | null>(null);
 
 	const handleBalanceUpdate = () => {
 		onRefresh();
@@ -71,41 +69,6 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 		}
 	};
 
-	const handleDollarUpdate = async (newUsdRate: number, newAmountArs: number) => {
-		if (!balanceToUpdate) return;
-
-		try {
-			const response = await fetch('/api/dollar-rate', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					balanceId: balanceToUpdate.id,
-					newUsdRate,
-					newBalanceAmountARS: newAmountArs,
-				}),
-			});
-
-			const result = await response.json();
-
-			if (!response.ok || !result.success) {
-				throw new Error(result.error || 'Error al actualizar el tipo de cambio');
-			}
-
-			// Refresh the list
-			handleBalanceUpdate();
-		} catch (error) {
-			console.error('Error al actualizar tipo de dólar:', error);
-			throw error;
-		}
-	};
-
-	const openDollarUpdateModal = (balance: BalanceWithTotals) => {
-		setBalanceToUpdate(balance);
-		setIsDollarUpdateModalOpen(true);
-	};
-
 	const openDetailsModal = (balance: BalanceWithTotals) => {
 		setSelectedBalance(balance);
 		setIsDetailsModalOpen(true);
@@ -124,16 +87,11 @@ export function useBalanceHandlers({ onBalanceDeleted, onRefresh }: UseBalanceHa
 		balanceToDelete,
 		isDeleteDialogOpen,
 		setIsDeleteDialogOpen,
-		isDollarUpdateModalOpen,
-		setIsDollarUpdateModalOpen,
-		balanceToUpdate,
 
 		// Handlers
 		openDetailsModal,
 		openDeleteDialog,
-		openDollarUpdateModal,
 		handleDeleteBalance,
-		handleDollarUpdate,
 		handleBalanceUpdate,
 	};
 }

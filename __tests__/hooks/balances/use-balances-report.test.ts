@@ -57,9 +57,9 @@ const setup = () => {
 	(useOptimizedRealtime as jest.Mock).mockReturnValue({ data: balances, loading: false, refresh });
 	(getTotalsByBalanceIds as jest.Mock).mockResolvedValue({
 		data: {
-			1: { totalAmount: 400, totalAmountUSD: 4 },
-			2: { totalAmount: 800, totalAmountUSD: 8 },
-			3: { totalAmount: 200, totalAmountUSD: 2 },
+			1: { totalAmount: 400 },
+			2: { totalAmount: 800 },
+			3: { totalAmount: 200 },
 		},
 	});
 	return renderHook(() => useBalancesReport());
@@ -98,7 +98,6 @@ describe('useBalancesReport', () => {
 			deliveriesArs: 400,
 			balanceType: 'DEUDOR',
 			balanceAmountArs: 600,
-			balanceInUseUsd: 6,
 			usdContractRef: 100,
 		});
 		expect(byId[2]).toMatchObject({ balanceType: 'ACREEDOR', balanceAmountArs: -300 });
@@ -183,7 +182,7 @@ describe('useBalancesReport', () => {
 			expect(result.current.filteredRows).toEqual([]);
 
 			await act(async () => {
-				d.resolve({ data: { 1: { totalAmount: 0, totalAmountUSD: 0 } }, error: null });
+				d.resolve({ data: { 1: { totalAmount: 0 } }, error: null });
 			});
 
 			expect(result.current.loading).toBe(false);
@@ -407,7 +406,7 @@ describe('useBalancesReport', () => {
 			refresh,
 		});
 		(getTotalsByBalanceIds as jest.Mock).mockResolvedValue({
-			data: { 9: { totalAmount: 100, totalAmountUSD: 1 } },
+			data: { 9: { totalAmount: 100 } },
 			error: null,
 		});
 		const { result } = renderHook(() => useBalancesReport());

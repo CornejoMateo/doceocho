@@ -1,4 +1,8 @@
-import { getSearchProviders } from '@/lib/search/registry';
+import { getSearchProviders as getForViews } from '@/lib/search/registry';
+import { getDefaultViews } from '@/helpers/permissions/views';
+import type { UserRole } from '@/constants/users/user-role';
+
+const getSearchProviders = (role: UserRole | undefined) => getForViews(getDefaultViews(role));
 
 /** Domains whose table is restricted to admins by RLS. */
 const ADMIN_ONLY_PROVIDERS = ['budgets', 'appointments', 'employees'];
@@ -38,13 +42,12 @@ describe('lib/search/registry', () => {
 		expect(getSearchProviders(undefined)).toEqual([]);
 	});
 
-	test('admin-only domains only declare Admin and Superadmin', () => {
-		const providers = getSearchProviders('Admin').filter((provider) =>
-			ADMIN_ONLY_PROVIDERS.includes(provider.id)
+	test('a taller user granted budgets can search them', () => {
+		const ids = getForViews([...getDefaultViews('Taller'), 'clients.budgets']).map(
+			(provider) => provider.id
 		);
 
-		expect(providers).toHaveLength(ADMIN_ONLY_PROVIDERS.length);
-		providers.forEach((provider) => expect(provider.roles).toEqual(['Admin', 'Superadmin']));
+		expect(ids).toContain('budgets');
 	});
 
 	test('every provider has a unique id', () => {

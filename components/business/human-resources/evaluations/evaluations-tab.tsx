@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card } from '@/components/ui/card';
@@ -316,13 +318,15 @@ export function EvaluationsTab() {
 												Sin evaluar
 											</Badge>
 										)}
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => setEmployeeToEvaluate(employee)}
-										>
-											{evaluation ? 'Editar' : 'Evaluar'}
-										</Button>
+										<EditOnly edit="employees.evaluaciones">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={() => setEmployeeToEvaluate(employee)}
+											>
+												{evaluation ? 'Editar' : 'Evaluar'}
+											</Button>
+										</EditOnly>
 									</div>
 								</div>
 							);

@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { Trash2, Edit, ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +10,7 @@ import {
 	TableRow,
 } from '@/components/ui/table';
 import { BalanceTransactionWithBankAccount } from '@/lib/balances/balance_transactions';
-import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
+import { formatCurrency } from '@/utils/formats-money';
 
 interface TransactionsTableProps {
 	isLoading: boolean;
@@ -53,9 +54,10 @@ export function TransactionsTable({
 						<TableRow>
 							<TableHead>Fecha</TableHead>
 							<TableHead className="text-center">Método de pago</TableHead>
+							<TableHead className="text-center">N° comprobante</TableHead>
+							<TableHead className="text-center">Categoría</TableHead>
 							<TableHead className="w-[200px] text-center">Observaciones</TableHead>
-							<TableHead className="text-center">Monto pesos/USD</TableHead>
-							<TableHead className="text-center">Cotización USD</TableHead>
+							<TableHead className="text-center">Monto</TableHead>
 							<TableHead className="text-center">Acción</TableHead>
 							<TableHead className="text-center">Archivos</TableHead>
 						</TableRow>
@@ -76,44 +78,45 @@ export function TransactionsTable({
 									) : null}
 								</TableCell>
 
+								<TableCell className="text-center whitespace-normal break-words">
+									{transaction.receipt_number || '-'}
+								</TableCell>
+
+								<TableCell className="text-center whitespace-normal break-words">
+									{transaction.category_name || '-'}
+								</TableCell>
+
 								<TableCell className="w-[200px] text-center whitespace-normal break-words">
 									{transaction.notes || '-'}
 								</TableCell>
 
-								<TableCell className="text-center">
-									<div className="flex flex-col">
-										<span>{formatCurrency(transaction.amount)}</span>
-										<span className="text-xs text-muted-foreground">
-											{formatCurrencyUSD(transaction.usd_amount)}
-										</span>
-									</div>
-								</TableCell>
-
-								<TableCell className="text-center">
-									{formatCurrency(transaction.quote_usd)}
-								</TableCell>
+								<TableCell className="text-center">{formatCurrency(transaction.amount)}</TableCell>
 
 								<TableCell>
 									<div className="flex items-center justify-center gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-											onClick={() => onEditTransaction(transaction)}
-											aria-label="Editar transacción"
-										>
-											<Edit className="h-4 w-4" />
-										</Button>
+										<EditOnly edit="clients.balances">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+												onClick={() => onEditTransaction(transaction)}
+												aria-label="Editar transacción"
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+										</EditOnly>
 
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-											onClick={() => onDeleteTransaction(transaction)}
-											aria-label="Eliminar transacción"
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
+										<EditOnly edit="clients.balances">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+												onClick={() => onDeleteTransaction(transaction)}
+												aria-label="Eliminar transacción"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</EditOnly>
 									</div>
 								</TableCell>
 
@@ -148,10 +151,6 @@ export function TransactionsTable({
 								</p>
 
 								<p className="mt-1 text-lg font-semibold">{formatCurrency(transaction.amount)}</p>
-
-								<p className="text-xs text-muted-foreground">
-									{formatCurrencyUSD(transaction.usd_amount)}
-								</p>
 							</div>
 
 							<div className="flex shrink-0 items-center gap-1">
@@ -165,25 +164,29 @@ export function TransactionsTable({
 									<ImageIcon className="h-4 w-4" />
 								</Button>
 
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-									onClick={() => onEditTransaction(transaction)}
-									aria-label="Editar transacción"
-								>
-									<Edit className="h-4 w-4" />
-								</Button>
+								<EditOnly edit="clients.balances">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+										onClick={() => onEditTransaction(transaction)}
+										aria-label="Editar transacción"
+									>
+										<Edit className="h-4 w-4" />
+									</Button>
+								</EditOnly>
 
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-									onClick={() => onDeleteTransaction(transaction)}
-									aria-label="Eliminar transacción"
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
+								<EditOnly edit="clients.balances">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+										onClick={() => onDeleteTransaction(transaction)}
+										aria-label="Eliminar transacción"
+									>
+										<Trash2 className="h-4 w-4" />
+									</Button>
+								</EditOnly>
 							</div>
 						</div>
 
@@ -201,19 +204,26 @@ export function TransactionsTable({
 								) : null}
 							</div>
 
-							<div className="grid grid-cols-2 gap-3">
-								<div>
-									<p className="text-xs font-medium text-muted-foreground">Cotización USD</p>
-									<p className="mt-0.5 text-sm">{formatCurrency(transaction.quote_usd)}</p>
+							{transaction.receipt_number ? (
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground">N° comprobante</p>
+									<p className="mt-0.5 break-words text-sm">{transaction.receipt_number}</p>
 								</div>
+							) : null}
 
-								{transaction.notes ? (
-									<div className="min-w-0">
-										<p className="text-xs font-medium text-muted-foreground">Observaciones</p>
-										<p className="mt-0.5 break-words text-sm">{transaction.notes}</p>
-									</div>
-								) : null}
-							</div>
+							{transaction.category_name ? (
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground">Categoría</p>
+									<p className="mt-0.5 break-words text-sm">{transaction.category_name}</p>
+								</div>
+							) : null}
+
+							{transaction.notes ? (
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground">Observaciones</p>
+									<p className="mt-0.5 break-words text-sm">{transaction.notes}</p>
+								</div>
+							) : null}
 						</div>
 					</div>
 				))}

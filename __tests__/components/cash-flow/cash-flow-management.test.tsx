@@ -6,7 +6,12 @@ import * as realtimeHook from '@/hooks/use-optimized-realtime';
 jest.mock('@/lib/cash-flow/cash-flow');
 jest.mock('@/hooks/use-optimized-realtime');
 jest.mock('@/components/provider/auth-provider', () => ({
-	useAuth: () => ({ user: { role: 'Admin' } }),
+	useAuth: () => ({
+		user: {
+			role: 'Admin',
+			views: jest.requireActual('@/helpers/permissions/views').getDefaultViews('Admin'),
+		},
+	}),
 }));
 
 jest.mock('@/components/business/cash-flow/balances-tab/checking-accounts-tab', () => ({

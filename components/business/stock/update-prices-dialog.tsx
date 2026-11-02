@@ -1,5 +1,7 @@
 'use client';
 
+import { authFetch } from '@/lib/auth/auth-fetch';
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -82,7 +84,7 @@ export function UpdatePricesDialog() {
 
 			let processed = 0;
 			const runChunk = async (chunk: typeof entries) => {
-				const res = await fetch('/api/update-prices', {
+				const res = await authFetch('/api/update-prices', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ entries: chunk }),

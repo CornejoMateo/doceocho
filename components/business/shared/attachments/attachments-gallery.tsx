@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FileViewerModal } from '@/components/ui/file-viewer-modal';
 import {
@@ -16,37 +18,43 @@ import { Loader2, Paperclip, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import {
-	listFilesWithUrlsByPurchaseSupplierId,
-	deleteFilePurchaseSupplier,
-	signUrlsForPurchaseSupplierFiles,
-	type FilePurchaseSupplier,
-} from '@/lib/suppliers/files-purchases-suppliers';
+	listFilesWithUrlsByExpenseId,
+	deleteFileExpense,
+	signUrlsForExpenseFiles,
+	type FileExpense,
+} from '@/lib/expenses/files-expenses';
 import {
-	listFilesWithUrlsByPaymentSupplierId,
-	deleteFilePaymentSupplier,
-	signUrlsForPaymentSupplierFiles,
-	type FilePaymentSupplier,
-} from '@/lib/suppliers/files-payments-suppliers';
+	listFilesWithUrlsByPaymentId,
+	deleteFilePayment,
+	signUrlsForPaymentFiles,
+	type FilePayment,
+} from '@/lib/payments/files-payments';
 import { FileViewerItem, formatFileSize, getFileKind } from '@/utils/file-upload-utils';
 
-interface SupplierAttachmentsGalleryProps {
-	kind: 'purchase' | 'payment';
+interface AttachmentsGalleryProps {
+	kind: 'expense' | 'payment';
 	entityId: number;
 	label?: string;
 	onCountChange?: (count: number) => void;
-	preloadedFiles?: FilePurchaseSupplier[] | FilePaymentSupplier[];
+	preloadedFiles?: FileExpense[] | FilePayment[];
+	readOnly?: boolean;
+	/** Permission key that governs deleting a file, e.g. "cash-flow" or "cash-flow.suppliers". */
+	editKey: string;
 }
 
-export function SupplierAttachmentsGallery({
+export function AttachmentsGallery({
 	kind,
 	entityId,
 	label,
 	onCountChange,
 	preloadedFiles,
-}: SupplierAttachmentsGalleryProps) {
+	readOnly = false,
+	editKey,
+}: AttachmentsGalleryProps) {
 	const { toast } = useToast();
 	const [files, setFiles] = useState<FileViewerItem[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
 	const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
 	const [fileToDelete, setFileToDelete] = useState<FileViewerItem | null>(null);
 	const [deleting, setDeleting] = useState(false);
@@ -54,9 +62,9 @@ export function SupplierAttachmentsGallery({
 	const requestIdRef = useRef(0);
 
 	const fetchFromEntity = useCallback(async () => {
-		return kind === 'purchase'
-			? listFilesWithUrlsByPurchaseSupplierId(entityId)
-			: listFilesWithUrlsByPaymentSupplierId(entityId);
+		return kind === 'expense'
+			? listFilesWithUrlsByExpenseId(entityId)
+			: listFilesWithUrlsByPaymentId(entityId);
 	}, [kind, entityId]);
 
 	const loadFiles = useCallback(
@@ -66,18 +74,21 @@ export function SupplierAttachmentsGallery({
 			const isCurrent = () => requestIdRef.current === requestId;
 
 			setLoading(true);
+			setLoadError(false);
 			let next: FileViewerItem[] | null = null;
+			let failed = false;
 			try {
 				const { data, error } =
 					preloadedFiles && !opts?.skipPreload
-						? kind === 'purchase'
-							? await signUrlsForPurchaseSupplierFiles(preloadedFiles as FilePurchaseSupplier[])
-							: await signUrlsForPaymentSupplierFiles(preloadedFiles as FilePaymentSupplier[])
+						? kind === 'expense'
+							? await signUrlsForExpenseFiles(preloadedFiles as FileExpense[])
+							: await signUrlsForPaymentFiles(preloadedFiles as FilePayment[])
 						: await fetchFromEntity();
 
 				if (error) throw error;
 				next = data ?? [];
 			} catch (error) {
+				failed = true;
 				if (isCurrent()) {
 					toast({
 						title: 'Error',
@@ -91,6 +102,7 @@ export function SupplierAttachmentsGallery({
 			setBrokenImageIds(new Set());
 			setFiles(next);
 			setLoading(false);
+			setLoadError(failed);
 			onCountChange?.(next.length);
 		},
 		[preloadedFiles, kind, fetchFromEntity, toast]
@@ -108,12 +120,11 @@ export function SupplierAttachmentsGallery({
 		setDeleting(true);
 		try {
 			const { success, error } =
-				kind === 'purchase'
-					? await deleteFilePurchaseSupplier(fileToDelete.id)
-					: await deleteFilePaymentSupplier(fileToDelete.id);
+				kind === 'expense'
+					? await deleteFileExpense(fileToDelete.id)
+					: await deleteFilePayment(fileToDelete.id);
 			if (!success) throw error;
 			toast({ title: 'Archivo eliminado' });
-			// Preloaded rows may now be stale, so refresh straight from the entity.
 			await loadFiles({ skipPreload: true });
 		} catch (error) {
 			toast({
@@ -139,6 +150,19 @@ export function SupplierAttachmentsGallery({
 					<Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
 					Cargando archivos...
 				</p>
+			) : loadError ? (
+				<div className="flex flex-wrap items-center gap-2">
+					<p className="text-xs text-muted-foreground">
+						No se pudieron cargar los archivos adjuntos.
+					</p>
+					<button
+						type="button"
+						onClick={() => void loadFiles()}
+						className="text-xs font-medium text-primary underline-offset-2 hover:underline"
+					>
+						Reintentar
+					</button>
+				</div>
 			) : files.length === 0 ? (
 				<p className="text-xs text-muted-foreground">No hay archivos adjuntos.</p>
 			) : (
@@ -155,7 +179,7 @@ export function SupplierAttachmentsGallery({
 									type="button"
 									title={chipTitle}
 									onClick={() => setSelectedFileIndex(index)}
-									className="inline-flex max-w-[11rem] items-center gap-1.5 rounded-full border border-border bg-muted/50 py-1 pr-6 pl-1.5 text-xs transition-colors hover:bg-muted"
+									className={`inline-flex max-w-[11rem] items-center gap-1.5 rounded-full border border-border bg-muted/50 py-1 ${readOnly ? 'pr-1.5' : 'pr-6'} pl-1.5 text-xs transition-colors hover:bg-muted`}
 								>
 									{showImage ? (
 										<img
@@ -173,15 +197,19 @@ export function SupplierAttachmentsGallery({
 									)}
 									<span className="truncate">{displayName}</span>
 								</button>
-								<button
-									type="button"
-									aria-label="Eliminar archivo"
-									title="Eliminar archivo"
-									onClick={() => setFileToDelete(file)}
-									className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-destructive"
-								>
-									<Trash2 className="h-3 w-3" />
-								</button>
+								{!readOnly && (
+									<EditOnly edit={editKey}>
+										<button
+											type="button"
+											aria-label="Eliminar archivo"
+											title="Eliminar archivo"
+											onClick={() => setFileToDelete(file)}
+											className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-destructive"
+										>
+											<Trash2 className="h-3 w-3" />
+										</button>
+									</EditOnly>
+								)}
 							</div>
 						);
 					})}
@@ -205,7 +233,10 @@ export function SupplierAttachmentsGallery({
 						<AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
 						<AlertDialogDescription>
 							Esta acción no se puede deshacer. Se eliminará permanentemente el archivo{' '}
-							<span className="font-semibold">{pendingFileName}</span>.
+							<span className="break-all font-semibold [overflow-wrap:anywhere]">
+								{pendingFileName}
+							</span>
+							.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

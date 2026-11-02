@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,33 +114,37 @@ export function FolderCard({
 
 						<div className="flex w-full gap-2 sm:w-auto">
 							{!folder.work_id && (
+								<EditOnly edit="clients.budgets">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={(e) => {
+											e.stopPropagation();
+											setAssignModalOpen(true);
+										}}
+										disabled={isLoading || works.length === 0}
+										className="flex-1 sm:flex-none"
+									>
+										<Link2 className="h-3.5 w-3.5" />
+										<span className="ml-1">Asignar obra</span>
+									</Button>
+								</EditOnly>
+							)}
+
+							<EditOnly edit="clients.budgets">
 								<Button
-									variant="outline"
+									variant="ghost"
 									size="sm"
 									onClick={(e) => {
 										e.stopPropagation();
-										setAssignModalOpen(true);
+										onDeleteFolder(folder.id);
 									}}
-									disabled={isLoading || works.length === 0}
-									className="flex-1 sm:flex-none"
+									disabled={isLoading}
+									className="text-destructive hover:text-destructive hover:bg-destructive/10"
 								>
-									<Link2 className="h-3.5 w-3.5" />
-									<span className="ml-1">Asignar obra</span>
+									<Trash2 className="h-4 w-4" />
 								</Button>
-							)}
-
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={(e) => {
-									e.stopPropagation();
-									onDeleteFolder(folder.id);
-								}}
-								disabled={isLoading}
-								className="text-destructive hover:text-destructive hover:bg-destructive/10"
-							>
-								<Trash2 className="h-4 w-4" />
-							</Button>
+							</EditOnly>
 						</div>
 					</div>
 					<CollapsibleContent>

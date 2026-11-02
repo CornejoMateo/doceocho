@@ -1,5 +1,7 @@
 'use client';
 
+import { authFetch } from '@/lib/auth/auth-fetch';
+
 import { useState } from 'react';
 
 import {
@@ -55,7 +57,7 @@ export function PhotoGalleryModal({ open, onOpenChange }: PhotoGalleryModalProps
 			setImagesLoading(true);
 			setImagesError(null);
 			const params = new URLSearchParams({ name_code: code });
-			const res = await fetch(`/api/gallery/list?${params.toString()}`);
+			const res = await authFetch(`/api/gallery/list?${params.toString()}`);
 			const data = await res.json();
 			if (data.success) {
 				setImages(data.images ?? []);
@@ -98,7 +100,7 @@ export function PhotoGalleryModal({ open, onOpenChange }: PhotoGalleryModalProps
 			formData.append('file', file);
 			formData.append('name_code', nameCode);
 
-			const res = await fetch('/api/gallery/upload', {
+			const res = await authFetch('/api/gallery/upload', {
 				method: 'POST',
 				body: formData,
 			});
@@ -223,7 +225,7 @@ export function PhotoGalleryModal({ open, onOpenChange }: PhotoGalleryModalProps
 							src={selectedImage}
 							trash
 							onDelete={async () => {
-								const res = await fetch(
+								const res = await authFetch(
 									`/api/gallery/delete?code_name=${encodeURIComponent(nameCode)}`,
 									{
 										method: 'DELETE',

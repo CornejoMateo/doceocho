@@ -11,7 +11,7 @@ import {
 import {
 	filterByMonth,
 	buildSummaryCards,
-	buildMonthlyChartData,
+	buildMonthlyCollectionsPaymentsChartData,
 	buildWorkResultRows,
 } from '@/helpers/cash-flow-stats/cash-flow-summary';
 import { MONTH_LABELS_ES } from '@/helpers/fixed-expenses/fixed-expenses-summary';
@@ -22,7 +22,6 @@ import { translateError } from '@/lib/error-translator';
 export type MonthOption = { value: number; label: string }; // 0 = "Todos"
 export type WorkOption = { value: number; label: string }; // 0 = "Todos"
 
-// month/work 0 means "Todos" in the selects; the pure helpers expect null for that case.
 function toFilter(value: number): number | null {
 	return value === 0 ? null : value;
 }
@@ -106,7 +105,7 @@ export function useSummaryTab() {
 		[periodRows, periodFixedCosts, workFilter]
 	);
 	const chartData = useMemo(
-		() => buildMonthlyChartData(rows, fixedCostRows, workFilter),
+		() => buildMonthlyCollectionsPaymentsChartData(rows, fixedCostRows, workFilter),
 		[rows, fixedCostRows, workFilter]
 	);
 	const workNames = useMemo(

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { authorize } from '@/helpers/users/require-permission';
+import { API_PERMISSIONS } from '@/constants/permissions/views';
 import nodemailer from 'nodemailer';
 
 interface EmailRequest {
@@ -11,6 +12,15 @@ interface EmailRequest {
 	scheduledDate?: string;
 	scheduledTime?: string;
 }
+
+// Whatever the user typed goes into the email as text, never as HTML (no injected links or markup).
+const escapeHtml = (value: string) =>
+	value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
 
 // Create transporter
 const createTransporter = () => {
@@ -28,6 +38,9 @@ const createTransporter = () => {
 
 export async function POST(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.notifyClient);
+		if ('response' in auth) return auth.response;
+		const { supabase } = auth;
 		const body: EmailRequest = await req.json();
 
 		const { clientId, workId, to, subject, message, scheduledDate, scheduledTime } = body;
@@ -46,11 +59,7 @@ export async function POST(req: Request) {
 			return NextResponse.json({ error: 'El formato del email es inválido' }, { status: 400 });
 		}
 
-		// Get client and work information for logging
-		const supabase = createClient(
-			process.env.NEXT_PUBLIC_SUPABASE_URL!,
-			process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-		);
+		// Client and work information for the message
 
 		const [clientResult, workResult] = await Promise.all([
 			supabase.from('clients').select('name, last_name').eq('id', clientId).single(),
@@ -83,15 +92,15 @@ export async function POST(req: Request) {
 						<div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
 							<h2 style="color: #333; margin: 0 0 10px; font-size: 18px;">Notificación de Obra</h2>
 							<p style="color: #666; margin: 0; font-size: 14px;">
-								<strong>Cliente:</strong> ${clientName}<br>
-								<strong>Ubicación de la obra:</strong> ${workLocation}
+								<strong>Cliente:</strong> ${escapeHtml(clientName)}<br>
+								<strong>Ubicación de la obra:</strong> ${escapeHtml(workLocation)}
 							</p>
 						</div>
 						
 						<div style="margin-bottom: 20px;">
 							<h3 style="color: #333; margin: 0 0 10px; font-size: 16px;">Mensaje:</h3>
 							<div style="background-color: #ffffff; padding: 15px; border-left: 4px solid #007bff; border-radius: 4px;">
-								<p style="color: #333; margin: 0; white-space: pre-line; font-size: 14px;">${message}</p>
+								<p style="color: #333; margin: 0; white-space: pre-line; font-size: 14px;">${escapeHtml(message)}</p>
 							</div>
 						</div>
 						
@@ -154,8 +163,10 @@ export async function POST(req: Request) {
 }
 
 // GET endpoint to test email configuration
-export async function GET() {
+export async function GET(req: Request) {
 	try {
+		const auth = await authorize(req, API_PERMISSIONS.notifyClient);
+		if ('response' in auth) return auth.response;
 		const transporter = createTransporter();
 		await transporter.verify();
 

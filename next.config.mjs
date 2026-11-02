@@ -7,6 +7,9 @@ const nextConfig = {
 		unoptimized: true,
 	},
 	serverExternalPackages: ['jspdf', 'fflate'],
+	experimental: {
+		agentUpgrade: 'security',
+	},
 	turbopack: {}, // Configuración vacía para evitar problemas
 	webpack: (config, { isServer }) => {
 		// Ignorar módulos problemáticos en el cliente

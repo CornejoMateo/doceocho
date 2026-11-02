@@ -22,6 +22,7 @@ jest.mock('@/components/ui/select', () => ({
 const mockComboboxLabels: Record<string, string> = {
 	'cp-party': 'party-combobox',
 	'cp-purchase': 'purchase-combobox',
+	'cp-expense': 'expense-combobox',
 };
 
 jest.mock('@/components/business/cash-flow/shared/entity-combobox', () => ({
@@ -40,6 +41,17 @@ jest.mock('@/components/business/cash-flow/shared/entity-combobox', () => ({
 				</option>
 			))}
 		</select>
+	),
+}));
+
+jest.mock('@/components/business/shared/attachments/file-attachments', () => ({
+	FileAttachments: ({ kind, entityId, staged, onStagedChange }: any) => (
+		<div data-testid="file-attachments">
+			kind={kind} entityId={entityId} staged={(staged ?? []).length}
+			<button onClick={() => onStagedChange?.([...(staged ?? []), { id: 'x', fileName: 'a.pdf' }])}>
+				Adjuntar
+			</button>
+		</div>
 	),
 }));
 
@@ -278,6 +290,12 @@ describe('CollectionPaymentFormDialog', () => {
 		expect(screen.getByText('Guardando...')).toBeDisabled();
 	});
 
+	it('disables "Cancelar" while saving so it cannot be used to close mid-submit', () => {
+		render(<CollectionPaymentFormDialog {...baseProps({ saving: true })} />);
+
+		expect(screen.getByText('Cancelar')).toBeDisabled();
+	});
+
 	describe('Pagos: optional party and the "Compra" field', () => {
 		const purchaseCombobox = () => screen.getByLabelText('purchase-combobox');
 
@@ -503,6 +521,247 @@ describe('CollectionPaymentFormDialog', () => {
 			);
 
 			expect(screen.queryByText(/ya está saldada/i)).not.toBeInTheDocument();
+		});
+	});
+
+	describe('hideParty (Agregar pago from Gasto, no supplier)', () => {
+		it('hides the party field and the "Compra" field when hideParty is set, even with a party selected', () => {
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						partyLabel: 'Proveedor',
+						partyOptional: true,
+						partyId: '1',
+						hideParty: true,
+					})}
+				/>
+			);
+
+			expect(screen.queryByText('Proveedor')).not.toBeInTheDocument();
+			expect(screen.queryByLabelText('party-combobox')).not.toBeInTheDocument();
+			expect(screen.queryByText('Compra')).not.toBeInTheDocument();
+			expect(screen.queryByLabelText('purchase-combobox')).not.toBeInTheDocument();
+		});
+
+		it('shows the party field when hideParty is not set (default)', () => {
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({ partyLabel: 'Proveedor', partyOptional: true })}
+				/>
+			);
+
+			expect(
+				screen.getByText((_, element) => element?.textContent === 'Proveedor (opcional)')
+			).toBeInTheDocument();
+			expect(partyCombobox()).toBeInTheDocument();
+		});
+
+		it('submits the form without a party when hideParty is set', () => {
+			const props = baseProps({
+				partyLabel: 'Proveedor',
+				partyOptional: true,
+				partyId: '',
+				hideParty: true,
+			});
+			render(<CollectionPaymentFormDialog {...props} />);
+
+			fireEvent.submit(screen.getByLabelText('Monto').closest('form')!);
+
+			expect(props.onSubmit).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe('Gasto (opcional) (Payments-only)', () => {
+		const expenseCombobox = () => screen.getByLabelText('expense-combobox');
+
+		it('does not show the field when supportsExpenseLink is not set (Cobros)', () => {
+			render(<CollectionPaymentFormDialog {...baseProps()} />);
+
+			expect(screen.queryByText('Gasto (opcional)')).not.toBeInTheDocument();
+		});
+
+		it('shows the field with a "Sin gasto" option when supportsExpenseLink is set (Pagos)', () => {
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						supportsExpenseLink: true,
+						expenseOptions: [{ id: 42, name: 'Gasto 42' }],
+					})}
+				/>
+			);
+
+			expect(screen.getByText('Gasto (opcional)')).toBeInTheDocument();
+			expect(within(expenseCombobox()).getByText('Sin gasto')).toBeInTheDocument();
+			expect(within(expenseCombobox()).getByText('Gasto 42')).toBeInTheDocument();
+		});
+
+		it('shows the field regardless of the entry source (payments is single-source now)', () => {
+			const entry = { id: 1, source: 'general' } as any;
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({ supportsExpenseLink: true, editingEntry: entry })}
+				/>
+			);
+
+			expect(screen.getByText('Gasto (opcional)')).toBeInTheDocument();
+		});
+
+		it('shows the field when editing a general-origin payment', () => {
+			const entry = { id: 1, source: 'general' } as any;
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({ supportsExpenseLink: true, editingEntry: entry })}
+				/>
+			);
+
+			expect(screen.getByText('Gasto (opcional)')).toBeInTheDocument();
+		});
+
+		it('selecting an expense calls setExpenseId', () => {
+			const setExpenseId = jest.fn();
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						supportsExpenseLink: true,
+						expenseOptions: [{ id: 42, name: 'Gasto 42' }],
+						setExpenseId,
+					})}
+				/>
+			);
+
+			fireEvent.change(expenseCombobox(), { target: { value: '42' } });
+
+			expect(setExpenseId).toHaveBeenCalledWith('42');
+		});
+
+		it('changing from one expense to another calls setExpenseId with the new id', () => {
+			const setExpenseId = jest.fn();
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						supportsExpenseLink: true,
+						expenseId: '42',
+						expenseOptions: [
+							{ id: 42, name: 'Gasto 42' },
+							{ id: 43, name: 'Gasto 43' },
+						],
+						setExpenseId,
+					})}
+				/>
+			);
+
+			fireEvent.change(expenseCombobox(), { target: { value: '43' } });
+
+			expect(setExpenseId).toHaveBeenCalledWith('43');
+		});
+
+		it('selecting "Sin gasto" clears the association via setExpenseId("")', () => {
+			const setExpenseId = jest.fn();
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						supportsExpenseLink: true,
+						expenseId: '42',
+						expenseOptions: [{ id: 42, name: 'Gasto 42' }],
+						setExpenseId,
+					})}
+				/>
+			);
+
+			fireEvent.change(expenseCombobox(), { target: { value: '0' } });
+
+			expect(setExpenseId).toHaveBeenCalledWith('');
+		});
+	});
+
+	describe('paymentMethodOptional (Pagos only; Cobros stays required)', () => {
+		it('shows "Medio de pago" (no "(opcional)", no "Sin medio") by default', () => {
+			render(<CollectionPaymentFormDialog {...baseProps()} />);
+
+			expect(screen.getByText('Medio de pago')).toBeInTheDocument();
+			expect(screen.queryByText('Medio de pago (opcional)')).not.toBeInTheDocument();
+			expect(screen.queryByText('Sin medio')).not.toBeInTheDocument();
+		});
+
+		it('shows "Medio de pago (opcional)" and a "Sin medio" option when paymentMethodOptional', () => {
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({ paymentMethodOptional: true, paymentMethodId: 'none' })}
+				/>
+			);
+
+			expect(screen.getByText('Medio de pago (opcional)')).toBeInTheDocument();
+			expect(screen.getByText('Sin medio')).toBeInTheDocument();
+		});
+
+		it('keeps "Medio de pago (opcional)" with "Sin medio" while editing too', () => {
+			const entry = { id: 1 } as CollectionPaymentEntry;
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						editingEntry: entry,
+						paymentMethodOptional: true,
+						paymentMethodId: 'none',
+					})}
+				/>
+			);
+
+			expect(screen.getByText('Medio de pago (opcional)')).toBeInTheDocument();
+			expect(screen.getByText('Sin medio')).toBeInTheDocument();
+		});
+	});
+
+	describe('attachmentsKind (Pagos only; Cobros never sets it)', () => {
+		it('renders no attachments section by default (Cobros)', () => {
+			render(<CollectionPaymentFormDialog {...baseProps()} />);
+
+			expect(screen.queryByTestId('file-attachments')).not.toBeInTheDocument();
+			expect(
+				screen.queryByText('Podés adjuntar archivos después de guardar.')
+			).not.toBeInTheDocument();
+		});
+
+		it('renders the attachments section in staged mode on create (no entity yet)', () => {
+			render(<CollectionPaymentFormDialog {...baseProps({ attachmentsKind: 'payment' })} />);
+
+			expect(screen.getByTestId('file-attachments')).toHaveTextContent('kind=payment entityId=');
+			expect(
+				screen.queryByText('Podés adjuntar archivos después de guardar.')
+			).not.toBeInTheDocument();
+		});
+
+		it('passes stagedFiles and onStagedFilesChange through on create', () => {
+			const onStagedFilesChange = jest.fn();
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({
+						attachmentsKind: 'payment',
+						stagedFiles: [{ id: '1', fileName: 'a.pdf' } as any],
+						onStagedFilesChange,
+					})}
+				/>
+			);
+
+			expect(screen.getByTestId('file-attachments')).toHaveTextContent('staged=1');
+			fireEvent.click(screen.getByText('Adjuntar'));
+			expect(onStagedFilesChange).toHaveBeenCalledWith([
+				{ id: '1', fileName: 'a.pdf' },
+				{ id: 'x', fileName: 'a.pdf' },
+			]);
+		});
+
+		it('renders the attachments gallery with the entry id once editing', () => {
+			const entry = { id: 99 } as CollectionPaymentEntry;
+			render(
+				<CollectionPaymentFormDialog
+					{...baseProps({ attachmentsKind: 'payment', editingEntry: entry })}
+				/>
+			);
+
+			expect(screen.getByTestId('file-attachments')).toHaveTextContent('kind=payment entityId=99');
+			expect(
+				screen.queryByText('Podés adjuntar archivos después de guardar.')
+			).not.toBeInTheDocument();
 		});
 	});
 });

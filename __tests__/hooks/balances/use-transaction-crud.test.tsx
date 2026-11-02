@@ -8,6 +8,7 @@ import {
 } from '@/lib/balances/balance_transactions';
 import { updateBalance } from '@/lib/balances/balances';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
+import { listCategories } from '@/lib/categories/categories';
 
 jest.mock('@/lib/balances/balance_transactions', () => ({
 	getTransactionsByBalanceId: jest.fn(),
@@ -26,9 +27,18 @@ jest.mock('@/lib/payment-methods/payment-methods', () => ({
 	listPaymentMethods: jest.fn(),
 }));
 
+jest.mock('@/lib/categories/categories', () => ({
+	listCategories: jest.fn(),
+}));
+
 const mockPaymentMethods = [
 	{ id: 1, created_at: '2024-01-01', name: 'Efectivo', is_active: true },
 	{ id: 2, created_at: '2024-01-01', name: 'Transferencia', is_active: true },
+];
+
+const mockCategories = [
+	{ id: 1, created_at: '2024-01-01', name: 'Alquiler', kind: 'collection', is_active: true },
+	{ id: 2, created_at: '2024-01-01', name: 'Materiales', kind: 'collection', is_active: true },
 ];
 
 jest.mock('@/components/ui/use-toast', () => ({
@@ -45,9 +55,7 @@ jest.mock('@/helpers/balances/balance-calculations', () => ({
 		budgetUsd: 0,
 		budgetArsCurrent: 0,
 		totalPaidArs: 0,
-		totalPaidUsd: 0,
 		remainingArs: 0,
-		remainingUsd: 0,
 		progressPercentage: 0,
 		type: 'Saldado',
 	})),
@@ -64,6 +72,7 @@ const mockBalance = {
 		amount_usd: 5000,
 		folder_budget: {
 			id: 20,
+			work_id: 42,
 			work: { address: 'Calle 123', locality: 'Springfield' },
 		},
 	},
@@ -86,6 +95,7 @@ describe('useTransactionCrud', () => {
 		});
 		(getTransactionsByBalanceId as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(listPaymentMethods as jest.Mock).mockResolvedValue({ data: mockPaymentMethods, error: null });
+		(listCategories as jest.Mock).mockResolvedValue({ data: mockCategories, error: null });
 	});
 
 	it('loads transactions when balance and isOpen are provided', async () => {
@@ -126,7 +136,6 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
-			result.current.setQuoteUsd('1000');
 		});
 
 		await act(async () => {
@@ -149,7 +158,6 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
-			result.current.setQuoteUsd('1000');
 			result.current.setPaymentMethodId('2');
 		});
 
@@ -159,6 +167,82 @@ describe('useTransactionCrud', () => {
 
 		expect(createTransaction).toHaveBeenCalledWith(
 			expect.objectContaining({ payment_method_id: 2, payment_method: 'Transferencia' })
+		);
+	});
+
+	it('sends receipt_number, category_id and work_id when creating with those fields set', async () => {
+		(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setTransactionAmount('500');
+			result.current.setReceiptNumber('  A-0001  ');
+			result.current.setCategoryId('1');
+		});
+
+		await act(async () => {
+			await result.current.handleAddTransaction();
+		});
+
+		expect(createTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				receipt_number: 'A-0001',
+				category_id: 1,
+				work_id: 42,
+			})
+		);
+	});
+
+	it('sends null receipt_number when creating with a whitespace-only value', async () => {
+		(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setTransactionAmount('500');
+			result.current.setReceiptNumber('   ');
+		});
+
+		await act(async () => {
+			await result.current.handleAddTransaction();
+		});
+
+		expect(createTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({ receipt_number: null })
+		);
+	});
+
+	it('sends null receipt_number and category_id when creating with those fields empty', async () => {
+		(createTransaction as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setTransactionAmount('500');
+		});
+
+		await act(async () => {
+			await result.current.handleAddTransaction();
+		});
+
+		expect(createTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				receipt_number: null,
+				category_id: null,
+			})
 		);
 	});
 
@@ -176,7 +260,6 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
-			result.current.setQuoteUsd('1000');
 		});
 
 		await act(async () => {
@@ -197,7 +280,6 @@ describe('useTransactionCrud', () => {
 
 		act(() => {
 			result.current.setTransactionAmount('500');
-			result.current.setQuoteUsd('1000');
 		});
 
 		act(() => {
@@ -282,8 +364,6 @@ describe('useTransactionCrud', () => {
 			payment_method_id: 2,
 			payment_method: 'Transferencia',
 			notes: 'Test note',
-			quote_usd: 950,
-			usd_amount: 1.05,
 		} as any;
 
 		act(() => {
@@ -294,6 +374,40 @@ describe('useTransactionCrud', () => {
 		expect(result.current.addingMode).toBe('transaction');
 		expect(result.current.transactionAmount).toBe('500');
 		expect(result.current.paymentMethodId).toBe('2');
+	});
+
+	it('prefills receiptNumber and categoryId when editing a transaction that has them', async () => {
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.handleEditTransaction({
+				id: 8,
+				receipt_number: 'B-0002',
+				category_id: 2,
+			} as any);
+		});
+
+		expect(result.current.receiptNumber).toBe('B-0002');
+		expect(result.current.categoryId).toBe('2');
+	});
+
+	it('prefills receiptNumber and categoryId as empty when editing a transaction without them', async () => {
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.handleEditTransaction({ id: 9 } as any);
+		});
+
+		expect(result.current.receiptNumber).toBe('');
+		expect(result.current.categoryId).toBe('');
 	});
 
 	it('preselects the payment method by exact name match when the legacy row has no payment_method_id', async () => {
@@ -354,6 +468,88 @@ describe('useTransactionCrud', () => {
 		expect(result.current.isSavingTransaction).toBe(false);
 	});
 
+	it('sends receipt_number, category_id and work_id when updating with those fields set', async () => {
+		(updateTransaction as jest.Mock).mockResolvedValue({ data: { id: 5 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setEditingTransaction({ id: 5 } as any);
+			result.current.setTransactionAmount('500');
+			result.current.setReceiptNumber('  C-0003  ');
+			result.current.setCategoryId('2');
+		});
+
+		await act(async () => {
+			await result.current.handleUpdateTransaction();
+		});
+
+		expect(updateTransaction).toHaveBeenCalledWith(
+			5,
+			expect.objectContaining({
+				receipt_number: 'C-0003',
+				category_id: 2,
+				work_id: 42,
+			})
+		);
+	});
+
+	it('sends null receipt_number when updating with a whitespace-only value', async () => {
+		(updateTransaction as jest.Mock).mockResolvedValue({ data: { id: 5 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setEditingTransaction({ id: 5 } as any);
+			result.current.setTransactionAmount('500');
+			result.current.setReceiptNumber('   ');
+		});
+
+		await act(async () => {
+			await result.current.handleUpdateTransaction();
+		});
+
+		expect(updateTransaction).toHaveBeenCalledWith(
+			5,
+			expect.objectContaining({ receipt_number: null })
+		);
+	});
+
+	it('sends null receipt_number and category_id when updating with those fields empty', async () => {
+		(updateTransaction as jest.Mock).mockResolvedValue({ data: { id: 5 }, error: null });
+
+		const { result } = renderHook(() =>
+			useTransactionCrud(mockBalance, true, mockUploadFiles, mockOnTransactionCreated)
+		);
+
+		await act(async () => {});
+
+		act(() => {
+			result.current.setEditingTransaction({ id: 5 } as any);
+			result.current.setTransactionAmount('500');
+		});
+
+		await act(async () => {
+			await result.current.handleUpdateTransaction();
+		});
+
+		expect(updateTransaction).toHaveBeenCalledWith(
+			5,
+			expect.objectContaining({
+				receipt_number: null,
+				category_id: null,
+			})
+		);
+	});
+
 	it('uploads files on update when files are present', async () => {
 		(updateTransaction as jest.Mock).mockResolvedValue({ data: { id: 5 }, error: null });
 
@@ -386,6 +582,8 @@ describe('useTransactionCrud', () => {
 			result.current.setAddingMode('transaction');
 			result.current.setEditingTransaction({ id: 5 } as any);
 			result.current.setTransactionFilesToUpload([new File([''], 't.pdf')]);
+			result.current.setReceiptNumber('A-0001');
+			result.current.setCategoryId('1');
 		});
 
 		act(() => {
@@ -396,15 +594,13 @@ describe('useTransactionCrud', () => {
 		expect(result.current.addingMode).toBeNull();
 		expect(result.current.editingTransaction).toBeNull();
 		expect(result.current.transactionFilesToUpload).toEqual([]);
+		expect(result.current.receiptNumber).toBe('');
+		expect(result.current.categoryId).toBe('');
 	});
 
-	it('computes totalPaid and totalPaidUSD from all transactions', async () => {
+	it('computes totalPaid from all transactions', async () => {
 		(getTransactionsByBalanceId as jest.Mock).mockResolvedValue({
-			data: [
-				{ amount: 1000, usd_amount: 50 },
-				{ amount: 2000, usd_amount: 100 },
-				{ amount: 500, usd_amount: 25 },
-			],
+			data: [{ amount: 1000 }, { amount: 2000 }, { amount: 500 }],
 			error: null,
 		});
 
@@ -415,7 +611,6 @@ describe('useTransactionCrud', () => {
 		await act(async () => {});
 
 		expect(result.current.totalPaid).toBe(3500);
-		expect(result.current.totalPaidUSD).toBe(175);
 	});
 
 	describe('loading and refetch behavior', () => {
@@ -452,7 +647,6 @@ describe('useTransactionCrud', () => {
 
 			act(() => {
 				result.current.setTransactionAmount('500');
-				result.current.setQuoteUsd('1000');
 			});
 
 			// 2nd load: inside handleAddTransaction, required by detectSettledTransition.
@@ -497,7 +691,7 @@ describe('useTransactionCrud', () => {
 			expect(result.current.isInitialLoading).toBe(true);
 
 			await act(async () => {
-				resolveLoad({ data: [{ id: 1, amount: 500, usd_amount: 5 }], error: null });
+				resolveLoad({ data: [{ id: 1, amount: 500 }], error: null });
 			});
 
 			expect(result.current.isInitialLoading).toBe(false);

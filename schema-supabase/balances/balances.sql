@@ -81,8 +81,6 @@ create table public.balance_transactions (
   balance_id bigint null,
   date date null,
   amount numeric null,
-  quote_usd numeric null,
-  usd_amount numeric null,
   notes text null,
   payment_method character varying null,
   bank_account_id bigint null,
@@ -222,3 +220,8 @@ where bt.payment_method_id is null
     when 'dollar' then 'Dólar'
     when 'other' then 'Otro'
   end;
+
+------ RUN PRODUCTION: drop quote_usd and usd_amount  ------
+
+ALTER TABLE public.balance_transactions DROP COLUMN IF EXISTS quote_usd;
+ALTER TABLE public.balance_transactions DROP COLUMN IF EXISTS usd_amount;

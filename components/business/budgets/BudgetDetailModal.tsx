@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import {
 	Dialog,
 	DialogContent,
@@ -146,26 +148,30 @@ export function BudgetDetailModal({
 						<Button variant="outline" onClick={onClose}>
 							Cerrar
 						</Button>
-						<Button
-							variant="outline"
-							onClick={() => onEdit(budget)}
-							className="gap-2"
-							disabled={isLoading}
-						>
-							<Edit className="h-4 w-4" />
-							Editar
-						</Button>
-						{!budget.accepted && (
+						<EditOnly edit="clients.budgets">
 							<Button
-								onClick={() => {
-									onChooseBudget(budget.id);
-									onClose();
-								}}
+								variant="outline"
+								onClick={() => onEdit(budget)}
 								className="gap-2"
+								disabled={isLoading}
 							>
-								<CheckCircle className="h-4 w-4" />
-								Elegir
+								<Edit className="h-4 w-4" />
+								Editar
 							</Button>
+						</EditOnly>
+						{!budget.accepted && (
+							<EditOnly edit="clients.budgets">
+								<Button
+									onClick={() => {
+										onChooseBudget(budget.id);
+										onClose();
+									}}
+									className="gap-2"
+								>
+									<CheckCircle className="h-4 w-4" />
+									Elegir
+								</Button>
+							</EditOnly>
 						)}
 					</div>
 				</div>

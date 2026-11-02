@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Client } from '@/lib/clients/clients';
 import { deleteClientFile, ClientFileRecord, listClientFiles } from '@/lib/clients/files';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,6 @@ import {
 import { isSkpFileName } from '@/utils/skp-thumbnail';
 import { SkpThumbnail } from '@/components/ui/skp-thumbnail';
 import { useAuth } from '@/components/provider/auth-provider';
-import { isAdminRole } from '@/constants/users/user-role';
 
 interface ClientFilesProps {
 	client: Client;
@@ -58,7 +58,7 @@ export function ClientImagesGallery({ client }: ClientFilesProps) {
 	const [filesForMultiUpload, setFilesForMultiUpload] = useState<File[]>([]);
 
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('clients.images');
 
 	useEffect(() => {
 		loadFiles();

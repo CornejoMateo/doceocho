@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -80,10 +81,12 @@ export function IncomeExpenseFilters({
 				)}
 			</Button>
 
-			<Button onClick={onAdd} className="gap-2">
-				<Plus className="h-4 w-4" />
-				{addLabel}
-			</Button>
+			<EditOnly edit="cash-flow">
+				<Button onClick={onAdd} className="gap-2">
+					<Plus className="h-4 w-4" />
+					{addLabel}
+				</Button>
+			</EditOnly>
 
 			<IncomeExpenseFilterDialog
 				open={filterDialogOpen}

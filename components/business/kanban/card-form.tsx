@@ -1,5 +1,6 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -24,7 +25,6 @@ import Link from 'next/link';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CardLinksFields, type CardLinks } from '@/components/business/kanban/card-links-fields';
 import { formatCardClientName, formatCardWorkName } from '@/helpers/kanban/card-links';
-import { isAdminRole } from '@/constants/users/user-role';
 
 export interface CardFormHandle {
 	requestClose: () => void;
@@ -47,7 +47,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 	ref
 ) {
 	const { user } = useAuth();
-	const isAuthorized = isAdminRole(user?.role);
+	const isAuthorized = useScopedCanEdit('kanban');
 
 	const [title, setTitle] = useState('');
 	const [description, setDescription] = useState('');

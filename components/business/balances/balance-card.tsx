@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Trash2, StickyNote } from 'lucide-react';
@@ -10,11 +12,9 @@ import { BalanceWithBudget } from '@/lib/balances/balances';
 interface BalanceCardProps {
 	balance: BalanceWithBudget & {
 		totalPaid?: number;
-		totalPaidUSD?: number;
 	};
 	summary: BalanceSummary;
 	onCardClick: () => void;
-	onDollarUpdate: () => void;
 	onDeleteClick: () => void;
 }
 
@@ -24,17 +24,19 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 			className="hover:shadow-md transition-shadow cursor-pointer relative"
 			onClick={onCardClick}
 		>
-			<Button
-				variant="ghost"
-				size="icon"
-				className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
-				onClick={(e) => {
-					e.stopPropagation();
-					onDeleteClick();
-				}}
-			>
-				<Trash2 className="h-4 w-4" />
-			</Button>
+			<EditOnly edit="clients.balances">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="absolute top-2 right-2 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 z-10"
+					onClick={(e) => {
+						e.stopPropagation();
+						onDeleteClick();
+					}}
+				>
+					<Trash2 className="h-4 w-4" />
+				</Button>
+			</EditOnly>
 			<CardContent className="pt-6">
 				<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 					<div className="flex-1 min-w-0">
@@ -88,11 +90,6 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 									<p className="text-xs sm:text-sm font-bold text-green-600 truncate">
 										{formatCurrency(balance.totalPaid || 0)}
 									</p>
-									{balance.contract_date_usd && (
-										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.totalPaidUsd)}
-										</p>
-									)}
 								</div>
 							</div>
 							<div className="flex flex-col">
@@ -101,11 +98,6 @@ export function BalanceCard({ balance, summary, onCardClick, onDeleteClick }: Ba
 									<p className="text-xs sm:text-sm font-bold text-orange-600 truncate">
 										{formatCurrency(summary.remainingArs)}
 									</p>
-									{balance.contract_date_usd && (
-										<p className="text-[9px] sm:text-xs text-muted-foreground truncate">
-											{formatCurrencyUSD(summary.remainingUsd)}
-										</p>
-									)}
 								</div>
 							</div>
 						</div>

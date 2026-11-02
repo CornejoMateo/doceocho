@@ -2,6 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { WorkCard } from '@/components/business/works/work-card';
 import { WorkWithProgress } from '@/lib/works/works';
 
+// Whether the user can edit works decides the action buttons; each test sets it.
+const mockCanEdit = jest.fn((_key: string) => true);
+jest.mock('@/hooks/permissions/use-can-edit', () => ({
+	useCanEdit: () => mockCanEdit,
+}));
+
 jest.mock('@/lib/error-translator', () => ({
 	translateError: (e: any) => `translated: ${e?.message || e}`,
 }));
@@ -62,6 +68,7 @@ describe('WorkCard', () => {
 	const onUpdateGeneralNote = jest.fn();
 
 	beforeEach(() => {
+		mockCanEdit.mockReturnValue(true);
 		jest.clearAllMocks();
 	});
 
@@ -155,7 +162,8 @@ describe('WorkCard', () => {
 		expect(screen.getByText('Agregar checklists')).toBeInTheDocument();
 	});
 
-	it('hides "Agregar checklists" for non-admin users', () => {
+	it('hides "Agregar checklists" for users who cannot edit works', () => {
+		mockCanEdit.mockReturnValue(false);
 		render(
 			<WorkCard
 				work={baseWork}
@@ -186,7 +194,8 @@ describe('WorkCard', () => {
 		expect(screen.getByText('WhatsApp')).toBeInTheDocument();
 	});
 
-	it('hides email and whatsapp buttons for non-admin users', () => {
+	it('hides email and whatsapp buttons for users who cannot edit works', () => {
+		mockCanEdit.mockReturnValue(false);
 		render(
 			<WorkCard
 				work={baseWork}

@@ -251,27 +251,49 @@ describe('lib/expenses', () => {
 	});
 
 	describe('deleteExpense', () => {
-		it('succeeds when the row was actually deleted', async () => {
-			setup({ data: [{ id: 5 }] });
+		function setupDelete(opts: { rpcData?: string[] | null; rpcError?: any; storageError?: any }) {
+			const rpc = jest
+				.fn()
+				.mockResolvedValue({ data: opts.rpcData ?? [], error: opts.rpcError ?? null });
+			const remove = jest.fn().mockResolvedValue({ error: opts.storageError ?? null });
+			const storageFrom = jest.fn(() => ({ remove }));
+			(getSupabaseClient as jest.Mock).mockReturnValue({ rpc, storage: { from: storageFrom } });
+			return { rpc, remove, storageFrom };
+		}
+
+		it('is RPC-first: calls delete_purchase_supplier with the expense id', async () => {
+			const { rpc } = setupDelete({ rpcData: [] });
 
 			expect(await deleteExpense(5)).toEqual({ error: null });
+			expect(rpc).toHaveBeenCalledWith('delete_purchase_supplier', { p_id: 5 });
 		});
 
-		it('returns a blocked-by-RLS error when no row comes back (not found or no permission)', async () => {
-			setup({ data: [] });
+		it('returns the RPC error immediately without touching storage', async () => {
+			const err = { message: 'No se pudo eliminar el gasto (no existe o no tenés permisos)' };
+			const { remove } = setupDelete({ rpcError: err });
+
+			expect(await deleteExpense(5)).toEqual({ error: err });
+			expect(remove).not.toHaveBeenCalled();
+		});
+
+		it('removes every returned storage path in the suppliers-files bucket', async () => {
+			const { remove, storageFrom } = setupDelete({
+				rpcData: ['expenses/5/a.pdf', 'payments/9/b.pdf'],
+			});
+
+			await deleteExpense(5);
+
+			expect(storageFrom).toHaveBeenCalledWith('suppliers-files');
+			expect(remove).toHaveBeenCalledWith(['expenses/5/a.pdf', 'payments/9/b.pdf']);
+		});
+
+		it('reports orphaned paths as a non-blocking warning when storage removal fails', async () => {
+			setupDelete({ rpcData: ['expenses/5/a.pdf'], storageError: { message: 'boom' } });
 
 			const res = await deleteExpense(5);
 
-			expect(res.error).toEqual({
-				message: 'No se pudo eliminar el gasto (no existe o no tenés permisos)',
-			});
-		});
-
-		it('passes Supabase errors through instead of the RLS guard message', async () => {
-			const err = { code: '42501', message: 'permission denied' };
-			setup({ error: err });
-
-			expect(await deleteExpense(5)).toEqual({ error: err });
+			expect(res.error).toBeNull();
+			expect(res.orphanedPaths).toEqual(['expenses/5/a.pdf']);
 		});
 	});
 });

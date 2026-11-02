@@ -11,19 +11,25 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency, formatCurrencyWithoutSymbol, formatNumber } from '@/utils/formats-money';
-import type { PurchaseSupplierWithBalance } from '@/lib/suppliers/purchases-suppliers';
-import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
+import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
+import type { PaymentWithDetails } from '@/lib/payments/payments';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
-import { NO_BANK_ACCOUNT, NO_PAYMENT_METHOD } from '@/hooks/suppliers/use-purchase-payment-forms';
+import type { CashFlowCategory } from '@/lib/categories/categories';
 import {
-	SupplierFileAttachments,
+	NO_BANK_ACCOUNT,
+	NO_PAYMENT_METHOD,
+	NO_CATEGORY,
+} from '@/hooks/suppliers/use-purchase-payment-forms';
+import { withInactiveSelected } from '@/utils/select-options';
+import {
+	FileAttachments,
 	type StagedFile,
-} from '@/components/business/suppliers/supplier-file-attachments';
+} from '@/components/business/shared/attachments/file-attachments';
 
 interface PaymentFormProps {
-	editingPayment: PaymentSupplier | null;
-	activePurchaseForPayment: PurchaseSupplierWithBalance | null;
+	editingPayment: PaymentWithDetails | null;
+	activePurchaseForPayment: SupplierExpenseListItem | null;
 	paymentAmount: string;
 	onAmountChange: (value: string) => void;
 	paymentDate: string;
@@ -32,12 +38,20 @@ interface PaymentFormProps {
 	paymentExceedsBalance: boolean;
 	paymentBankAccountId: string;
 	onBankAccountChange: (value: string) => void;
+	bankAccounts: BankAccount[];
 	activeBankAccounts: BankAccount[];
 	paymentMethodIdValue: string;
 	onPaymentMethodChange: (value: string) => void;
+	paymentMethods: PaymentMethod[];
 	activePaymentMethods: PaymentMethod[];
-	paymentNotes: string;
-	onNotesChange: (value: string) => void;
+	paymentReceiptNumber: string;
+	onReceiptNumberChange: (value: string) => void;
+	paymentCategoryId: string;
+	onCategoryIdChange: (value: string) => void;
+	paymentCategories: CashFlowCategory[];
+	activePaymentCategories: CashFlowCategory[];
+	paymentDescription: string;
+	onDescriptionChange: (value: string) => void;
 	isSubmitting: boolean;
 	stagedFiles: StagedFile[];
 	onStagedChange: (files: StagedFile[]) => void;
@@ -56,18 +70,45 @@ export function PaymentForm({
 	paymentExceedsBalance,
 	paymentBankAccountId,
 	onBankAccountChange,
+	bankAccounts,
 	activeBankAccounts,
 	paymentMethodIdValue,
 	onPaymentMethodChange,
+	paymentMethods,
 	activePaymentMethods,
-	paymentNotes,
-	onNotesChange,
+	paymentReceiptNumber,
+	onReceiptNumberChange,
+	paymentCategoryId,
+	onCategoryIdChange,
+	paymentCategories,
+	activePaymentCategories,
+	paymentDescription,
+	onDescriptionChange,
 	isSubmitting,
 	stagedFiles,
 	onStagedChange,
 	onSubmit,
 	onCancel,
 }: PaymentFormProps) {
+	const categoryOptions = withInactiveSelected(
+		activePaymentCategories,
+		paymentCategories,
+		paymentCategoryId,
+		!!editingPayment
+	);
+
+	const bankAccountOptions = withInactiveSelected(
+		activeBankAccounts,
+		bankAccounts,
+		paymentBankAccountId,
+		!!editingPayment
+	);
+	const paymentMethodOptions = withInactiveSelected(
+		activePaymentMethods,
+		paymentMethods,
+		paymentMethodIdValue,
+		!!editingPayment
+	);
 	return (
 		<>
 			<DialogHeader>
@@ -76,11 +117,13 @@ export function PaymentForm({
 					{editingPayment
 						? 'Modifica los datos del pago'
 						: `Registra un pago para la compra de ${
-								activePurchaseForPayment ? formatCurrency(activePurchaseForPayment.amount_ars) : ''
+								activePurchaseForPayment
+									? formatCurrency(activePurchaseForPayment.total_amount)
+									: ''
 							}`}
 				</DialogDescription>
 			</DialogHeader>
-			<form onSubmit={onSubmit} className="space-y-4">
+			<form onSubmit={onSubmit} className="min-w-0 space-y-4">
 				<div className="space-y-2">
 					<Label htmlFor="payment-date">Fecha de pago</Label>
 					<Input
@@ -134,9 +177,10 @@ export function PaymentForm({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value={NO_BANK_ACCOUNT}>Sin cuenta</SelectItem>
-							{activeBankAccounts.map((account) => (
+							{bankAccountOptions.map((account) => (
 								<SelectItem key={account.id} value={String(account.id)}>
 									{account.bank} - {account.name}
+									{!account.is_active && ' (inactiva)'}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -151,9 +195,10 @@ export function PaymentForm({
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value={NO_PAYMENT_METHOD}>Sin método</SelectItem>
-							{activePaymentMethods.map((method) => (
+							{paymentMethodOptions.map((method) => (
 								<SelectItem key={method.id} value={String(method.id)}>
 									{method.name}
+									{!method.is_active && ' (inactivo)'}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -161,20 +206,52 @@ export function PaymentForm({
 				</div>
 
 				<div className="space-y-2">
-					<Label htmlFor="payment-notes">Notas (opcional)</Label>
+					<Label htmlFor="payment-receipt-number">N° comprobante (opcional)</Label>
+					<Input
+						id="payment-receipt-number"
+						value={paymentReceiptNumber}
+						onChange={(e) => onReceiptNumberChange(e.target.value)}
+						maxLength={60}
+					/>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="payment-category">Categoría (opcional)</Label>
+					<Select
+						value={paymentCategoryId}
+						onValueChange={(v) => onCategoryIdChange(v === NO_CATEGORY ? NO_CATEGORY : v)}
+					>
+						<SelectTrigger id="payment-category">
+							<SelectValue placeholder="Selecciona una categoría" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value={NO_CATEGORY}>Sin categoría</SelectItem>
+							{categoryOptions.map((category) => (
+								<SelectItem key={category.id} value={String(category.id)}>
+									{category.name}
+									{!category.is_active && ' (inactivo)'}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+
+				<div className="space-y-2">
+					<Label htmlFor="payment-description">Detalle (opcional)</Label>
 					<Textarea
-						id="payment-notes"
-						value={paymentNotes}
-						onChange={(e) => onNotesChange(e.target.value)}
+						id="payment-description"
+						value={paymentDescription}
+						onChange={(e) => onDescriptionChange(e.target.value)}
 						maxLength={2000}
 					/>
 				</div>
 
-				<SupplierFileAttachments
+				<FileAttachments
 					kind="payment"
 					entityId={editingPayment?.id}
 					staged={stagedFiles}
 					onStagedChange={onStagedChange}
+					editKey="cash-flow.suppliers"
 				/>
 
 				<div className="flex gap-2">

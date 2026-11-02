@@ -1,4 +1,15 @@
-import { getNavigationForRole, isRouteAllowedForRole } from '@/constants/navigation/navigation';
+import {
+	getHomeRoute,
+	getNavigationForViews,
+	isRouteAllowedForViews,
+} from '@/constants/navigation/navigation';
+import { getDefaultViews } from '@/helpers/permissions/views';
+import type { UserRole } from '@/constants/users/user-role';
+
+const isRouteAllowedForRole = (href: string, role: UserRole | undefined) =>
+	isRouteAllowedForViews(href, getDefaultViews(role));
+const getNavigationForRole = (role: UserRole | undefined) =>
+	getNavigationForViews(getDefaultViews(role));
 
 describe('constants/navigation', () => {
 	describe('isRouteAllowedForRole', () => {
@@ -57,6 +68,23 @@ describe('constants/navigation', () => {
 
 		test('no role means an empty menu', () => {
 			expect(getNavigationForRole(undefined)).toEqual([]);
+		});
+	});
+
+	describe('custom views', () => {
+		test('a taller user granted cash flow can open it', () => {
+			const views = [...getDefaultViews('Taller'), 'cash-flow'];
+
+			expect(isRouteAllowedForViews('/cash-flow', views)).toBe(true);
+		});
+
+		test('an admin without the panel lands on the first module they can open', () => {
+			expect(getHomeRoute('Admin', ['clients', 'works'])).toBe('/clients');
+			expect(getHomeRoute('Admin', getDefaultViews('Admin'))).toBe('/');
+		});
+
+		test('no views means nowhere to land', () => {
+			expect(getHomeRoute('Taller', [])).toBeNull();
 		});
 	});
 });

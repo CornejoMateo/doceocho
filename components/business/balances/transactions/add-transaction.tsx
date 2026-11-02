@@ -1,3 +1,4 @@
+import { EditOnly } from '@/components/permissions/edit-scope';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Plus, Calendar as CalendarIcon, Upload, X, FileText } from 'lucide-react';
@@ -18,9 +19,12 @@ import { formatNumber } from '@/utils/formats-money';
 import { BalanceTransaction } from '@/lib/balances/balance_transactions';
 import { formatFileSize } from '@/utils/file-upload-utils';
 import { PaymentMethod } from '@/lib/payment-methods/payment-methods';
+import { CashFlowCategory } from '@/lib/categories/categories';
 import { useCallback } from 'react';
 import { BankAccount, listActiveBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
+
+const NO_CATEGORY = '__none__';
 
 interface AddTransactionSectionProps {
 	addingMode: 'transaction' | null;
@@ -28,10 +32,6 @@ interface AddTransactionSectionProps {
 	onTransactionDateChange: (date: Date) => void;
 	transactionAmount: string;
 	onTransactionAmountChange: (value: string) => void;
-	usdAmount: string;
-	onUsdAmountChange: (value: string) => void;
-	quoteUsd: string;
-	onQuoteUsdChange: (value: string) => void;
 	notes: string;
 	onNotesChange: (value: string) => void;
 	paymentMethodId: string;
@@ -39,6 +39,11 @@ interface AddTransactionSectionProps {
 	paymentMethodOptions: PaymentMethod[];
 	onBankAccountIdChange: (value: string) => void;
 	bankAccountId: string;
+	receiptNumber: string;
+	onReceiptNumberChange: (value: string) => void;
+	categoryId: string;
+	onCategoryIdChange: (value: string) => void;
+	categoryOptions: CashFlowCategory[];
 	onCancel: () => void;
 	onSave: () => void;
 	onStartAddTransaction: () => void;
@@ -55,10 +60,6 @@ export function AddTransactionSection({
 	onTransactionDateChange,
 	transactionAmount,
 	onTransactionAmountChange,
-	usdAmount,
-	onUsdAmountChange,
-	quoteUsd,
-	onQuoteUsdChange,
 	notes,
 	onNotesChange,
 	paymentMethodId,
@@ -66,6 +67,11 @@ export function AddTransactionSection({
 	paymentMethodOptions,
 	onBankAccountIdChange,
 	bankAccountId,
+	receiptNumber,
+	onReceiptNumberChange,
+	categoryId,
+	onCategoryIdChange,
+	categoryOptions,
 	onCancel,
 	onSave,
 	onStartAddTransaction,
@@ -95,15 +101,17 @@ export function AddTransactionSection({
 	if (!addingMode) {
 		return (
 			<div className="flex flex-col sm:flex-row gap-2 justify-center items-center">
-				<Button
-					variant="outline"
-					size="sm"
-					className="w-60 items-center flex justify-center"
-					onClick={onStartAddTransaction}
-				>
-					<Plus className="h-4 w-4 mr-2" />
-					Agregar transacción
-				</Button>
+				<EditOnly edit="clients.balances">
+					<Button
+						variant="outline"
+						size="sm"
+						className="w-60 items-center flex justify-center"
+						onClick={onStartAddTransaction}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Agregar transacción
+					</Button>
+				</EditOnly>
 			</div>
 		);
 	}
@@ -165,26 +173,6 @@ export function AddTransactionSection({
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div className="space-y-2">
-					<Label htmlFor="quote-usd">Cotización USD</Label>
-					<Input
-						id="quote-usd"
-						type="text"
-						value={quoteUsd}
-						onChange={(e) => onQuoteUsdChange(formatNumber(e.target.value))}
-					/>
-				</div>
-				<div className="space-y-2">
-					<Label htmlFor="usd-amount">Monto en USD</Label>
-					<Input
-						id="usd-amount"
-						type="text"
-						value={usdAmount}
-						onChange={(e) => onUsdAmountChange(formatNumber(e.target.value))}
-					/>
-				</div>
-			</div>
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-				<div className="space-y-2">
 					<div className="space-y-2">
 						<Label htmlFor="payment-method">Método de pago</Label>
 						<Select value={paymentMethodId} onValueChange={onPaymentMethodIdChange}>
@@ -216,6 +204,38 @@ export function AddTransactionSection({
 							{bankAccounts.map((account) => (
 								<SelectItem key={account.id} value={String(account.id)}>
 									{account.bank} - {account.name} ({account.account_number})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			</div>
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div className="space-y-2">
+					<Label htmlFor="receipt-number">N° comprobante/recibo</Label>
+					<Input
+						id="receipt-number"
+						type="text"
+						value={receiptNumber}
+						onChange={(e) => onReceiptNumberChange(e.target.value)}
+						maxLength={60}
+					/>
+				</div>
+				<div className="space-y-2">
+					<Label htmlFor="category">Categoría (opcional)</Label>
+					<Select
+						value={categoryId || NO_CATEGORY}
+						onValueChange={(v) => onCategoryIdChange(v === NO_CATEGORY ? '' : v)}
+					>
+						<SelectTrigger id="category">
+							<SelectValue placeholder="Sin categoría" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value={NO_CATEGORY}>Sin categoría</SelectItem>
+							{categoryOptions.map((category) => (
+								<SelectItem key={category.id} value={String(category.id)}>
+									{category.name}
+									{!category.is_active && ' (inactivo)'}
 								</SelectItem>
 							))}
 						</SelectContent>

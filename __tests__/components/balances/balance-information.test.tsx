@@ -46,9 +46,7 @@ const mockSummary = {
 	type: 'A favor del cliente',
 	budgetUsd: 5000,
 	budgetArsCurrent: 100000,
-	totalPaidUsd: 2000,
 	remainingArs: 50000,
-	remainingUsd: 2500,
 	progressPercentage: 50,
 	budgetArsInitial: 100000,
 	totalPaidArs: 50000,
@@ -66,7 +64,6 @@ describe('BalanceInformation', () => {
 		contractDateUsd: 1000,
 		usdCurrent: 1050,
 		totalPaid: 50000,
-		totalPaidUsd: 2000,
 		summary: mockSummary,
 		formatDate,
 		onUpdated,
@@ -101,7 +98,6 @@ describe('BalanceInformation', () => {
 		expect(screen.getByText('$100000')).toBeInTheDocument();
 		expect(screen.getByText('USD 5000')).toBeInTheDocument();
 		expect(screen.getAllByText('$50000')).toHaveLength(2);
-		expect(screen.getByText('USD 2000')).toBeInTheDocument();
 	});
 
 	it('renders USD values when contractDateUsd is provided', () => {

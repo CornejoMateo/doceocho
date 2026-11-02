@@ -1,5 +1,8 @@
 'use client';
 
+import { useScopedCanEdit } from '@/components/permissions/edit-scope';
+import { useCanView } from '@/hooks/permissions/use-can-view';
+
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { PaginationControls } from '@/components/ui/pagination-controls';
@@ -36,7 +39,6 @@ import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/components/provider/auth-provider';
 import { translateError } from '@/lib/error-translator';
 import { useClientBudgetsInfo } from '@/hooks/clients/use-client-budgets-info';
 import { paginateAndFilter } from '@/utils/pagination';
@@ -46,8 +48,8 @@ export function ClientManagement() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const { toast } = useToast();
-	const { user } = useAuth();
-	const notIsAuthorized = user?.role === 'Taller';
+	const notIsAuthorized = !useScopedCanEdit('clients');
+	const canView = useCanView();
 
 	const {
 		data: clients,
@@ -392,7 +394,7 @@ export function ClientManagement() {
 										</div>
 
 										{/* Budget information */}
-										{!notIsAuthorized && (
+										{canView('clients.budgets') && (
 											<div className="border-t pt-3 mt-3">
 												<div className="flex items-center justify-between text-xs">
 													<div className="flex items-center gap-1">

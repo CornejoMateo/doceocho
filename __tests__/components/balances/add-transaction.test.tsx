@@ -35,16 +35,17 @@ const mockPaymentMethodOptions = [
 	{ id: 2, created_at: '2024-01-01', name: 'Transferencia Bancaria', is_active: true },
 ];
 
+const mockCategoryOptions = [
+	{ id: 1, created_at: '2024-01-01', name: 'Alquiler', kind: 'collection', is_active: true },
+	{ id: 2, created_at: '2024-01-01', name: 'Materiales', kind: 'collection', is_active: true },
+];
+
 const defaultProps = {
 	addingMode: null as 'transaction' | null,
 	transactionDate: new Date('2024-06-15'),
 	onTransactionDateChange: jest.fn(),
 	transactionAmount: '',
 	onTransactionAmountChange: jest.fn(),
-	usdAmount: '',
-	onUsdAmountChange: jest.fn(),
-	quoteUsd: '',
-	onQuoteUsdChange: jest.fn(),
 	notes: '',
 	onNotesChange: jest.fn(),
 	paymentMethodId: '',
@@ -52,6 +53,11 @@ const defaultProps = {
 	paymentMethodOptions: mockPaymentMethodOptions,
 	bankAccountId: '',
 	onBankAccountIdChange: jest.fn(),
+	receiptNumber: '',
+	onReceiptNumberChange: jest.fn(),
+	categoryId: '',
+	onCategoryIdChange: jest.fn(),
+	categoryOptions: mockCategoryOptions as any,
 	onCancel: jest.fn(),
 	onSave: jest.fn(),
 	onStartAddTransaction: jest.fn(),
@@ -217,36 +223,6 @@ describe('AddTransactionSection', () => {
 		expect(onTransactionAmountChange).toHaveBeenCalledWith('500');
 	});
 
-	it('calls onUsdAmountChange when usd input changes', () => {
-		const onUsdAmountChange = jest.fn();
-		render(
-			<AddTransactionSection
-				{...defaultProps}
-				addingMode="transaction"
-				onUsdAmountChange={onUsdAmountChange}
-			/>
-		);
-
-		const usdInput = screen.getByLabelText('Monto en USD');
-		fireEvent.change(usdInput, { target: { value: '100' } });
-		expect(onUsdAmountChange).toHaveBeenCalledWith('100');
-	});
-
-	it('calls onQuoteUsdChange when quote input changes', () => {
-		const onQuoteUsdChange = jest.fn();
-		render(
-			<AddTransactionSection
-				{...defaultProps}
-				addingMode="transaction"
-				onQuoteUsdChange={onQuoteUsdChange}
-			/>
-		);
-
-		const quoteInput = screen.getByLabelText('Cotización USD');
-		fireEvent.change(quoteInput, { target: { value: '1000' } });
-		expect(onQuoteUsdChange).toHaveBeenCalledWith('1.000');
-	});
-
 	it('calls onNotesChange when notes input changes', () => {
 		const onNotesChange = jest.fn();
 		render(
@@ -302,6 +278,89 @@ describe('AddTransactionSection', () => {
 			fireEvent.click(screen.getByText('Seleccionar método'));
 
 			expect(screen.getByText('Cheque físico (inactivo)')).toBeInTheDocument();
+		});
+	});
+
+	it('calls onReceiptNumberChange when receipt number input changes', () => {
+		const onReceiptNumberChange = jest.fn();
+		render(
+			<AddTransactionSection
+				{...defaultProps}
+				addingMode="transaction"
+				onReceiptNumberChange={onReceiptNumberChange}
+			/>
+		);
+
+		const receiptInput = screen.getByLabelText('N° comprobante/recibo');
+		fireEvent.change(receiptInput, { target: { value: 'A-0001' } });
+		expect(onReceiptNumberChange).toHaveBeenCalledWith('A-0001');
+	});
+
+	describe('category selection', () => {
+		it('renders category options from props', () => {
+			render(<AddTransactionSection {...defaultProps} addingMode="transaction" />);
+
+			fireEvent.click(screen.getByText('Sin categoría'));
+
+			expect(screen.getByText('Alquiler')).toBeInTheDocument();
+			expect(screen.getByText('Materiales')).toBeInTheDocument();
+		});
+
+		it('calls onCategoryIdChange when a category is selected', () => {
+			const onCategoryIdChange = jest.fn();
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					onCategoryIdChange={onCategoryIdChange}
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Sin categoría'));
+			fireEvent.click(screen.getByText('Alquiler'));
+
+			expect(onCategoryIdChange).toHaveBeenCalledWith('1');
+		});
+
+		it('calls onCategoryIdChange with empty string when "Sin categoría" is selected', () => {
+			const onCategoryIdChange = jest.fn();
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					categoryId="1"
+					onCategoryIdChange={onCategoryIdChange}
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Alquiler'));
+			fireEvent.click(screen.getByText('Sin categoría'));
+
+			expect(onCategoryIdChange).toHaveBeenCalledWith('');
+		});
+
+		it('marks inactive categories in the label', () => {
+			render(
+				<AddTransactionSection
+					{...defaultProps}
+					addingMode="transaction"
+					categoryOptions={
+						[
+							{
+								id: 3,
+								created_at: '2024-01-01',
+								name: 'Categoría vieja',
+								kind: 'collection',
+								is_active: false,
+							},
+						] as any
+					}
+				/>
+			);
+
+			fireEvent.click(screen.getByText('Sin categoría'));
+
+			expect(screen.getByText('Categoría vieja (inactivo)')).toBeInTheDocument();
 		});
 	});
 

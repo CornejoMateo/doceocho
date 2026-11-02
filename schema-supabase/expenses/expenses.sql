@@ -26,7 +26,7 @@ create table public.expenses (
   constraint expenses_payment_method_id_fkey foreign key (payment_method_id) references public.payment_methods (id) on delete restrict,
   constraint expenses_bank_account_id_fkey foreign key (bank_account_id) references public.bank_accounts (id) on delete set null,
   constraint expenses_voucher_number_length_check check (voucher_number is null or char_length(voucher_number) <= 60),
-  constraint expenses_description_length_check check (description is null or char_length(description) <= 300),
+  constraint expenses_description_length_check check (description is null or char_length(description) <= 2000),
   constraint expenses_net_amount_check check (net_amount >= 0),
   constraint expenses_net_amount_decimals_check check (net_amount = round(net_amount, 2)),
   constraint expenses_iva_percent_check check (iva_percent in (0, 10.5, 21, 27)),
@@ -67,6 +67,7 @@ execute function public.expenses_compute_iva_and_total();
 
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public select expenses" ON public.expenses;
 CREATE POLICY "Public select expenses"
 ON public.expenses
 FOR SELECT
@@ -80,6 +81,7 @@ USING (
     )
 );
 
+DROP POLICY IF EXISTS "Public insert expenses" ON public.expenses;
 CREATE POLICY "Public insert expenses"
 ON public.expenses
 FOR INSERT
@@ -93,6 +95,7 @@ WITH CHECK (
     )
 );
 
+DROP POLICY IF EXISTS "Public update expenses" ON public.expenses;
 CREATE POLICY "Public update expenses"
 ON public.expenses
 FOR UPDATE
@@ -114,6 +117,7 @@ WITH CHECK (
     )
 );
 
+DROP POLICY IF EXISTS "Public delete expenses" ON public.expenses;
 CREATE POLICY "Public delete expenses"
 ON public.expenses
 FOR DELETE
@@ -165,3 +169,10 @@ ALTER TABLE public.expenses
   ALTER COLUMN voucher_type_id DROP NOT NULL,
   ALTER COLUMN supplier_id DROP NOT NULL,
   ALTER COLUMN category_id DROP NOT NULL;
+
+------ RUN PRODUCTION ------
+
+ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_description_length_check;
+ALTER TABLE public.expenses
+  ADD CONSTRAINT expenses_description_length_check
+  CHECK (description IS NULL OR char_length(description) <= 2000);

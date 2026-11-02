@@ -69,11 +69,8 @@ export function useBalancesReport() {
 
 			const next: BalanceReportRow[] = balances.map((b) => {
 				const totalPaid = totals?.[b.id]?.totalAmount ?? 0;
-				const totalPaidUSD = totals?.[b.id]?.totalAmountUSD ?? 0;
-				const budgetUsd = b.balance_amount_usd ?? 0;
 				const budgetArs = b.balance_amount_ars ?? 0;
 				const remainingArs = normalizeMoney(budgetArs - totalPaid);
-				const remainingUsd = normalizeMoney(budgetUsd - totalPaidUSD);
 
 				const clientName =
 					`${b.client?.last_name ?? ''} ${b.client?.name ?? ''}`.trim() || DEFAULT_FALLBACK;
@@ -111,7 +108,6 @@ export function useBalancesReport() {
 					balanceType,
 					balanceAmountArs: remainingArs,
 					usdContractRef,
-					balanceInUseUsd: remainingUsd,
 				};
 			});
 

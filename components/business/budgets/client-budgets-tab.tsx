@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -186,15 +188,17 @@ export function ClientBudgetsTab({
 						)}
 					</div>
 
-					<Button
-						size="sm"
-						className="w-full sm:w-auto gap-2"
-						disabled={isLoading}
-						onClick={() => setIsCreateOpen(true)}
-					>
-						<Plus className="h-4 w-4 shrink-0" />
-						<span>Nuevo presupuesto</span>
-					</Button>
+					<EditOnly edit="clients.budgets">
+						<Button
+							size="sm"
+							className="w-full sm:w-auto gap-2"
+							disabled={isLoading}
+							onClick={() => setIsCreateOpen(true)}
+						>
+							<Plus className="h-4 w-4 shrink-0" />
+							<span>Nuevo presupuesto</span>
+						</Button>
+					</EditOnly>
 				</div>
 
 				{(loadingFolders || loadingBudgets) && folderBudgets.length === 0 ? (

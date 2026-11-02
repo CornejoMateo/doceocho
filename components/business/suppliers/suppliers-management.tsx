@@ -1,6 +1,9 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCanView } from '@/hooks/permissions/use-can-view';
 import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -36,12 +39,12 @@ import { SupplierDeleteDialog } from '@/components/business/suppliers/supplier-d
 import { SupplierDetailsDialog } from '@/components/business/suppliers/supplier-details-dialog';
 import { normalize as normalizeText } from '@/utils/normalize';
 import { translateError } from '@/lib/error-translator';
-import { isAdminRole } from '@/constants/users/user-role';
 
 export function SuppliersManagement() {
 	const { user, loading: authLoading } = useAuth();
 	const { toast } = useToast();
-	const isAuthorized = isAdminRole(user?.role);
+	// Seeing suppliers needs the view; the action buttons below check the edit permission.
+	const isAuthorized = useCanView()('cash-flow.suppliers');
 	const { suppliers, loading, error, refresh } = useSuppliers(isAuthorized);
 
 	const [search, setSearch] = useState('');
@@ -235,10 +238,12 @@ export function SuppliersManagement() {
 	return (
 		<div className="space-y-4">
 			<div className="flex justify-end">
-				<Button onClick={() => openForm(null)} className="gap-2">
-					<Plus className="h-4 w-4" />
-					Nuevo proveedor
-				</Button>
+				<EditOnly edit="cash-flow.suppliers">
+					<Button onClick={() => openForm(null)} className="gap-2">
+						<Plus className="h-4 w-4" />
+						Nuevo proveedor
+					</Button>
+				</EditOnly>
 			</div>
 
 			<div className="flex flex-col gap-3 sm:flex-row">

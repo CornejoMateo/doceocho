@@ -10,9 +10,7 @@ const mockSummary = {
 	type: 'A favor del cliente',
 	budgetUsd: 5000,
 	budgetArsCurrent: 100000,
-	totalPaidUsd: 2000,
 	remainingArs: 50000,
-	remainingUsd: 2500,
 	progressPercentage: 50,
 	budgetArsInitial: 100000,
 	totalPaidArs: 50000,
@@ -26,7 +24,6 @@ const baseBalance = {
 	contract_date_usd: 950,
 	usd_current: 1000,
 	totalPaid: 50000,
-	totalPaidUSD: 2000,
 	budget: {
 		id: 10,
 		amount_ars: 100000,
@@ -40,7 +37,6 @@ const baseBalance = {
 
 describe('BalanceCard', () => {
 	const onCardClick = jest.fn();
-	const onDollarUpdate = jest.fn();
 	const onDeleteClick = jest.fn();
 
 	beforeEach(() => {
@@ -53,7 +49,6 @@ describe('BalanceCard', () => {
 				balance={baseBalance as any}
 				summary={mockSummary as any}
 				onCardClick={onCardClick}
-				onDollarUpdate={onDollarUpdate}
 				onDeleteClick={onDeleteClick}
 			/>
 		);
@@ -67,7 +62,6 @@ describe('BalanceCard', () => {
 				balance={baseBalance as any}
 				summary={mockSummary as any}
 				onCardClick={onCardClick}
-				onDollarUpdate={onDollarUpdate}
 				onDeleteClick={onDeleteClick}
 			/>
 		);
@@ -75,7 +69,6 @@ describe('BalanceCard', () => {
 		expect(screen.getByText('$100000')).toBeInTheDocument();
 		expect(screen.getByText('USD 5000')).toBeInTheDocument();
 		expect(screen.getAllByText('$50000')).toHaveLength(2);
-		expect(screen.getByText('USD 2000')).toBeInTheDocument();
 	});
 
 	it('renders progress bar when budgetArsCurrent > 0', () => {
@@ -84,7 +77,6 @@ describe('BalanceCard', () => {
 				balance={baseBalance as any}
 				summary={mockSummary as any}
 				onCardClick={onCardClick}
-				onDollarUpdate={onDollarUpdate}
 				onDeleteClick={onDeleteClick}
 			/>
 		);
@@ -99,7 +91,6 @@ describe('BalanceCard', () => {
 				balance={baseBalance as any}
 				summary={mockSummary as any}
 				onCardClick={onCardClick}
-				onDollarUpdate={onDollarUpdate}
 				onDeleteClick={onDeleteClick}
 			/>
 		);
@@ -119,7 +110,6 @@ describe('BalanceCard', () => {
 				balance={balanceWithNotes as any}
 				summary={mockSummary as any}
 				onCardClick={onCardClick}
-				onDollarUpdate={onDollarUpdate}
 				onDeleteClick={onDeleteClick}
 			/>
 		);
@@ -139,7 +129,6 @@ describe('BalanceCard', () => {
 				balance={balanceNoWork as any}
 				summary={mockSummary as any}
 				onCardClick={onCardClick}
-				onDollarUpdate={onDollarUpdate}
 				onDeleteClick={onDeleteClick}
 			/>
 		);

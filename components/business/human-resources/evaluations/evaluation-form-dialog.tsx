@@ -1,5 +1,7 @@
 'use client';
 
+import { EditOnly } from '@/components/permissions/edit-scope';
+
 import React, { useEffect, useState } from 'react';
 import {
 	Dialog,
@@ -177,15 +179,17 @@ export function EvaluationFormDialog({
 
 					<DialogFooter className="gap-2 sm:justify-between">
 						{evaluation ? (
-							<Button
-								type="button"
-								variant="ghost"
-								className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-								onClick={handleDelete}
-								disabled={isBusy}
-							>
-								{isDeleting ? 'Eliminando...' : 'Eliminar'}
-							</Button>
+							<EditOnly edit="employees.evaluaciones">
+								<Button
+									type="button"
+									variant="ghost"
+									className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+									onClick={handleDelete}
+									disabled={isBusy}
+								>
+									{isDeleting ? 'Eliminando...' : 'Eliminar'}
+								</Button>
+							</EditOnly>
 						) : (
 							<span />
 						)}
