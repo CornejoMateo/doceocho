@@ -65,11 +65,11 @@ function sumFixedCosts(rows: FixedCostsMonthlyRow[]): { net: number; iva: number
 export type SummaryCards = {
 	incomeNet: number;
 	expenseNet: number;
-	margin: number;
-	profitability: number; // ratio (margin/income), 0 when income is 0. Multiply by 100 for %.
+	expenseWithIva: number; // gastos + IVA gastos
+	debe: number; // expenseWithIva - pagos
 	collections: number;
 	payments: number;
-	ivaOfMonth: number; // (IVA gastos + IVA costos fijos) - IVA ingresos. Crédito - débito.
+	ivaOfMonth: number;
 };
 
 export function buildSummaryCards(
@@ -82,16 +82,16 @@ export function buildSummaryCards(
 
 	const incomeNet = totals.incomeNet;
 	const expenseNet = roundToTwoDecimals(totals.expenseNet + fixed.net);
-	const margin = roundToTwoDecimals(incomeNet - expenseNet);
-	const profitability = incomeNet === 0 ? 0 : margin / incomeNet;
 	const payments = roundToTwoDecimals(totals.paymentAmount + fixed.total);
 	const ivaOfMonth = roundToTwoDecimals(totals.expenseIva + fixed.iva - totals.incomeIva);
+	const expenseWithIva = roundToTwoDecimals(totals.expenseNet + totals.expenseIva + fixed.total);
+	const debe = roundToTwoDecimals(expenseWithIva - payments);
 
 	return {
 		incomeNet,
 		expenseNet,
-		margin,
-		profitability,
+		expenseWithIva,
+		debe,
 		collections: totals.collectionAmount,
 		payments,
 		ivaOfMonth,
@@ -124,6 +124,36 @@ export function buildMonthlyChartData(
 			label,
 			incomeNet: totals.incomeNet,
 			expenseNet: roundToTwoDecimals(totals.expenseNet + fixedNet),
+		};
+	});
+}
+
+export type MonthlyCollectionsPaymentsPoint = {
+	month: number;
+	label: string;
+	collections: number;
+	payments: number;
+};
+
+export function buildMonthlyCollectionsPaymentsChartData(
+	rows: SummaryMonthlyRow[],
+	fixedCostRows: FixedCostsMonthlyRow[],
+	workId: number | null
+): MonthlyCollectionsPaymentsPoint[] {
+	const fixedTotalByMonth = new Map(fixedCostRows.map((row) => [row.month, row.total]));
+
+	return MONTH_LABELS_ES.map((label, index) => {
+		const month = index + 1;
+		const totals = sumByWork(
+			rows.filter((row) => row.month === month),
+			workId
+		);
+		const fixedTotal = workId === null ? (fixedTotalByMonth.get(month) ?? 0) : 0;
+		return {
+			month,
+			label,
+			collections: totals.collectionAmount,
+			payments: roundToTwoDecimals(totals.paymentAmount + fixedTotal),
 		};
 	});
 }

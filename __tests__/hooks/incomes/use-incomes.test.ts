@@ -31,6 +31,20 @@ describe('useIncomes', () => {
 		);
 	});
 
+	it('never configures attachmentsKind (Ingresos never stages or uploads attachments)', () => {
+		renderHook(() => useIncomes() as any);
+
+		const config = (useIncomeExpenseTab as jest.Mock).mock.calls[0][0];
+		expect(config.attachmentsKind).toBeUndefined();
+	});
+
+	it('does not configure descriptionMaxLength (Ingresos stays at the hook default of 300)', () => {
+		renderHook(() => useIncomes() as any);
+
+		const config = (useIncomeExpenseTab as jest.Mock).mock.calls[0][0];
+		expect(config.descriptionMaxLength).toBeUndefined();
+	});
+
 	it('listEntries maps IncomeWithDetails rows to IncomeExpenseEntry, using client as the party', async () => {
 		(listIncomes as jest.Mock).mockResolvedValue({
 			data: [

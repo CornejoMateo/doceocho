@@ -29,6 +29,10 @@ import { IVA_RATES } from '@/constants/cashflow/iva';
 import { formatCurrency, formatNumber } from '@/utils/formats-money';
 import { EntityCombobox } from '@/components/business/cash-flow/shared/entity-combobox';
 import { withInactiveSelected } from '@/utils/select-options';
+import {
+	FileAttachments,
+	type StagedFile,
+} from '@/components/business/shared/attachments/file-attachments';
 
 type IncomeExpenseFormDialogProps = {
 	open: boolean;
@@ -72,6 +76,10 @@ type IncomeExpenseFormDialogProps = {
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 	errors: IncomeExpenseFormErrors;
+	attachmentsKind?: 'expense';
+	stagedFiles?: StagedFile[];
+	onStagedFilesChange?: (files: StagedFile[]) => void;
+	descriptionMaxLength?: number;
 };
 
 function FieldError({ message }: { message: string }) {
@@ -120,6 +128,10 @@ export function IncomeExpenseFormDialog({
 	saving,
 	onSubmit,
 	errors,
+	attachmentsKind,
+	stagedFiles = [],
+	onStagedFilesChange,
+	descriptionMaxLength = 300,
 }: IncomeExpenseFormDialogProps) {
 	const filterWorksByParty = partyLabel === 'Cliente';
 	const selectedPartyId = partyId ? Number(partyId) : null;
@@ -167,7 +179,6 @@ export function IncomeExpenseFormDialog({
 		paymentMethodId,
 		!!editingEntry
 	);
-	const paymentMethodRequired = !editingEntry;
 	const bankAccountOptions = withInactiveSelected(
 		activeBankAccounts,
 		bankAccounts,
@@ -177,7 +188,7 @@ export function IncomeExpenseFormDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-[560px] max-h-[85vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-[560px] max-h-[85vh] min-w-0 overflow-x-hidden overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
 						{editingEntry ? `Editar ${entityLabel}` : `Nuevo ${entityLabel}`}
@@ -188,7 +199,7 @@ export function IncomeExpenseFormDialog({
 							: `Registra un nuevo ${entityLabel}`}
 					</DialogDescription>
 				</DialogHeader>
-				<form onSubmit={onSubmit} className="space-y-4">
+				<form onSubmit={onSubmit} className="min-w-0 space-y-4">
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="ie-date">Fecha</Label>
@@ -302,7 +313,7 @@ export function IncomeExpenseFormDialog({
 							id="ie-description"
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							maxLength={300}
+							maxLength={descriptionMaxLength}
 						/>
 					</div>
 
@@ -350,19 +361,13 @@ export function IncomeExpenseFormDialog({
 
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="ie-payment-method">
-								Medio de pago
-								{!paymentMethodRequired && ' (opcional)'}
-							</Label>
-							<Select
-								value={paymentMethodId}
-								onValueChange={setPaymentMethodId}
-								required={paymentMethodRequired}
-							>
-								<SelectTrigger id="ie-payment-method" aria-invalid={!!errors.paymentMethodId}>
+							<Label htmlFor="ie-payment-method">Medio de pago (opcional)</Label>
+							<Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+								<SelectTrigger id="ie-payment-method">
 									<SelectValue placeholder="Selecciona un medio" />
 								</SelectTrigger>
 								<SelectContent>
+									<SelectItem value="none">Sin medio</SelectItem>
 									{paymentMethodOptions.map((method) => (
 										<SelectItem key={method.id} value={String(method.id)}>
 											{method.name}
@@ -371,7 +376,6 @@ export function IncomeExpenseFormDialog({
 									))}
 								</SelectContent>
 							</Select>
-							{errors.paymentMethodId && <FieldError message="Elegí un medio de pago" />}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="ie-bank-account">Cuenta bancaria (opcional)</Label>
@@ -392,11 +396,25 @@ export function IncomeExpenseFormDialog({
 						</div>
 					</div>
 
+					{attachmentsKind && (
+						<FileAttachments
+							kind={attachmentsKind}
+							entityId={editingEntry?.id}
+							staged={stagedFiles}
+							onStagedChange={onStagedFilesChange}
+						/>
+					)}
+
 					<div className="flex gap-2">
 						<Button type="submit" disabled={saving} className="flex-1">
 							{saving ? 'Guardando...' : editingEntry ? 'Actualizar' : 'Crear'}
 						</Button>
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							disabled={saving}
+						>
 							Cancelar
 						</Button>
 					</div>

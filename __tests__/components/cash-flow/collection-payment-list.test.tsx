@@ -216,6 +216,223 @@ describe('CollectionPaymentList', () => {
 		expect(mobile.getAllByText('-').length).toBeGreaterThanOrEqual(1);
 	});
 
+	it('shows the "Gasto: <label>" line when the payment has an expense_id (desktop and mobile)', () => {
+		const entry = makeEntry({ expense_id: 42, expense_label: 'Gasto 42' });
+		render(
+			<CollectionPaymentList
+				entries={[entry]}
+				loading={false}
+				partyLabel="Proveedor"
+				emptyLabel="No hay pagos registrados"
+				onEdit={noop}
+				onAskDelete={noop}
+			/>
+		);
+
+		expect(
+			within(screen.getByTestId('collection-payment-desktop')).getByText('Gasto: Gasto 42')
+		).toBeInTheDocument();
+		expect(
+			within(screen.getByTestId('collection-payment-mobile')).getByText('Gasto: Gasto 42')
+		).toBeInTheDocument();
+	});
+
+	it('exposes the linked expense_label via the line title, on both desktop and mobile', () => {
+		const entry = makeEntry({
+			expense_id: 42,
+			expense_label: '01/04/2026 · 0001-00000456 · $500,00',
+		});
+		render(
+			<CollectionPaymentList
+				entries={[entry]}
+				loading={false}
+				partyLabel="Proveedor"
+				emptyLabel="No hay pagos registrados"
+				onEdit={noop}
+				onAskDelete={noop}
+			/>
+		);
+
+		const desktopLine = within(screen.getByTestId('collection-payment-desktop')).getByText(
+			`Gasto: ${entry.expense_label}`
+		);
+		const mobileLine = within(screen.getByTestId('collection-payment-mobile')).getByText(
+			`Gasto: ${entry.expense_label}`
+		);
+		expect(desktopLine).toHaveAttribute('title', entry.expense_label);
+		expect(mobileLine).toHaveAttribute('title', entry.expense_label);
+	});
+
+	it('does not show the "Gasto:" line when the payment has no expense_id', () => {
+		const entry = makeEntry({ expense_id: null });
+		render(
+			<CollectionPaymentList
+				entries={[entry]}
+				loading={false}
+				partyLabel="Proveedor"
+				emptyLabel="No hay pagos registrados"
+				onEdit={noop}
+				onAskDelete={noop}
+			/>
+		);
+
+		expect(screen.queryByText(/^Gasto:/)).not.toBeInTheDocument();
+	});
+
+	describe('onRowClick (Pagos-only detail dialog)', () => {
+		it('does not add row click behavior when onRowClick is not passed (Cobros unaffected)', () => {
+			const entry = makeEntry();
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			const row = desktop.getByText('Cliente 1').closest('tr')!;
+			expect(row).not.toHaveAttribute('tabindex');
+			expect(row).not.toHaveAttribute('aria-label');
+		});
+
+		it('calls onRowClick when a desktop row is clicked', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			fireEvent.click(desktop.getByText('Cliente 1').closest('tr')!);
+			expect(onRowClick).toHaveBeenCalledWith(entry);
+		});
+
+		it('calls onRowClick on Enter and Space on a focused desktop row', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			const row = desktop.getByText('Cliente 1').closest('tr')!;
+			fireEvent.keyDown(row, { key: 'Enter' });
+			fireEvent.keyDown(row, { key: ' ' });
+			expect(onRowClick).toHaveBeenCalledTimes(2);
+			expect(onRowClick).toHaveBeenCalledWith(entry);
+		});
+
+		it('calls onRowClick when a mobile card is clicked, and on Enter/Space when focused', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const mobile = within(screen.getByTestId('collection-payment-mobile'));
+			const card = mobile.getByText('Cliente 1').closest('[tabindex]')!;
+			fireEvent.click(card);
+			fireEvent.keyDown(card, { key: 'Enter' });
+			expect(onRowClick).toHaveBeenCalledTimes(2);
+			expect(onRowClick).toHaveBeenCalledWith(entry);
+		});
+
+		it('does not call onRowClick when clicking the Editar or Eliminar action buttons', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			fireEvent.click(desktop.getByRole('button', { name: 'Editar' }));
+			fireEvent.click(desktop.getByRole('button', { name: 'Eliminar' }));
+			expect(onRowClick).not.toHaveBeenCalled();
+		});
+
+		it('gives the row an accessible hint ("Ver detalle y archivos")', () => {
+			const entry = makeEntry();
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={noop}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			const row = desktop.getByText('Cliente 1').closest('tr')!;
+			expect(row).toHaveAttribute('aria-label', 'Ver detalle y archivos');
+			expect(row).toHaveAttribute('tabindex', '0');
+		});
+
+		it('ignores the click when the user has an active text selection (drag-to-select)', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			const getSelectionSpy = jest.spyOn(window, 'getSelection').mockReturnValue({
+				toString: () => 'some selected text',
+			} as any);
+
+			render(
+				<CollectionPaymentList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('collection-payment-desktop'));
+			fireEvent.click(desktop.getByText('Cliente 1').closest('tr')!);
+			expect(onRowClick).not.toHaveBeenCalled();
+
+			getSelectionSpy.mockRestore();
+		});
+	});
+
 	describe('pagination', () => {
 		it('shows only 20 entries per page and navigates to the next page', () => {
 			const entries = Array.from({ length: 22 }, (_, i) =>
@@ -333,6 +550,40 @@ describe('CollectionPaymentList', () => {
 
 			expect(desktop.getByText('Cliente 1')).toBeInTheDocument();
 			expect(desktop.getByText('Cliente 20')).toBeInTheDocument();
+		});
+	});
+
+	describe('hideParty (Pagos: payments have no party at all)', () => {
+		it('hides the party column/row and never renders the party label or name', () => {
+			render(
+				<CollectionPaymentList
+					entries={[makeEntry({ party_id: null, party_name: null })]}
+					loading={false}
+					partyLabel="Proveedor"
+					hideParty
+					emptyLabel="No hay pagos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			expect(screen.queryByText('Proveedor')).not.toBeInTheDocument();
+		});
+
+		it('shows the party column by default (Cobros is unaffected)', () => {
+			render(
+				<CollectionPaymentList
+					entries={[makeEntry()]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay cobros registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			expect(screen.getAllByText('Cliente').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('Cliente 1').length).toBeGreaterThan(0);
 		});
 	});
 });

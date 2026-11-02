@@ -3,13 +3,14 @@ import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { PurchaseCard } from '@/components/business/suppliers/purchase-card';
 import type {
-	PurchaseSupplierWithBalance,
+	SupplierExpenseListItem,
 	SupplierPurchaseStatus,
-} from '@/lib/suppliers/purchases-suppliers';
-import type { PaymentSupplier } from '@/lib/suppliers/payments-suppliers';
+} from '@/lib/suppliers/supplier-expenses';
+import type { PaymentWithDetails } from '@/lib/payments/payments';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
-import type { FilePaymentSupplier } from '@/lib/suppliers/files-payments-suppliers';
+import type { CashFlowCategory } from '@/lib/categories/categories';
+import type { FilePayment } from '@/lib/payments/files-payments';
 
 const emptyTabMessage: Record<SupplierPurchaseStatus, string> = {
 	pending: 'No hay compras pendientes.',
@@ -18,7 +19,7 @@ const emptyTabMessage: Record<SupplierPurchaseStatus, string> = {
 
 interface SupplierPurchasesListProps {
 	status: SupplierPurchaseStatus;
-	purchases: PurchaseSupplierWithBalance[];
+	purchases: SupplierExpenseListItem[];
 	loading: boolean;
 	loadingMore: boolean;
 	hasMore: boolean;
@@ -27,19 +28,20 @@ interface SupplierPurchasesListProps {
 	fileCounts: Map<number, number>;
 	expandedPurchaseIds: Set<number>;
 	onToggleExpand: (purchaseId: number) => void;
-	paymentsByPurchaseId: Map<number, PaymentSupplier[]>;
+	paymentsByPurchaseId: Map<number, PaymentWithDetails[]>;
 	loadingPurchaseIds: Set<number>;
 	errorByPurchaseId: Map<number, any>;
 	onRetryPayments: (purchaseId: number) => void;
 	bankAccountById: Map<number, BankAccount>;
 	paymentMethodById: Map<number, PaymentMethod>;
+	paymentCategoryById: Map<number, CashFlowCategory>;
 	paymentFileCounts: Map<number, number>;
-	paymentFilesByPaymentId: Map<number, FilePaymentSupplier[]>;
-	onEditPurchase: (purchase: PurchaseSupplierWithBalance) => void;
-	onDeletePurchase: (purchase: PurchaseSupplierWithBalance) => void;
-	onNewPayment: (purchase: PurchaseSupplierWithBalance) => void;
-	onEditPayment: (purchase: PurchaseSupplierWithBalance, payment: PaymentSupplier) => void;
-	onDeletePayment: (purchase: PurchaseSupplierWithBalance, payment: PaymentSupplier) => void;
+	paymentFilesByPaymentId: Map<number, FilePayment[]>;
+	onEditPurchase: (purchase: SupplierExpenseListItem) => void;
+	onDeletePurchase: (purchase: SupplierExpenseListItem) => void;
+	onNewPayment: (purchase: SupplierExpenseListItem) => void;
+	onEditPayment: (purchase: SupplierExpenseListItem, payment: PaymentWithDetails) => void;
+	onDeletePayment: (purchase: SupplierExpenseListItem, payment: PaymentWithDetails) => void;
 	onPurchaseCountChange: (purchaseId: number, count: number) => void;
 	onPaymentCountChange: (paymentId: number, count: number) => void;
 }
@@ -61,6 +63,7 @@ export function SupplierPurchasesList({
 	onRetryPayments,
 	bankAccountById,
 	paymentMethodById,
+	paymentCategoryById,
 	paymentFileCounts,
 	paymentFilesByPaymentId,
 	onEditPurchase,
@@ -100,6 +103,7 @@ export function SupplierPurchasesList({
 					onRetryPayments={() => onRetryPayments(purchase.id)}
 					bankAccountById={bankAccountById}
 					paymentMethodById={paymentMethodById}
+					paymentCategoryById={paymentCategoryById}
 					paymentFileCounts={paymentFileCounts}
 					paymentFilesByPaymentId={paymentFilesByPaymentId}
 					onEditPurchase={() => onEditPurchase(purchase)}

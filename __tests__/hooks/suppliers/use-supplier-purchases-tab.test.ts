@@ -1,23 +1,24 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useSupplierPurchasesTab } from '@/hooks/suppliers/use-supplier-purchases-tab';
-import { listSupplierPurchasesPage } from '@/lib/suppliers/purchases-suppliers';
-import { listFilesByPurchaseSupplierIds } from '@/lib/suppliers/files-purchases-suppliers';
+import { listSupplierPurchasesPage } from '@/lib/suppliers/supplier-expenses';
+import { listFilesByExpenseIds } from '@/lib/expenses/files-expenses';
 
 jest.mock('@/components/ui/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
 jest.mock('@/lib/error-translator', () => ({ translateError: jest.fn() }));
-jest.mock('@/lib/suppliers/purchases-suppliers', () => ({
+jest.mock('@/lib/suppliers/supplier-expenses', () => ({
 	listSupplierPurchasesPage: jest.fn(),
 }));
-jest.mock('@/lib/suppliers/files-purchases-suppliers', () => ({
-	listFilesByPurchaseSupplierIds: jest.fn(),
+jest.mock('@/lib/expenses/files-expenses', () => ({
+	listFilesByExpenseIds: jest.fn(),
 }));
 
 const purchaseA = {
 	id: 11,
 	created_at: '2026-01-10',
-	amount_ars: 1000,
+	date: '2026-01-10',
+	total_amount: 1000,
 	supplier_id: 3,
-	notes: null,
+	description: null,
 	totalPaidArs: 0,
 	balanceArs: 1000,
 };
@@ -30,7 +31,7 @@ function page(purchases: (typeof purchaseA)[], totalCount: number) {
 describe('useSupplierPurchasesTab', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		(listFilesByPurchaseSupplierIds as jest.Mock).mockResolvedValue({ data: [], error: null });
+		(listFilesByExpenseIds as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 
 	it('fetches page 1 immediately when it is the current tab', async () => {
@@ -236,10 +237,10 @@ describe('useSupplierPurchasesTab', () => {
 
 	it('batches purchase file counts for the loaded page', async () => {
 		(listSupplierPurchasesPage as jest.Mock).mockResolvedValue(page([purchaseA], 1));
-		(listFilesByPurchaseSupplierIds as jest.Mock).mockResolvedValue({
+		(listFilesByExpenseIds as jest.Mock).mockResolvedValue({
 			data: [
-				{ id: 1, purchase_supplier_id: 11 },
-				{ id: 2, purchase_supplier_id: 11 },
+				{ id: 1, expense_id: 11 },
+				{ id: 2, expense_id: 11 },
 			],
 			error: null,
 		});
@@ -255,6 +256,6 @@ describe('useSupplierPurchasesTab', () => {
 		);
 
 		await waitFor(() => expect(result.current.fileCounts.get(11)).toBe(2));
-		expect(listFilesByPurchaseSupplierIds).toHaveBeenCalledWith([11]);
+		expect(listFilesByExpenseIds).toHaveBeenCalledWith([11]);
 	});
 });

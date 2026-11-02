@@ -15,7 +15,8 @@ interface ConfirmDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	title: string;
-	description: string;
+	description: React.ReactNode;
+	extra?: React.ReactNode;
 	confirmText?: string;
 	cancelText?: string;
 	onConfirm: () => void;
@@ -28,6 +29,7 @@ export function ConfirmDialog({
 	onOpenChange,
 	title,
 	description,
+	extra,
 	confirmText = 'Eliminar',
 	cancelText = 'Cancelar',
 	onConfirm,
@@ -44,6 +46,7 @@ export function ConfirmDialog({
 					</div>
 					<DialogDescription className="text-left">{description}</DialogDescription>
 				</DialogHeader>
+				{extra}
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
 						{cancelText}

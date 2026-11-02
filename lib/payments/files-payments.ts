@@ -1,73 +1,66 @@
 import { getSupabaseClient } from '../supabase-client';
 import { FileViewerItem } from '../../utils/file-upload-utils';
-import { fetchAllPages, fetchByIdsInChunks } from './pagination';
+import { fetchAllPages, fetchByIdsInChunks } from '@/lib/suppliers/pagination';
 
-export type FilePaymentSupplier = {
+export type FilePayment = {
 	id: number;
 	created_at: string;
 	storage_path: string;
-	payment_supplier_id: number;
+	payment_id: number;
 	file_name: string | null;
 	description: string | null;
 };
 
-const TABLE = 'files_payments_suppliers';
+const TABLE = 'files_payments';
 const BUCKET = 'suppliers-files';
 
-export async function listFilesByPaymentSupplierId(
-	paymentSupplierId: number
-): Promise<{ data: FilePaymentSupplier[] | null; error: any }> {
+export async function listFilesByPaymentId(
+	paymentId: number
+): Promise<{ data: FilePayment[] | null; error: any }> {
 	const supabase = getSupabaseClient();
-
 	const { data, error } = await supabase
 		.from(TABLE)
 		.select('*')
-		.eq('payment_supplier_id', paymentSupplierId)
+		.eq('payment_id', paymentId)
 		.order('id', { ascending: true });
-
 	return { data, error };
 }
 
-/**
- * Lists files for multiple payment_supplier_ids in a single query. Returns an
- * array of FilePaymentSupplier objects for all matching rows, or an empty array
- * if none match. If the input array is empty, returns an empty array without
- * querying the database.
- */
-export async function listFilesByPaymentSupplierIds(
-	paymentSupplierIds: number[]
-): Promise<{ data: FilePaymentSupplier[] | null; error: any }> {
-	return fetchByIdsInChunks(paymentSupplierIds, (chunk) =>
-		fetchAllPages<FilePaymentSupplier>((from, to) => {
+// Batches the per-payment lookup into one query to avoid an N+1 across payments.
+export async function listFilesByPaymentIds(
+	paymentIds: number[]
+): Promise<{ data: FilePayment[] | null; error: any }> {
+	return fetchByIdsInChunks(paymentIds, (chunk) =>
+		fetchAllPages<FilePayment>((from, to) => {
 			const supabase = getSupabaseClient();
 			return supabase
 				.from(TABLE)
 				.select('*')
-				.in('payment_supplier_id', chunk)
+				.in('payment_id', chunk)
 				.order('id', { ascending: true })
 				.range(from, to);
 		})
 	);
 }
 
-export async function uploadFilePaymentSupplier(
-	paymentSupplierId: number,
+export async function uploadFilePayment(
+	paymentId: number,
 	file: File,
 	description?: string | null,
 	fileName?: string | null
-): Promise<{ data: FilePaymentSupplier | null; error: any }> {
+): Promise<{ data: FilePayment | null; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
 		const fileExt = file.name.split('.').pop();
 		const storageName = `${crypto.randomUUID()}.${fileExt}`;
-		const filePath = `payments/${paymentSupplierId}/${storageName}`;
+		const filePath = `payments/${paymentId}/${storageName}`;
 
 		const { data: fileRecord, error: dbError } = await supabase
 			.from(TABLE)
 			.insert({
 				storage_path: filePath,
-				payment_supplier_id: paymentSupplierId,
+				payment_id: paymentId,
 				file_name: fileName?.trim() || file.name,
 				description: description || null,
 			})
@@ -89,12 +82,12 @@ export async function uploadFilePaymentSupplier(
 
 		return { data: fileRecord, error: null };
 	} catch (err) {
-		console.error('Unexpected error uploading payment supplier file:', err);
+		console.error('Unexpected error uploading payment file:', err);
 		return { data: null, error: err };
 	}
 }
 
-export async function downloadFilePaymentSupplier(
+export async function downloadFilePayment(
 	fileId: number
 ): Promise<{ data: Blob | null; error: any }> {
 	try {
@@ -117,14 +110,12 @@ export async function downloadFilePaymentSupplier(
 		const { data, error } = await supabase.storage.from(BUCKET).download(fileRecord.storage_path);
 		return { data, error };
 	} catch (err) {
-		console.error('Unexpected error downloading payment supplier file:', err);
+		console.error('Unexpected error downloading payment file:', err);
 		return { data: null, error: err };
 	}
 }
 
-export async function deleteFilePaymentSupplier(
-	fileId: number
-): Promise<{ success: boolean; error: any }> {
+export async function deleteFilePayment(fileId: number): Promise<{ success: boolean; error: any }> {
 	try {
 		const supabase = getSupabaseClient();
 
@@ -159,7 +150,7 @@ export async function deleteFilePaymentSupplier(
 
 		return { success: true, error: null };
 	} catch (err) {
-		console.error('Unexpected error deleting payment supplier file:', err);
+		console.error('Unexpected error deleting payment file:', err);
 		return { success: false, error: err };
 	}
 }
@@ -167,8 +158,8 @@ export async function deleteFilePaymentSupplier(
 const SIGNED_URL_EXPIRY_SECONDS = 3600;
 
 // One batched createSignedUrls call per gallery load instead of per-file blob downloads.
-export async function signUrlsForPaymentSupplierFiles(
-	files: FilePaymentSupplier[]
+export async function signUrlsForPaymentFiles(
+	files: FilePayment[]
 ): Promise<{ data: FileViewerItem[] | null; error: any }> {
 	if (files.length === 0) {
 		return { data: [], error: null };
@@ -209,13 +200,13 @@ export async function signUrlsForPaymentSupplierFiles(
 	return { data, error: null };
 }
 
-export async function listFilesWithUrlsByPaymentSupplierId(
-	paymentSupplierId: number
+export async function listFilesWithUrlsByPaymentId(
+	paymentId: number
 ): Promise<{ data: FileViewerItem[] | null; error: any }> {
-	const listResult = await listFilesByPaymentSupplierId(paymentSupplierId);
+	const listResult = await listFilesByPaymentId(paymentId);
 	if (listResult.error) {
 		return { data: null, error: listResult.error };
 	}
 
-	return signUrlsForPaymentSupplierFiles(listResult.data ?? []);
+	return signUrlsForPaymentFiles(listResult.data ?? []);
 }

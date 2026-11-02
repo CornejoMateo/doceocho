@@ -11,8 +11,9 @@ export type Payment = {
 	kind: 'payment';
 	description: string | null;
 	amount: number;
-	payment_method_id: number;
+	payment_method_id: number | null;
 	bank_account_id: number | null;
+	expense_id: number | null;
 };
 
 export type PaymentWithDetails = Payment & {
@@ -20,6 +21,10 @@ export type PaymentWithDetails = Payment & {
 	category_name: string | null;
 	payment_method_name: string;
 	bank_account_name: string | null;
+	expense_date: string | null;
+	expense_voucher_number: string | null;
+	expense_description: string | null;
+	expense_total_amount: number | null;
 };
 
 export type PaymentInput = {
@@ -29,22 +34,27 @@ export type PaymentInput = {
 	category_id: number | null;
 	description: string | null;
 	amount: number;
-	payment_method_id: number;
+	payment_method_id: number | null;
 	bank_account_id: number | null;
+	expense_id: number | null;
 };
 
 const TABLE = 'payments';
 const SELECT =
-	'*, works(name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank)';
+	'*, works(name), cash_flow_categories(name), payment_methods(name), bank_accounts(name, bank), expenses(date, voucher_number, description, total_amount)';
 
 function mapRow(row: any): PaymentWithDetails {
-	const { works, cash_flow_categories, payment_methods, bank_accounts, ...rest } = row;
+	const { works, cash_flow_categories, payment_methods, bank_accounts, expenses, ...rest } = row;
 	return {
 		...rest,
 		work_name: works?.name ?? null,
 		category_name: cash_flow_categories?.name ?? null,
 		payment_method_name: payment_methods?.name ?? '',
 		bank_account_name: bank_accounts ? `${bank_accounts.bank} - ${bank_accounts.name}` : null,
+		expense_date: expenses?.date ?? null,
+		expense_voucher_number: expenses?.voucher_number ?? null,
+		expense_description: expenses?.description ?? null,
+		expense_total_amount: expenses?.total_amount ?? null,
 	};
 }
 
@@ -101,12 +111,42 @@ export async function updatePayment(
 	return { data, error };
 }
 
-export async function deletePayment(id: number): Promise<{ error: any }> {
+const STORAGE_BUCKET = 'suppliers-files';
+const STORAGE_REMOVE_CHUNK_SIZE = 100;
+
+export async function deletePayment(id: number): Promise<{ error: any; orphanedPaths?: string[] }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase.from(TABLE).delete().eq('id', id).select('id');
-	if (error) return { error };
-	if (!data || data.length === 0) {
-		return { error: { message: 'No se pudo eliminar el pago (no existe o no tenés permisos)' } };
+	const { data: storagePaths, error: rpcError } = await supabase.rpc('delete_payment_supplier', {
+		p_id: id,
+	});
+	if (rpcError) return { error: rpcError };
+
+	const paths = (storagePaths ?? []).filter((p: unknown): p is string => !!p);
+	const orphanedPaths: string[] = [];
+
+	for (let i = 0; i < paths.length; i += STORAGE_REMOVE_CHUNK_SIZE) {
+		const chunk = paths.slice(i, i + STORAGE_REMOVE_CHUNK_SIZE);
+		const { error: storageError } = await supabase.storage.from(STORAGE_BUCKET).remove(chunk);
+		if (storageError) {
+			console.error('Failed to remove payment storage objects:', chunk, storageError);
+			orphanedPaths.push(...chunk);
+		}
 	}
-	return { error: null };
+
+	return { error: null, ...(orphanedPaths.length > 0 ? { orphanedPaths } : {}) };
+}
+
+export async function listPaymentsByExpenseIds(
+	expenseIds: number[]
+): Promise<{ data: PaymentWithDetails[] | null; error: any }> {
+	if (expenseIds.length === 0) return { data: [], error: null };
+	const supabase = getSupabaseClient();
+	const { data, error } = await supabase
+		.from(TABLE)
+		.select(SELECT)
+		.in('expense_id', expenseIds)
+		.order('date', { ascending: false })
+		.order('id', { ascending: false });
+	if (error) return { data: null, error };
+	return { data: (data ?? []).map(mapRow), error: null };
 }

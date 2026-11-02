@@ -172,8 +172,10 @@ export function FileViewerModal({
 						</div>
 					)}
 
-					<div className="mt-4 text-white text-center px-4 max-w-xl">
-						<p className="font-medium text-lg">{currentFile.displayName || currentFile.name}</p>
+					<div className="mt-4 w-full min-w-0 max-w-xl px-4 text-center text-white">
+						<p className="break-all font-medium text-lg [overflow-wrap:anywhere]">
+							{currentFile.displayName || currentFile.name}
+						</p>
 						{currentFile.description && (
 							<p className="text-sm text-white/80 mt-2">{currentFile.description}</p>
 						)}

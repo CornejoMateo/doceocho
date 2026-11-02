@@ -38,8 +38,8 @@ function baseState(over: Partial<ReturnType<typeof useSummaryTab>> = {}) {
 		cards: {
 			incomeNet: 0,
 			expenseNet: 0,
-			margin: 0,
-			profitability: 0,
+			expenseWithIva: 0,
+			debe: 0,
 			collections: 0,
 			payments: 0,
 			ivaOfMonth: 0,

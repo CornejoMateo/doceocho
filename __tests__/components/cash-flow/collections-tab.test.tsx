@@ -15,6 +15,7 @@ jest.mock('@/components/business/cash-flow/collections-payments/collection-payme
 		emptyLabel,
 		monthlyGridTitle,
 		categoriesConfig,
+		attachmentsKind,
 	}: any) => (
 		<div>
 			<span data-testid="entity-label">{entityLabel}</span>
@@ -23,6 +24,7 @@ jest.mock('@/components/business/cash-flow/collections-payments/collection-payme
 			<span data-testid="empty-label">{emptyLabel}</span>
 			<span data-testid="grid-title">{monthlyGridTitle}</span>
 			<span data-testid="year">{state.year}</span>
+			<span data-testid="attachments-kind">{attachmentsKind}</span>
 			{categoriesConfig}
 		</div>
 	),
@@ -41,5 +43,13 @@ describe('CollectionsTab', () => {
 		expect(screen.getByTestId('grid-title')).toHaveTextContent('Cobros por mes');
 		expect(screen.getByTestId('year')).toHaveTextContent('2026');
 		expect(screen.getByText('Configurar categorías')).toBeInTheDocument();
+	});
+
+	it('never enables attachmentsKind (Pagos-only)', () => {
+		(useCollections as jest.Mock).mockReturnValue({ year: 2026 });
+
+		render(<CollectionsTab categoriesConfig={null} />);
+
+		expect(screen.getByTestId('attachments-kind')).toBeEmptyDOMElement();
 	});
 });

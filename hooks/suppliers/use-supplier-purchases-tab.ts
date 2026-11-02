@@ -3,10 +3,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import {
 	listSupplierPurchasesPage,
-	type PurchaseSupplierWithBalance,
+	type SupplierExpenseListItem,
 	type SupplierPurchaseStatus,
-} from '@/lib/suppliers/purchases-suppliers';
-import { listFilesByPurchaseSupplierIds } from '@/lib/suppliers/files-purchases-suppliers';
+} from '@/lib/suppliers/supplier-expenses';
+import { listFilesByExpenseIds } from '@/lib/expenses/files-expenses';
 
 const PAGE_SIZE = 20;
 
@@ -26,7 +26,7 @@ export function useSupplierPurchasesTab({
 	isCurrentTab,
 }: UseSupplierPurchasesTabArgs) {
 	const { toast } = useToast();
-	const [purchases, setPurchases] = useState<PurchaseSupplierWithBalance[]>([]);
+	const [purchases, setPurchases] = useState<SupplierExpenseListItem[]>([]);
 	const [totalCount, setTotalCount] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [loadingMore, setLoadingMore] = useState(false);
@@ -42,13 +42,13 @@ export function useSupplierPurchasesTab({
 
 	const loadFileCounts = async (ids: number[]) => {
 		if (ids.length === 0) return;
-		const { data, error: filesError } = await listFilesByPurchaseSupplierIds(ids);
+		const { data, error: filesError } = await listFilesByExpenseIds(ids);
 		if (filesError) return;
 		setFileCounts((current) => {
 			const next = new Map(current);
 			for (const id of ids) next.set(id, 0);
 			for (const file of data ?? []) {
-				next.set(file.purchase_supplier_id, (next.get(file.purchase_supplier_id) ?? 0) + 1);
+				next.set(file.expense_id, (next.get(file.expense_id) ?? 0) + 1);
 			}
 			return next;
 		});

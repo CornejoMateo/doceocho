@@ -152,6 +152,264 @@ describe('IncomeExpenseList', () => {
 		expect(desktop.getAllByText('-').length).toBeGreaterThanOrEqual(2);
 	});
 
+	describe('onAddPayment ("Agregar pago")', () => {
+		it('does not render the button when onAddPayment is not passed', () => {
+			const entry = makeEntry({ party_id: null });
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Proveedor"
+					emptyLabel="No hay gastos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			expect(screen.queryByRole('button', { name: 'Agregar pago' })).not.toBeInTheDocument();
+		});
+
+		it('renders the button for an entry with no supplier when onAddPayment is passed', () => {
+			const entry = makeEntry({ party_id: null });
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Proveedor"
+					emptyLabel="No hay gastos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onAddPayment={noop}
+				/>
+			);
+
+			const buttons = screen.getAllByRole('button', { name: 'Agregar pago' });
+			expect(buttons.length).toBeGreaterThan(0);
+			buttons.forEach((button) => expect(button).toBeEnabled());
+		});
+
+		it('renders the button enabled for an entry that already has a supplier, and calls the handler (payments created from a supplier purchase have no party)', () => {
+			const entry = makeEntry({ party_id: 9, party_name: 'Acme SRL' });
+			const onAddPayment = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Proveedor"
+					emptyLabel="No hay gastos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onAddPayment={onAddPayment}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			const button = desktop.getByRole('button', { name: 'Agregar pago' });
+			expect(button).not.toBeDisabled();
+
+			fireEvent.click(button);
+			expect(onAddPayment).toHaveBeenCalledWith(entry);
+		});
+
+		it('calls onAddPayment with the clicked entry', () => {
+			const entry = makeEntry({ party_id: null });
+			const onAddPayment = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Proveedor"
+					emptyLabel="No hay gastos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onAddPayment={onAddPayment}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			fireEvent.click(desktop.getByRole('button', { name: 'Agregar pago' }));
+
+			expect(onAddPayment).toHaveBeenCalledWith(entry);
+		});
+	});
+
+	describe('onRowClick (Gastos-only detail dialog)', () => {
+		it('does not add row click behavior when onRowClick is not passed (Ingresos unaffected)', () => {
+			const entry = makeEntry();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			const row = desktop.getByText('Cliente 1').closest('tr')!;
+			expect(row).not.toHaveAttribute('tabindex');
+			expect(row).not.toHaveAttribute('aria-label');
+		});
+
+		it('calls onRowClick when a desktop row is clicked', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			fireEvent.click(desktop.getByText('Cliente 1').closest('tr')!);
+			expect(onRowClick).toHaveBeenCalledWith(entry);
+		});
+
+		it('calls onRowClick on Enter and Space on a focused desktop row', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			const row = desktop.getByText('Cliente 1').closest('tr')!;
+			fireEvent.keyDown(row, { key: 'Enter' });
+			fireEvent.keyDown(row, { key: ' ' });
+			expect(onRowClick).toHaveBeenCalledTimes(2);
+			expect(onRowClick).toHaveBeenCalledWith(entry);
+		});
+
+		it('calls onRowClick when a mobile card is clicked, and on Enter/Space when focused', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const mobile = within(screen.getByTestId('income-expense-mobile'));
+			const card = mobile.getByText('Cliente 1').closest('[tabindex]')!;
+			fireEvent.click(card);
+			fireEvent.keyDown(card, { key: 'Enter' });
+			expect(onRowClick).toHaveBeenCalledTimes(2);
+			expect(onRowClick).toHaveBeenCalledWith(entry);
+		});
+
+		it('does not call onRowClick when clicking the Editar or Eliminar action buttons', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			fireEvent.click(desktop.getByRole('button', { name: 'Editar' }));
+			fireEvent.click(desktop.getByRole('button', { name: 'Eliminar' }));
+			expect(onRowClick).not.toHaveBeenCalled();
+		});
+
+		it('does not call onRowClick when clicking the Agregar pago action button', () => {
+			const entry = makeEntry({ party_id: null });
+			const onRowClick = jest.fn();
+			const onAddPayment = jest.fn();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Proveedor"
+					emptyLabel="No hay gastos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onAddPayment={onAddPayment}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			fireEvent.click(desktop.getByRole('button', { name: 'Agregar pago' }));
+			expect(onAddPayment).toHaveBeenCalledWith(entry);
+			expect(onRowClick).not.toHaveBeenCalled();
+		});
+
+		it('gives the row an accessible hint ("Ver detalle y archivos")', () => {
+			const entry = makeEntry();
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={noop}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			const row = desktop.getByText('Cliente 1').closest('tr')!;
+			expect(row).toHaveAttribute('aria-label', 'Ver detalle y archivos');
+			expect(row).toHaveAttribute('tabindex', '0');
+		});
+
+		it('ignores the click when the user has an active text selection (drag-to-select)', () => {
+			const entry = makeEntry();
+			const onRowClick = jest.fn();
+			const getSelectionSpy = jest.spyOn(window, 'getSelection').mockReturnValue({
+				toString: () => 'some selected text',
+			} as any);
+
+			render(
+				<IncomeExpenseList
+					entries={[entry]}
+					loading={false}
+					partyLabel="Cliente"
+					emptyLabel="No hay ingresos registrados"
+					onEdit={noop}
+					onAskDelete={noop}
+					onRowClick={onRowClick}
+				/>
+			);
+
+			const desktop = within(screen.getByTestId('income-expense-desktop'));
+			fireEvent.click(desktop.getByText('Cliente 1').closest('tr')!);
+			expect(onRowClick).not.toHaveBeenCalled();
+
+			getSelectionSpy.mockRestore();
+		});
+	});
+
 	describe('pagination', () => {
 		it('shows only 20 entries per page and navigates to the next page', () => {
 			const entries = Array.from({ length: 22 }, (_, i) =>

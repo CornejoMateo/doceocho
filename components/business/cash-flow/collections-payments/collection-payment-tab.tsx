@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useCollectionPaymentTab } from '@/hooks/collection-payment/use-collection-payment-tab';
 import { CollectionPaymentFilters } from '@/components/business/cash-flow/collections-payments/collection-payment-filters';
 import { CollectionPaymentSummary } from '@/components/business/cash-flow/collections-payments/collection-payment-summary';
@@ -16,6 +17,11 @@ import {
 	SelectValue,
 } from '@/components/ui/select';
 import { formatCurrency } from '@/utils/formats-money';
+import { formatDateOnly } from '@/utils/format-date';
+import {
+	EntityAttachmentsDialog,
+	type EntityAttachmentsSummaryRow,
+} from '@/components/business/shared/attachments/entity-attachments-dialog';
 
 type CollectionPaymentTabProps = {
 	state: ReturnType<typeof useCollectionPaymentTab>;
@@ -25,6 +31,8 @@ type CollectionPaymentTabProps = {
 	emptyLabel: string;
 	monthlyGridTitle: string;
 	categoriesConfig: React.ReactNode;
+	// Pagos-only; Cobros never sets this (unified-expenses-payments-single-table.md).
+	attachmentsKind?: 'payment';
 };
 
 // Generic orchestrator shared by Collections and Payments
@@ -36,7 +44,40 @@ export function CollectionPaymentTab({
 	emptyLabel,
 	monthlyGridTitle,
 	categoriesConfig,
+	attachmentsKind,
 }: CollectionPaymentTabProps) {
+	// Pagos-only (attachmentsKind === 'payment'): opens the read-only detail dialog for a row.
+	// Stores only the id and re-derives the entry from the live, unfiltered list on every render,
+	// so a filter change (visibleEntries) never closes the dialog and edits elsewhere show up live.
+	const showAttachmentsDialog = attachmentsKind === 'payment';
+	const [entryForDetailsId, setEntryForDetailsId] = useState<number | null>(null);
+	const entryForDetails =
+		entryForDetailsId != null
+			? (state.entries.find((entry) => entry.id === entryForDetailsId) ?? null)
+			: null;
+
+	// If a refetch removes the entry (e.g. deleted elsewhere), close the dialog instead of showing
+	// an empty one: `open` below already turns false the same render since it depends on entryForDetails.
+	useEffect(() => {
+		if (entryForDetailsId != null && entryForDetails == null) setEntryForDetailsId(null);
+	}, [entryForDetailsId, entryForDetails]);
+
+	const detailsSummary: EntityAttachmentsSummaryRow[] = entryForDetails
+		? [
+				{ label: 'Fecha', value: formatDateOnly(entryForDetails.date) },
+				{ label: 'N° de comprobante', value: entryForDetails.receipt_number || '-' },
+				{ label: 'Obra', value: entryForDetails.work_name || '-' },
+				{ label: 'Categoría', value: entryForDetails.category_name || '-' },
+				{ label: 'Detalle', value: entryForDetails.description || '-' },
+				{ label: 'Monto', value: formatCurrency(entryForDetails.amount) },
+				{ label: 'Medio de pago', value: entryForDetails.payment_method_name || '-' },
+				{ label: 'Cuenta bancaria', value: entryForDetails.bank_account_name || '-' },
+				...(entryForDetails.expense_id && entryForDetails.expense_label
+					? [{ label: 'Gasto', value: entryForDetails.expense_label }]
+					: []),
+			]
+		: [];
+
 	return (
 		<div className="space-y-4 min-w-0">
 			<div className="flex flex-wrap items-center justify-end gap-3">
@@ -89,9 +130,13 @@ export function CollectionPaymentTab({
 						entries={state.visibleEntries}
 						loading={state.loadingList}
 						partyLabel={partyLabel}
+						hideParty={state.hideParty}
 						emptyLabel={emptyLabel}
 						onEdit={state.handleEdit}
 						onAskDelete={state.setEntryToDelete}
+						onRowClick={
+							showAttachmentsDialog ? (entry) => setEntryForDetailsId(entry.id) : undefined
+						}
 						pageResetKey={[
 							state.year,
 							state.dateFrom,
@@ -150,18 +195,28 @@ export function CollectionPaymentTab({
 				setAmount={state.setAmount}
 				paymentMethodId={state.paymentMethodId}
 				setPaymentMethodId={state.setPaymentMethodId}
+				paymentMethodOptional={state.paymentMethodOptional}
 				bankAccountId={state.bankAccountId}
 				setBankAccountId={state.setBankAccountId}
 				saving={state.saving}
 				onSubmit={state.handleSubmit}
 				errors={state.errors}
 				partyOptional={state.partyOptional}
+				hideParty={state.hideParty}
 				linkedLabel={state.linkedLabel}
 				purchaseId={state.purchaseId}
 				setPurchaseId={state.setPurchaseId}
 				purchases={state.purchases}
 				purchasesLoading={state.purchasesLoading}
 				descriptionMaxLength={state.descriptionMaxLength}
+				supportsExpenseLink={state.supportsExpenseLink}
+				expenseId={state.expenseId}
+				setExpenseId={state.setExpenseId}
+				expenseOptions={state.expenseOptions}
+				expenseOptionsLoading={state.expenseOptionsLoading}
+				attachmentsKind={attachmentsKind}
+				stagedFiles={state.stagedFiles}
+				onStagedFilesChange={state.setStagedFiles}
 			/>
 
 			<ConfirmDialog
@@ -172,7 +227,9 @@ export function CollectionPaymentTab({
 				title={`¿Eliminar ${entityLabel}?`}
 				description={
 					state.entryToDelete
-						? `Se eliminará el ${entityLabel} de ${state.entryToDelete.party_name ?? `sin ${partyLabel.toLowerCase()} asignado`} por ${formatCurrency(state.entryToDelete.amount)}. Esta acción no se puede deshacer.`
+						? state.hideParty
+							? `Se eliminará el ${entityLabel} por ${formatCurrency(state.entryToDelete.amount)}. Esta acción no se puede deshacer.`
+							: `Se eliminará el ${entityLabel} de ${state.entryToDelete.party_name ?? `sin ${partyLabel.toLowerCase()} asignado`} por ${formatCurrency(state.entryToDelete.amount)}. Esta acción no se puede deshacer.`
 						: ''
 				}
 				confirmText="Eliminar"
@@ -180,6 +237,19 @@ export function CollectionPaymentTab({
 				isLoading={state.deleting}
 				onConfirm={state.confirmDelete}
 			/>
+
+			{showAttachmentsDialog && (
+				<EntityAttachmentsDialog
+					open={!!entryForDetails}
+					onOpenChange={(open) => {
+						if (!open) setEntryForDetailsId(null);
+					}}
+					kind="payment"
+					entityId={entryForDetails?.id ?? null}
+					title={`Detalle del ${entityLabel}`}
+					summary={detailsSummary}
+				/>
+			)}
 		</div>
 	);
 }

@@ -76,7 +76,7 @@ function toCollectionInput(input: EntrySavePayload) {
 		category_id: input.category_id,
 		description: input.description,
 		amount: input.amount,
-		payment_method_id: input.payment_method_id,
+		payment_method_id: input.payment_method_id as number,
 		bank_account_id: input.bank_account_id,
 	};
 }

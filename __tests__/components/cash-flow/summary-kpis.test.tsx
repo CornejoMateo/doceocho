@@ -6,8 +6,8 @@ function cards(over: Partial<SummaryCards> = {}): SummaryCards {
 	return {
 		incomeNet: 1000,
 		expenseNet: 400,
-		margin: 600,
-		profitability: 0.6,
+		expenseWithIva: 484,
+		debe: 150,
 		collections: 300,
 		payments: 100,
 		ivaOfMonth: 50,
@@ -23,23 +23,31 @@ describe('SummaryKpis', () => {
 		expect(screen.getByText(/^\$\s*1\.000$/)).toBeInTheDocument();
 		expect(screen.getByText('Gastos')).toBeInTheDocument();
 		expect(screen.getByText(/^\$\s*400$/)).toBeInTheDocument();
-		expect(screen.getByText('Margen')).toBeInTheDocument();
-		expect(screen.getByText(/^\$\s*600$/)).toBeInTheDocument();
-		expect(screen.getByText('Rentabilidad')).toBeInTheDocument();
-		expect(screen.getByText('60%')).toBeInTheDocument();
+		expect(screen.getByText('Gastos con IVA')).toBeInTheDocument();
+		expect(screen.getByText(/^\$\s*484$/)).toBeInTheDocument();
+		expect(screen.getByText('Debe')).toBeInTheDocument();
+		expect(screen.getByText(/^\$\s*150$/)).toBeInTheDocument();
+		expect(screen.getByText('Gastos con IVA menos pagos')).toBeInTheDocument();
 		expect(screen.getByText('Cobros')).toBeInTheDocument();
 		expect(screen.getByText('Pagos')).toBeInTheDocument();
 		expect(screen.getByText('IVA del mes (crédito − débito)')).toBeInTheDocument();
 	});
 
-	it('highlights a negative margin as destructive', () => {
-		render(<SummaryKpis cards={cards({ margin: -200 })} />);
-		const marginValue = screen.getByText(/-\$\s*200/);
-		expect(marginValue.className).toContain('text-destructive');
+	it('highlights a positive debe as destructive (se debe)', () => {
+		render(<SummaryKpis cards={cards({ debe: 200 })} />);
+		const debeValue = screen.getByText(/^\$\s*200$/);
+		expect(debeValue.className).toContain('text-destructive');
 	});
 
-	it('shows 0.0% profitability without dividing by zero when income is 0', () => {
-		render(<SummaryKpis cards={cards({ incomeNet: 0, profitability: 0 })} />);
-		expect(screen.getByText('0.00%')).toBeInTheDocument();
+	it('does not highlight debe as destructive when zero or negative', () => {
+		render(<SummaryKpis cards={cards({ debe: 0 })} />);
+		const debeValue = screen.getByText('$0');
+		expect(debeValue.className).not.toContain('text-destructive');
+	});
+
+	it('does not highlight a negative debe as destructive', () => {
+		render(<SummaryKpis cards={cards({ debe: -200 })} />);
+		const debeValue = screen.getByText(/^-\$\s*200$/);
+		expect(debeValue.className).not.toContain('text-destructive');
 	});
 });

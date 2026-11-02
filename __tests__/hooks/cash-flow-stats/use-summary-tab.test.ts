@@ -181,4 +181,30 @@ describe('useSummaryTab', () => {
 		expect(result.current.cards.incomeNet).toBe(0);
 		expect(result.current.workResultRows).toHaveLength(0);
 	});
+
+	it('builds chartData with collections/payments fields (Cobros vs Pagos)', async () => {
+		(getSummaryMonthly as jest.Mock).mockResolvedValue({
+			data: [
+				{
+					month: 3,
+					workId: null,
+					incomeNet: 0,
+					incomeIva: 0,
+					expenseNet: 0,
+					expenseIva: 0,
+					collectionAmount: 500,
+					paymentAmount: 200,
+				},
+			],
+			error: null,
+		});
+
+		const { result } = renderHook(() => useSummaryTab());
+		await waitFor(() => expect(result.current.loading).toBe(false));
+
+		expect(result.current.chartData).toHaveLength(12);
+		expect(result.current.chartData[2]).toEqual(
+			expect.objectContaining({ month: 3, collections: 500, payments: 200 })
+		);
+	});
 });

@@ -16,6 +16,9 @@ import {
 } from '@/utils/formats-money';
 import { getLocalDate } from '@/utils/format-date';
 import { FUTURE_YEARS_AHEAD, PAST_YEARS_BACK } from '@/constants/cashflow/fixed-expenses';
+import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
+import { uploadFileExpense } from '@/lib/expenses/files-expenses';
+import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/attachments/attachments';
 
 export type PartyOption = { id: number; name: string; isSettled?: boolean };
 
@@ -44,9 +47,7 @@ export type IncomeExpenseEntry = {
 };
 
 // Boolean flags for fields that fail validation on submit; drives inline field errors in the dialog.
-export type IncomeExpenseFormErrors = Partial<
-	Record<'date' | 'netAmount' | 'paymentMethodId', boolean>
->;
+export type IncomeExpenseFormErrors = Partial<Record<'date' | 'netAmount', boolean>>;
 
 export type EntrySavePayload = {
 	date: string;
@@ -67,10 +68,13 @@ export type EntrySavePayload = {
 type UseIncomeExpenseTabConfig = {
 	categoryKind: CategoryKind;
 	listEntries: (year: number) => Promise<{ data: IncomeExpenseEntry[] | null; error: any }>;
-	createEntry: (input: EntrySavePayload) => Promise<{ error: any }>;
+	createEntry: (input: EntrySavePayload) => Promise<{ data?: { id: number } | null; error: any }>;
 	updateEntry: (id: number, input: EntrySavePayload) => Promise<{ error: any }>;
 	deleteEntry: (id: number) => Promise<{ error: any }>;
 	listParties: () => Promise<{ data: PartyOption[] | null; error: any }>;
+	attachmentsKind?: 'expense';
+	// Caps the description field; defaults to 300. Gastos sets 2000 (expenses.description).
+	descriptionMaxLength?: number;
 	labels: {
 		entityLabel: string;
 		loadError: string;
@@ -100,6 +104,8 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	const [entries, setEntries] = useState<IncomeExpenseEntry[]>([]);
 	const [loadingList, setLoadingList] = useState(false);
 	const entriesRequestIdRef = useRef(0);
+	const formSessionRef = useRef(0);
+	const submittingRef = useRef(false);
 
 	const [categories, setCategories] = useState<CashFlowCategory[]>([]);
 	const [voucherTypes, setVoucherTypes] = useState<VoucherType[]>([]);
@@ -188,13 +194,10 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		void fetchParties();
 		void fetchPaymentMethods();
 		void fetchBankAccounts();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// Refetch entries whenever the selected year changes (and on mount).
 	useEffect(() => {
 		void fetchEntries(year);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [year]);
 
 	// Filters (applied in-memory over the fetched list)
@@ -256,17 +259,18 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	const [description, setDescription] = useState('');
 	const [netAmount, setNetAmount] = useState('');
 	const [ivaPercent, setIvaPercent] = useState<number>(IVA_RATES[0]);
-	const [paymentMethodId, setPaymentMethodId] = useState('');
+	const [paymentMethodId, setPaymentMethodId] = useState('none');
 	const [bankAccountId, setBankAccountId] = useState('none');
 	const [saving, setSaving] = useState(false);
+	const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
 	const [errors, setErrors] = useState<IncomeExpenseFormErrors>({});
 	const clearError = (field: keyof IncomeExpenseFormErrors) => {
 		setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
 	};
 
-	// Net is capped to 2 decimals (DB check requires it); iva/total here are preview only, DB recomputes authoritatively.
 	const parsedNetAmount = roundToTwoDecimals(parseArsToNumber(netAmount));
 	const { ivaAmount, totalAmount } = computeIvaAndTotal(parsedNetAmount, ivaPercent);
+	const descriptionMaxLength = config.descriptionMaxLength ?? 300;
 
 	const resetForm = () => {
 		setDate(getLocalDate());
@@ -278,18 +282,21 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setDescription('');
 		setNetAmount('');
 		setIvaPercent(IVA_RATES[0]);
-		setPaymentMethodId('');
+		setPaymentMethodId('none');
 		setBankAccountId('none');
 		setErrors({});
+		setStagedFiles([]);
 	};
 
 	const handleAdd = () => {
+		formSessionRef.current += 1;
 		setEditingEntry(null);
 		resetForm();
 		setIsFormOpen(true);
 	};
 
 	const handleEdit = (entry: IncomeExpenseEntry) => {
+		formSessionRef.current += 1;
 		setEditingEntry(entry);
 		setDate(entry.date);
 		setVoucherNumber(entry.voucher_number ?? '');
@@ -300,40 +307,60 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setDescription(entry.description ?? '');
 		setNetAmount(formatCurrencyWithoutSymbol(entry.net_amount));
 		setIvaPercent(entry.iva_percent);
-		setPaymentMethodId(entry.payment_method_id ? String(entry.payment_method_id) : '');
+		setPaymentMethodId(entry.payment_method_id ? String(entry.payment_method_id) : 'none');
 		setBankAccountId(entry.bank_account_id ? String(entry.bank_account_id) : 'none');
 		setErrors({});
+		setStagedFiles([]);
 		setIsFormOpen(true);
 	};
 
 	const handleFormOpenChange = (open: boolean) => {
+		if (!open && saving) return;
 		setIsFormOpen(open);
-		if (!open) setEditingEntry(null);
+		if (!open) {
+			formSessionRef.current += 1;
+			setEditingEntry(null);
+			setStagedFiles([]);
+		}
 	};
 
-	// re-fetch so edits made in VoucherTypesConfig/CategoriesConfig show up immediately
+	const uploadStagedFiles = async (staged: StagedFile[], entityId: number): Promise<number> => {
+		let failed = 0;
+		for (const entry of staged) {
+			try {
+				const { error } = await uploadFileExpense(entityId, entry.file, null, entry.fileName);
+				if (error) failed += 1;
+			} catch {
+				failed += 1;
+			}
+		}
+		return failed;
+	};
+
 	useEffect(() => {
 		if (!isFormOpen) return;
 		void fetchCategories();
 		void fetchVoucherTypes();
 		void fetchPaymentMethods();
 		void fetchBankAccounts();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isFormOpen]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		const nextErrors: IncomeExpenseFormErrors = {};
 		if (!date) nextErrors.date = true;
 		if (!Number.isFinite(parsedNetAmount) || parsedNetAmount < 0) nextErrors.netAmount = true;
-		// Required for new records; existing rows may not have one yet, so it stays optional on edit.
-		if (!editingEntry && !paymentMethodId) nextErrors.paymentMethodId = true;
 		if (Object.keys(nextErrors).length > 0) {
 			setErrors(nextErrors);
 			toast({ title: 'Completá los campos obligatorios', variant: 'destructive' });
+			submittingRef.current = false;
 			return;
 		}
 		setErrors({});
+		const submissionSession = formSessionRef.current;
+		const stagedAtSubmit = stagedFiles;
 		setSaving(true);
 		try {
 			const payload: EntrySavePayload = {
@@ -343,21 +370,54 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 				work_id: workId ? Number(workId) : null,
 				party_id: partyId ? Number(partyId) : null,
 				category_id: categoryId ? Number(categoryId) : null,
-				description: description.trim() || null,
+				description: description.trim().slice(0, descriptionMaxLength) || null,
 				net_amount: parsedNetAmount,
 				iva_percent: ivaPercent,
 				iva_amount: ivaAmount,
 				total_amount: totalAmount,
-				payment_method_id: paymentMethodId ? Number(paymentMethodId) : null,
+				payment_method_id: paymentMethodId === 'none' ? null : Number(paymentMethodId),
 				bank_account_id: bankAccountId === 'none' ? null : Number(bankAccountId),
 			};
-			const { error } = editingEntry
-				? await config.updateEntry(editingEntry.id, payload)
-				: await config.createEntry(payload);
-			if (error) throw error;
-			toast({ title: editingEntry ? config.labels.updatedToast : config.labels.createdToast });
-			setIsFormOpen(false);
-			setEditingEntry(null);
+			if (editingEntry) {
+				const { error } = await config.updateEntry(editingEntry.id, payload);
+				if (error) throw error;
+				toast({ title: config.labels.updatedToast });
+			} else {
+				const { data, error } = await config.createEntry(payload);
+				if (error) throw error;
+				if (!config.attachmentsKind) {
+					toast({ title: config.labels.createdToast });
+				} else if (data?.id === undefined && stagedAtSubmit.length > 0) {
+					throw new Error(
+						`No se pudo obtener el identificador del ${config.labels.entityLabel} creado; los archivos adjuntos no se subieron.`
+					);
+				} else {
+					const failed =
+						data?.id !== undefined && stagedAtSubmit.length > 0
+							? await uploadStagedFiles(stagedAtSubmit, data.id)
+							: 0;
+					if (submissionSession === formSessionRef.current) setStagedFiles([]);
+					if (failed > 0) {
+						toast({
+							variant: 'destructive',
+							title: 'Archivos adjuntos pendientes',
+							description: `El ${config.labels.entityLabel} se creó, pero ${failed} de ${pluralArchivos(stagedAtSubmit.length)} ${noPudieronAdjuntar(failed)}. Podés reintentarlos desde la vista de edición.`,
+						});
+					} else if (stagedAtSubmit.length > 0) {
+						toast({
+							title: config.labels.createdToast,
+							description: `${adjuntaron(stagedAtSubmit.length)} ${pluralArchivos(stagedAtSubmit.length)}.`,
+						});
+					} else {
+						toast({ title: config.labels.createdToast });
+					}
+				}
+			}
+			if (submissionSession === formSessionRef.current) {
+				setIsFormOpen(false);
+				setEditingEntry(null);
+			}
+			// `year` is the one from this submit's render; the dialog blocks changing it while saving.
 			await fetchEntries(year);
 		} catch (error) {
 			toast({
@@ -367,6 +427,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 			});
 		} finally {
 			setSaving(false);
+			submittingRef.current = false;
 		}
 	};
 
@@ -399,6 +460,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setYear,
 		yearOptions,
 		loadingList,
+		entries,
 		visibleEntries,
 		fetchEntries,
 		categories,
@@ -411,6 +473,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		activePaymentMethods,
 		bankAccounts,
 		activeBankAccounts,
+		descriptionMaxLength,
 		summary,
 		dateFrom,
 		setDateFrom,
@@ -458,13 +521,12 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		ivaAmount,
 		totalAmount,
 		paymentMethodId,
-		setPaymentMethodId: (value: string) => {
-			setPaymentMethodId(value);
-			clearError('paymentMethodId');
-		},
+		setPaymentMethodId,
 		bankAccountId,
 		setBankAccountId,
 		saving,
+		stagedFiles,
+		setStagedFiles,
 		handleAdd,
 		handleEdit,
 		handleFormOpenChange,
