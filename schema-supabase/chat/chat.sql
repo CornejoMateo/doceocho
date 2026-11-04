@@ -115,13 +115,29 @@ CREATE OR REPLACE FUNCTION public.is_channel_member(channel_id bigint, user_id u
 RETURNS boolean
 SECURITY DEFINER
 LANGUAGE sql
+SET search_path = public, pg_catalog
 AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.channel_members
-    WHERE channel_members.channel_id = $1
-    AND channel_members.user_id = $2
-  );
+  SELECT CASE
+    WHEN user_id IS DISTINCT FROM auth.uid()
+     AND NOT EXISTS (
+       SELECT 1 FROM public.channel_members cm
+       WHERE cm.channel_id = $1 AND cm.user_id = auth.uid()
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM public.users u
+       WHERE u.uid_user = auth.uid() AND public.is_admin_role(u.role)
+     )
+    THEN false
+    ELSE EXISTS (
+      SELECT 1 FROM public.channel_members
+      WHERE channel_members.channel_id = $1
+      AND channel_members.user_id = $2
+    )
+  END;
 $$;
+
+REVOKE ALL ON FUNCTION public.is_channel_member(bigint, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_channel_member(bigint, uuid) TO authenticated;
 
 DROP POLICY IF EXISTS "Channel members select" ON public.channel_members;
 CREATE POLICY "Channel members select"
@@ -177,11 +193,12 @@ USING (
     EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
 );
 
+DROP POLICY IF EXISTS "Channels delete" ON public.channels;
 CREATE POLICY "Channels delete"
 ON public.channels FOR DELETE
 TO authenticated
 USING (
-    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND u.role = 'Admin')
+    EXISTS (SELECT 1 FROM public.users u WHERE u.uid_user = auth.uid() AND public.is_admin_role(u.role))
 );
 
 ------ Messages ------
