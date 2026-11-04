@@ -48,3 +48,14 @@ export type ChannelWithLastMessage = Channel & {
 	unread_count?: number;
 	last_read_message_id?: number | null;
 };
+
+export type ChannelFile = {
+	id: number;
+	channel_id: number;
+	uploaded_by: string;
+	file_name: string;
+	storage_path: string;
+	mime_type: string | null;
+	size_bytes: number;
+	created_at: string;
+};

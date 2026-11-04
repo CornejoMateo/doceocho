@@ -59,12 +59,14 @@ export const CHAT_CONSTANTS = {
 		SAVE: 'Guardar',
 		CANCEL: 'Cancelar',
 		MEMBERS: 'Miembros',
+		FILES: 'Archivos',
 		CLEAN: 'Limpiar',
 	},
 	MENU: {
 		SEARCH_BY_WORD: 'Buscar por palabra',
 		SEARCH_BY_DATE: 'Buscar por día',
 		MANAGE_MEMBERS: 'Gestionar miembros',
+		MANAGE_FILES: 'Ver archivos',
 		CLEAN_MESSAGES: 'Limpiar mensajes',
 	},
 } as const;

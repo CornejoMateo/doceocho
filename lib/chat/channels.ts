@@ -6,6 +6,50 @@ import { addChannelMember } from '@/lib/chat/channel-members';
 import type { Channel, ChannelWithLastMessage } from '@/lib/chat/chat-types';
 
 const TABLE = 'channels';
+const CHANNEL_FILES_TABLE = 'channel_files';
+const CHANNEL_FILES_BUCKET = 'chat-files';
+const CHANNEL_FILES_LIST_PAGE_SIZE = 1000;
+
+// Read-only: paginates channel_files to collect storage paths for later cleanup.
+async function listChannelStoragePaths(
+	supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
+	channelId: number
+): Promise<string[]> {
+	const paths: string[] = [];
+	let from = 0;
+	while (true) {
+		const { data, error } = await supabase
+			.from(CHANNEL_FILES_TABLE)
+			.select('storage_path')
+			.eq('channel_id', channelId)
+			.range(from, from + CHANNEL_FILES_LIST_PAGE_SIZE - 1);
+
+		if (error) {
+			console.error('Failed to list channel files for cleanup:', error);
+			return paths;
+		}
+		if (!data || data.length === 0) return paths;
+
+		paths.push(...data.map((row: { storage_path: string }) => row.storage_path));
+
+		if (data.length < CHANNEL_FILES_LIST_PAGE_SIZE) return paths;
+		from += CHANNEL_FILES_LIST_PAGE_SIZE;
+	}
+}
+
+// Best-effort blob cleanup so a deleted channel doesn't orphan storage objects.
+async function deleteChannelStorageFiles(
+	supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
+	paths: string[]
+) {
+	for (let i = 0; i < paths.length; i += CHANNEL_FILES_LIST_PAGE_SIZE) {
+		const batch = paths.slice(i, i + CHANNEL_FILES_LIST_PAGE_SIZE);
+		const { error } = await supabase.storage.from(CHANNEL_FILES_BUCKET).remove(batch);
+		if (error) {
+			console.error('Failed to remove channel file blobs:', error);
+		}
+	}
+}
 
 export async function createChannelAction(
 	name: string,
@@ -70,8 +114,12 @@ export async function deleteChannelAction(
 		const supabase = await getServerSupabaseClient();
 		await getCurrentUser();
 
+		const paths = await listChannelStoragePaths(supabase, channelId);
+
 		const { error } = await supabase.from(TABLE).delete().eq('id', channelId);
 		if (error) return { success: false, error: error.message };
+
+		await deleteChannelStorageFiles(supabase, paths);
 		return { success: true };
 	} catch (error: any) {
 		return { success: false, error: error.message || 'Error al eliminar el canal' };
