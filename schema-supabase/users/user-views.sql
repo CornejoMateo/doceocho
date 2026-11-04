@@ -91,24 +91,6 @@ USING (
     public.can_view('cash-flow')
 );
 
-DROP POLICY IF EXISTS "cash_boxes select by view" ON public.cash_boxes;
-CREATE POLICY "cash_boxes select by view"
-ON public.cash_boxes
-FOR SELECT
-TO authenticated
-USING (
-    public.can_view('cash-flow')
-);
-
-DROP POLICY IF EXISTS "transactions_box select by view" ON public.transactions_box;
-CREATE POLICY "transactions_box select by view"
-ON public.transactions_box
-FOR SELECT
-TO authenticated
-USING (
-    public.can_view('cash-flow')
-);
-
 DROP POLICY IF EXISTS "cash_flow_categories select by view" ON public.cash_flow_categories;
 CREATE POLICY "cash_flow_categories select by view"
 ON public.cash_flow_categories

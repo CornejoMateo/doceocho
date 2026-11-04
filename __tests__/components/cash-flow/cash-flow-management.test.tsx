@@ -43,20 +43,16 @@ jest.mock('@/components/ui/use-toast', () => ({
 }));
 
 describe('CashFlowManagement Component', () => {
-	const mockRefreshCashBoxes = jest.fn();
-	const mockRefreshBankAccounts = jest.fn();
-
 	beforeEach(() => {
 		jest.clearAllMocks();
 	});
 
 	it('mounts the summary tab by default (no more "En desarrollo" placeholder)', () => {
-		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation((key) => {
-			if (key === 'cash_boxes') {
-				return { data: [], loading: false, refresh: mockRefreshCashBoxes };
-			}
-			return { data: [], loading: false, refresh: mockRefreshBankAccounts };
-		});
+		(realtimeHook.useOptimizedRealtime as jest.Mock).mockImplementation(() => ({
+			data: [],
+			loading: false,
+			refresh: jest.fn(),
+		}));
 
 		render(<CashFlowManagement />);
 		expect(screen.getByTestId('summary-tab')).toBeInTheDocument();
