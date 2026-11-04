@@ -15,6 +15,7 @@ import { PushNotificationSettings } from '@/components/business/chat/push-notifi
 import { CleanupMessagesDialog } from '@/components/business/chat/cleanup-messages-dialog';
 import { CreateChannelDialog } from './create-channel-dialog';
 import { ChannelMembersDialog } from './channel-members-dialog';
+import { ChannelFilesDialog } from './channel-files-dialog';
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -247,6 +248,7 @@ export function ChatManagement() {
 								}}
 								onDateRangeChange={chatManagement.setDateRange}
 								onShowMembers={chatManagement.handleShowMembers}
+								onShowFiles={chatManagement.handleShowFiles}
 								onCleanupMessages={() => chatManagement.setShowCleanupDialog(true)}
 								onSearchByDate={() => {
 									chatManagement.setShowSearch(false);
@@ -326,6 +328,16 @@ export function ChatManagement() {
 							chatManagement.loadMembers(chatManagement.selectedChannel.id);
 						}
 					}}
+					currentUserRole={user.role}
+				/>
+			)}
+			{chatManagement.showFilesDialog && (
+				<ChannelFilesDialog
+					open={chatManagement.showFilesDialog}
+					onOpenChange={chatManagement.setShowFilesDialog}
+					channel={chatManagement.selectedChannel}
+					members={chatManagement.members}
+					currentUserId={user.uid}
 					currentUserRole={user.role}
 				/>
 			)}

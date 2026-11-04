@@ -7,6 +7,7 @@ import {
 	Search,
 	X,
 	Users,
+	Paperclip,
 	Calendar,
 	MoreVertical,
 	MessageSquare,
@@ -34,6 +35,7 @@ interface ChatHeaderProps {
 	onDateSearchToggle: () => void;
 	onDateRangeChange: (range: { from: string; to: string }) => void;
 	onShowMembers: () => void;
+	onShowFiles: () => void;
 	onCleanupMessages: () => void;
 	onSearchByDate: () => void;
 	onBack: () => void;
@@ -52,6 +54,7 @@ export function ChatHeader({
 	onDateSearchToggle,
 	onDateRangeChange,
 	onShowMembers,
+	onShowFiles,
 	onCleanupMessages,
 	onSearchByDate,
 	onBack,
@@ -138,6 +141,10 @@ export function ChatHeader({
 										<Users className="mr-2 h-4 w-4" />
 										<span>{CHAT_CONSTANTS.MENU.MANAGE_MEMBERS}</span>
 									</DropdownMenuItem>
+									<DropdownMenuItem onClick={onShowFiles}>
+										<Paperclip className="mr-2 h-4 w-4" />
+										<span>{CHAT_CONSTANTS.MENU.MANAGE_FILES}</span>
+									</DropdownMenuItem>
 									{isAdmin && (
 										<DropdownMenuItem onClick={onCleanupMessages}>
 											<Calendar className="mr-2 h-4 w-4" />
@@ -168,6 +175,10 @@ export function ChatHeader({
 								<Button size="sm" variant="outline" onClick={onShowMembers}>
 									<Users className="h-4 w-4 mr-2" />
 									{CHAT_CONSTANTS.BUTTONS.MEMBERS}
+								</Button>
+								<Button size="sm" variant="outline" onClick={onShowFiles}>
+									<Paperclip className="h-4 w-4 mr-2" />
+									{CHAT_CONSTANTS.BUTTONS.FILES}
 								</Button>
 							</>
 						)}
