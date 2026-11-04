@@ -16,6 +16,10 @@ jest.mock('next/navigation', () => ({
 	useRouter: jest.fn(),
 }));
 
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: 'Admin' } }),
+}));
+
 jest.mock('@/components/ui/card', () => ({
 	Card: ({ children, className }: any) => <div className={className}>{children}</div>,
 }));
@@ -28,6 +32,7 @@ const works = [
 		address: 'Av. Siempre Viva 123',
 		client_name: 'Juan',
 		client_last_name: 'Perez',
+		client_id: 9,
 		created_at: '2026-06-15',
 	},
 ];
@@ -55,7 +60,15 @@ describe('WeeklyWorks', () => {
 		expect(screen.getByText('Obra Centro')).toBeInTheDocument();
 		expect(screen.getByText('CABA')).toBeInTheDocument();
 		expect(screen.getByText('Av. Siempre Viva 123')).toBeInTheDocument();
-		expect(screen.getByText('Cliente: Perez, Juan')).toBeInTheDocument();
+		expect(screen.getByText('Perez, Juan')).toBeInTheDocument();
+	});
+
+	it('opens the client on their works from the client name', () => {
+		setup();
+		expect(screen.getByRole('link', { name: 'Perez, Juan' })).toHaveAttribute(
+			'href',
+			'/clients?clientId=9&tab=works'
+		);
 	});
 
 	it('shows the loading message while loading', () => {

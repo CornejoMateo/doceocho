@@ -23,6 +23,7 @@ import type { BalancesReportState } from '@/hooks/balances/use-balances-report';
 import type { BalanceReportRow } from '@/components/business/cash-flow/balances-tab/types';
 import { BalanceFilterDialog } from './balance-filter-dialog';
 import { BalanceMobileCard } from './balance-mobile-card';
+import { ClientLink } from '@/components/business/clients/client-link';
 
 export type BalancesTabProps = Pick<
 	BalancesReportState,
@@ -229,7 +230,9 @@ export function BalancesTab({
 												{r.contractDate}
 											</TableCell>
 											<TableCell className="font-medium whitespace-nowrap text-center">
-												{r.client}
+												<ClientLink clientId={r.clientId} tab="balances">
+													{r.client}
+												</ClientLink>
 											</TableCell>
 											<TableCell className="whitespace-nowrap text-center">{r.work}</TableCell>
 											<TableCell className="whitespace-nowrap text-center">{r.concept}</TableCell>

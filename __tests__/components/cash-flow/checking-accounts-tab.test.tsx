@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { CheckingAccountsTab } from '@/components/business/cash-flow/balances-tab/checking-accounts-tab';
 import { useBalancesReport } from '@/hooks/balances/use-balances-report';
 
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: 'Admin' } }),
+}));
+
 jest.mock('@/hooks/balances/use-balances-report');
 jest.mock('@/helpers/balances/generate-balance-pdf', () => ({
 	generateBalancesPDF: jest.fn(),

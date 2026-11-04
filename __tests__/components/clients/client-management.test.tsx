@@ -38,9 +38,17 @@ jest.mock('@/components/business/clients/clients-add-dialog', () => ({
 }));
 
 jest.mock('@/components/business/clients/client-details-dialog', () => ({
-	ClientDetailsDialog: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+	ClientDetailsDialog: ({
+		isOpen,
+		onClose,
+		initialTab,
+	}: {
+		isOpen: boolean;
+		onClose: () => void;
+		initialTab?: string;
+	}) =>
 		isOpen ? (
-			<div data-testid="client-details-dialog">
+			<div data-testid="client-details-dialog" data-tab={initialTab ?? ''}>
 				<button onClick={onClose}>Close</button>
 			</div>
 		) : null,
@@ -175,5 +183,19 @@ describe('ClientManagement', () => {
 		rerender(<ClientManagement />);
 
 		expect(screen.getByTestId('client-details-dialog')).toBeInTheDocument();
+	});
+
+	it('opens the client on the tab the link asked for', () => {
+		mockUseSearchParams.mockReturnValue(new URLSearchParams('clientId=1&tab=balances'));
+		render(<ClientManagement />);
+
+		expect(screen.getByTestId('client-details-dialog')).toHaveAttribute('data-tab', 'balances');
+	});
+
+	it('ignores an unknown tab in the link', () => {
+		mockUseSearchParams.mockReturnValue(new URLSearchParams('clientId=1&tab=whatever'));
+		render(<ClientManagement />);
+
+		expect(screen.getByTestId('client-details-dialog')).toHaveAttribute('data-tab', '');
 	});
 });

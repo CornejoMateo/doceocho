@@ -101,6 +101,7 @@ export function useBalancesReport() {
 					contractDate: formatShortDate(b.start_date || b.created_at),
 					contractDateRaw,
 					client: clientName,
+					clientId: b.client?.id ?? b.client_id ?? null,
 					work,
 					concept,
 					purchaseArs: budgetArs,

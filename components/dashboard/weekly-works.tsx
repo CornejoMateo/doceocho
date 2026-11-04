@@ -5,6 +5,7 @@ import { Work } from '@/lib/works/works';
 import { Building2 } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
 import { useRouter } from 'next/navigation';
+import { ClientLink } from '@/components/business/clients/client-link';
 
 export function WeeklyWorks() {
 	const router = useRouter();
@@ -59,7 +60,10 @@ export function WeeklyWorks() {
 
 								{work.client_name && work.client_last_name && (
 									<p className="text-xs text-muted-foreground truncate">
-										Cliente: {work.client_last_name}, {work.client_name}
+										Cliente:{' '}
+										<ClientLink clientId={work.client_id} tab="works">
+											{work.client_last_name}, {work.client_name}
+										</ClientLink>
 									</p>
 								)}
 

@@ -3,6 +3,8 @@ export interface BalanceReportRow {
 	contractDate: string;
 	contractDateRaw: Date;
 	client: string;
+	/** Null when the balance has no client; the name then shows as plain text. */
+	clientId: number | null;
 	work: string;
 	concept: string;
 	purchaseArs: number;

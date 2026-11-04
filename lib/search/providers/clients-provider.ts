@@ -1,6 +1,7 @@
 import { Users } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { buildIlikePattern } from '@/helpers/search/match';
+import { getClientHref } from '@/helpers/clients/client-href';
 import { RESULTS_PER_PROVIDER } from '@/constants/search/search';
 import type { SearchProvider, SearchResult } from '@/lib/search/types';
 
@@ -22,7 +23,7 @@ function toResult(client: ClientRow): SearchResult {
 		subtitle: client.locality || client.phone_number || undefined,
 		icon: Users,
 		// Opens the client file directly, reusing the deep link the module supports.
-		href: `/clients?clientId=${client.id}`,
+		href: getClientHref(client.id),
 		keywords: [client.phone_number, client.identity_number].filter((value): value is string =>
 			Boolean(value)
 		),

@@ -42,6 +42,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import { useClientBudgetsInfo } from '@/hooks/clients/use-client-budgets-info';
 import { paginateAndFilter } from '@/utils/pagination';
+import { isClientTab, type ClientTab } from '@/constants/clients/client-tabs';
 
 export function ClientManagement() {
 	const searchParams = useSearchParams();
@@ -72,17 +73,20 @@ export function ClientManagement() {
 	const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 	const [viewingClient, setViewingClient] = useState<Client | null>(null);
 	const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+	const [viewingTab, setViewingTab] = useState<ClientTab | undefined>();
 	const handledClientIdRef = useRef<string | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 6;
 
-	// Check for clientId in URL to open details dialog
+	// A link elsewhere (e.g. a balance) can open a client directly, on the tab it came for.
 	useEffect(() => {
 		const clientIdParam = searchParams.get('clientId');
 		if (clientIdParam && clientIdParam !== handledClientIdRef.current && clients.length > 0) {
 			const client = clients.find((c) => c.id === Number(clientIdParam));
 			if (client) {
+				const tabParam = searchParams.get('tab');
 				handledClientIdRef.current = clientIdParam;
+				setViewingTab(isClientTab(tabParam) ? tabParam : undefined);
 				setViewingClient(client);
 				setIsViewDialogOpen(true);
 			}
@@ -105,6 +109,7 @@ export function ClientManagement() {
 	};
 
 	const handleViewClient = (client: Client) => {
+		setViewingTab(undefined);
 		setViewingClient(client);
 		setIsViewDialogOpen(true);
 	};
@@ -462,6 +467,7 @@ export function ClientManagement() {
 				onClose={handleCloseViewDialog}
 				onEdit={handleEditFromView}
 				onClientUpdated={handleClientUpdated}
+				initialTab={viewingTab}
 			/>
 		</div>
 	);

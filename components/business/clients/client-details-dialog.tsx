@@ -35,16 +35,8 @@ import { useClientBalances } from '@/hooks/clients/use-client-balances';
 import { useCanView } from '@/hooks/permissions/use-can-view';
 import { useCanEdit } from '@/hooks/permissions/use-can-edit';
 import { EditScope } from '@/components/permissions/edit-scope';
+import { CLIENT_TABS, type ClientTab } from '@/constants/clients/client-tabs';
 
-type ClientTab = 'info' | 'works' | 'budgets' | 'balances' | 'images';
-
-const CLIENT_TABS: { value: ClientTab; label: string }[] = [
-	{ value: 'info', label: 'Información' },
-	{ value: 'works', label: 'Obras' },
-	{ value: 'budgets', label: 'Presupuestos' },
-	{ value: 'balances', label: 'Cuentas corrientes' },
-	{ value: 'images', label: 'Archivos' },
-];
 
 interface ClientDetailsDialogProps {
 	client: Client | null;

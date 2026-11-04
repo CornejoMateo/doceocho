@@ -2,6 +2,15 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BalancesTab } from '@/components/business/cash-flow/balances-tab/balances-tab';
 import { generateBalancesPDF } from '@/helpers/balances/generate-balance-pdf';
+import { useAuth } from '@/components/provider/auth-provider';
+
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: jest.fn(),
+}));
+
+beforeEach(() => {
+	(useAuth as jest.Mock).mockReturnValue({ user: { role: 'Admin' } });
+});
 
 jest.mock('@/helpers/balances/generate-balance-pdf', () => ({
 	generateBalancesPDF: jest.fn(),
@@ -17,6 +26,7 @@ const row = (over: any = {}) => ({
 	contractDate: '10/01/26',
 	contractDateRaw: new Date('2026-01-10'),
 	client: 'Perez Ana',
+	clientId: 5,
 	work: 'Casa Sur',
 	concept: 'P-1 - Aberturas',
 	purchaseArs: 1000,
@@ -144,5 +154,30 @@ describe('BalancesTab', () => {
 		render(<BalancesTab {...props} />);
 		await userEvent.click(screen.getByRole('button', { name: /Actualizar/ }));
 		expect(props.refresh).toHaveBeenCalled();
+	});
+
+	it('opens the client on their balances from the client name', () => {
+		render(<BalancesTab {...baseProps()} />);
+
+		const links = screen.getAllByRole('link', { name: 'Perez Ana' });
+		expect(links.length).toBeGreaterThan(0);
+		links.forEach((link) =>
+			expect(link).toHaveAttribute('href', '/clients?clientId=5&tab=balances')
+		);
+	});
+
+	it('leaves the name as text when the balance has no client', () => {
+		render(<BalancesTab {...baseProps()} filteredRows={[row({ clientId: null })]} />);
+
+		expect(screen.queryByRole('link', { name: 'Perez Ana' })).not.toBeInTheDocument();
+	});
+
+	it('leaves the name as text for users who cannot see clients', () => {
+		(useAuth as jest.Mock).mockReturnValue({
+			user: { role: 'Taller', views: ['cash-flow', 'cash-flow.checking-accounts'] },
+		});
+		render(<BalancesTab {...baseProps()} />);
+
+		expect(screen.queryByRole('link', { name: 'Perez Ana' })).not.toBeInTheDocument();
 	});
 });

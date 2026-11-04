@@ -1,6 +1,7 @@
 import { ClipboardCheck } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { buildIlikePattern } from '@/helpers/search/match';
+import { getClientHref } from '@/helpers/clients/client-href';
 import { RESULTS_PER_PROVIDER } from '@/constants/search/search';
 import type { SearchProvider, SearchResult } from '@/lib/search/types';
 
@@ -21,7 +22,7 @@ function toResult(work: WorkRow): SearchResult {
 		subtitle: work.name ? location || undefined : undefined,
 		icon: ClipboardCheck,
 		// Works live inside the client file, so that is where the result lands.
-		href: work.client_id ? `/clients?clientId=${work.client_id}` : '/works',
+		href: work.client_id ? getClientHref(work.client_id, 'works') : '/works',
 		keywords: [work.address, work.locality].filter((value): value is string => Boolean(value)),
 	};
 }

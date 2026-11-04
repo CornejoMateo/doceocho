@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatCurrencyUSD } from '@/utils/formats-money';
 import type { BudgetReportRow } from './types';
+import { ClientLink } from '@/components/business/clients/client-link';
 
 interface BudgetMobileCardProps {
 	row: BudgetReportRow;
@@ -15,7 +16,11 @@ export function BudgetMobileCard({ row }: BudgetMobileCardProps) {
 			<div className="space-y-3">
 				<div className="flex items-start justify-between gap-2">
 					<div className="flex-1 min-w-0">
-						<h4 className="font-semibold text-foreground break-words">{row.client}</h4>
+						<h4 className="font-semibold text-foreground break-words">
+							<ClientLink clientId={row.clientId} tab="budgets">
+								{row.client}
+							</ClientLink>
+						</h4>
 						<p className="text-sm text-muted-foreground break-words">{row.work}</p>
 					</div>
 					<Badge variant="secondary" className="flex-shrink-0">

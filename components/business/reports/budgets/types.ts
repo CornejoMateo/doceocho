@@ -67,6 +67,8 @@ export interface BudgetReportRow {
 	date: string;
 	dateRaw: Date;
 	client: string;
+	/** Null when the budget has no client; the name then shows as plain text. */
+	clientId: number | null;
 	number: string;
 	type: string;
 	work: string;

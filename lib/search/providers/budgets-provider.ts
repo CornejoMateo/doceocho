@@ -1,6 +1,7 @@
 import { FileText } from 'lucide-react';
 import { getSupabaseClient } from '@/lib/supabase-client';
 import { buildIlikePattern } from '@/helpers/search/match';
+import { getClientHref } from '@/helpers/clients/client-href';
 import { formatCurrency } from '@/utils/formats-money';
 import { RESULTS_PER_PROVIDER } from '@/constants/search/search';
 import type { SearchProvider, SearchResult } from '@/lib/search/types';
@@ -25,7 +26,7 @@ function toResult(budget: BudgetRow): SearchResult {
 		subtitle: details || undefined,
 		icon: FileText,
 		// Budgets live inside the client file, so that is where the result lands.
-		href: clientId ? `/clients?clientId=${clientId}` : '/clients',
+		href: clientId ? getClientHref(clientId, 'budgets') : '/clients',
 		keywords: [budget.type].filter((value): value is string => Boolean(value)),
 	};
 }

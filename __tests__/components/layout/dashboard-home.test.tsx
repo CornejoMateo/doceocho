@@ -31,6 +31,10 @@ jest.mock('@/hooks/use-optimized-realtime', () => ({
 	useOptimizedRealtime: jest.fn(),
 }));
 
+jest.mock('@/components/provider/auth-provider', () => ({
+	useAuth: () => ({ user: { role: 'Admin' } }),
+}));
+
 jest.mock('next/navigation', () => ({
 	useRouter: jest.fn(),
 }));

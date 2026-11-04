@@ -22,6 +22,7 @@ import type { CardWithRelations } from '@/components/business/kanban/types';
 import type { Card } from '@/components/business/kanban/types';
 import { PRIORITY_OPTIONS, Priority } from '@/constants/kanban/priority';
 import Link from 'next/link';
+import { getClientHref } from '@/helpers/clients/client-href';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CardLinksFields, type CardLinks } from '@/components/business/kanban/card-links-fields';
 import { formatCardClientName, formatCardWorkName } from '@/helpers/kanban/card-links';
@@ -235,7 +236,7 @@ export const CardForm = forwardRef<CardFormHandle, CardFormProps>(function CardF
 							)}
 							{card.client_id && (
 								<Link
-									href={`/clients?clientId=${card.client_id}`}
+									href={getClientHref(card.client_id)}
 									className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
 								>
 									Ver la ficha del cliente

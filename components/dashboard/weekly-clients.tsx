@@ -5,6 +5,7 @@ import { Client } from '@/lib/clients/clients';
 import { UserPlus } from 'lucide-react';
 import { formatCreatedAt } from '@/utils/format-date';
 import { useRouter } from 'next/navigation';
+import { getClientHref } from '@/helpers/clients/client-href';
 
 export function WeeklyClients() {
 	const router = useRouter();
@@ -18,7 +19,7 @@ export function WeeklyClients() {
 	);
 
 	const handleClientClick = (client: Client) => {
-		router.push(`/clients?clientId=${client.id}`);
+		router.push(getClientHref(client.id));
 	};
 
 	return (

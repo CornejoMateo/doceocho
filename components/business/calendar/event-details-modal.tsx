@@ -25,6 +25,7 @@ import { formatCreatedAt, formatSimpleTime } from '@/utils/format-date';
 import { Pencil } from 'lucide-react';
 import { EventFormModal } from '@/components/business/calendar/event-form-modal';
 import { format, parse } from 'date-fns';
+import { ClientLink } from '@/components/business/clients/client-link';
 
 interface EventDetailsModalProps {
 	isOpen: boolean;
@@ -202,7 +203,9 @@ export function EventDetailsModal({
 								<User className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
 								<div>
 									<p className="text-sm text-muted-foreground">Cliente</p>
-									<p className="text-sm">{event.client_name}</p>
+									<p className="text-sm">
+										<ClientLink clientId={event.client_id}>{event.client_name}</ClientLink>
+									</p>
 								</div>
 							</div>
 						)}

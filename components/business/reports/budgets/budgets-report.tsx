@@ -26,11 +26,15 @@ import { BudgetFilterDialog } from './budget-filter-dialog';
 import { applyBudgetFilters, hasActiveFilters } from '@/helpers/budgets/filter-budgets';
 import { generateBudgetsPDF, getFiltersDescription } from '@/helpers/budgets/generate-budget-pdf';
 import { BudgetMobileCard } from './budget-mobile-card';
+import { ClientLink } from '@/components/business/clients/client-link';
+
+// The client id only links the name; sorting by client uses the name.
+type BudgetSortField = Exclude<keyof BudgetReportRow, 'clientId'>;
 
 export function BudgetsReport() {
 	const [searchTerm, setSearchTerm] = useState('');
 	const [rows, setRows] = useState<BudgetReportRow[]>([]);
-	const [sortField, setSortField] = useState<keyof BudgetReportRow>('date');
+	const [sortField, setSortField] = useState<BudgetSortField>('date');
 	const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 	const [typeFilter, setTypeFilter] = useState<string>('all');
 
@@ -73,6 +77,7 @@ export function BudgetsReport() {
 					date: formatShortDate(b.created_at),
 					dateRaw,
 					client: clientName,
+					clientId: b.client?.id ?? null,
 					number: b.number || '-',
 					type: b.type || '-',
 					work,
@@ -136,7 +141,7 @@ export function BudgetsReport() {
 		});
 	}, [rows, searchTerm, sortField, sortDirection, typeFilter, filters]);
 
-	const handleSort = (field: keyof BudgetReportRow) => {
+	const handleSort = (field: BudgetSortField) => {
 		if (sortField === field) {
 			setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
 		} else {
@@ -150,7 +155,7 @@ export function BudgetsReport() {
 		generateBudgetsPDF(filteredRows, filtersDesc);
 	};
 
-	const getSortIcon = (field: keyof BudgetReportRow) => {
+	const getSortIcon = (field: BudgetSortField) => {
 		if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
 		return sortDirection === 'asc' ? (
 			<ArrowUp className="h-4 w-4" />
@@ -315,7 +320,9 @@ export function BudgetsReport() {
 										<TableRow key={r.id}>
 											<TableCell className="text-center whitespace-nowrap">{r.date}</TableCell>
 											<TableCell className="text-center font-medium whitespace-nowrap">
-												{r.client}
+												<ClientLink clientId={r.clientId} tab="budgets">
+													{r.client}
+												</ClientLink>
 											</TableCell>
 											<TableCell className="text-center whitespace-nowrap">{r.number}</TableCell>
 											<TableCell className="text-center whitespace-nowrap">{r.type}</TableCell>
