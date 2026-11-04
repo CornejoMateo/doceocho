@@ -116,8 +116,16 @@ export async function deleteChannelAction(
 
 		const paths = await listChannelStoragePaths(supabase, channelId);
 
-		const { error } = await supabase.from(TABLE).delete().eq('id', channelId);
+		const { data: deleted, error } = await supabase
+			.from(TABLE)
+			.delete()
+			.eq('id', channelId)
+			.select('id');
 		if (error) return { success: false, error: error.message };
+		// RLS silently filters denied deletes to zero rows instead of erroring.
+		if (!deleted || deleted.length === 0) {
+			return { success: false, error: 'No tienes permisos para eliminar este canal' };
+		}
 
 		await deleteChannelStorageFiles(supabase, paths);
 		return { success: true };

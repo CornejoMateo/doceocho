@@ -168,6 +168,7 @@ create table public.channels (
   constraint channels_pkey primary key (id)
 ) TABLESPACE pg_default;
 
+DROP POLICY IF EXISTS "Channels select" ON public.channels;
 CREATE POLICY "Channels select"
 ON public.channels FOR SELECT
 TO authenticated
@@ -176,7 +177,7 @@ USING (
    FROM channel_members cm
   WHERE ((cm.channel_id = channels.id) AND (cm.user_id = auth.uid())))) OR (EXISTS ( SELECT 1
    FROM users u
-  WHERE ((u.uid_user = auth.uid()) AND ((u.role)::text = 'Admin'::text)))))
+  WHERE ((u.uid_user = auth.uid()) AND public.is_admin_role(u.role)))))
 );
 
 CREATE POLICY "Channels insert"
