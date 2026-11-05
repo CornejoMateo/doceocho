@@ -139,8 +139,10 @@ export async function deleteIncome(id: number): Promise<{ error: any; orphanedPa
 
 	for (let i = 0; i < paths.length; i += STORAGE_REMOVE_CHUNK_SIZE) {
 		const chunk = paths.slice(i, i + STORAGE_REMOVE_CHUNK_SIZE);
-		const { error: storageError } = await supabase.storage.from(STORAGE_BUCKET).remove(chunk);
-		if (storageError) {
+		const { data: removed, error: storageError } = await supabase.storage
+			.from(STORAGE_BUCKET)
+			.remove(chunk);
+		if (storageError || (removed && removed.length < chunk.length)) {
 			console.error('Failed to remove income storage objects:', chunk, storageError);
 			orphanedPaths.push(...chunk);
 		}
