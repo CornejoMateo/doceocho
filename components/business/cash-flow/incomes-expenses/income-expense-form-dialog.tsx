@@ -34,6 +34,12 @@ import {
 	type StagedFile,
 } from '@/components/business/shared/attachments/file-attachments';
 
+// One permission key per kind; required map keeps every entry explicit (no hardcoded default).
+const ATTACHMENTS_EDIT_KEY: Record<'expense' | 'income', string> = {
+	expense: 'cash-flow.expenses',
+	income: 'cash-flow.incomes',
+};
+
 type IncomeExpenseFormDialogProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -76,7 +82,7 @@ type IncomeExpenseFormDialogProps = {
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 	errors: IncomeExpenseFormErrors;
-	attachmentsKind?: 'expense';
+	attachmentsKind?: 'expense' | 'income';
 	stagedFiles?: StagedFile[];
 	onStagedFilesChange?: (files: StagedFile[]) => void;
 	descriptionMaxLength?: number;
@@ -402,7 +408,7 @@ export function IncomeExpenseFormDialog({
 							entityId={editingEntry?.id}
 							staged={stagedFiles}
 							onStagedChange={onStagedFilesChange}
-							editKey={attachmentsKind === 'expense' ? 'cash-flow.expenses' : 'cash-flow.incomes'}
+							editKey={ATTACHMENTS_EDIT_KEY[attachmentsKind]}
 						/>
 					)}
 

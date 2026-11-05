@@ -124,12 +124,27 @@ export async function updateIncome(
 	return { data, error };
 }
 
-export async function deleteIncome(id: number): Promise<{ error: any }> {
+const STORAGE_BUCKET = 'suppliers-files';
+const STORAGE_REMOVE_CHUNK_SIZE = 100;
+
+export async function deleteIncome(id: number): Promise<{ error: any; orphanedPaths?: string[] }> {
 	const supabase = getSupabaseClient();
-	const { data, error } = await supabase.from(TABLE).delete().eq('id', id).select('id');
-	if (error) return { error };
-	if (!data || data.length === 0) {
-		return { error: { message: 'No se pudo eliminar el ingreso (no existe o no tenés permisos)' } };
+	const { data: storagePaths, error: rpcError } = await supabase.rpc('delete_income', {
+		p_id: id,
+	});
+	if (rpcError) return { error: rpcError };
+
+	const paths = (storagePaths ?? []).filter((p: unknown): p is string => !!p);
+	const orphanedPaths: string[] = [];
+
+	for (let i = 0; i < paths.length; i += STORAGE_REMOVE_CHUNK_SIZE) {
+		const chunk = paths.slice(i, i + STORAGE_REMOVE_CHUNK_SIZE);
+		const { error: storageError } = await supabase.storage.from(STORAGE_BUCKET).remove(chunk);
+		if (storageError) {
+			console.error('Failed to remove income storage objects:', chunk, storageError);
+			orphanedPaths.push(...chunk);
+		}
 	}
-	return { error: null };
+
+	return { error: null, ...(orphanedPaths.length > 0 ? { orphanedPaths } : {}) };
 }

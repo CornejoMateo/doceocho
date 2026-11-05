@@ -13,7 +13,7 @@ import { ChevronDown, ChevronRight, Edit, MoreVertical, Plus, Trash2 } from 'luc
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
 import { purchaseStatus } from '@/helpers/suppliers/suppliers';
-import { pluralArchivos } from '@/helpers/attachments/attachments';
+import { pluralFiles } from '@/helpers/attachments/attachments';
 import { purchaseStatusBadgeClassName, purchaseStatusLabel } from '@/constants/suppliers/suppliers';
 import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
 import type { PaymentWithDetails } from '@/lib/payments/payments';
@@ -112,7 +112,7 @@ export function PurchaseCard({
 						<div className="min-w-0">
 							<p className="text-xs text-muted-foreground">
 								{formatDateOnly(purchase.date)}
-								{purchaseFileCount > 0 && ` · ${pluralArchivos(purchaseFileCount)}`}
+								{purchaseFileCount > 0 && ` · ${pluralFiles(purchaseFileCount)}`}
 							</p>
 							{purchase.description && (
 								<p className="line-clamp-2 break-words text-sm font-medium [overflow-wrap:anywhere]">

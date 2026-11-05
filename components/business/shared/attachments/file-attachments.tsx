@@ -31,6 +31,19 @@ import {
 	downloadFilePayment,
 	deleteFilePayment,
 } from '@/lib/payments/files-payments';
+import {
+	listFilesByIncomeId,
+	uploadFileIncome,
+	downloadFileIncome,
+	deleteFileIncome,
+} from '@/lib/incomes/files-incomes';
+import {
+	CASH_FLOW_FILE_EXTENSIONS,
+	CASH_FLOW_FILE_TYPES,
+	MAX_FILE_SIZE_CASH_FLOW,
+	isValidFileSize,
+	isValidFileType,
+} from '@/utils/file-upload-utils';
 
 type AttachmentFile = {
 	id: number;
@@ -47,8 +60,30 @@ export type StagedFile = {
 	previewUrl?: string;
 };
 
+// One adapter per kind, swapped in via lookup instead of growing if/ternary chains.
+const FILE_ADAPTERS = {
+	expense: {
+		list: listFilesByExpenseId,
+		upload: uploadFileExpense,
+		download: downloadFileExpense,
+		remove: deleteFileExpense,
+	},
+	payment: {
+		list: listFilesByPaymentId,
+		upload: uploadFilePayment,
+		download: downloadFilePayment,
+		remove: deleteFilePayment,
+	},
+	income: {
+		list: listFilesByIncomeId,
+		upload: uploadFileIncome,
+		download: downloadFileIncome,
+		remove: deleteFileIncome,
+	},
+} as const;
+
 interface FileAttachmentsProps {
-	kind: 'expense' | 'payment';
+	kind: 'expense' | 'payment' | 'income';
 	entityId?: number;
 	staged?: StagedFile[];
 	onStagedChange?: (files: StagedFile[]) => void;
@@ -64,6 +99,7 @@ export function FileAttachments({
 	editKey,
 }: FileAttachmentsProps) {
 	const { toast } = useToast();
+	const adapter = FILE_ADAPTERS[kind];
 	const isStagedMode = entityId === undefined;
 	const [files, setFiles] = useState<AttachmentFile[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -77,10 +113,7 @@ export function FileAttachments({
 		if (entityId === undefined) return;
 		setLoading(true);
 		try {
-			const { data, error } =
-				kind === 'expense'
-					? await listFilesByExpenseId(entityId)
-					: await listFilesByPaymentId(entityId);
+			const { data, error } = await adapter.list(entityId);
 			if (error) throw error;
 			setFiles(data ?? []);
 		} catch (error) {
@@ -125,26 +158,61 @@ export function FileAttachments({
 	}, []);
 
 	const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
+		// Copy before resetting the input: input.files is live and value='' empties it.
+		const selected = Array.from(e.target.files ?? []);
+		if (inputRef.current) inputRef.current.value = '';
+		if (selected.length === 0) return;
+
+		const sizedFiles = selected.filter((file) => isValidFileSize(file, MAX_FILE_SIZE_CASH_FLOW));
+		const oversizedCount = selected.length - sizedFiles.length;
+		if (oversizedCount > 0) {
+			const maxSizeMB = MAX_FILE_SIZE_CASH_FLOW / (1024 * 1024);
+			toast({
+				title: 'Archivo demasiado grande',
+				description: `${oversizedCount} ${oversizedCount === 1 ? 'archivo supera' : 'archivos superan'} el límite de ${maxSizeMB}MB y ${oversizedCount === 1 ? 'no se adjuntó' : 'no se adjuntaron'}.`,
+				variant: 'destructive',
+			});
+		}
+
+		const validFiles = sizedFiles.filter((file) =>
+			isValidFileType(file, CASH_FLOW_FILE_TYPES, CASH_FLOW_FILE_EXTENSIONS)
+		);
+		const invalidTypeCount = sizedFiles.length - validFiles.length;
+		if (invalidTypeCount > 0) {
+			toast({
+				title: 'Tipo de archivo no válido',
+				description: `${invalidTypeCount} ${invalidTypeCount === 1 ? 'archivo no tiene un formato permitido y no se adjuntó' : 'archivos no tienen un formato permitido y no se adjuntaron'}.`,
+				variant: 'destructive',
+			});
+		}
+		if (validFiles.length === 0) return;
+
 		if (isStagedMode) {
-			const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
-			if (previewUrl) heldPreviewUrls.current.add(previewUrl);
-			onStagedChange?.([
-				...(staged ?? []),
-				{ id: crypto.randomUUID(), file, fileName: file.name, previewUrl },
-			]);
-			if (inputRef.current) inputRef.current.value = '';
+			const newEntries = validFiles.map((file) => {
+				const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
+				if (previewUrl) heldPreviewUrls.current.add(previewUrl);
+				return { id: crypto.randomUUID(), file, fileName: file.name, previewUrl };
+			});
+			onStagedChange?.([...(staged ?? []), ...newEntries]);
 			return;
 		}
+
 		setUploading(true);
 		try {
-			const { error } =
-				kind === 'expense'
-					? await uploadFileExpense(entityId, file)
-					: await uploadFilePayment(entityId, file);
-			if (error) throw error;
-			toast({ title: 'Archivo adjuntado' });
+			let failed = 0;
+			for (const file of validFiles) {
+				const { error } = await adapter.upload(entityId, file);
+				if (error) failed += 1;
+			}
+			if (failed === 0) {
+				toast({ title: validFiles.length === 1 ? 'Archivo adjuntado' : 'Archivos adjuntados' });
+			} else {
+				toast({
+					title: 'Error',
+					description: `${failed} de ${validFiles.length} archivos no se pudieron adjuntar.`,
+					variant: 'destructive',
+				});
+			}
 			await fetchFiles();
 		} catch (error) {
 			toast({
@@ -154,17 +222,13 @@ export function FileAttachments({
 			});
 		} finally {
 			setUploading(false);
-			if (inputRef.current) inputRef.current.value = '';
 		}
 	};
 
 	const handleDownload = async (file: AttachmentFile) => {
 		setDownloadingId(file.id);
 		try {
-			const { data: blob, error } =
-				kind === 'expense'
-					? await downloadFileExpense(file.id)
-					: await downloadFilePayment(file.id);
+			const { data: blob, error } = await adapter.download(file.id);
 			if (error || !blob) {
 				throw error ?? new Error('El archivo no está disponible.');
 			}
@@ -195,10 +259,7 @@ export function FileAttachments({
 		}
 		setDeleting(true);
 		try {
-			const { success, error } =
-				kind === 'expense'
-					? await deleteFileExpense((fileToDelete as AttachmentFile).id)
-					: await deleteFilePayment((fileToDelete as AttachmentFile).id);
+			const { success, error } = await adapter.remove((fileToDelete as AttachmentFile).id);
 			if (!success) throw error;
 			toast({ title: 'Archivo eliminado' });
 			await fetchFiles();
@@ -238,7 +299,14 @@ export function FileAttachments({
 						{uploading ? 'Subiendo...' : 'Adjuntar'}
 					</Button>
 				</EditOnly>
-				<input ref={inputRef} type="file" className="hidden" onChange={handleFileSelected} />
+				<input
+					ref={inputRef}
+					type="file"
+					multiple
+					accept={[...CASH_FLOW_FILE_TYPES, ...CASH_FLOW_FILE_EXTENSIONS].join(',')}
+					className="hidden"
+					onChange={handleFileSelected}
+				/>
 			</div>
 
 			{loading ? (

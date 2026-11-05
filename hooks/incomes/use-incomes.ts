@@ -60,14 +60,15 @@ function toIncomeInput(input: EntrySavePayload) {
 export function useIncomes() {
 	return useIncomeExpenseTab({
 		categoryKind: 'income',
+		attachmentsKind: 'income',
 		listEntries: async (year) => {
 			const { data, error } = await listIncomes({ year });
 			if (error) return { data: null, error };
 			return { data: (data ?? []).map(toEntry), error: null };
 		},
 		createEntry: async (input) => {
-			const { error } = await createIncome(toIncomeInput(input));
-			return { error };
+			const { data, error } = await createIncome(toIncomeInput(input));
+			return { data, error };
 		},
 		updateEntry: async (id, input) => {
 			const { error } = await updateIncome(id, toIncomeInput(input));

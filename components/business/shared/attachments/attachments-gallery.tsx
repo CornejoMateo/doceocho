@@ -29,14 +29,39 @@ import {
 	signUrlsForPaymentFiles,
 	type FilePayment,
 } from '@/lib/payments/files-payments';
+import {
+	listFilesWithUrlsByIncomeId,
+	deleteFileIncome,
+	signUrlsForIncomeFiles,
+	type FileIncome,
+} from '@/lib/incomes/files-incomes';
 import { FileViewerItem, formatFileSize, getFileKind } from '@/utils/file-upload-utils';
 
+// One adapter per kind, swapped in via lookup instead of growing if/ternary chains.
+const GALLERY_ADAPTERS = {
+	expense: {
+		listWithUrls: listFilesWithUrlsByExpenseId,
+		remove: deleteFileExpense,
+		signUrls: signUrlsForExpenseFiles,
+	},
+	payment: {
+		listWithUrls: listFilesWithUrlsByPaymentId,
+		remove: deleteFilePayment,
+		signUrls: signUrlsForPaymentFiles,
+	},
+	income: {
+		listWithUrls: listFilesWithUrlsByIncomeId,
+		remove: deleteFileIncome,
+		signUrls: signUrlsForIncomeFiles,
+	},
+} as const;
+
 interface AttachmentsGalleryProps {
-	kind: 'expense' | 'payment';
+	kind: 'expense' | 'payment' | 'income';
 	entityId: number;
 	label?: string;
 	onCountChange?: (count: number) => void;
-	preloadedFiles?: FileExpense[] | FilePayment[];
+	preloadedFiles?: FileExpense[] | FilePayment[] | FileIncome[];
 	readOnly?: boolean;
 	/** Permission key that governs deleting a file, e.g. "cash-flow" or "cash-flow.suppliers". */
 	editKey: string;
@@ -52,6 +77,7 @@ export function AttachmentsGallery({
 	editKey,
 }: AttachmentsGalleryProps) {
 	const { toast } = useToast();
+	const adapter = GALLERY_ADAPTERS[kind];
 	const [files, setFiles] = useState<FileViewerItem[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadError, setLoadError] = useState(false);
@@ -62,10 +88,8 @@ export function AttachmentsGallery({
 	const requestIdRef = useRef(0);
 
 	const fetchFromEntity = useCallback(async () => {
-		return kind === 'expense'
-			? listFilesWithUrlsByExpenseId(entityId)
-			: listFilesWithUrlsByPaymentId(entityId);
-	}, [kind, entityId]);
+		return adapter.listWithUrls(entityId);
+	}, [adapter, entityId]);
 
 	const loadFiles = useCallback(
 		async (opts?: { skipPreload?: boolean }) => {
@@ -80,9 +104,7 @@ export function AttachmentsGallery({
 			try {
 				const { data, error } =
 					preloadedFiles && !opts?.skipPreload
-						? kind === 'expense'
-							? await signUrlsForExpenseFiles(preloadedFiles as FileExpense[])
-							: await signUrlsForPaymentFiles(preloadedFiles as FilePayment[])
+						? await adapter.signUrls(preloadedFiles as any)
 						: await fetchFromEntity();
 
 				if (error) throw error;
@@ -105,7 +127,7 @@ export function AttachmentsGallery({
 			setLoadError(failed);
 			onCountChange?.(next.length);
 		},
-		[preloadedFiles, kind, fetchFromEntity, toast]
+		[preloadedFiles, adapter, fetchFromEntity, toast]
 	);
 
 	useEffect(() => {
@@ -119,10 +141,7 @@ export function AttachmentsGallery({
 		if (!fileToDelete) return;
 		setDeleting(true);
 		try {
-			const { success, error } =
-				kind === 'expense'
-					? await deleteFileExpense(fileToDelete.id)
-					: await deleteFilePayment(fileToDelete.id);
+			const { success, error } = await adapter.remove(fileToDelete.id);
 			if (!success) throw error;
 			toast({ title: 'Archivo eliminado' });
 			await loadFiles({ skipPreload: true });

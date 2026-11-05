@@ -36,6 +36,37 @@ export const CLIENT_FILE_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES, ...DOCUMENT_TY
 // Only image types for claims
 export const CLAIM_FILE_TYPES = IMAGE_TYPES;
 
+// Office document types (no video) for cash-flow attachments (Gastos/Ingresos)
+export const OFFICE_DOCUMENT_TYPES = [
+	'application/pdf',
+	'application/vnd.ms-excel',
+	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	'application/msword',
+	'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+] as const;
+
+// PDF + images + Office docs, for Gastos/Ingresos file attachments
+export const CASH_FLOW_FILE_TYPES = [...IMAGE_TYPES, ...OFFICE_DOCUMENT_TYPES] as const;
+
+// Extensions for CASH_FLOW_FILE_TYPES, for files with empty/generic MIME (octet-stream, iPhone HEIC, etc.)
+export const CASH_FLOW_FILE_EXTENSIONS = [
+	'.jpg',
+	'.jpeg',
+	'.png',
+	'.gif',
+	'.webp',
+	'.heic',
+	'.heif',
+	'.pdf',
+	'.doc',
+	'.docx',
+	'.xls',
+	'.xlsx',
+] as const;
+
+// File size limit for cash-flow attachments
+export const MAX_FILE_SIZE_CASH_FLOW = 10 * 1024 * 1024; // 10MB
+
 // File extensions allowed by extension match (for types browsers don't recognize, e.g. SketchUp .skp)
 export const ALLOWED_EXTENSIONS = ['.skp'] as const;
 
@@ -145,6 +176,15 @@ export const isDocument = (mimetype: string): boolean => {
 export const getFileExtension = (filename: string): string => {
 	const parts = filename.split('.');
 	return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
+};
+
+/**
+ * Builds a storage-safe file name: uuid, or uuid.ext if ext is a trusted dotted alphanumeric extension
+ */
+export const buildStorageFileName = (fileName: string): string => {
+	const rawExt = fileName.includes('.') ? (fileName.split('.').pop() ?? '') : '';
+	const fileExt = /^[a-zA-Z0-9]{1,10}$/.test(rawExt) ? rawExt : '';
+	return fileExt ? `${crypto.randomUUID()}.${fileExt}` : crypto.randomUUID();
 };
 
 export const getFileKind = (fileName: string) => {

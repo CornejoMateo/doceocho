@@ -39,7 +39,10 @@ type IncomeExpenseTabProps = {
 	categoriesConfig: React.ReactNode;
 	onAddPayment?: (entry: IncomeExpenseEntry) => void;
 	cascadeDeleteWarning?: boolean;
-	attachmentsKind?: 'expense';
+	// Gastos has a payments FK to warn about on cascade delete; Ingresos has none. Defaults to true
+	// (Gastos' existing behavior) so callers that only set cascadeDeleteWarning are unaffected.
+	cascadeHasLinkedPayments?: boolean;
+	attachmentsKind?: 'expense' | 'income';
 };
 
 // Generic orchestrator shared by Incomes and Expenses
@@ -52,6 +55,7 @@ export function IncomeExpenseTab({
 	categoriesConfig,
 	onAddPayment,
 	cascadeDeleteWarning = false,
+	cascadeHasLinkedPayments = true,
 	attachmentsKind,
 }: IncomeExpenseTabProps) {
 	const [linkedPaymentsCount, setLinkedPaymentsCount] = useState<number | null>(null);
@@ -59,7 +63,7 @@ export function IncomeExpenseTab({
 	const [countFailed, setCountFailed] = useState(false);
 	const entryToDeleteId = state.entryToDelete?.id ?? null;
 
-	const showAttachmentsDialog = attachmentsKind === 'expense';
+	const hasLinkedPayments = cascadeHasLinkedPayments;
 	const [entryForDetailsId, setEntryForDetailsId] = useState<number | null>(null);
 	const entryForDetails =
 		entryForDetailsId != null
@@ -92,7 +96,7 @@ export function IncomeExpenseTab({
 		: [];
 
 	useEffect(() => {
-		if (!cascadeDeleteWarning || entryToDeleteId == null) {
+		if (!cascadeDeleteWarning || !hasLinkedPayments || entryToDeleteId == null) {
 			setLinkedPaymentsCount(null);
 			setCountLoading(false);
 			setCountFailed(false);
@@ -117,7 +121,7 @@ export function IncomeExpenseTab({
 		return () => {
 			cancelled = true;
 		};
-	}, [cascadeDeleteWarning, entryToDeleteId]);
+	}, [cascadeDeleteWarning, hasLinkedPayments, entryToDeleteId]);
 
 	const deleteDescription = (() => {
 		if (!state.entryToDelete) return '';
@@ -128,13 +132,15 @@ export function IncomeExpenseTab({
 
 	const cascadeWarning = (() => {
 		if (!cascadeDeleteWarning || !state.entryToDelete) return null;
-		const warningText = countLoading
-			? 'Verificando pagos asociados...'
-			: countFailed
-				? 'Al eliminar este gasto también se eliminarán sus pagos asociados (si tiene) y sus archivos adjuntos. Esta acción no se puede deshacer.'
-				: linkedPaymentsCount
-					? `Al eliminar este gasto también se eliminarán sus ${linkedPaymentsCount} pago${linkedPaymentsCount === 1 ? '' : 's'} asociado${linkedPaymentsCount === 1 ? '' : 's'} y sus archivos adjuntos. Esta acción no se puede deshacer.`
-					: 'Este gasto no tiene pagos asociados. Al eliminarlo también se eliminarán sus archivos adjuntos. Esta acción no se puede deshacer.';
+		const warningText = !hasLinkedPayments
+			? `Al eliminar este ${entityLabel} también se eliminarán sus archivos adjuntos. Esta acción no se puede deshacer.`
+			: countLoading
+				? 'Verificando pagos asociados...'
+				: countFailed
+					? `Al eliminar este ${entityLabel} también se eliminarán sus pagos asociados (si tiene) y sus archivos adjuntos. Esta acción no se puede deshacer.`
+					: linkedPaymentsCount
+						? `Al eliminar este ${entityLabel} también se eliminarán sus ${linkedPaymentsCount} pago${linkedPaymentsCount === 1 ? '' : 's'} asociado${linkedPaymentsCount === 1 ? '' : 's'} y sus archivos adjuntos. Esta acción no se puede deshacer.`
+						: `Este ${entityLabel} no tiene pagos asociados. Al eliminarlo también se eliminarán sus archivos adjuntos. Esta acción no se puede deshacer.`;
 		return (
 			<Alert variant="destructive">
 				<AlertTriangle className="h-4 w-4" aria-hidden="true" />
@@ -197,9 +203,7 @@ export function IncomeExpenseTab({
 						onEdit={state.handleEdit}
 						onAskDelete={state.setEntryToDelete}
 						onAddPayment={onAddPayment}
-						onRowClick={
-							showAttachmentsDialog ? (entry) => setEntryForDetailsId(entry.id) : undefined
-						}
+						onRowClick={attachmentsKind ? (entry) => setEntryForDetailsId(entry.id) : undefined}
 						pageResetKey={[
 							state.year,
 							state.dateFrom,
@@ -281,19 +285,25 @@ export function IncomeExpenseTab({
 				title={`¿Eliminar ${entityLabel}?`}
 				description={deleteDescription}
 				extra={cascadeWarning}
-				confirmText={cascadeDeleteWarning ? 'Eliminar gasto y pagos' : 'Eliminar'}
+				confirmText={
+					cascadeDeleteWarning
+						? hasLinkedPayments
+							? `Eliminar ${entityLabel} y pagos`
+							: `Eliminar ${entityLabel}`
+						: 'Eliminar'
+				}
 				loadingText="Eliminando..."
 				isLoading={state.deleting}
 				onConfirm={state.confirmDelete}
 			/>
 
-			{showAttachmentsDialog && (
+			{attachmentsKind && (
 				<EntityAttachmentsDialog
 					open={!!entryForDetails}
 					onOpenChange={(open) => {
 						if (!open) setEntryForDetailsId(null);
 					}}
-					kind="expense"
+					kind={attachmentsKind}
 					entityId={entryForDetails?.id ?? null}
 					title={`Detalle del ${entityLabel}`}
 					summary={detailsSummary}

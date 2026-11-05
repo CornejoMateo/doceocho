@@ -10,7 +10,7 @@ import {
 import { Edit, MoreVertical, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formats-money';
 import { formatDateOnly } from '@/utils/format-date';
-import { pluralArchivos } from '@/helpers/attachments/attachments';
+import { pluralFiles } from '@/helpers/attachments/attachments';
 import type { PaymentWithDetails } from '@/lib/payments/payments';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
@@ -68,7 +68,7 @@ export function PaymentRow({
 							{payment.payment_method_id
 								? (paymentMethodById.get(payment.payment_method_id)?.name ?? 'Método eliminado')
 								: 'Sin método'}
-							{fileCount > 0 && ` · ${pluralArchivos(fileCount)}`}
+							{fileCount > 0 && ` · ${pluralFiles(fileCount)}`}
 						</p>
 						{(payment.receipt_number || payment.category_id) && (
 							<p className="line-clamp-2 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">

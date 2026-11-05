@@ -13,7 +13,7 @@ import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses'
 import type { PaymentWithDetails } from '@/lib/payments/payments';
 import { uploadFileExpense } from '@/lib/expenses/files-expenses';
 import { uploadFilePayment } from '@/lib/payments/files-payments';
-import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/attachments/attachments';
+import { pluralFiles, attachments, notAttachments } from '@/helpers/attachments/attachments';
 import { getLocalDate } from '@/utils/format-date';
 import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
 
@@ -266,12 +266,12 @@ export function usePurchasePaymentForms({
 					toast({
 						variant: 'destructive',
 						title: 'Archivos adjuntos pendientes',
-						description: `La compra se creó, pero ${failed} de ${pluralArchivos(staged.length)} ${noPudieronAdjuntar(failed)}. Podés reintentarlos desde la vista de edición.`,
+						description: `La compra se creó, pero ${failed} de ${pluralFiles(staged.length)} ${notAttachments(failed)}. Podés reintentarlos desde la vista de edición.`,
 					});
 				} else if (staged.length > 0) {
 					toast({
 						title: 'Compra creada',
-						description: `${adjuntaron(staged.length)} ${pluralArchivos(staged.length)}.`,
+						description: `${attachments(staged.length)} ${pluralFiles(staged.length)}.`,
 					});
 				} else {
 					toast({ title: 'Compra creada' });
@@ -334,12 +334,12 @@ export function usePurchasePaymentForms({
 					toast({
 						variant: 'destructive',
 						title: 'Archivos adjuntos pendientes',
-						description: `El pago se creó, pero ${failed} de ${pluralArchivos(staged.length)} ${noPudieronAdjuntar(failed)}. Podés reintentarlos desde la vista de edición.`,
+						description: `El pago se creó, pero ${failed} de ${pluralFiles(staged.length)} ${notAttachments(failed)}. Podés reintentarlos desde la vista de edición.`,
 					});
 				} else if (staged.length > 0) {
 					toast({
 						title: 'Pago creado',
-						description: `${adjuntaron(staged.length)} ${pluralArchivos(staged.length)}.`,
+						description: `${attachments(staged.length)} ${pluralFiles(staged.length)}.`,
 					});
 				} else {
 					toast({ title: 'Pago creado' });
