@@ -8,6 +8,7 @@ import {
 	MAX_FILE_SIZE_CLAIM,
 	MAX_MODULE_IMAGE_SIZE,
 	MAX_MODULE_VIDEO_SIZE,
+	buildStorageFileName,
 	formatDate,
 	formatFileSize,
 	getFileExtension,
@@ -206,6 +207,24 @@ describe('file-upload-utils', () => {
 			expect(getFileKind('documento.pdf')).toBe('file');
 			expect(getFileKind('README')).toBe('file');
 			expect(getFileKind('imagen')).toBe('file');
+		});
+	});
+
+	describe('buildStorageFileName', () => {
+		it('appends the extension for a dotted name', () => {
+			expect(buildStorageFileName('photo.jpg')).toMatch(/^[0-9a-f-]+\.jpg$/);
+		});
+
+		it('returns only the uuid when there is no dot', () => {
+			expect(buildStorageFileName('README')).toMatch(/^[0-9a-f-]+$/);
+		});
+
+		it('drops an invalid extension like ../../x', () => {
+			expect(buildStorageFileName('../../x')).toMatch(/^[0-9a-f-]+$/);
+		});
+
+		it('drops an extension longer than 10 chars', () => {
+			expect(buildStorageFileName('file.123456789012')).toMatch(/^[0-9a-f-]+$/);
 		});
 	});
 
