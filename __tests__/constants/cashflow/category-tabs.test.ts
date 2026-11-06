@@ -6,6 +6,7 @@ describe('CATEGORY_TABS', () => {
 		expect(CATEGORY_TABS.expenses?.kind).toBe('expense');
 		expect(CATEGORY_TABS.payments?.kind).toBe('payment');
 		expect(CATEGORY_TABS.collections?.kind).toBe('collection');
-		expect(CATEGORY_TABS['fixed-expenses']?.kind).toBe('fixed_expense');
+		// Costos fijos shares the 'expense' category pool with Gastos.
+		expect(CATEGORY_TABS['fixed-expenses']?.kind).toBe('expense');
 	});
 });
