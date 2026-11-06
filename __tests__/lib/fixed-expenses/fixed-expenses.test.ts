@@ -55,10 +55,16 @@ describe('lib/fixed-expenses', () => {
 	describe('createFixedExpense', () => {
 		it('trims the description before inserting', async () => {
 			const { chain } = setup({ data: { id: 1 } });
-			await createFixedExpense({ category_id: 2, amount: 1000, description: '  Alquiler  ' });
+			await createFixedExpense({
+				category_id: 2,
+				net_amount: 1000,
+				iva_percent: 0,
+				description: '  Alquiler  ',
+			});
 			expect(chain.insert).toHaveBeenCalledWith({
 				category_id: 2,
-				amount: 1000,
+				net_amount: 1000,
+				iva_percent: 0,
 				description: 'Alquiler',
 			});
 		});

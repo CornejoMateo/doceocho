@@ -165,3 +165,36 @@ ALTER TABLE public.incomes
   ALTER COLUMN voucher_type_id DROP NOT NULL,
   ALTER COLUMN client_id DROP NOT NULL,
   ALTER COLUMN category_id DROP NOT NULL;
+
+------ RPC: ATOMIC DELETE (locks row, collects file paths, deletes row) ------
+
+CREATE OR REPLACE FUNCTION public.delete_income(p_id bigint)
+RETURNS text[]
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  v_file_paths text[];
+  v_deleted_id bigint;
+BEGIN
+  PERFORM 1 FROM public.incomes WHERE id = p_id FOR UPDATE;
+
+  SELECT array_agg(storage_path) INTO v_file_paths
+  FROM public.files_incomes
+  WHERE income_id = p_id;
+
+  DELETE FROM public.incomes
+  WHERE id = p_id
+  RETURNING id INTO v_deleted_id;
+
+  IF v_deleted_id IS NULL THEN
+    RAISE EXCEPTION 'No se pudo eliminar el ingreso (no existe o no tenés permisos)';
+  END IF;
+
+  RETURN COALESCE(v_file_paths, ARRAY[]::text[]);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.delete_income(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_income(bigint) TO authenticated;

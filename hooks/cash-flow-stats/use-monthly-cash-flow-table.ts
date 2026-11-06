@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getSummaryMonthly, getFixedCostsMonthly } from '@/lib/cash-flow-stats/cash-flow-summary';
+import { getSummaryMonthly } from '@/lib/cash-flow-stats/cash-flow-summary';
 import {
 	buildMonthlyChartData,
 	MonthlyChartPoint,
@@ -32,14 +32,10 @@ export function useMonthlyCashFlowTable() {
 		setLoading(true);
 		setError(null);
 		try {
-			const [summaryRes, fixedCostsRes] = await Promise.all([
-				getSummaryMonthly(year),
-				getFixedCostsMonthly(year),
-			]);
+			const summaryRes = await getSummaryMonthly(year);
 			if (summaryRes.error) throw summaryRes.error;
-			if (fixedCostsRes.error) throw fixedCostsRes.error;
 			if (requestId !== requestIdRef.current) return;
-			setChartData(buildMonthlyChartData(summaryRes.data ?? [], fixedCostsRes.data ?? [], null));
+			setChartData(buildMonthlyChartData(summaryRes.data ?? [], null));
 		} catch (err) {
 			if (requestId !== requestIdRef.current) return;
 			setError(translateError(err) || 'No se pudo cargar el flujo mensual.');

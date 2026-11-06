@@ -15,6 +15,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab',
 		emptyLabel,
 		categoriesConfig,
 		cascadeDeleteWarning,
+		attachmentsKind,
 	}: any) => (
 		<div>
 			<span data-testid="entity-label">{entityLabel}</span>
@@ -23,6 +24,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab',
 			<span data-testid="empty-label">{emptyLabel}</span>
 			<span data-testid="year">{state.year}</span>
 			<span data-testid="cascade-delete-warning">{cascadeDeleteWarning ? 'true' : 'false'}</span>
+			<span data-testid="attachments-kind">{attachmentsKind}</span>
 			{categoriesConfig}
 		</div>
 	),
@@ -42,11 +44,12 @@ describe('IncomesTab', () => {
 		expect(screen.getByText('Configurar categorías')).toBeInTheDocument();
 	});
 
-	it('never enables cascadeDeleteWarning (Gastos-only)', () => {
+	it('enables cascadeDeleteWarning and attachmentsKind="income" (mirrors Gastos file-attachment behavior)', () => {
 		(useIncomes as jest.Mock).mockReturnValue({ year: 2026 });
 
 		render(<IncomesTab categoriesConfig={null} />);
 
-		expect(screen.getByTestId('cascade-delete-warning')).toHaveTextContent('false');
+		expect(screen.getByTestId('cascade-delete-warning')).toHaveTextContent('true');
+		expect(screen.getByTestId('attachments-kind')).toHaveTextContent('income');
 	});
 });

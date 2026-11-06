@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 
-export type CategoryKind = 'income' | 'expense' | 'fixed_expense' | 'payment' | 'collection';
+export type CategoryKind = 'income' | 'expense' | 'payment' | 'collection';
 
 export type CashFlowCategory = {
 	id: number;

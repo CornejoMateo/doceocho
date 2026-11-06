@@ -16,7 +16,7 @@ export type EntityAttachmentsSummaryRow = { label: string; value: React.ReactNod
 interface EntityAttachmentsDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	kind: 'expense' | 'payment';
+	kind: 'expense' | 'payment' | 'income';
 	entityId: number | null;
 	title: string;
 	summary: EntityAttachmentsSummaryRow[];

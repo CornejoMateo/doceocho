@@ -31,11 +31,11 @@ describe('useIncomes', () => {
 		);
 	});
 
-	it('never configures attachmentsKind (Ingresos never stages or uploads attachments)', () => {
+	it('configures attachmentsKind: "income" (enables staged uploads and row-detail attachments, mirroring Gastos)', () => {
 		renderHook(() => useIncomes() as any);
 
 		const config = (useIncomeExpenseTab as jest.Mock).mock.calls[0][0];
-		expect(config.attachmentsKind).toBeUndefined();
+		expect(config.attachmentsKind).toBe('income');
 	});
 
 	it('does not configure descriptionMaxLength (Ingresos stays at the hook default of 300)', () => {

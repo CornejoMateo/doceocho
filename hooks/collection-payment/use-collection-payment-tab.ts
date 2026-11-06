@@ -17,7 +17,7 @@ import { getLocalDate } from '@/utils/format-date';
 import { FUTURE_YEARS_AHEAD, PAST_YEARS_BACK } from '@/constants/cashflow/fixed-expenses';
 import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
 import { uploadFilePayment } from '@/lib/payments/files-payments';
-import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/attachments/attachments';
+import { pluralFiles, attachments, notAttachments } from '@/helpers/attachments/attachments';
 
 export type CollectionPaymentEntry = {
 	id: number;
@@ -563,12 +563,12 @@ export function useCollectionPaymentTab(config: UseCollectionPaymentTabConfig) {
 						toast({
 							variant: 'destructive',
 							title: 'Archivos adjuntos pendientes',
-							description: `El ${config.labels.entityLabel} se creó, pero ${failed} de ${pluralArchivos(stagedAtSubmit.length)} ${noPudieronAdjuntar(failed)}. Podés reintentarlos desde la vista de edición.`,
+							description: `El ${config.labels.entityLabel} se creó, pero ${failed} de ${pluralFiles(stagedAtSubmit.length)} ${notAttachments(failed)}. Podés reintentarlos desde la vista de edición.`,
 						});
 					} else if (stagedAtSubmit.length > 0) {
 						toast({
 							title: config.labels.createdToast,
-							description: `${adjuntaron(stagedAtSubmit.length)} ${pluralArchivos(stagedAtSubmit.length)}.`,
+							description: `${attachments(stagedAtSubmit.length)} ${pluralFiles(stagedAtSubmit.length)}.`,
 						});
 					} else {
 						toast({ title: config.labels.createdToast });

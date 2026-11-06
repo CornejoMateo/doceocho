@@ -18,7 +18,13 @@ import { getLocalDate } from '@/utils/format-date';
 import { FUTURE_YEARS_AHEAD, PAST_YEARS_BACK } from '@/constants/cashflow/fixed-expenses';
 import type { StagedFile } from '@/components/business/shared/attachments/file-attachments';
 import { uploadFileExpense } from '@/lib/expenses/files-expenses';
-import { pluralArchivos, adjuntaron, noPudieronAdjuntar } from '@/helpers/attachments/attachments';
+import { uploadFileIncome } from '@/lib/incomes/files-incomes';
+import { pluralFiles, attachments, notAttachments } from '@/helpers/attachments/attachments';
+
+const UPLOAD_FILE_BY_KIND = {
+	expense: uploadFileExpense,
+	income: uploadFileIncome,
+} as const;
 
 export type PartyOption = { id: number; name: string; isSettled?: boolean };
 
@@ -49,6 +55,15 @@ export type IncomeExpenseEntry = {
 // Boolean flags for fields that fail validation on submit; drives inline field errors in the dialog.
 export type IncomeExpenseFormErrors = Partial<Record<'date' | 'netAmount', boolean>>;
 
+// Optional overrides applied over the blank defaults when opening the create form (e.g. from a fixed expense).
+export type EntryPrefill = {
+	date?: string;
+	description?: string | null;
+	net_amount?: number;
+	iva_percent?: number;
+	category_id?: number | null;
+};
+
 export type EntrySavePayload = {
 	date: string;
 	voucher_number: string | null;
@@ -70,9 +85,10 @@ type UseIncomeExpenseTabConfig = {
 	listEntries: (year: number) => Promise<{ data: IncomeExpenseEntry[] | null; error: any }>;
 	createEntry: (input: EntrySavePayload) => Promise<{ data?: { id: number } | null; error: any }>;
 	updateEntry: (id: number, input: EntrySavePayload) => Promise<{ error: any }>;
-	deleteEntry: (id: number) => Promise<{ error: any }>;
+	deleteEntry: (id: number) => Promise<{ error: any; orphanedPaths?: string[] }>;
 	listParties: () => Promise<{ data: PartyOption[] | null; error: any }>;
-	attachmentsKind?: 'expense';
+	onEntryCreated?: (id: number) => void;
+	attachmentsKind?: 'expense' | 'income';
 	// Caps the description field; defaults to 300. Gastos sets 2000 (expenses.description).
 	descriptionMaxLength?: number;
 	labels: {
@@ -89,7 +105,7 @@ type UseIncomeExpenseTabConfig = {
 export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	const { toast } = useToast();
 
-	// Year-scoped fetch (mirrors useFixedExpensePayments); other filters stay in-memory.
+	// Year-scoped fetch; other filters stay in-memory.
 	const currentYear = Number(getLocalDate().slice(0, 4));
 	const yearOptions = useMemo(
 		() =>
@@ -288,10 +304,19 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		setStagedFiles([]);
 	};
 
-	const handleAdd = () => {
+	const handleAdd = (prefill?: EntryPrefill) => {
 		formSessionRef.current += 1;
 		setEditingEntry(null);
 		resetForm();
+		if (prefill) {
+			if (prefill.date !== undefined) setDate(prefill.date);
+			if (prefill.description !== undefined) setDescription(prefill.description ?? '');
+			if (prefill.net_amount !== undefined)
+				setNetAmount(formatCurrencyWithoutSymbol(prefill.net_amount));
+			if (prefill.iva_percent !== undefined) setIvaPercent(prefill.iva_percent);
+			if (prefill.category_id !== undefined)
+				setCategoryId(prefill.category_id ? String(prefill.category_id) : '');
+		}
 		setIsFormOpen(true);
 	};
 
@@ -325,10 +350,12 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 	};
 
 	const uploadStagedFiles = async (staged: StagedFile[], entityId: number): Promise<number> => {
+		const uploadFile = config.attachmentsKind ? UPLOAD_FILE_BY_KIND[config.attachmentsKind] : null;
+		if (!uploadFile) return 0;
 		let failed = 0;
 		for (const entry of staged) {
 			try {
-				const { error } = await uploadFileExpense(entityId, entry.file, null, entry.fileName);
+				const { error } = await uploadFile(entityId, entry.file, null, entry.fileName);
 				if (error) failed += 1;
 			} catch {
 				failed += 1;
@@ -385,6 +412,7 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 			} else {
 				const { data, error } = await config.createEntry(payload);
 				if (error) throw error;
+				if (data?.id !== undefined) config.onEntryCreated?.(data.id);
 				if (!config.attachmentsKind) {
 					toast({ title: config.labels.createdToast });
 				} else if (data?.id === undefined && stagedAtSubmit.length > 0) {
@@ -401,12 +429,12 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 						toast({
 							variant: 'destructive',
 							title: 'Archivos adjuntos pendientes',
-							description: `El ${config.labels.entityLabel} se creó, pero ${failed} de ${pluralArchivos(stagedAtSubmit.length)} ${noPudieronAdjuntar(failed)}. Podés reintentarlos desde la vista de edición.`,
+							description: `El ${config.labels.entityLabel} se creó, pero ${failed} de ${pluralFiles(stagedAtSubmit.length)} ${notAttachments(failed)}. Podés reintentarlos desde la vista de edición.`,
 						});
 					} else if (stagedAtSubmit.length > 0) {
 						toast({
 							title: config.labels.createdToast,
-							description: `${adjuntaron(stagedAtSubmit.length)} ${pluralArchivos(stagedAtSubmit.length)}.`,
+							description: `${attachments(stagedAtSubmit.length)} ${pluralFiles(stagedAtSubmit.length)}.`,
 						});
 					} else {
 						toast({ title: config.labels.createdToast });
@@ -439,9 +467,16 @@ export function useIncomeExpenseTab(config: UseIncomeExpenseTabConfig) {
 		if (!entryToDelete) return;
 		setDeleting(true);
 		try {
-			const { error } = await config.deleteEntry(entryToDelete.id);
+			const { error, orphanedPaths } = await config.deleteEntry(entryToDelete.id);
 			if (error) throw error;
 			toast({ title: config.labels.deletedToast });
+			if (orphanedPaths && orphanedPaths.length > 0) {
+				toast({
+					title: 'Archivos no eliminados',
+					description: `${orphanedPaths.length} ${orphanedPaths.length === 1 ? 'no se pudo' : 'no se pudieron'} eliminar del almacenamiento.`,
+					variant: 'destructive',
+				});
+			}
 			await fetchEntries(year);
 		} catch (error) {
 			toast({

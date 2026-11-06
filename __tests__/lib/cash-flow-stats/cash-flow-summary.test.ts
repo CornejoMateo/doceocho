@@ -1,4 +1,4 @@
-import { getSummaryMonthly, getFixedCostsMonthly } from '@/lib/cash-flow-stats/cash-flow-summary';
+import { getSummaryMonthly } from '@/lib/cash-flow-stats/cash-flow-summary';
 import { getSupabaseClient } from '@/lib/supabase-client';
 
 jest.mock('@/lib/supabase-client', () => ({
@@ -91,43 +91,5 @@ describe('getSummaryMonthly', () => {
 
 		const { data } = await getSummaryMonthly(2026);
 		expect(data).toEqual([]);
-	});
-});
-
-describe('getFixedCostsMonthly', () => {
-	beforeEach(() => jest.clearAllMocks());
-
-	it('calls the RPC with the selected year', async () => {
-		const rpc = jest.fn().mockResolvedValue({ data: [], error: null });
-		(getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
-
-		await getFixedCostsMonthly(2026);
-
-		expect(rpc).toHaveBeenCalledWith('cash_flow_fixed_costs_monthly', { p_year: 2026 });
-	});
-
-	it('maps snake_case numeric-string RPC rows to the camelCase shape', async () => {
-		(getSupabaseClient as jest.Mock).mockReturnValue({
-			rpc: jest.fn().mockResolvedValue({
-				data: [{ month: '1', net: '1000', iva: '210', total: '1210' }],
-				error: null,
-			}),
-		});
-
-		const { data, error } = await getFixedCostsMonthly(2026);
-
-		expect(error).toBeNull();
-		expect(data).toEqual([{ month: 1, net: 1000, iva: 210, total: 1210 }]);
-	});
-
-	it('returns the RPC error untouched instead of mapping rows', async () => {
-		(getSupabaseClient as jest.Mock).mockReturnValue({
-			rpc: jest.fn().mockResolvedValue({ data: null, error: { message: 'boom' } }),
-		});
-
-		const { data, error } = await getFixedCostsMonthly(2026);
-
-		expect(data).toBeNull();
-		expect(error).toEqual({ message: 'boom' });
 	});
 });
