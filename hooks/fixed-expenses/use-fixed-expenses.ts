@@ -7,12 +7,22 @@ import {
 	createFixedExpense,
 	deactivateFixedExpense,
 	listFixedExpenses,
+	markFixedExpenseExpenseCreated,
 	reactivateFixedExpense,
 	updateFixedExpense,
 } from '@/lib/fixed-expenses/fixed-expenses';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
-import { formatCurrencyWithoutSymbol, parseArsToNumber } from '@/utils/formats-money';
+import {
+	formatCurrencyWithoutSymbol,
+	parseArsToNumber,
+	roundToTwoDecimals,
+} from '@/utils/formats-money';
+import { IVA_RATES, computeIvaAndTotal } from '@/constants/cashflow/iva';
+import {
+	computeFixedExpenseTotals,
+	groupFixedExpensesByCategory,
+} from '@/helpers/fixed-expenses/fixed-expenses-summary';
 
 export function useFixedExpenses() {
 	const { toast } = useToast();
@@ -29,9 +39,13 @@ export function useFixedExpenses() {
 	const [isFormOpen, setIsFormOpen] = useState(false);
 	const [editingExpense, setEditingExpense] = useState<FixedExpenseWithCategory | null>(null);
 	const [categoryId, setCategoryId] = useState('');
-	const [amount, setAmount] = useState('');
+	const [netAmount, setNetAmount] = useState('');
+	const [ivaPercent, setIvaPercent] = useState<number>(IVA_RATES[0]);
 	const [description, setDescription] = useState('');
 	const [saving, setSaving] = useState(false);
+
+	const parsedNetAmount = roundToTwoDecimals(parseArsToNumber(netAmount));
+	const { totalAmount } = computeIvaAndTotal(parsedNetAmount, ivaPercent);
 
 	const expensesRequestIdRef = useRef(0);
 	const categoriesRequestIdRef = useRef(0);
@@ -41,6 +55,12 @@ export function useFixedExpenses() {
 		[expenses, showInactive]
 	);
 	const activeCategories = useMemo(() => categories.filter((c) => c.is_active), [categories]);
+	const activeExpenses = useMemo(() => expenses.filter((e) => e.is_active), [expenses]);
+	const expenseTotals = useMemo(() => computeFixedExpenseTotals(activeExpenses), [activeExpenses]);
+	const expensesByCategory = useMemo(
+		() => groupFixedExpensesByCategory(activeExpenses, categories),
+		[activeExpenses, categories]
+	);
 
 	const fetchExpenses = async () => {
 		const requestId = ++expensesRequestIdRef.current;
@@ -69,7 +89,7 @@ export function useFixedExpenses() {
 	const fetchCategories = async () => {
 		const requestId = ++categoriesRequestIdRef.current;
 		try {
-			const { data, error } = await listCategories('fixed_expense');
+			const { data, error } = await listCategories('expense');
 			if (error) throw error;
 			if (requestId !== categoriesRequestIdRef.current) return;
 			setCategories(data ?? []);
@@ -97,7 +117,8 @@ export function useFixedExpenses() {
 	const handleAdd = () => {
 		setEditingExpense(null);
 		setCategoryId('');
-		setAmount('');
+		setNetAmount('');
+		setIvaPercent(IVA_RATES[0]);
 		setDescription('');
 		setIsFormOpen(true);
 	};
@@ -105,7 +126,8 @@ export function useFixedExpenses() {
 	const handleEdit = (expense: FixedExpenseWithCategory) => {
 		setEditingExpense(expense);
 		setCategoryId(String(expense.category_id));
-		setAmount(formatCurrencyWithoutSymbol(expense.amount));
+		setNetAmount(formatCurrencyWithoutSymbol(expense.net_amount));
+		setIvaPercent(expense.iva_percent);
 		setDescription(expense.description);
 		setIsFormOpen(true);
 	};
@@ -118,14 +140,19 @@ export function useFixedExpenses() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		const trimmedDescription = description.trim();
-		const parsedAmount = parseArsToNumber(amount);
-		if (!categoryId || !trimmedDescription || !Number.isFinite(parsedAmount) || parsedAmount <= 0)
+		if (
+			!categoryId ||
+			!trimmedDescription ||
+			!Number.isFinite(parsedNetAmount) ||
+			parsedNetAmount <= 0
+		)
 			return;
 		setSaving(true);
 		try {
 			const payload = {
 				category_id: Number(categoryId),
-				amount: parsedAmount,
+				net_amount: parsedNetAmount,
+				iva_percent: ivaPercent,
 				description: trimmedDescription,
 			};
 			const { error } = editingExpense
@@ -175,6 +202,19 @@ export function useFixedExpenses() {
 		}
 	};
 
+	const markExpenseCreated = async (fixedExpenseId: number) => {
+		const { error } = await markFixedExpenseExpenseCreated(fixedExpenseId);
+		if (error) {
+			toast({
+				title: 'Error',
+				description: translateError(error) || 'No se pudo actualizar el costo fijo.',
+				variant: 'destructive',
+			});
+			return;
+		}
+		await fetchExpenses();
+	};
+
 	const handleReactivate = async (expense: FixedExpenseWithCategory) => {
 		setActionLoading(true);
 		try {
@@ -203,13 +243,18 @@ export function useFixedExpenses() {
 		visibleExpenses,
 		categories,
 		activeCategories,
+		expenseTotals,
+		expensesByCategory,
 		fetchExpenses,
 		isFormOpen,
 		editingExpense,
 		categoryId,
 		setCategoryId,
-		amount,
-		setAmount,
+		netAmount,
+		setNetAmount,
+		ivaPercent,
+		setIvaPercent,
+		totalAmount,
 		description,
 		setDescription,
 		saving,
@@ -222,5 +267,6 @@ export function useFixedExpenses() {
 		setExpenseToDeactivate,
 		confirmDeactivate,
 		handleReactivate,
+		markExpenseCreated,
 	};
 }

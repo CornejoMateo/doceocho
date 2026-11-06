@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
-import { Plus, Edit, Ban, RotateCcw } from 'lucide-react';
-import { FixedExpenseWithCategory } from '@/lib/fixed-expenses/fixed-expenses';
+import { Plus, Edit, Ban, RotateCcw, Receipt } from 'lucide-react';
+import { FixedExpenseWithCategory, hasExpenseThisMonth } from '@/lib/fixed-expenses/fixed-expenses';
 import { formatCurrency } from '@/utils/formats-money';
 
 type FixedExpensesListProps = {
@@ -25,34 +25,9 @@ type FixedExpensesListProps = {
 	onEdit: (expense: FixedExpenseWithCategory) => void;
 	onDeactivate: (expense: FixedExpenseWithCategory) => void;
 	onReactivate: (expense: FixedExpenseWithCategory) => void;
+	onAddExpense: (expense: FixedExpenseWithCategory) => void;
 	actionLoading: boolean;
-	togglingId: number | null;
-	onTogglePaid: (expense: FixedExpenseWithCategory, checked: boolean) => void;
 };
-
-function PaidSwitchCell({
-	expense,
-	togglingId,
-	onTogglePaid,
-}: {
-	expense: FixedExpenseWithCategory;
-	togglingId: number | null;
-	onTogglePaid: (expense: FixedExpenseWithCategory, checked: boolean) => void;
-}) {
-	return (
-		<>
-			<Switch
-				aria-label={expense.is_paid ? 'Pagado' : 'Pendiente'}
-				checked={expense.is_paid}
-				disabled={togglingId === expense.id || !expense.is_active}
-				onCheckedChange={(checked) => onTogglePaid(expense, checked)}
-			/>
-			<span className="text-sm text-muted-foreground">
-				{expense.is_paid ? 'Pagado' : 'Pendiente'}
-			</span>
-		</>
-	);
-}
 
 export function FixedExpensesList({
 	expenses,
@@ -63,15 +38,31 @@ export function FixedExpensesList({
 	onEdit,
 	onDeactivate,
 	onReactivate,
+	onAddExpense,
 	actionLoading,
-	togglingId,
-	onTogglePaid,
 }: FixedExpensesListProps) {
 	const renderActions = (expense: FixedExpenseWithCategory, withLabel: boolean) => {
 		const size = withLabel ? 'default' : 'sm';
 		const buttonClass = withLabel ? 'flex-1 gap-2' : '';
+		const addExpenseLabel = hasExpenseThisMonth(expense) ? 'Agregar de nuevo' : 'Agregar Gasto';
 		return (
 			<>
+				{expense.is_active && (
+					<EditOnly edit="cash-flow">
+						<Button
+							variant={withLabel ? 'outline' : 'ghost'}
+							size={size}
+							aria-label={addExpenseLabel}
+							title={addExpenseLabel}
+							className={buttonClass}
+							onClick={() => onAddExpense(expense)}
+							disabled={actionLoading}
+						>
+							<Receipt className="h-4 w-4" />
+							{withLabel && addExpenseLabel}
+						</Button>
+					</EditOnly>
+				)}
 				<EditOnly edit="cash-flow">
 					<Button
 						variant={withLabel ? 'outline' : 'ghost'}
@@ -166,20 +157,24 @@ export function FixedExpensesList({
 									{expenses.map((expense) => (
 										<TableRow key={expense.id}>
 											<TableCell className="font-medium text-center">
-												{expense.description}
+												<div className="flex items-center justify-center gap-2">
+													<span>{expense.description}</span>
+													{expense.is_active && hasExpenseThisMonth(expense) && (
+														<Badge variant="secondary">Gasto creado</Badge>
+													)}
+												</div>
 											</TableCell>
 											<TableCell className="text-center">{expense.category_name}</TableCell>
 											<TableCell className="text-center">
 												{formatCurrency(expense.amount)}
+												<div className="text-xs text-muted-foreground">
+													IVA {formatCurrency(expense.iva_amount)}
+												</div>
 											</TableCell>
 											<TableCell className="text-center">
-												<div className="flex items-center gap-2 justify-center">
-													<PaidSwitchCell
-														expense={expense}
-														togglingId={togglingId}
-														onTogglePaid={onTogglePaid}
-													/>
-												</div>
+												<Badge variant={expense.is_active ? 'default' : 'outline'}>
+													{expense.is_active ? 'Activo' : 'Inactivo'}
+												</Badge>
 											</TableCell>
 											<TableCell className="text-center">
 												<div className="flex justify-center gap-2">
@@ -201,9 +196,14 @@ export function FixedExpensesList({
 							>
 								<div className="flex items-center justify-between gap-2">
 									<span className="font-medium min-w-0 break-words">{expense.description}</span>
-									<Badge variant={expense.is_active ? 'default' : 'outline'}>
-										{expense.is_active ? 'Activo' : 'Inactivo'}
-									</Badge>
+									<div className="flex items-center gap-2">
+										{expense.is_active && hasExpenseThisMonth(expense) && (
+											<Badge variant="secondary">Gasto creado</Badge>
+										)}
+										<Badge variant={expense.is_active ? 'default' : 'outline'}>
+											{expense.is_active ? 'Activo' : 'Inactivo'}
+										</Badge>
+									</div>
 								</div>
 								<dl className="space-y-1 text-sm">
 									<div className="flex justify-between gap-2">
@@ -212,16 +212,14 @@ export function FixedExpensesList({
 									</div>
 									<div className="flex justify-between gap-2">
 										<dt className="text-muted-foreground">Monto</dt>
-										<dd>{formatCurrency(expense.amount)}</dd>
+										<dd>
+											{formatCurrency(expense.amount)}
+											<div className="text-xs text-muted-foreground">
+												IVA {formatCurrency(expense.iva_amount)}
+											</div>
+										</dd>
 									</div>
 								</dl>
-								<div className="flex items-center gap-2">
-									<PaidSwitchCell
-										expense={expense}
-										togglingId={togglingId}
-										onTogglePaid={onTogglePaid}
-									/>
-								</div>
 								<div className="flex gap-2 pt-1">{renderActions(expense, true)}</div>
 							</Card>
 						))}
