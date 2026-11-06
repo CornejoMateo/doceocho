@@ -2,12 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Work, listWorks } from '@/lib/works/works';
-import {
-	getSummaryMonthly,
-	getFixedCostsMonthly,
-	SummaryMonthlyRow,
-	FixedCostsMonthlyRow,
-} from '@/lib/cash-flow-stats/cash-flow-summary';
+import { getSummaryMonthly, SummaryMonthlyRow } from '@/lib/cash-flow-stats/cash-flow-summary';
 import {
 	filterByMonth,
 	buildSummaryCards,
@@ -49,7 +44,6 @@ export function useSummaryTab() {
 	const [workId, setWorkId] = useState(0);
 	const [works, setWorks] = useState<Work[]>([]);
 	const [rows, setRows] = useState<SummaryMonthlyRow[]>([]);
-	const [fixedCostRows, setFixedCostRows] = useState<FixedCostsMonthlyRow[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const requestIdRef = useRef(0);
@@ -59,18 +53,12 @@ export function useSummaryTab() {
 		setLoading(true);
 		setError(null);
 		try {
-			const [worksRes, summaryRes, fixedCostsRes] = await Promise.all([
-				listWorks(),
-				getSummaryMonthly(year),
-				getFixedCostsMonthly(year),
-			]);
+			const [worksRes, summaryRes] = await Promise.all([listWorks(), getSummaryMonthly(year)]);
 			if (worksRes.error) throw worksRes.error;
 			if (summaryRes.error) throw summaryRes.error;
-			if (fixedCostsRes.error) throw fixedCostsRes.error;
 			if (requestId !== requestIdRef.current) return;
 			setWorks(worksRes.data ?? []);
 			setRows(summaryRes.data ?? []);
-			setFixedCostRows(fixedCostsRes.data ?? []);
 		} catch (err) {
 			if (requestId !== requestIdRef.current) return;
 			setError(translateError(err) || 'No se pudo cargar el resumen.');
@@ -95,18 +83,11 @@ export function useSummaryTab() {
 	const monthFilter = toFilter(month);
 
 	const periodRows = useMemo(() => filterByMonth(rows, monthFilter), [rows, monthFilter]);
-	const periodFixedCosts = useMemo(
-		() => filterByMonth(fixedCostRows, monthFilter),
-		[fixedCostRows, monthFilter]
-	);
 
-	const cards = useMemo(
-		() => buildSummaryCards(periodRows, periodFixedCosts, workFilter),
-		[periodRows, periodFixedCosts, workFilter]
-	);
+	const cards = useMemo(() => buildSummaryCards(periodRows, workFilter), [periodRows, workFilter]);
 	const chartData = useMemo(
-		() => buildMonthlyCollectionsPaymentsChartData(rows, fixedCostRows, workFilter),
-		[rows, fixedCostRows, workFilter]
+		() => buildMonthlyCollectionsPaymentsChartData(rows, workFilter),
+		[rows, workFilter]
 	);
 	const workNames = useMemo(
 		() => new Map(works.map((w) => [w.id, w.name || `Obra #${w.id}`])),

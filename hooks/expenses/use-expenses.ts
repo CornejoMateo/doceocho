@@ -57,11 +57,11 @@ function toExpenseInput(input: EntrySavePayload) {
 	};
 }
 
-export function useExpenses() {
+export function useExpenses(options?: { onCreated?: (id: number) => void }) {
 	return useIncomeExpenseTab({
 		categoryKind: 'expense',
 		attachmentsKind: 'expense',
-		// expenses.description allows 2000 (vs. the 300 default shared with Ingresos).
+		onEntryCreated: options?.onCreated,
 		descriptionMaxLength: 2000,
 		listEntries: async (year) => {
 			const { data, error } = await listExpenses({ year });

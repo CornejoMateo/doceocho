@@ -1,13 +1,12 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useSummaryTab } from '@/hooks/cash-flow-stats/use-summary-tab';
-import { getSummaryMonthly, getFixedCostsMonthly } from '@/lib/cash-flow-stats/cash-flow-summary';
+import { getSummaryMonthly } from '@/lib/cash-flow-stats/cash-flow-summary';
 import { listWorks } from '@/lib/works/works';
 import { translateError } from '@/lib/error-translator';
 import { getLocalDate } from '@/utils/format-date';
 
 jest.mock('@/lib/cash-flow-stats/cash-flow-summary', () => ({
 	getSummaryMonthly: jest.fn(),
-	getFixedCostsMonthly: jest.fn(),
 }));
 
 jest.mock('@/lib/works/works', () => ({
@@ -23,10 +22,9 @@ describe('useSummaryTab', () => {
 		jest.clearAllMocks();
 		(listWorks as jest.Mock).mockResolvedValue({ data: [], error: null });
 		(getSummaryMonthly as jest.Mock).mockResolvedValue({ data: [], error: null });
-		(getFixedCostsMonthly as jest.Mock).mockResolvedValue({ data: [], error: null });
 	});
 
-	it('defaults to the current year, "Todos" month/obra, and fetches all 3 sources', async () => {
+	it('defaults to the current year, "Todos" month/obra, and fetches both sources', async () => {
 		const { result } = renderHook(() => useSummaryTab());
 		await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -40,7 +38,6 @@ describe('useSummaryTab', () => {
 
 		expect(listWorks).toHaveBeenCalledTimes(1);
 		expect(getSummaryMonthly).toHaveBeenCalledWith(currentYear);
-		expect(getFixedCostsMonthly).toHaveBeenCalledWith(currentYear);
 		expect(result.current.error).toBeNull();
 	});
 

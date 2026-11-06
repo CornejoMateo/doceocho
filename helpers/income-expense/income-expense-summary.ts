@@ -21,7 +21,6 @@ function round2(value: number): number {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-// Mirrors groupFixedExpensePaymentsByMonth: Ene-Dic zero-filled, month from 'YYYY-MM-DD' slice (no Date/timezone).
 export function computeIncomeExpenseByMonth(
 	entries: IncomeExpenseEntry[]
 ): IncomeExpenseMonthRow[] {

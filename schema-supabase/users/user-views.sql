@@ -181,15 +181,6 @@ USING (
     public.can_view('cash-flow')
 );
 
-DROP POLICY IF EXISTS "fixed_expense_payments select by view" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments select by view"
-ON public.fixed_expense_payments
-FOR SELECT
-TO authenticated
-USING (
-    public.can_view('cash-flow')
-);
-
 DROP POLICY IF EXISTS "suppliers select by view" ON public.suppliers;
 CREATE POLICY "suppliers select by view"
 ON public.suppliers

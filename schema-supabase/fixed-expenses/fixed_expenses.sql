@@ -118,3 +118,178 @@ SELECT cron.schedule(
   '0 3 1 * *',
   $$SELECT public.reset_fixed_expenses_paid();$$
 );
+
+------ RUN PRODUCTION: add net_amount/iva_percent/iva_amount, amount becomes the computed total (Neto + IVA = Total) ------
+
+ALTER TABLE public.fixed_expenses
+  ADD COLUMN IF NOT EXISTS net_amount numeric,
+  ADD COLUMN IF NOT EXISTS iva_percent numeric,
+  ADD COLUMN IF NOT EXISTS iva_amount numeric;
+
+UPDATE public.fixed_expenses
+SET net_amount = amount, iva_percent = 0, iva_amount = 0
+WHERE net_amount IS NULL;
+
+ALTER TABLE public.fixed_expenses
+  ALTER COLUMN net_amount SET NOT NULL,
+  ALTER COLUMN iva_percent SET NOT NULL,
+  ALTER COLUMN iva_percent SET DEFAULT 0,
+  ALTER COLUMN iva_amount SET NOT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fixed_expenses_net_amount_positive_check'
+          AND conrelid = 'public.fixed_expenses'::regclass
+    ) THEN
+        ALTER TABLE public.fixed_expenses
+          ADD CONSTRAINT fixed_expenses_net_amount_positive_check
+          CHECK (net_amount > 0);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fixed_expenses_iva_percent_check'
+          AND conrelid = 'public.fixed_expenses'::regclass
+    ) THEN
+        ALTER TABLE public.fixed_expenses
+          ADD CONSTRAINT fixed_expenses_iva_percent_check
+          CHECK (iva_percent IN (0, 10.5, 21, 27));
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fixed_expenses_iva_amount_check'
+          AND conrelid = 'public.fixed_expenses'::regclass
+    ) THEN
+        ALTER TABLE public.fixed_expenses
+          ADD CONSTRAINT fixed_expenses_iva_amount_check
+          CHECK (iva_amount >= 0);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fixed_expenses_amount_sum_check'
+          AND conrelid = 'public.fixed_expenses'::regclass
+    ) THEN
+        ALTER TABLE public.fixed_expenses
+          ADD CONSTRAINT fixed_expenses_amount_sum_check
+          CHECK (amount = net_amount + iva_amount);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fixed_expenses_net_amount_decimals_check'
+          AND conrelid = 'public.fixed_expenses'::regclass
+    ) THEN
+        ALTER TABLE public.fixed_expenses
+          ADD CONSTRAINT fixed_expenses_net_amount_decimals_check
+          CHECK (net_amount = round(net_amount, 2)) NOT VALID;
+    END IF;
+END $$;
+
+ALTER TABLE public.fixed_expenses VALIDATE CONSTRAINT fixed_expenses_net_amount_decimals_check;
+
+------ RUN PRODUCTION: track the last month an Expense (Gasto) was created from this Costo fijo ------
+
+ALTER TABLE public.fixed_expenses
+  ADD COLUMN IF NOT EXISTS last_expense_period date;
+
+------ TRIGGER: DB IS SOURCE OF TRUTH FOR IVA/TOTAL (amount), IGNORES CLIENT-SENT VALUES ------
+
+create or replace function public.fixed_expenses_compute_iva_and_total()
+returns trigger
+language plpgsql
+as $$
+begin
+    new.iva_amount := round(new.net_amount * new.iva_percent / 100, 2);
+    new.amount := new.net_amount + new.iva_amount;
+    return new;
+end;
+$$;
+
+DROP TRIGGER IF EXISTS trg_fixed_expenses_compute_iva_and_total ON public.fixed_expenses;
+create trigger trg_fixed_expenses_compute_iva_and_total
+before insert or update on public.fixed_expenses
+for each row
+execute function public.fixed_expenses_compute_iva_and_total();
+
+------ RUN PRODUCTION: unify Costos fijos under the shared 'expense' category kind ------
+
+-- 1) Drop the composite FK first so the category/kind reshuffle below can't violate it mid-migration.
+ALTER TABLE public.fixed_expenses DROP CONSTRAINT IF EXISTS fixed_expenses_category_id_kind_fkey;
+
+-- 2) Repoint fixed_expenses off any 'fixed_expense' category that duplicates an 'expense' category by name.
+UPDATE public.fixed_expenses fe
+SET category_id = dup.expense_id
+FROM (
+  SELECT fec.id AS fixed_id, exc.id AS expense_id
+  FROM public.cash_flow_categories fec
+  JOIN public.cash_flow_categories exc
+    ON exc.kind = 'expense'
+   AND lower(trim(exc.name)) = lower(trim(fec.name))
+  WHERE fec.kind = 'fixed_expense'
+) dup
+WHERE fe.category_id = dup.fixed_id;
+
+-- 3) Delete the now-unreferenced duplicate 'fixed_expense' categories (an 'expense' twin already exists).
+DELETE FROM public.cash_flow_categories fec
+WHERE fec.kind = 'fixed_expense'
+  AND EXISTS (
+    SELECT 1 FROM public.cash_flow_categories exc
+    WHERE exc.kind = 'expense' AND lower(trim(exc.name)) = lower(trim(fec.name))
+  );
+
+-- 4) Remaining 'fixed_expense' categories have no 'expense' twin: convert them in place (safe, no name collision left).
+UPDATE public.cash_flow_categories
+SET kind = 'expense'
+WHERE kind = 'fixed_expense';
+
+-- 5) fixed_expenses.kind becomes 'expense' (same FK target kind as public.expenses).
+ALTER TABLE public.fixed_expenses DROP CONSTRAINT IF EXISTS fixed_expenses_kind_check;
+UPDATE public.fixed_expenses SET kind = 'expense' WHERE kind <> 'expense';
+ALTER TABLE public.fixed_expenses ALTER COLUMN kind SET DEFAULT 'expense';
+ALTER TABLE public.fixed_expenses ADD CONSTRAINT fixed_expenses_kind_check CHECK (kind = 'expense');
+
+-- 6) 'fixed_expense' is no longer a valid category kind.
+ALTER TABLE public.cash_flow_categories DROP CONSTRAINT IF EXISTS cash_flow_categories_kind_check;
+ALTER TABLE public.cash_flow_categories ADD CONSTRAINT cash_flow_categories_kind_check
+  CHECK (kind IN ('income', 'expense', 'payment', 'collection'));
+
+-- 7) Recreate the composite FK now that both sides agree on kind = 'expense'.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fixed_expenses_category_id_kind_fkey'
+      AND conrelid = 'public.fixed_expenses'::regclass
+  ) THEN
+    ALTER TABLE public.fixed_expenses
+      ADD CONSTRAINT fixed_expenses_category_id_kind_fkey
+      FOREIGN KEY (category_id, kind) REFERENCES public.cash_flow_categories (id, kind) ON DELETE RESTRICT;
+  END IF;
+END $$;
+
+------ RUN PRODUCTION: remove fixed-expense payments entirely (template-only pattern, see .kb/decisions/fixed-expenses-template-only-no-payments.md) ------
+
+-- 1) Unschedule the monthly reset cron job (guard: skip if pg_cron isn't installed/no job exists).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'reset-fixed-expenses-paid') THEN
+      PERFORM cron.unschedule('reset-fixed-expenses-paid');
+    END IF;
+  END IF;
+END $$;
+
+DROP FUNCTION IF EXISTS public.reset_fixed_expenses_paid();
+
+DROP FUNCTION IF EXISTS public.mark_fixed_expense_paid(bigint, date, date, numeric, numeric, bigint, bigint);
+DROP FUNCTION IF EXISTS public.unmark_fixed_expense_paid(bigint);
+DROP FUNCTION IF EXISTS public.update_fixed_expense_payment(bigint, date, date, numeric, numeric, bigint, bigint);
+DROP FUNCTION IF EXISTS public.delete_fixed_expense_payment(bigint);
+
+DROP FUNCTION IF EXISTS public.cash_flow_fixed_costs_monthly(int);
+DROP TABLE IF EXISTS public.fixed_expense_payments CASCADE;
+ALTER TABLE public.fixed_expenses DROP COLUMN IF EXISTS is_paid;

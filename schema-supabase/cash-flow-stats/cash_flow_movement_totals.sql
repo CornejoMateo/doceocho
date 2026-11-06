@@ -24,10 +24,6 @@ AS $$
     UNION ALL
     SELECT date, 'out', amount, bank_account_id, payment_method_id
     FROM public.payments
-    -- payments_suppliers branch removed: supplier payments are now plain `payments` rows.
-    UNION ALL
-    SELECT paid_date, 'out', total_amount, bank_account_id, payment_method_id
-    FROM public.fixed_expense_payments
   )
   SELECT
     CASE WHEN p_group_by = 'bank_account' THEN bank_account_id ELSE payment_method_id END AS group_id,
