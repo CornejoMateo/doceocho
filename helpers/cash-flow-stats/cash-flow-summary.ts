@@ -1,4 +1,4 @@
-import { SummaryMonthlyRow, FixedCostsMonthlyRow } from '@/lib/cash-flow-stats/cash-flow-summary';
+import { SummaryMonthlyRow } from '@/lib/cash-flow-stats/cash-flow-summary';
 import { roundToTwoDecimals } from '@/utils/formats-money';
 import { MONTH_LABELS_ES } from '@/helpers/fixed-expenses/fixed-expenses-summary';
 
@@ -46,22 +46,6 @@ export function sumByWork(rows: SummaryMonthlyRow[], workId: number | null): Sum
 	};
 }
 
-function sumFixedCosts(rows: FixedCostsMonthlyRow[]): { net: number; iva: number; total: number } {
-	const totals = rows.reduce(
-		(acc, row) => ({
-			net: acc.net + row.net,
-			iva: acc.iva + row.iva,
-			total: acc.total + row.total,
-		}),
-		{ net: 0, iva: 0, total: 0 }
-	);
-	return {
-		net: roundToTwoDecimals(totals.net),
-		iva: roundToTwoDecimals(totals.iva),
-		total: roundToTwoDecimals(totals.total),
-	};
-}
-
 export type SummaryCards = {
 	incomeNet: number;
 	expenseNet: number;
@@ -74,17 +58,15 @@ export type SummaryCards = {
 
 export function buildSummaryCards(
 	periodRows: SummaryMonthlyRow[],
-	periodFixedCosts: FixedCostsMonthlyRow[],
 	workId: number | null
 ): SummaryCards {
 	const totals = sumByWork(periodRows, workId);
-	const fixed = workId === null ? sumFixedCosts(periodFixedCosts) : { net: 0, iva: 0, total: 0 };
 
 	const incomeNet = totals.incomeNet;
-	const expenseNet = roundToTwoDecimals(totals.expenseNet + fixed.net);
-	const payments = roundToTwoDecimals(totals.paymentAmount + fixed.total);
-	const ivaOfMonth = roundToTwoDecimals(totals.expenseIva + fixed.iva - totals.incomeIva);
-	const expenseWithIva = roundToTwoDecimals(totals.expenseNet + totals.expenseIva + fixed.total);
+	const expenseNet = totals.expenseNet;
+	const payments = totals.paymentAmount;
+	const ivaOfMonth = roundToTwoDecimals(totals.expenseIva - totals.incomeIva);
+	const expenseWithIva = roundToTwoDecimals(totals.expenseNet + totals.expenseIva);
 	const debe = roundToTwoDecimals(expenseWithIva - payments);
 
 	return {
@@ -107,23 +89,19 @@ export type MonthlyChartPoint = {
 
 export function buildMonthlyChartData(
 	rows: SummaryMonthlyRow[],
-	fixedCostRows: FixedCostsMonthlyRow[],
 	workId: number | null
 ): MonthlyChartPoint[] {
-	const fixedByMonth = new Map(fixedCostRows.map((row) => [row.month, row.net]));
-
 	return MONTH_LABELS_ES.map((label, index) => {
 		const month = index + 1;
 		const totals = sumByWork(
 			rows.filter((row) => row.month === month),
 			workId
 		);
-		const fixedNet = workId === null ? (fixedByMonth.get(month) ?? 0) : 0;
 		return {
 			month,
 			label,
 			incomeNet: totals.incomeNet,
-			expenseNet: roundToTwoDecimals(totals.expenseNet + fixedNet),
+			expenseNet: totals.expenseNet,
 		};
 	});
 }
@@ -137,23 +115,19 @@ export type MonthlyCollectionsPaymentsPoint = {
 
 export function buildMonthlyCollectionsPaymentsChartData(
 	rows: SummaryMonthlyRow[],
-	fixedCostRows: FixedCostsMonthlyRow[],
 	workId: number | null
 ): MonthlyCollectionsPaymentsPoint[] {
-	const fixedTotalByMonth = new Map(fixedCostRows.map((row) => [row.month, row.total]));
-
 	return MONTH_LABELS_ES.map((label, index) => {
 		const month = index + 1;
 		const totals = sumByWork(
 			rows.filter((row) => row.month === month),
 			workId
 		);
-		const fixedTotal = workId === null ? (fixedTotalByMonth.get(month) ?? 0) : 0;
 		return {
 			month,
 			label,
 			collections: totals.collectionAmount,
-			payments: roundToTwoDecimals(totals.paymentAmount + fixedTotal),
+			payments: totals.paymentAmount,
 		};
 	});
 }

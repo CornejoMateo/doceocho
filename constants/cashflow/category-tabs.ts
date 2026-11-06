@@ -38,11 +38,12 @@ export const CATEGORY_TABS: Partial<Record<CashFlowTabValue, CategoryTabConfig>>
 		newLabel: 'Nueva categoría',
 		emptyLabel: 'No hay categorías de cobros registradas',
 	},
+
 	'fixed-expenses': {
-		kind: 'fixed_expense',
-		title: 'Categorías de costos fijos',
+		kind: 'expense',
+		title: 'Categorías de gastos',
 		triggerLabel: 'Configurar categorías',
 		newLabel: 'Nueva categoría',
-		emptyLabel: 'No hay categorías de costos fijos registradas',
+		emptyLabel: 'No hay categorías de gastos registradas',
 	},
 };
