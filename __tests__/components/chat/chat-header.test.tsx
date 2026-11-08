@@ -58,6 +58,7 @@ describe('ChatHeader', () => {
 		onDateSearchToggle: jest.fn(),
 		onDateRangeChange: jest.fn(),
 		onShowMembers: jest.fn(),
+		onShowFiles: jest.fn(),
 		onCleanupMessages: jest.fn(),
 		onSearchByDate: jest.fn(),
 		onBack: jest.fn(),

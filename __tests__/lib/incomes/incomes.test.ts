@@ -261,37 +261,49 @@ describe('lib/incomes', () => {
 	});
 
 	describe('deleteIncome', () => {
-		it('succeeds when the row was actually deleted', async () => {
-			setup({ data: [{ id: 5 }] });
+		function setupDelete(opts: { rpcData?: string[] | null; rpcError?: any; storageError?: any }) {
+			const rpc = jest
+				.fn()
+				.mockResolvedValue({ data: opts.rpcData ?? [], error: opts.rpcError ?? null });
+			const remove = jest.fn().mockResolvedValue({ error: opts.storageError ?? null });
+			const storageFrom = jest.fn(() => ({ remove }));
+			(getSupabaseClient as jest.Mock).mockReturnValue({ rpc, storage: { from: storageFrom } });
+			return { rpc, remove, storageFrom };
+		}
+
+		it('is RPC-first: calls delete_income with the income id', async () => {
+			const { rpc } = setupDelete({ rpcData: [] });
 
 			expect(await deleteIncome(5)).toEqual({ error: null });
+			expect(rpc).toHaveBeenCalledWith('delete_income', { p_id: 5 });
 		});
 
-		it('returns a blocked-by-RLS error when no row comes back (not found or no permission)', async () => {
-			setup({ data: [] });
-
-			const res = await deleteIncome(5);
-
-			expect(res.error).toEqual({
-				message: 'No se pudo eliminar el ingreso (no existe o no tenés permisos)',
-			});
-		});
-
-		it('treats a null data response the same as an empty one', async () => {
-			setup({ data: null });
-
-			const res = await deleteIncome(5);
-
-			expect(res.error).toEqual({
-				message: 'No se pudo eliminar el ingreso (no existe o no tenés permisos)',
-			});
-		});
-
-		it('passes Supabase errors through instead of the RLS guard message', async () => {
-			const err = { code: '42501', message: 'permission denied' };
-			setup({ error: err });
+		it('returns the RPC error immediately without touching storage', async () => {
+			const err = { message: 'No se pudo eliminar el ingreso (no existe o no tenés permisos)' };
+			const { remove } = setupDelete({ rpcError: err });
 
 			expect(await deleteIncome(5)).toEqual({ error: err });
+			expect(remove).not.toHaveBeenCalled();
+		});
+
+		it('removes every returned storage path in the suppliers-files bucket', async () => {
+			const { remove, storageFrom } = setupDelete({
+				rpcData: ['incomes/5/a.pdf'],
+			});
+
+			await deleteIncome(5);
+
+			expect(storageFrom).toHaveBeenCalledWith('suppliers-files');
+			expect(remove).toHaveBeenCalledWith(['incomes/5/a.pdf']);
+		});
+
+		it('reports orphaned paths as a non-blocking warning when storage removal fails', async () => {
+			setupDelete({ rpcData: ['incomes/5/a.pdf'], storageError: { message: 'boom' } });
+
+			const res = await deleteIncome(5);
+
+			expect(res.error).toBeNull();
+			expect(res.orphanedPaths).toEqual(['incomes/5/a.pdf']);
 		});
 	});
 });

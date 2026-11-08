@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
-import { FileViewerItem } from '../../utils/file-upload-utils';
+import { buildStorageFileName, FileViewerItem } from '../../utils/file-upload-utils';
 import { fetchAllPages, fetchByIdsInChunks } from '@/lib/suppliers/pagination';
 
 export type FileExpense = {
@@ -52,8 +52,7 @@ export async function uploadFileExpense(
 	try {
 		const supabase = getSupabaseClient();
 
-		const fileExt = file.name.split('.').pop();
-		const storageName = `${crypto.randomUUID()}.${fileExt}`;
+		const storageName = buildStorageFileName(file.name);
 		const filePath = `expenses/${expenseId}/${storageName}`;
 
 		const { data: fileRecord, error: dbError } = await supabase

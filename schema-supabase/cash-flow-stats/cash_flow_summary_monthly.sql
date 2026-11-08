@@ -55,30 +55,6 @@ $$;
 REVOKE ALL ON FUNCTION public.cash_flow_summary_monthly(int) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.cash_flow_summary_monthly(int) TO authenticated;
 
-CREATE OR REPLACE FUNCTION public.cash_flow_fixed_costs_monthly(p_year int)
-RETURNS TABLE (
-  month int,
-  net numeric,
-  iva numeric,
-  total numeric
-)
-LANGUAGE sql
-STABLE
-SECURITY INVOKER
-SET search_path = public
-AS $$
-  SELECT extract(month from paid_date)::int AS month,
-         SUM(net_amount) AS net,
-         SUM(iva_amount) AS iva,
-         SUM(total_amount) AS total
-  FROM public.fixed_expense_payments
-  WHERE extract(year from paid_date)::int = p_year
-  GROUP BY extract(month from paid_date)::int;
-$$;
-
-REVOKE ALL ON FUNCTION public.cash_flow_fixed_costs_monthly(int) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.cash_flow_fixed_costs_monthly(int) TO authenticated;
-
 CREATE OR REPLACE FUNCTION public.cash_flow_movement_totals(
   p_group_by text,
   p_start date DEFAULT NULL,
@@ -105,9 +81,6 @@ AS $$
     UNION ALL
     SELECT p.date, 'out', p.amount, p.bank_account_id, p.payment_method_id
     FROM public.payments p
-    UNION ALL
-    SELECT fep.paid_date, 'out', fep.total_amount, fep.bank_account_id, fep.payment_method_id
-    FROM public.fixed_expense_payments fep
   )
   SELECT
     CASE WHEN p_group_by = 'bank_account' THEN m.bank_account_id ELSE m.payment_method_id END AS group_id,

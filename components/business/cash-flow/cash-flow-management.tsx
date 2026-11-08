@@ -1,41 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { useOptimizedRealtime } from '@/hooks/use-optimized-realtime';
-import { useToast } from '@/components/ui/use-toast';
-import {
-	CashBox,
-	CashBoxSummary,
-	TransactionWithBankAccount,
-	BankAccount,
-	listCashBoxes,
-	createCashBox,
-	closeCashBox,
-	deleteTransaction,
-	listBankAccounts,
-	listTransactions,
-} from '@/lib/cash-flow/cash-flow';
-import { TransactionDialog } from '@/components/business/cash-flow/cash-box/transaction-dialog';
+import { BankAccount, listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { BankAccountsTab } from '@/components/business/cash-flow/bank-accounts/bank-accounts-tab';
-import { CloseCashBoxDialog } from '@/components/business/cash-flow/cash-box/close-cash-box-dialog';
-import { translateError } from '@/lib/error-translator';
-import { getPaymentMethodLabel } from '@/constants/balances/payment_methods';
-import { getExpenseCategoryLabel } from '@/constants/cashflow/cashflow';
-import { OpenCashBoxDialog } from '@/components/business/cash-flow/cash-box/open-cash-box-dialog';
-import { formatCurrency } from '@/utils/formats-money';
 import { SuppliersManagement } from '@/components/business/suppliers/suppliers-management';
 import { CheckingAccountsTab } from '@/components/business/cash-flow/balances-tab/checking-accounts-tab';
 import { SummaryTab } from '@/components/business/cash-flow/summary/summary-tab';
@@ -61,32 +31,7 @@ function CashFlowTabHeader({ value }: { value: CashFlowTabValue }) {
 	);
 }
 
-function CashFlowTransactionsRealtime({
-	cashBoxId,
-	onTransactionsChange,
-}: {
-	cashBoxId: number;
-	onTransactionsChange: (transactions: TransactionWithBankAccount[]) => void;
-	onRefreshReady?: (refresh: (() => Promise<void>) | null) => void;
-}) {
-	const { data, refresh } = useOptimizedRealtime<TransactionWithBankAccount>(
-		'transactions_box',
-		async () => {
-			const { data } = await listTransactions(cashBoxId);
-			return data ?? [];
-		},
-		`cash-flow-transactions_${cashBoxId}`
-	);
-
-	useEffect(() => {
-		onTransactionsChange(data);
-	}, [data, onTransactionsChange]);
-
-	return null;
-}
-
 export function CashFlowManagement() {
-	const { toast } = useToast();
 	const [activeTab, setActiveTab] = useState<CashFlowTabValue>('summary');
 	const canView = useCanView();
 	const visibleTabs = CASH_FLOW_TABS.filter((tab) => canView(`cash-flow.${tab.value}`));
@@ -95,26 +40,7 @@ export function CashFlowManagement() {
 		? activeTab
 		: visibleTabs[0]?.value;
 
-	const [isOpenCashBoxDialogOpen, setIsOpenCashBoxDialogOpen] = useState(false);
-
-	const [openCashBox, setOpenCashBox] = useState<CashBox | null>(null);
-	const {
-		data: cashBoxes,
-		loading: loadingCashBoxes,
-		refresh: refreshCashBoxes,
-	} = useOptimizedRealtime<CashBox>(
-		'cash_boxes',
-		async () => {
-			const { data } = await listCashBoxes();
-			return data ?? [];
-		},
-		'cash_boxes_cache'
-	);
-	const {
-		data: bankAccounts,
-		loading: loadingBankAccounts,
-		refresh: refreshBankAccounts,
-	} = useOptimizedRealtime<BankAccount>(
+	const { data: bankAccounts, refresh: refreshBankAccounts } = useOptimizedRealtime<BankAccount>(
 		'bank_accounts',
 		async () => {
 			const { data } = await listBankAccounts();
@@ -122,128 +48,6 @@ export function CashFlowManagement() {
 		},
 		'all_bank_accounts_cache'
 	);
-	const activeBankAccounts = useMemo(
-		() => bankAccounts.filter((account) => account.is_active),
-		[bankAccounts]
-	);
-
-	const [transactions, setTransactions] = useState<TransactionWithBankAccount[]>([]);
-	const refreshTransactionsRef = useRef<(() => Promise<void>) | null>(null);
-	const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
-	const [isCloseCashBoxDialogOpen, setIsCloseCashBoxDialogOpen] = useState(false);
-	const [isDeleteTransactionDialogOpen, setIsDeleteTransactionDialogOpen] = useState(false);
-	const [transactionToDelete, setTransactionToDelete] = useState<TransactionWithBankAccount | null>(
-		null
-	);
-	const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
-
-	useEffect(() => {
-		const nextOpenCashBox = cashBoxes.find((cashBox) => !cashBox.is_closed) ?? null;
-		setOpenCashBox(nextOpenCashBox);
-	}, [cashBoxes]);
-
-	const cashBoxSummary = useMemo<CashBoxSummary | null>(() => {
-		if (!openCashBox) return null;
-
-		const totalIncome = transactions
-			.filter((transaction) => transaction.type === 'income')
-			.reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-		const totalExpense = transactions
-			.filter((transaction) => transaction.type === 'expense')
-			.reduce((sum, transaction) => sum + Number(transaction.amount), 0);
-
-		return {
-			id: openCashBox.id,
-			created_at: openCashBox.created_at,
-			opening_balance: Number(openCashBox.opening_balance),
-			total_income: totalIncome,
-			total_expense: totalExpense,
-			current_balance: Number(openCashBox.opening_balance) + totalIncome - totalExpense,
-			closing_balance: openCashBox.closing_balance ? Number(openCashBox.closing_balance) : null,
-			is_closed: openCashBox.is_closed,
-			transaction_count: transactions.length,
-		};
-	}, [openCashBox, transactions]);
-
-	const handleCreateCashBox = async (openingBalance: number) => {
-		try {
-			const { error } = await createCashBox({
-				opening_balance: openingBalance,
-				closing_balance: null,
-				is_closed: false,
-				closed_at: null,
-				notes: null,
-			});
-			if (error) throw error;
-			toast({
-				title: 'Caja creada',
-				description: 'Se ha creado una nueva caja para hoy.',
-			});
-			await refreshCashBoxes();
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo crear la caja.',
-				variant: 'destructive',
-			});
-		}
-	};
-
-	const handleAddTransaction = (type: 'income' | 'expense') => {
-		setTransactionType(type);
-		setIsTransactionDialogOpen(true);
-	};
-
-	const handleTransactionCreated = async () => {
-		setIsTransactionDialogOpen(false);
-		await refreshTransactionsRef.current?.();
-	};
-
-	const handleAskDeleteTransaction = (transaction: TransactionWithBankAccount) => {
-		setTransactionToDelete(transaction);
-		setIsDeleteTransactionDialogOpen(true);
-	};
-
-	const handleDeleteTransaction = async () => {
-		if (!transactionToDelete) return;
-		try {
-			const { error } = await deleteTransaction(transactionToDelete.id);
-			if (error) throw error;
-			toast({
-				title: 'Transacción eliminada',
-				description: 'La transacción ha sido eliminada correctamente.',
-			});
-			setIsDeleteTransactionDialogOpen(false);
-			setTransactionToDelete(null);
-			await refreshTransactionsRef.current?.();
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo eliminar la transacción.',
-				variant: 'destructive',
-			});
-		}
-	};
-
-	const handleCloseCashBox = async (closingBalance: number, notes?: string) => {
-		if (!openCashBox?.id) return;
-		try {
-			const { error } = await closeCashBox(openCashBox.id, closingBalance, notes);
-			if (error) throw error;
-			toast({
-				title: 'Caja cerrada',
-				description: 'La caja ha sido cerrada correctamente.',
-			});
-			setIsCloseCashBoxDialogOpen(false);
-			await refreshCashBoxes();
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo cerrar la caja.',
-				variant: 'destructive',
-			});
-		}
-	};
 
 	return (
 		<div className="space-y-6">
@@ -352,79 +156,6 @@ export function CashFlowManagement() {
 					</TabsContent>
 				))}
 			</Tabs>
-
-			{/* Dialogs */}
-			<TransactionDialog
-				open={isTransactionDialogOpen}
-				onOpenChange={setIsTransactionDialogOpen}
-				type={transactionType}
-				cashBoxId={openCashBox?.id || 0}
-				bankAccounts={activeBankAccounts}
-				onTransactionCreated={handleTransactionCreated}
-			/>
-
-			{openCashBox?.id && (
-				<CashFlowTransactionsRealtime
-					key={openCashBox.id}
-					cashBoxId={openCashBox.id}
-					onTransactionsChange={setTransactions}
-					onRefreshReady={(refresh) => {
-						refreshTransactionsRef.current = refresh;
-					}}
-				/>
-			)}
-
-			<CloseCashBoxDialog
-				open={isCloseCashBoxDialogOpen}
-				onOpenChange={setIsCloseCashBoxDialogOpen}
-				currentBalance={cashBoxSummary?.current_balance || 0}
-				onCloseCashBox={handleCloseCashBox}
-			/>
-
-			<OpenCashBoxDialog
-				open={isOpenCashBoxDialogOpen}
-				onOpenChange={setIsOpenCashBoxDialogOpen}
-				onOpenCashBox={handleCreateCashBox}
-			/>
-
-			<AlertDialog
-				open={isDeleteTransactionDialogOpen}
-				onOpenChange={(open) => {
-					setIsDeleteTransactionDialogOpen(open);
-					if (!open) setTransactionToDelete(null);
-				}}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>¿Eliminar transacción?</AlertDialogTitle>
-						<AlertDialogDescription>
-							Esta acción no se puede deshacer. Se eliminará permanentemente la transacción{' '}
-							{transactionToDelete && (
-								<>
-									<span className="font-semibold">
-										{transactionToDelete.description ||
-											(transactionToDelete.type === 'income'
-												? getPaymentMethodLabel(transactionToDelete.category)
-												: getExpenseCategoryLabel(transactionToDelete.category))}{' '}
-									</span>
-									<span>
-										con el siguiente monto: <b>{formatCurrency(transactionToDelete.amount)}</b>
-									</span>
-								</>
-							)}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancelar</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={handleDeleteTransaction}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-						>
-							Eliminar
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 		</div>
 	);
 }

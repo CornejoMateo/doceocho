@@ -17,6 +17,9 @@ export function IncomesTab({ categoriesConfig }: IncomesTabProps) {
 			addLabel="Nuevo ingreso"
 			emptyLabel="No hay ingresos registrados"
 			categoriesConfig={categoriesConfig}
+			cascadeDeleteWarning
+			cascadeHasLinkedPayments={false}
+			attachmentsKind="income"
 		/>
 	);
 }

@@ -79,31 +79,11 @@ as $$
 $$;
 
 ------ READ BY VIEW: CASH AND BANKS FROM CLIENT BALANCES ------
--- Fix for user-views.sql: a client's checking account also reads banks, cash boxes and payment methods.
+-- Fix for user-views.sql: a client's checking account also reads banks and payment methods.
 
 DROP POLICY IF EXISTS "bank_accounts select by view" ON public.bank_accounts;
 CREATE POLICY "bank_accounts select by view"
 ON public.bank_accounts
-FOR SELECT
-TO authenticated
-USING (
-    public.can_view('cash-flow')
-    or public.can_view('clients.balances')
-);
-
-DROP POLICY IF EXISTS "cash_boxes select by view" ON public.cash_boxes;
-CREATE POLICY "cash_boxes select by view"
-ON public.cash_boxes
-FOR SELECT
-TO authenticated
-USING (
-    public.can_view('cash-flow')
-    or public.can_view('clients.balances')
-);
-
-DROP POLICY IF EXISTS "transactions_box select by view" ON public.transactions_box;
-CREATE POLICY "transactions_box select by view"
-ON public.transactions_box
 FOR SELECT
 TO authenticated
 USING (
@@ -257,50 +237,6 @@ FOR DELETE
 TO authenticated
 USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
 
-DROP POLICY IF EXISTS "cash_boxes insert by edit" ON public.cash_boxes;
-CREATE POLICY "cash_boxes insert by edit"
-ON public.cash_boxes
-FOR INSERT
-TO authenticated
-WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "cash_boxes update by edit" ON public.cash_boxes;
-CREATE POLICY "cash_boxes update by edit"
-ON public.cash_boxes
-FOR UPDATE
-TO authenticated
-USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']))
-WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "cash_boxes delete by edit" ON public.cash_boxes;
-CREATE POLICY "cash_boxes delete by edit"
-ON public.cash_boxes
-FOR DELETE
-TO authenticated
-USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box insert by edit" ON public.transactions_box;
-CREATE POLICY "transactions_box insert by edit"
-ON public.transactions_box
-FOR INSERT
-TO authenticated
-WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box update by edit" ON public.transactions_box;
-CREATE POLICY "transactions_box update by edit"
-ON public.transactions_box
-FOR UPDATE
-TO authenticated
-USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']))
-WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box delete by edit" ON public.transactions_box;
-CREATE POLICY "transactions_box delete by edit"
-ON public.transactions_box
-FOR DELETE
-TO authenticated
-USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
 DROP POLICY IF EXISTS "payment_methods insert by edit" ON public.payment_methods;
 CREATE POLICY "payment_methods insert by edit"
 ON public.payment_methods
@@ -429,28 +365,6 @@ WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 
 DROP POLICY IF EXISTS "fixed_expenses delete by edit" ON public.fixed_expenses;
 CREATE POLICY "fixed_expenses delete by edit"
 ON public.fixed_expenses
-FOR DELETE
-TO authenticated
-USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments insert by edit" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments insert by edit"
-ON public.fixed_expense_payments
-FOR INSERT
-TO authenticated
-WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments update by edit" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments update by edit"
-ON public.fixed_expense_payments
-FOR UPDATE
-TO authenticated
-USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']))
-WITH CHECK (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments delete by edit" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments delete by edit"
-ON public.fixed_expense_payments
 FOR DELETE
 TO authenticated
 USING (public.can_edit_any(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
@@ -944,72 +858,6 @@ FOR DELETE
 TO authenticated
 USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
 
-DROP POLICY IF EXISTS "cash_boxes restrict read by view" ON public.cash_boxes;
-CREATE POLICY "cash_boxes restrict read by view"
-ON public.cash_boxes
-AS RESTRICTIVE
-FOR SELECT
-TO authenticated
-USING (public.view_allowed(array['cash-flow', 'clients.balances']));
-
-DROP POLICY IF EXISTS "cash_boxes restrict insert by edit" ON public.cash_boxes;
-CREATE POLICY "cash_boxes restrict insert by edit"
-ON public.cash_boxes
-AS RESTRICTIVE
-FOR INSERT
-TO authenticated
-WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "cash_boxes restrict update by edit" ON public.cash_boxes;
-CREATE POLICY "cash_boxes restrict update by edit"
-ON public.cash_boxes
-AS RESTRICTIVE
-FOR UPDATE
-TO authenticated
-USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']))
-WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "cash_boxes restrict delete by edit" ON public.cash_boxes;
-CREATE POLICY "cash_boxes restrict delete by edit"
-ON public.cash_boxes
-AS RESTRICTIVE
-FOR DELETE
-TO authenticated
-USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box restrict read by view" ON public.transactions_box;
-CREATE POLICY "transactions_box restrict read by view"
-ON public.transactions_box
-AS RESTRICTIVE
-FOR SELECT
-TO authenticated
-USING (public.view_allowed(array['cash-flow', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box restrict insert by edit" ON public.transactions_box;
-CREATE POLICY "transactions_box restrict insert by edit"
-ON public.transactions_box
-AS RESTRICTIVE
-FOR INSERT
-TO authenticated
-WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box restrict update by edit" ON public.transactions_box;
-CREATE POLICY "transactions_box restrict update by edit"
-ON public.transactions_box
-AS RESTRICTIVE
-FOR UPDATE
-TO authenticated
-USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']))
-WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
-DROP POLICY IF EXISTS "transactions_box restrict delete by edit" ON public.transactions_box;
-CREATE POLICY "transactions_box restrict delete by edit"
-ON public.transactions_box
-AS RESTRICTIVE
-FOR DELETE
-TO authenticated
-USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement', 'clients.balances']));
-
 DROP POLICY IF EXISTS "payment_methods restrict read by view" ON public.payment_methods;
 CREATE POLICY "payment_methods restrict read by view"
 ON public.payment_methods
@@ -1203,39 +1051,6 @@ WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 
 DROP POLICY IF EXISTS "fixed_expenses restrict delete by edit" ON public.fixed_expenses;
 CREATE POLICY "fixed_expenses restrict delete by edit"
 ON public.fixed_expenses
-AS RESTRICTIVE
-FOR DELETE
-TO authenticated
-USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments restrict read by view" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments restrict read by view"
-ON public.fixed_expense_payments
-AS RESTRICTIVE
-FOR SELECT
-TO authenticated
-USING (public.view_allowed(array['cash-flow']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments restrict insert by edit" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments restrict insert by edit"
-ON public.fixed_expense_payments
-AS RESTRICTIVE
-FOR INSERT
-TO authenticated
-WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments restrict update by edit" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments restrict update by edit"
-ON public.fixed_expense_payments
-AS RESTRICTIVE
-FOR UPDATE
-TO authenticated
-USING (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']))
-WITH CHECK (public.edit_allowed(array['cash-flow.summary', 'cash-flow.incomes', 'cash-flow.expenses', 'cash-flow.collections', 'cash-flow.payments', 'cash-flow.fixed-expenses', 'cash-flow.checking-accounts', 'cash-flow.suppliers', 'cash-flow.bank-accounts', 'cash-flow.vat-settlement']));
-
-DROP POLICY IF EXISTS "fixed_expense_payments restrict delete by edit" ON public.fixed_expense_payments;
-CREATE POLICY "fixed_expense_payments restrict delete by edit"
-ON public.fixed_expense_payments
 AS RESTRICTIVE
 FOR DELETE
 TO authenticated

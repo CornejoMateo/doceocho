@@ -44,6 +44,7 @@ export function useChatManagement({
 	const [initialLoadDone, setInitialLoadDone] = useState(false);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [showMembersDialog, setShowMembersDialog] = useState(false);
+	const [showFilesDialog, setShowFilesDialog] = useState(false);
 	const [members, setMembers] = useState<any[]>([]);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [showSearch, setShowSearch] = useState(false);
@@ -313,6 +314,13 @@ export function useChatManagement({
 		}
 	};
 
+	const handleShowFiles = async () => {
+		if (selectedChannel) {
+			await loadMembers(selectedChannel.id);
+			setShowFilesDialog(true);
+		}
+	};
+
 	const handleChannelCreated = () => {
 		channelsCache = null;
 		loadChannels();
@@ -438,6 +446,7 @@ export function useChatManagement({
 		totalUnreadCount,
 		showCreateDialog,
 		showMembersDialog,
+		showFilesDialog,
 		members,
 		searchTerm,
 		showSearch,
@@ -467,6 +476,7 @@ export function useChatManagement({
 		setCleanupDate,
 		setShowCreateDialog,
 		setShowMembersDialog,
+		setShowFilesDialog,
 		setSelectedChannel,
 		setChannels,
 
@@ -478,6 +488,7 @@ export function useChatManagement({
 		handleScrolledToUnread,
 		handleCreateChannel,
 		handleShowMembers,
+		handleShowFiles,
 		handleChannelCreated,
 		handleDeleteMessage,
 		handleEditMessage,
