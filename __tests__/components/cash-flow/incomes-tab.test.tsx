@@ -16,6 +16,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab',
 		categoriesConfig,
 		cascadeDeleteWarning,
 		attachmentsKind,
+		lockPartyOnEdit,
 	}: any) => (
 		<div>
 			<span data-testid="entity-label">{entityLabel}</span>
@@ -25,6 +26,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab',
 			<span data-testid="year">{state.year}</span>
 			<span data-testid="cascade-delete-warning">{cascadeDeleteWarning ? 'true' : 'false'}</span>
 			<span data-testid="attachments-kind">{attachmentsKind}</span>
+			<span data-testid="lock-party-on-edit">{lockPartyOnEdit ? 'true' : 'false'}</span>
 			{categoriesConfig}
 		</div>
 	),
@@ -51,5 +53,13 @@ describe('IncomesTab', () => {
 
 		expect(screen.getByTestId('cascade-delete-warning')).toHaveTextContent('true');
 		expect(screen.getByTestId('attachments-kind')).toHaveTextContent('income');
+	});
+
+	it('never sets lockPartyOnEdit (supplier lock is Gastos-only)', () => {
+		(useIncomes as jest.Mock).mockReturnValue({ year: 2026 });
+
+		render(<IncomesTab categoriesConfig={null} />);
+
+		expect(screen.getByTestId('lock-party-on-edit')).toHaveTextContent('false');
 	});
 });

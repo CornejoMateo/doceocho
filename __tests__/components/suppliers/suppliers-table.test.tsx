@@ -18,6 +18,7 @@ const base = {
 	payment_terms_days: null,
 	notes: null,
 	is_active: true,
+	income_tax_condition: null,
 };
 
 const active = {

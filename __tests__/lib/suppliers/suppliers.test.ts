@@ -35,6 +35,7 @@ const input: SupplierInput = {
 	payment_terms_days: 30,
 	notes: null,
 	is_active: true,
+	income_tax_condition: null,
 };
 
 describe('lib/suppliers', () => {

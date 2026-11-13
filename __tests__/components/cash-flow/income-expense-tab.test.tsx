@@ -71,10 +71,11 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-by-ca
 }));
 
 jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-form-dialog', () => ({
-	IncomeExpenseFormDialog: ({ open, descriptionMaxLength }: any) =>
+	IncomeExpenseFormDialog: ({ open, descriptionMaxLength, lockPartyOnEdit }: any) =>
 		open ? (
 			<div data-testid="form-dialog">
 				<span data-testid="description-max-length">{descriptionMaxLength}</span>
+				<span data-testid="lock-party-on-edit">{lockPartyOnEdit ? 'true' : 'false'}</span>
 			</div>
 		) : null,
 }));
@@ -239,6 +240,15 @@ describe('IncomeExpenseTab', () => {
 		render(<IncomeExpenseTab state={state} {...baseRenderProps} />);
 
 		expect(screen.getByTestId('description-max-length')).toHaveTextContent('2000');
+	});
+
+	it('defaults lockPartyOnEdit to false and forwards it through to the form dialog when set (Gastos)', () => {
+		const state = makeState({ isFormOpen: true });
+		const { rerender } = render(<IncomeExpenseTab state={state} {...baseRenderProps} />);
+		expect(screen.getByTestId('lock-party-on-edit')).toHaveTextContent('false');
+
+		rerender(<IncomeExpenseTab state={state} {...baseRenderProps} lockPartyOnEdit />);
+		expect(screen.getByTestId('lock-party-on-edit')).toHaveTextContent('true');
 	});
 
 	describe('cascadeDeleteWarning (Gastos only; Ingresos keeps the generic copy)', () => {

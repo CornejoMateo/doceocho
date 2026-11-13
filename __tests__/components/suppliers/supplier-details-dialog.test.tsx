@@ -9,10 +9,12 @@ import { listSupplierPurchasesPage } from '@/lib/suppliers/supplier-expenses';
 import { createExpense, updateExpense, deleteExpense } from '@/lib/expenses/expenses';
 import {
 	createPayment,
+	createPaymentWithWithholding,
 	updatePayment,
 	deletePayment,
 	listPaymentsByExpenseIds,
 } from '@/lib/payments/payments';
+import { getWithholdingByPaymentId } from '@/lib/withholdings/withholdings';
 import { listBankAccounts } from '@/lib/cash-flow/cash-flow';
 import { listPaymentMethods } from '@/lib/payment-methods/payment-methods';
 import { listCategories } from '@/lib/categories/categories';
@@ -86,9 +88,15 @@ jest.mock('@/lib/expenses/expenses', () => ({
 
 jest.mock('@/lib/payments/payments', () => ({
 	createPayment: jest.fn(),
+	createPaymentWithWithholding: jest.fn(),
 	updatePayment: jest.fn(),
 	deletePayment: jest.fn(),
 	listPaymentsByExpenseIds: jest.fn(),
+}));
+
+jest.mock('@/lib/withholdings/withholdings', () => ({
+	...jest.requireActual('@/lib/withholdings/withholdings'),
+	getWithholdingByPaymentId: jest.fn(),
 }));
 
 jest.mock('@/lib/expenses/files-expenses', () => ({
@@ -283,6 +291,7 @@ beforeEach(() => {
 	(uploadFilePayment as jest.Mock).mockResolvedValue({ data: { id: 1 }, error: null });
 	(deleteExpense as jest.Mock).mockResolvedValue({ error: null });
 	(deletePayment as jest.Mock).mockResolvedValue({ error: null });
+	(getWithholdingByPaymentId as jest.Mock).mockResolvedValue({ data: null, error: null });
 });
 
 describe('SupplierDetailsDialog', () => {
@@ -1272,6 +1281,173 @@ describe('SupplierDetailsDialog', () => {
 			expect(mockToast).toHaveBeenCalledWith({ title: 'Pago eliminado' });
 			await waitFor(() => expect(listPaymentsByExpenseIds).toHaveBeenCalledTimes(2));
 			await waitFor(() => expect(screen.getByText('Sin pagos registrados.')).toBeInTheDocument());
+		});
+	});
+
+	describe('payment withholding', () => {
+		it('is off by default on a new payment, hiding the withholding fields', async () => {
+			await openNewPaymentForm();
+
+			const toggle = screen.getByRole('switch');
+			expect(toggle).toHaveAttribute('aria-checked', 'false');
+			expect(screen.queryByLabelText('Régimen')).not.toBeInTheDocument();
+			expect(screen.queryByLabelText('Alícuota (%)')).not.toBeInTheDocument();
+			expect(screen.queryByLabelText('Imputado')).not.toBeInTheDocument();
+		});
+
+		it('shows the withholding fields, prefilling Imputado from the payment amount, once toggled on', async () => {
+			await openNewPaymentForm();
+
+			fireEvent.click(screen.getByRole('switch'));
+
+			expect(screen.getByLabelText('Régimen')).toBeInTheDocument();
+			expect(screen.getByLabelText('Alícuota (%)')).toBeInTheDocument();
+			expect(screen.getByLabelText('Imputado')).toHaveValue('1.000');
+		});
+
+		it('does not require withholding fields when the switch stays off', async () => {
+			(createPayment as jest.Mock).mockResolvedValue({ data: createdPayment, error: null });
+			await openNewPaymentForm();
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() => expect(createPayment).toHaveBeenCalledTimes(1));
+			expect(createPaymentWithWithholding).not.toHaveBeenCalled();
+		});
+
+		it('blocks submit with a Spanish toast when the regime is missing', async () => {
+			await openNewPaymentForm();
+			fireEvent.click(screen.getByRole('switch'));
+			// Whitespace-only passes the native `required` check, so this exercises our own validator.
+			fireEvent.change(screen.getByLabelText('Régimen'), { target: { value: '   ' } });
+			fireEvent.change(screen.getByLabelText('Alícuota (%)'), { target: { value: '2' } });
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() =>
+				expect(mockToast).toHaveBeenCalledWith({
+					title: 'Datos incompletos',
+					description: 'El régimen de la retención es obligatorio.',
+					variant: 'destructive',
+				})
+			);
+			expect(createPayment).not.toHaveBeenCalled();
+			expect(createPaymentWithWithholding).not.toHaveBeenCalled();
+		});
+
+		it('creates the payment and withholding atomically via createPaymentWithWithholding when the switch is on', async () => {
+			(createPaymentWithWithholding as jest.Mock).mockResolvedValue({
+				data: createdPayment,
+				error: null,
+			});
+			await openNewPaymentForm();
+			fireEvent.click(screen.getByRole('switch'));
+			fireEvent.change(screen.getByLabelText('Régimen'), { target: { value: 'Ganancias' } });
+			fireEvent.change(screen.getByLabelText('Alícuota (%)'), { target: { value: '2' } });
+
+			expect(screen.getByText(money(20))).toBeInTheDocument(); // Retenido preview: 1000 * 2%
+			expect(screen.getByText(money(980))).toBeInTheDocument(); // Total preview: 1000 - 20
+
+			fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+			await waitFor(() => expect(createPaymentWithWithholding).toHaveBeenCalledTimes(1));
+			expect(createPaymentWithWithholding).toHaveBeenCalledWith(
+				expect.objectContaining({ amount: 1000, expense_id: 11 }),
+				{ tax_regime: 'Ganancias', rate: 0.02, imputed_amount: 1000 }
+			);
+			expect(createPayment).not.toHaveBeenCalled();
+			await waitFor(() => expect(mockToast).toHaveBeenCalledWith({ title: 'Pago creado' }));
+		});
+
+		it('keeps Imputado in sync with the amount until the user edits it manually', async () => {
+			await openNewPaymentForm();
+			fireEvent.click(screen.getByRole('switch'));
+			expect(screen.getByLabelText('Imputado')).toHaveValue('1.000');
+
+			fireEvent.change(screen.getByLabelText('Monto'), { target: { value: '2000' } });
+			expect(screen.getByLabelText('Imputado')).toHaveValue('2.000');
+
+			fireEvent.change(screen.getByLabelText('Imputado'), { target: { value: '1500' } });
+			expect(screen.getByLabelText('Imputado')).toHaveValue('1.500');
+
+			// Now detached: further amount edits no longer touch the manually-edited Imputado.
+			fireEvent.change(screen.getByLabelText('Monto'), { target: { value: '3000' } });
+			expect(screen.getByLabelText('Imputado')).toHaveValue('1.500');
+		});
+
+		it('does not offer the switch when editing a payment', async () => {
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
+				data: [{ ...createdPayment, id: 88 }],
+				error: null,
+			});
+			openDialog();
+			await expandPurchase();
+			fireEvent.click(await screen.findByRole('button', { name: 'Más acciones del pago' }));
+			fireEvent.click(await screen.findByRole('button', { name: 'Editar pago' }));
+
+			await waitFor(() => expect(getWithholdingByPaymentId).toHaveBeenCalled());
+			expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+		});
+
+		it('locks the amount field and shows the withholding read-only when editing a payment that has one', async () => {
+			(getWithholdingByPaymentId as jest.Mock).mockResolvedValue({
+				data: {
+					id: 1,
+					expense_id: 11,
+					payment_id: 88,
+					date: '2026-01-20',
+					period: '2026-01',
+					tax_regime: 'Ganancias',
+					imputed_amount: 2500,
+					rate: 0.02,
+					withheld_amount: 50,
+					total_amount: 2450,
+					notes: null,
+					created_at: '2026-01-20T00:00:00Z',
+				},
+				error: null,
+			});
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
+				data: [{ ...createdPayment, id: 88, amount: 2500 }],
+				error: null,
+			});
+			openDialog();
+			await expandPurchase();
+			fireEvent.click(await screen.findByRole('button', { name: 'Más acciones del pago' }));
+			fireEvent.click(await screen.findByRole('button', { name: 'Editar pago' }));
+
+			expect(
+				await screen.findByText(
+					'Este pago tiene una retención: para cambiar el monto, eliminá el pago y creálo de nuevo.'
+				)
+			).toBeInTheDocument();
+			expect(screen.getByLabelText('Monto')).toBeDisabled();
+			expect(screen.getByText('Ganancias')).toBeInTheDocument();
+
+			fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
+
+			await waitFor(() => expect(updatePayment).toHaveBeenCalledTimes(1));
+			expect(updatePayment).toHaveBeenCalledWith(88, expect.objectContaining({ amount: 2500 }));
+		});
+
+		it('leaves the amount field editable when editing a payment with no withholding', async () => {
+			(getWithholdingByPaymentId as jest.Mock).mockResolvedValue({ data: null, error: null });
+			(listPaymentsByExpenseIds as jest.Mock).mockResolvedValue({
+				data: [{ ...createdPayment, id: 88 }],
+				error: null,
+			});
+			openDialog();
+			await expandPurchase();
+			fireEvent.click(await screen.findByRole('button', { name: 'Más acciones del pago' }));
+			fireEvent.click(await screen.findByRole('button', { name: 'Editar pago' }));
+
+			await waitFor(() => expect(getWithholdingByPaymentId).toHaveBeenCalled());
+			expect(screen.getByLabelText('Monto')).not.toBeDisabled();
+			expect(
+				screen.queryByText(
+					'Este pago tiene una retención: para cambiar el monto, eliminá el pago y creálo de nuevo.'
+				)
+			).not.toBeInTheDocument();
 		});
 	});
 

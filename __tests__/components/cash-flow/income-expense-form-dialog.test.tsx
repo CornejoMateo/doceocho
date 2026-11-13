@@ -26,6 +26,7 @@ jest.mock('@/components/ui/select', () => ({
 jest.mock('@/components/business/cash-flow/shared/entity-combobox', () => ({
 	EntityCombobox: ({ id, value, onValueChange, options, placeholder, disabled }: any) => (
 		<select
+			id={id}
 			data-testid={id}
 			aria-label={id === 'ie-party' ? 'party-combobox' : 'work-combobox'}
 			value={value}
@@ -398,6 +399,73 @@ describe('IncomeExpenseFormDialog', () => {
 			expect(
 				screen.queryByText('Podés adjuntar archivos después de guardar.')
 			).not.toBeInTheDocument();
+		});
+	});
+
+	describe('lockPartyOnEdit (Gastos only; Ingresos never sets it)', () => {
+		const supplierEntry = { id: 9, party_id: 3, party_name: 'Proveedor 1' } as IncomeExpenseEntry;
+
+		function lockedProps(over: Partial<React.ComponentProps<typeof IncomeExpenseFormDialog>> = {}) {
+			return baseProps({
+				entityLabel: 'gasto',
+				partyLabel: 'Proveedor',
+				lockPartyOnEdit: true,
+				editingEntry: supplierEntry,
+				partyId: '3',
+				parties: [{ id: 3, name: 'Proveedor 1' }],
+				...over,
+			});
+		}
+
+		it('locks the field (disabled, no "(opcional)", "Quitar proveedor" control) when editing a gasto that already has a supplier', () => {
+			render(<IncomeExpenseFormDialog {...lockedProps()} />);
+
+			expect(partyCombobox()).toBeDisabled();
+			expect(screen.getByText('Proveedor')).toBeInTheDocument();
+			expect(screen.queryByText('Proveedor (opcional)')).not.toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Quitar proveedor' })).toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: 'Quitar' })).not.toBeInTheDocument();
+		});
+
+		it('leaves the field free on create, even with lockPartyOnEdit set and a preselected supplier', () => {
+			render(<IncomeExpenseFormDialog {...lockedProps({ editingEntry: null })} />);
+
+			expect(partyCombobox()).not.toBeDisabled();
+			expect(screen.queryByRole('button', { name: 'Quitar proveedor' })).not.toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Quitar' })).toBeInTheDocument();
+		});
+
+		it('shows the confirmation dialog and clears the supplier on "Confirmar"', () => {
+			const props = lockedProps();
+			render(<IncomeExpenseFormDialog {...props} />);
+
+			fireEvent.click(screen.getByRole('button', { name: 'Quitar proveedor' }));
+
+			const alert = screen.getByRole('alertdialog');
+			expect(
+				within(alert).getByText(
+					'Si guardás, el gasto no va a tener más proveedor y esto afecta a las retenciones.'
+				)
+			).toBeInTheDocument();
+
+			fireEvent.click(within(alert).getByRole('button', { name: 'Confirmar' }));
+
+			expect(props.setPartyId).toHaveBeenCalledWith('');
+			expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+		});
+
+		it('keeps the supplier (field stays locked) when "Cancelar" is clicked', () => {
+			const props = lockedProps();
+			render(<IncomeExpenseFormDialog {...props} />);
+
+			fireEvent.click(screen.getByRole('button', { name: 'Quitar proveedor' }));
+			const alert = screen.getByRole('alertdialog');
+
+			fireEvent.click(within(alert).getByRole('button', { name: 'Cancelar' }));
+
+			expect(props.setPartyId).not.toHaveBeenCalled();
+			expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+			expect(partyCombobox()).toBeDisabled();
 		});
 	});
 });

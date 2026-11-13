@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SupplierFormDialog } from '@/components/business/suppliers/supplier-form-dialog';
-import { createSupplier, updateSupplier } from '@/lib/suppliers/suppliers';
+import { createSupplier, updateSupplier, type Supplier } from '@/lib/suppliers/suppliers';
 import { translateError } from '@/lib/error-translator';
 
 const mockToast = jest.fn();
@@ -13,8 +13,20 @@ jest.mock('@/lib/suppliers/suppliers', () => ({
 	updateSupplier: jest.fn(),
 }));
 jest.mock('@/lib/error-translator', () => ({ translateError: jest.fn() }));
+// Real Radix Select hangs under jsdom; project convention mocks it as a native <select> in Dialog tests.
+jest.mock('@/components/ui/select', () => ({
+	Select: ({ children, onValueChange }: any) => (
+		<select data-testid="select-native" onChange={(e) => onValueChange?.(e.target.value)}>
+			{children}
+		</select>
+	),
+	SelectTrigger: ({ children }: any) => <>{children}</>,
+	SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
+	SelectContent: ({ children }: any) => <>{children}</>,
+	SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
+}));
 
-const supplier = {
+const supplier: Supplier = {
 	id: 7,
 	created_at: '2024-01-01',
 	name: 'Vidrios SA',
@@ -28,6 +40,7 @@ const supplier = {
 	payment_terms_days: 30,
 	notes: 'nota',
 	is_active: false,
+	income_tax_condition: 'monotax',
 };
 
 function setup(props: Partial<React.ComponentProps<typeof SupplierFormDialog>> = {}) {
@@ -48,6 +61,8 @@ function setup(props: Partial<React.ComponentProps<typeof SupplierFormDialog>> =
 const type = (label: string | RegExp, value: string) =>
 	fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const submit = () => fireEvent.submit(document.querySelector('form')!);
+const selectIncomeTaxCondition = (value: string) =>
+	fireEvent.change(screen.getByTestId('select-native'), { target: { value } });
 
 describe('SupplierFormDialog', () => {
 	beforeEach(() => {
@@ -87,11 +102,26 @@ describe('SupplierFormDialog', () => {
 			expect(createSupplier).not.toHaveBeenCalled();
 		});
 
+		it('shows a toast and does not save when no income tax condition is selected', () => {
+			setup();
+			type(/Nombre comercial/, 'A');
+			submit();
+			expect(mockToast).toHaveBeenCalledWith(
+				expect.objectContaining({
+					title: 'Datos incompletos',
+					description: 'Seleccioná la condición en Ganancias',
+					variant: 'destructive',
+				})
+			);
+			expect(createSupplier).not.toHaveBeenCalled();
+		});
+
 		it('creates with trimmed values, null optionals, digits-only CUIT and is_active true', async () => {
 			const { onSaved } = setup();
 			type(/Nombre comercial/, '  Nuevo Prov  ');
 			type('CUIT', '30-71234567-8');
 			type(/Condición de pago/, '45');
+			selectIncomeTaxCondition('registered');
 			submit();
 			await waitFor(() => expect(onSaved).toHaveBeenCalled());
 			expect(createSupplier).toHaveBeenCalledWith({
@@ -105,6 +135,7 @@ describe('SupplierFormDialog', () => {
 				address: null,
 				payment_terms_days: 45,
 				notes: null,
+				income_tax_condition: 'registered',
 				is_active: true,
 			});
 			expect(updateSupplier).not.toHaveBeenCalled();
@@ -114,6 +145,7 @@ describe('SupplierFormDialog', () => {
 			const { onSaved } = setup();
 			type(/Nombre comercial/, 'A');
 			fireEvent.click(screen.getByRole('switch'));
+			selectIncomeTaxCondition('registered');
 			submit();
 			await waitFor(() => expect(onSaved).toHaveBeenCalled());
 			expect(createSupplier).toHaveBeenCalledWith(
@@ -125,6 +157,7 @@ describe('SupplierFormDialog', () => {
 			const { onSaved } = setup();
 			type(/Nombre comercial/, 'A');
 			type('WhatsApp', '  5491112345678 ');
+			selectIncomeTaxCondition('registered');
 			submit();
 			await waitFor(() => expect(onSaved).toHaveBeenCalled());
 			expect(createSupplier).toHaveBeenCalledWith(
@@ -156,7 +189,11 @@ describe('SupplierFormDialog', () => {
 			const [id, payload] = (updateSupplier as jest.Mock).mock.calls[0];
 			expect(id).toBe(7);
 			expect(payload).not.toHaveProperty('is_active');
-			expect(payload).toMatchObject({ name: 'Otro nombre', tax_id: '30712345678' });
+			expect(payload).toMatchObject({
+				name: 'Otro nombre',
+				tax_id: '30712345678',
+				income_tax_condition: 'monotax',
+			});
 			expect(createSupplier).not.toHaveBeenCalled();
 		});
 	});
@@ -169,6 +206,7 @@ describe('SupplierFormDialog', () => {
 			});
 			const { onSaved } = setup();
 			type(/Nombre comercial/, 'A');
+			selectIncomeTaxCondition('registered');
 			submit();
 			await waitFor(() =>
 				expect(mockToast).toHaveBeenCalledWith(
@@ -186,6 +224,7 @@ describe('SupplierFormDialog', () => {
 			(translateError as jest.Mock).mockReturnValueOnce('Error traducido');
 			const { onSaved } = setup();
 			type(/Nombre comercial/, 'A');
+			selectIncomeTaxCondition('registered');
 			submit();
 			await waitFor(() =>
 				expect(mockToast).toHaveBeenCalledWith(
@@ -208,6 +247,7 @@ describe('SupplierFormDialog', () => {
 			(createSupplier as jest.Mock).mockRejectedValue(new Error('network'));
 			const { onSaved } = setup();
 			type(/Nombre comercial/, 'A');
+			selectIncomeTaxCondition('registered');
 			submit();
 			await waitFor(() =>
 				expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }))
@@ -221,6 +261,7 @@ describe('SupplierFormDialog', () => {
 		(createSupplier as jest.Mock).mockImplementation(() => new Promise((r) => (resolve = r)));
 		const { onOpenChange } = setup();
 		type(/Nombre comercial/, 'A');
+		selectIncomeTaxCondition('registered');
 		submit();
 		await waitFor(() => expect(screen.getByText('Guardando...')).toBeDisabled());
 		expect(screen.getByText('Cancelar')).toBeDisabled();

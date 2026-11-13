@@ -1,5 +1,6 @@
 import {
 	createPayment,
+	createPaymentWithWithholding,
 	deletePayment,
 	listPayments,
 	listPaymentsByExpenseIds,
@@ -310,6 +311,123 @@ describe('lib/payments', () => {
 				bank_account_id: null,
 				expense_id: null,
 			});
+
+			expect(res).toEqual({ data: null, error: err });
+		});
+	});
+
+	describe('createPaymentWithWithholding', () => {
+		function setupRpc(result: { data?: any; error?: any }) {
+			const rpc = jest.fn().mockResolvedValue({ data: null, error: null, ...result });
+			(getSupabaseClient as jest.Mock).mockReturnValue({ rpc });
+			return { rpc };
+		}
+
+		it('calls create_payment_with_withholding with the exact param names, normalizing the payment', async () => {
+			const { rpc } = setupRpc({ data: { id: 10 } });
+
+			await createPaymentWithWithholding(
+				{
+					date: '2026-05-10',
+					receipt_number: '  R-0001  ',
+					work_id: null,
+					category_id: 10,
+					description: '  Cemento  ',
+					amount: 1000,
+					payment_method_id: 2,
+					bank_account_id: null,
+					expense_id: 42,
+				},
+				{ tax_regime: '  Régimen general  ', rate: 0.02, imputed_amount: 1000 }
+			);
+
+			expect(rpc).toHaveBeenCalledWith('create_payment_with_withholding', {
+				p_date: '2026-05-10',
+				p_receipt_number: 'R-0001',
+				p_work_id: null,
+				p_category_id: 10,
+				p_description: 'Cemento',
+				p_amount: 1000,
+				p_payment_method_id: 2,
+				p_bank_account_id: null,
+				p_expense_id: 42,
+				p_tax_regime: 'Régimen general',
+				p_rate: 0.02,
+				p_imputed_amount: 1000,
+				p_period: null,
+				p_notes: null,
+			});
+		});
+
+		it('forwards an explicit period and notes, trimmed', async () => {
+			const { rpc } = setupRpc({ data: { id: 11 } });
+
+			await createPaymentWithWithholding(
+				{
+					date: '2026-05-10',
+					receipt_number: null,
+					work_id: null,
+					category_id: null,
+					description: null,
+					amount: 500,
+					payment_method_id: null,
+					bank_account_id: null,
+					expense_id: 7,
+				},
+				{
+					tax_regime: 'Regimen',
+					rate: 0.05,
+					imputed_amount: 500,
+					period: '2026-05',
+					notes: '  nota  ',
+				}
+			);
+
+			expect(rpc).toHaveBeenCalledWith(
+				'create_payment_with_withholding',
+				expect.objectContaining({ p_period: '2026-05', p_notes: 'nota' })
+			);
+		});
+
+		it('returns the created payment in the same shape as createPayment', async () => {
+			setupRpc({ data: { id: 12 } });
+
+			const res = await createPaymentWithWithholding(
+				{
+					date: '2026-05-10',
+					receipt_number: null,
+					work_id: null,
+					category_id: null,
+					description: null,
+					amount: 500,
+					payment_method_id: null,
+					bank_account_id: null,
+					expense_id: 7,
+				},
+				{ tax_regime: 'Regimen', rate: 0.05, imputed_amount: 500 }
+			);
+
+			expect(res).toEqual({ data: { id: 12 }, error: null });
+		});
+
+		it('passes Supabase errors through', async () => {
+			const err = { message: 'El régimen de la retención es obligatorio' };
+			setupRpc({ error: err });
+
+			const res = await createPaymentWithWithholding(
+				{
+					date: '2026-05-10',
+					receipt_number: null,
+					work_id: null,
+					category_id: null,
+					description: null,
+					amount: 500,
+					payment_method_id: null,
+					bank_account_id: null,
+					expense_id: 7,
+				},
+				{ tax_regime: '', rate: 0.05, imputed_amount: 500 }
+			);
 
 			expect(res).toEqual({ data: null, error: err });
 		});

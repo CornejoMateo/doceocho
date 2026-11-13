@@ -16,6 +16,7 @@ const supplier = {
 	payment_terms_days: null,
 	notes: null,
 	is_active: true,
+	income_tax_condition: null,
 };
 
 describe('SupplierToggleActiveDialog', () => {

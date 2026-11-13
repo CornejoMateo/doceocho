@@ -79,6 +79,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab',
 		categoriesConfig,
 		onAddPayment,
 		cascadeDeleteWarning,
+		lockPartyOnEdit,
 	}: any) => (
 		<div>
 			<span data-testid="entity-label">{entityLabel}</span>
@@ -87,6 +88,7 @@ jest.mock('@/components/business/cash-flow/incomes-expenses/income-expense-tab',
 			<span data-testid="empty-label">{emptyLabel}</span>
 			<span data-testid="year">{state.year}</span>
 			<span data-testid="cascade-delete-warning">{cascadeDeleteWarning ? 'true' : 'false'}</span>
+			<span data-testid="lock-party-on-edit">{lockPartyOnEdit ? 'true' : 'false'}</span>
 			{categoriesConfig}
 			{onAddPayment && (
 				<button onClick={() => onAddPayment(mockStubExpenseEntry())}>Agregar pago</button>
@@ -170,6 +172,12 @@ describe('ExpensesTab', () => {
 		render(<ExpensesTab categoriesConfig={null} />);
 
 		expect(screen.getByTestId('cascade-delete-warning')).toHaveTextContent('true');
+	});
+
+	it('enables lockPartyOnEdit (Gastos-only; Ingresos never sets it)', () => {
+		render(<ExpensesTab categoriesConfig={null} />);
+
+		expect(screen.getByTestId('lock-party-on-edit')).toHaveTextContent('true');
 	});
 
 	it('does not fetch the Payments domain when the Gastos tab mounts', () => {
