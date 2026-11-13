@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../supabase-client';
+import { IncomeTaxCondition } from '../withholdings/withholdings';
 
 export type Supplier = {
 	id: number;
@@ -14,6 +15,7 @@ export type Supplier = {
 	payment_terms_days: number | null;
 	notes: string | null;
 	is_active: boolean;
+	income_tax_condition: IncomeTaxCondition | null;
 };
 
 export type SupplierInput = Omit<Supplier, 'id' | 'created_at'>;

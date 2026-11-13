@@ -176,3 +176,69 @@ ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_description_lengt
 ALTER TABLE public.expenses
   ADD CONSTRAINT expenses_description_length_check
   CHECK (description IS NULL OR char_length(description) <= 2000);
+
+-- RLS: use is_admin_role
+
+DROP POLICY IF EXISTS "Public select expenses" ON public.expenses;
+CREATE POLICY "Public select expenses"
+ON public.expenses
+FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public insert expenses" ON public.expenses;
+CREATE POLICY "Public insert expenses"
+ON public.expenses
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public update expenses" ON public.expenses;
+CREATE POLICY "Public update expenses"
+ON public.expenses
+FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public delete expenses" ON public.expenses;
+CREATE POLICY "Public delete expenses"
+ON public.expenses
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);

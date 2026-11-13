@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '../supabase-client';
 import { fetchAllPages } from '@/lib/suppliers/pagination';
+import type { WithholdingInput } from '@/lib/withholdings/withholdings';
 
 export type Payment = {
 	id: number;
@@ -94,6 +95,31 @@ export async function createPayment(
 		.insert(normalizeInput(input))
 		.select()
 		.single();
+	return { data, error };
+}
+
+export async function createPaymentWithWithholding(
+	paymentInput: PaymentInput,
+	withholdingInput: WithholdingInput
+): Promise<{ data: Payment | null; error: any }> {
+	const supabase = getSupabaseClient();
+	const normalized = normalizeInput(paymentInput);
+	const { data, error } = await supabase.rpc('create_payment_with_withholding', {
+		p_date: normalized.date,
+		p_receipt_number: normalized.receipt_number,
+		p_work_id: normalized.work_id,
+		p_category_id: normalized.category_id,
+		p_description: normalized.description,
+		p_amount: normalized.amount,
+		p_payment_method_id: normalized.payment_method_id,
+		p_bank_account_id: normalized.bank_account_id,
+		p_expense_id: normalized.expense_id,
+		p_tax_regime: withholdingInput.tax_regime.trim(),
+		p_rate: withholdingInput.rate,
+		p_imputed_amount: withholdingInput.imputed_amount,
+		p_period: withholdingInput.period ?? null,
+		p_notes: withholdingInput.notes?.trim() || null,
+	});
 	return { data, error };
 }
 

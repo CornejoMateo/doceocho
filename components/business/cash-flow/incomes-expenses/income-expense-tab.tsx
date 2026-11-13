@@ -43,6 +43,7 @@ type IncomeExpenseTabProps = {
 	// (Gastos' existing behavior) so callers that only set cascadeDeleteWarning are unaffected.
 	cascadeHasLinkedPayments?: boolean;
 	attachmentsKind?: 'expense' | 'income';
+	lockPartyOnEdit?: boolean;
 };
 
 // Generic orchestrator shared by Incomes and Expenses
@@ -57,6 +58,7 @@ export function IncomeExpenseTab({
 	cascadeDeleteWarning = false,
 	cascadeHasLinkedPayments = true,
 	attachmentsKind,
+	lockPartyOnEdit = false,
 }: IncomeExpenseTabProps) {
 	const [linkedPaymentsCount, setLinkedPaymentsCount] = useState<number | null>(null);
 	const [countLoading, setCountLoading] = useState(false);
@@ -271,6 +273,7 @@ export function IncomeExpenseTab({
 				saving={state.saving}
 				onSubmit={state.handleSubmit}
 				errors={state.errors}
+				lockPartyOnEdit={lockPartyOnEdit}
 				attachmentsKind={attachmentsKind}
 				stagedFiles={state.stagedFiles}
 				onStagedFilesChange={state.setStagedFiles}

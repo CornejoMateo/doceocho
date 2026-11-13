@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { translateError } from '@/lib/error-translator';
 import {
@@ -8,9 +8,19 @@ import {
 } from '@/utils/formats-money';
 import { computeIvaAndTotal, IVA_RATES } from '@/constants/cashflow/iva';
 import { createExpense, updateExpense } from '@/lib/expenses/expenses';
-import { createPayment, updatePayment } from '@/lib/payments/payments';
+import {
+	createPayment,
+	createPaymentWithWithholding,
+	updatePayment,
+} from '@/lib/payments/payments';
 import type { SupplierExpenseListItem } from '@/lib/suppliers/supplier-expenses';
 import type { PaymentWithDetails } from '@/lib/payments/payments';
+import {
+	getWithholdingByPaymentId,
+	percentToRateFraction,
+	validateWithholdingInput,
+	type Withholding,
+} from '@/lib/withholdings/withholdings';
 import { uploadFileExpense } from '@/lib/expenses/files-expenses';
 import { uploadFilePayment } from '@/lib/payments/files-payments';
 import { pluralFiles, attachments, notAttachments } from '@/helpers/attachments/attachments';
@@ -25,7 +35,7 @@ export const NO_WORK = '__none__';
 export const NO_CATEGORY = '__none__';
 export const NO_VOUCHER_TYPE = '__none__';
 
-type MutationContext = { kind: 'purchase' | 'payment'; purchaseId: number };
+type MutationContext = { kind: 'purchase' | 'payment'; purchaseId: number; withholding?: boolean };
 
 interface UsePurchasePaymentFormsArgs {
 	supplierId: number | null;
@@ -69,6 +79,19 @@ export function usePurchasePaymentForms({
 	const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 	const [stagedPaymentFiles, setStagedPaymentFiles] = useState<StagedFile[]>([]);
 
+	const [withholdingEnabled, setWithholdingEnabled] = useState(false);
+	const [withholdingRegime, setWithholdingRegime] = useState('');
+	const [withholdingRatePercent, setWithholdingRatePercent] = useState('');
+	const [withholdingImputedAmount, setWithholdingImputedAmount] = useState('');
+
+	const [withholdingImputedTouched, setWithholdingImputedTouched] = useState(false);
+	const [existingWithholding, setExistingWithholding] = useState<Withholding | null>(null);
+	const [loadingExistingWithholding, setLoadingExistingWithholding] = useState(false);
+
+	const withholdingRequestIdRef = useRef(0);
+
+	const submittingPaymentRef = useRef(false);
+
 	// Preview only; the DB trigger (expenses_compute_iva_and_total) recomputes authoritatively.
 	const parsedPurchaseNetAmount = roundToTwoDecimals(parseArsToNumber(purchaseNetAmount));
 	const { ivaAmount: purchaseIvaAmount, totalAmount: purchaseTotalAmount } = computeIvaAndTotal(
@@ -76,7 +99,18 @@ export function usePurchasePaymentForms({
 		purchaseIvaPercent
 	);
 
+	const rawWithholdingImputedAmount = parseArsToNumber(withholdingImputedAmount);
+	const parsedWithholdingImputedAmount = roundToTwoDecimals(rawWithholdingImputedAmount);
+	const withholdingRateFraction = percentToRateFraction(Number(withholdingRatePercent) || 0);
+	const withholdingPreviewWithheld = roundToTwoDecimals(
+		parsedWithholdingImputedAmount * withholdingRateFraction
+	);
+	const withholdingPreviewTotal = roundToTwoDecimals(
+		parsedWithholdingImputedAmount - withholdingPreviewWithheld
+	);
+
 	const resetFormState = () => {
+		withholdingRequestIdRef.current += 1;
 		setEditingPurchase(null);
 		setPurchaseDate(getLocalDate());
 		setPurchaseVoucherTypeId(NO_VOUCHER_TYPE);
@@ -99,6 +133,13 @@ export function usePurchasePaymentForms({
 		setPaymentDescription('');
 		setStagedPurchaseFiles([]);
 		setStagedPaymentFiles([]);
+		setWithholdingEnabled(false);
+		setWithholdingRegime('');
+		setWithholdingRatePercent('');
+		setWithholdingImputedAmount('');
+		setWithholdingImputedTouched(false);
+		setExistingWithholding(null);
+		setLoadingExistingWithholding(false);
 	};
 
 	const resetOnClose = () => {
@@ -172,7 +213,31 @@ export function usePurchasePaymentForms({
 		setPaymentCategoryId(NO_CATEGORY);
 		setPaymentDescription('');
 		setStagedPaymentFiles([]);
+		setWithholdingEnabled(false);
+		setWithholdingRegime('');
+		setWithholdingRatePercent('');
+		setWithholdingImputedAmount('');
+		setWithholdingImputedTouched(false);
+		setExistingWithholding(null);
+		setLoadingExistingWithholding(false);
 		setView('payment-form');
+	};
+
+	const loadExistingWithholding = async (paymentId: number) => {
+		const requestId = ++withholdingRequestIdRef.current;
+		try {
+			const { data, error } = await getWithholdingByPaymentId(paymentId);
+			if (requestId !== withholdingRequestIdRef.current) return; // stale: a newer edit session took over
+			if (error) throw error;
+			setExistingWithholding(data ?? null);
+		} catch {
+			if (requestId !== withholdingRequestIdRef.current) return;
+			setExistingWithholding(null);
+		} finally {
+			if (requestId === withholdingRequestIdRef.current) {
+				setLoadingExistingWithholding(false);
+			}
+		}
 	};
 
 	const handleEditPayment = (purchase: SupplierExpenseListItem, payment: PaymentWithDetails) => {
@@ -190,7 +255,36 @@ export function usePurchasePaymentForms({
 		setPaymentCategoryId(payment.category_id ? String(payment.category_id) : NO_CATEGORY);
 		setPaymentDescription(payment.description ?? '');
 		setStagedPaymentFiles([]);
+		setWithholdingEnabled(false);
+		setWithholdingRegime('');
+		setWithholdingRatePercent('');
+		setWithholdingImputedAmount('');
+		setWithholdingImputedTouched(false);
+		setExistingWithholding(null);
+		setLoadingExistingWithholding(true);
 		setView('payment-form');
+		void loadExistingWithholding(payment.id);
+	};
+
+	// Imputado mirrors the payment amount until the user edits it manually.
+	const handlePaymentAmountChange = (value: string) => {
+		setPaymentAmount(value);
+		if (withholdingEnabled && !withholdingImputedTouched) {
+			setWithholdingImputedAmount(value);
+		}
+	};
+
+	const handleWithholdingEnabledChange = (checked: boolean) => {
+		setWithholdingEnabled(checked);
+		if (checked) {
+			setWithholdingImputedTouched(false);
+			setWithholdingImputedAmount(paymentAmount);
+		}
+	};
+
+	const handleWithholdingImputedAmountChange = (value: string) => {
+		setWithholdingImputedTouched(true);
+		setWithholdingImputedAmount(value);
 	};
 
 	const uploadStagedFiles = async (
@@ -290,71 +384,113 @@ export function usePurchasePaymentForms({
 		}
 	};
 
+	const finishPaymentCreated = async (
+		paymentId: number,
+		purchaseId: number,
+		withholding: boolean
+	) => {
+		const staged = stagedPaymentFiles;
+		const failed = await uploadStagedFiles(staged, paymentId, 'payment');
+		setStagedPaymentFiles([]);
+		if (failed > 0) {
+			toast({
+				variant: 'destructive',
+				title: 'Archivos adjuntos pendientes',
+				description: `El pago se creó, pero ${failed} de ${pluralFiles(staged.length)} ${notAttachments(failed)}. Podés reintentarlos desde la vista de edición.`,
+			});
+		} else if (staged.length > 0) {
+			toast({
+				title: 'Pago creado',
+				description: `${attachments(staged.length)} ${pluralFiles(staged.length)}.`,
+			});
+		} else {
+			toast({ title: 'Pago creado' });
+		}
+		onChanged?.();
+		await returnToDetail({ kind: 'payment', purchaseId, withholding });
+	};
+
 	const handleSubmitPayment = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!activePurchaseForPayment) return;
-		const parsedAmount = parseArsToNumber(paymentAmount);
-		if (!paymentAmount || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-			toast({
-				title: 'Datos incompletos',
-				description: 'Ingresá un monto válido para el pago.',
-				variant: 'destructive',
-			});
-			return;
-		}
-		setIsSubmittingPayment(true);
+		// Synchronous guard: a second submit before React re-renders with isSubmittingPayment is a no-op.
+		if (submittingPaymentRef.current) return;
+		submittingPaymentRef.current = true;
 		try {
-			const payload = {
-				date: paymentDate,
-				amount: roundToTwoDecimals(parsedAmount),
-				bank_account_id:
-					paymentBankAccountId === NO_BANK_ACCOUNT ? null : Number(paymentBankAccountId),
-				payment_method_id:
-					paymentMethodIdValue === NO_PAYMENT_METHOD ? null : Number(paymentMethodIdValue),
-				expense_id: activePurchaseForPayment.id,
-				description: paymentDescription.trim() || null,
-				receipt_number: paymentReceiptNumber.trim() || null,
-				category_id: paymentCategoryId === NO_CATEGORY ? null : Number(paymentCategoryId),
-				// Obra isn't asked here: it's inherited from the purchase, not chosen per-payment.
-				work_id: activePurchaseForPayment.work_id ?? null,
-			};
-			if (editingPayment) {
-				const { error } = await updatePayment(editingPayment.id, payload);
-				if (error) throw error;
-				toast({ title: 'Pago actualizado' });
-				onChanged?.();
-				await returnToDetail({ kind: 'payment', purchaseId: activePurchaseForPayment.id });
-			} else {
-				const { data, error } = await createPayment(payload);
-				if (error || !data) throw error;
-				const staged = stagedPaymentFiles;
-				const failed = await uploadStagedFiles(staged, data.id, 'payment');
-				setStagedPaymentFiles([]);
-				if (failed > 0) {
-					toast({
-						variant: 'destructive',
-						title: 'Archivos adjuntos pendientes',
-						description: `El pago se creó, pero ${failed} de ${pluralFiles(staged.length)} ${notAttachments(failed)}. Podés reintentarlos desde la vista de edición.`,
-					});
-				} else if (staged.length > 0) {
-					toast({
-						title: 'Pago creado',
-						description: `${attachments(staged.length)} ${pluralFiles(staged.length)}.`,
-					});
-				} else {
-					toast({ title: 'Pago creado' });
-				}
-				onChanged?.();
-				await returnToDetail({ kind: 'payment', purchaseId: activePurchaseForPayment.id });
+			if (!activePurchaseForPayment) return;
+			const parsedAmount = parseArsToNumber(paymentAmount);
+			if (!paymentAmount || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+				toast({
+					title: 'Datos incompletos',
+					description: 'Ingresá un monto válido para el pago.',
+					variant: 'destructive',
+				});
+				return;
 			}
-		} catch (error) {
-			toast({
-				title: 'Error',
-				description: translateError(error) || 'No se pudo guardar el pago.',
-				variant: 'destructive',
-			});
+			const creatingWithWithholding = !editingPayment && withholdingEnabled;
+			if (creatingWithWithholding) {
+				const withholdingError = validateWithholdingInput({
+					tax_regime: withholdingRegime,
+					rate: withholdingRateFraction,
+					imputed_amount: rawWithholdingImputedAmount,
+				});
+				if (withholdingError) {
+					toast({
+						title: 'Datos incompletos',
+						description: withholdingError,
+						variant: 'destructive',
+					});
+					return;
+				}
+			}
+			setIsSubmittingPayment(true);
+			try {
+				const amountToSend =
+					editingPayment && (loadingExistingWithholding || existingWithholding)
+						? editingPayment.amount
+						: roundToTwoDecimals(parsedAmount);
+				const payload = {
+					date: paymentDate,
+					amount: amountToSend,
+					bank_account_id:
+						paymentBankAccountId === NO_BANK_ACCOUNT ? null : Number(paymentBankAccountId),
+					payment_method_id:
+						paymentMethodIdValue === NO_PAYMENT_METHOD ? null : Number(paymentMethodIdValue),
+					expense_id: activePurchaseForPayment.id,
+					description: paymentDescription.trim() || null,
+					receipt_number: paymentReceiptNumber.trim() || null,
+					category_id: paymentCategoryId === NO_CATEGORY ? null : Number(paymentCategoryId),
+					work_id: activePurchaseForPayment.work_id ?? null,
+				};
+				if (editingPayment) {
+					const { error } = await updatePayment(editingPayment.id, payload);
+					if (error) throw error;
+					toast({ title: 'Pago actualizado' });
+					onChanged?.();
+					await returnToDetail({ kind: 'payment', purchaseId: activePurchaseForPayment.id });
+				} else if (creatingWithWithholding) {
+					const { data, error } = await createPaymentWithWithholding(payload, {
+						tax_regime: withholdingRegime.trim(),
+						rate: withholdingRateFraction,
+						imputed_amount: parsedWithholdingImputedAmount,
+					});
+					if (error || !data) throw error;
+					await finishPaymentCreated(data.id, activePurchaseForPayment.id, true);
+				} else {
+					const { data, error } = await createPayment(payload);
+					if (error || !data) throw error;
+					await finishPaymentCreated(data.id, activePurchaseForPayment.id, false);
+				}
+			} catch (error) {
+				toast({
+					title: 'Error',
+					description: translateError(error) || 'No se pudo guardar el pago.',
+					variant: 'destructive',
+				});
+			} finally {
+				setIsSubmittingPayment(false);
+			}
 		} finally {
-			setIsSubmittingPayment(false);
+			submittingPaymentRef.current = false;
 		}
 	};
 
@@ -418,6 +554,19 @@ export function usePurchasePaymentForms({
 		setStagedPaymentFiles,
 		remainingPurchaseBalance,
 		paymentExceedsBalance,
+		handlePaymentAmountChange,
+		withholdingEnabled,
+		onWithholdingEnabledChange: handleWithholdingEnabledChange,
+		withholdingRegime,
+		setWithholdingRegime,
+		withholdingRatePercent,
+		setWithholdingRatePercent,
+		withholdingImputedAmount,
+		onWithholdingImputedAmountChange: handleWithholdingImputedAmountChange,
+		withholdingPreviewWithheld,
+		withholdingPreviewTotal,
+		existingWithholding,
+		loadingExistingWithholding,
 		resetOnClose,
 		cancelForm,
 		returnToDetail,

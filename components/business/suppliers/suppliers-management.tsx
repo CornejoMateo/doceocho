@@ -3,6 +3,7 @@
 import { EditOnly } from '@/components/permissions/edit-scope';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { useCanView } from '@/hooks/permissions/use-can-view';
 import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,8 +38,14 @@ import { SupplierFormDialog } from '@/components/business/suppliers/supplier-for
 import { SupplierToggleActiveDialog } from '@/components/business/suppliers/supplier-toggle-active-dialog';
 import { SupplierDeleteDialog } from '@/components/business/suppliers/supplier-delete-dialog';
 import { SupplierDetailsDialog } from '@/components/business/suppliers/supplier-details-dialog';
+import { SupplierWithholdingsTab } from '@/components/business/suppliers/supplier-withholdings-tab';
 import { normalize as normalizeText } from '@/utils/normalize';
 import { translateError } from '@/lib/error-translator';
+
+const SUB_TAB_TRIGGER_CLASS =
+	'border-b-2 border-transparent px-1 pb-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=active]:border-accent data-[state=active]:text-foreground';
+
+type SupplierSubTab = 'listado' | 'retenciones';
 
 export function SuppliersManagement() {
 	const { user, loading: authLoading } = useAuth();
@@ -47,6 +54,7 @@ export function SuppliersManagement() {
 	const isAuthorized = useCanView()('cash-flow.suppliers');
 	const { suppliers, loading, error, refresh } = useSuppliers(isAuthorized);
 
+	const [subTab, setSubTab] = useState<SupplierSubTab>('listado');
 	const [search, setSearch] = useState('');
 	const [status, setStatus] = useState<SupplierStatusFilter>('active');
 	const [locality, setLocality] = useState<string>(ALL_LOCALITIES);
@@ -59,6 +67,7 @@ export function SuppliersManagement() {
 	const [selectedSupplier, setSelectedSupplier] = useState<{ id: number; name: string } | null>(
 		null
 	);
+	const [withholdingsRefreshToken, setWithholdingsRefreshToken] = useState(0);
 
 	const [balances, setBalances] = useState<Map<number, SupplierAccountSummary> | null>(null);
 	const [balancesLoading, setBalancesLoading] = useState(true);
@@ -237,94 +246,117 @@ export function SuppliersManagement() {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex justify-end">
-				<EditOnly edit="cash-flow.suppliers">
-					<Button onClick={() => openForm(null)} className="gap-2">
-						<Plus className="h-4 w-4" />
-						Nuevo proveedor
-					</Button>
-				</EditOnly>
-			</div>
+			<TabsPrimitive.Root
+				value={subTab}
+				onValueChange={(value) => setSubTab(value as SupplierSubTab)}
+			>
+				<TabsPrimitive.List
+					className="flex gap-6 border-b border-border"
+					aria-label="Secciones de proveedores"
+				>
+					<TabsPrimitive.Trigger value="listado" className={SUB_TAB_TRIGGER_CLASS}>
+						Listado
+					</TabsPrimitive.Trigger>
+					<TabsPrimitive.Trigger value="retenciones" className={SUB_TAB_TRIGGER_CLASS}>
+						Retenciones
+					</TabsPrimitive.Trigger>
+				</TabsPrimitive.List>
 
-			<div className="flex flex-col gap-3 sm:flex-row">
-				<div className="relative flex-1">
-					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Buscar por nombre, razón social, CUIT, rubro, email o ubicación"
-						className="pl-9"
-					/>
-				</div>
-				<Select value={status} onValueChange={(v) => setStatus(v as SupplierStatusFilter)}>
-					<SelectTrigger className="sm:w-[160px]">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{SUPPLIER_STATUS_FILTERS.map((f) => (
-							<SelectItem key={f.value} value={f.value}>
-								{f.label}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-				{(localities.length > 0 || effectiveLocality !== ALL_LOCALITIES) && (
-					<Select value={effectiveLocality} onValueChange={setLocality}>
-						<SelectTrigger className="sm:w-[180px]">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value={ALL_LOCALITIES}>Todas las localidades</SelectItem>
-							{localities.map((l) => (
-								<SelectItem key={l} value={l}>
-									{l}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				)}
-			</div>
+				<TabsPrimitive.Content value="listado" className="space-y-4 pt-4 outline-none">
+					<div className="flex justify-end">
+						<EditOnly edit="cash-flow.suppliers">
+							<Button onClick={() => openForm(null)} className="gap-2">
+								<Plus className="h-4 w-4" />
+								Nuevo proveedor
+							</Button>
+						</EditOnly>
+					</div>
 
-			{loading ? (
-				<Card className="p-8 text-center text-muted-foreground">Cargando proveedores...</Card>
-			) : error ? (
-				<Card className="p-8 text-center space-y-3">
-					<p className="text-destructive">{error}</p>
-					<Button variant="outline" onClick={() => refresh()}>
-						Reintentar
-					</Button>
-				</Card>
-			) : filtered.length === 0 ? (
-				<Card className="bg-card border-border p-8 text-center text-muted-foreground">
-					{suppliers.length === 0
-						? 'Todavía no hay proveedores registrados'
-						: 'No hay proveedores que coincidan con la búsqueda'}
-				</Card>
-			) : (
-				<>
-					<SuppliersTable
-						suppliers={pageItems}
-						busy={busy}
-						onEdit={openForm}
-						onToggleActive={(supplier) => setToToggle((current) => current ?? supplier)}
-						onDelete={setToDelete}
-						onSupplierClick={(supplier) =>
-							setSelectedSupplier({ id: supplier.id, name: supplier.name })
-						}
-						balances={balances}
-						balancesLoading={balancesLoading}
-						balancesError={balancesError}
-					/>
-					<PaginationControls
-						currentPage={currentPage}
-						totalPages={totalPages}
-						totalItems={filtered.length}
-						itemsPerPage={SUPPLIERS_PAGE_SIZE}
-						onPageChange={setPage}
-						itemLabel="proveedores"
-					/>
-				</>
-			)}
+					<div className="flex flex-col gap-3 sm:flex-row">
+						<div className="relative flex-1">
+							<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Input
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+								placeholder="Buscar por nombre, razón social, CUIT, rubro, email o ubicación"
+								className="pl-9"
+							/>
+						</div>
+						<Select value={status} onValueChange={(v) => setStatus(v as SupplierStatusFilter)}>
+							<SelectTrigger className="sm:w-[160px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{SUPPLIER_STATUS_FILTERS.map((f) => (
+									<SelectItem key={f.value} value={f.value}>
+										{f.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{(localities.length > 0 || effectiveLocality !== ALL_LOCALITIES) && (
+							<Select value={effectiveLocality} onValueChange={setLocality}>
+								<SelectTrigger className="sm:w-[180px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value={ALL_LOCALITIES}>Todas las localidades</SelectItem>
+									{localities.map((l) => (
+										<SelectItem key={l} value={l}>
+											{l}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						)}
+					</div>
+
+					{loading ? (
+						<Card className="p-8 text-center text-muted-foreground">Cargando proveedores...</Card>
+					) : error ? (
+						<Card className="p-8 text-center space-y-3">
+							<p className="text-destructive">{error}</p>
+							<Button variant="outline" onClick={() => refresh()}>
+								Reintentar
+							</Button>
+						</Card>
+					) : filtered.length === 0 ? (
+						<Card className="bg-card border-border p-8 text-center text-muted-foreground">
+							{suppliers.length === 0
+								? 'Todavía no hay proveedores registrados'
+								: 'No hay proveedores que coincidan con la búsqueda'}
+						</Card>
+					) : (
+						<>
+							<SuppliersTable
+								suppliers={pageItems}
+								busy={busy}
+								onEdit={openForm}
+								onToggleActive={(supplier) => setToToggle((current) => current ?? supplier)}
+								onDelete={setToDelete}
+								onSupplierClick={(supplier) =>
+									setSelectedSupplier({ id: supplier.id, name: supplier.name })
+								}
+								balances={balances}
+								balancesLoading={balancesLoading}
+								balancesError={balancesError}
+							/>
+							<PaginationControls
+								currentPage={currentPage}
+								totalPages={totalPages}
+								totalItems={filtered.length}
+								itemsPerPage={SUPPLIERS_PAGE_SIZE}
+								onPageChange={setPage}
+								itemLabel="proveedores"
+							/>
+						</>
+					)}
+				</TabsPrimitive.Content>
+
+				<TabsPrimitive.Content value="retenciones" className="pt-4 outline-none">
+					<SupplierWithholdingsTab suppliers={suppliers} refreshToken={withholdingsRefreshToken} />
+				</TabsPrimitive.Content>
+			</TabsPrimitive.Root>
 
 			<SupplierFormDialog
 				open={isFormOpen}
@@ -350,6 +382,7 @@ export function SuppliersManagement() {
 				open={!!selectedSupplier}
 				onOpenChange={handleSupplierDetailsOpenChange}
 				onClosed={handleSupplierDetailsClosed}
+				onWithholdingSaved={() => setWithholdingsRefreshToken((t) => t + 1)}
 			/>
 		</div>
 	);

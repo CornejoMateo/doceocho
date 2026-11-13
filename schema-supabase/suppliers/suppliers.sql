@@ -376,3 +376,69 @@ $$;
 
 REVOKE ALL ON FUNCTION public.delete_payment_supplier(bigint) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.delete_payment_supplier(bigint) TO authenticated;
+
+-- RLS: use is_admin_role
+
+DROP POLICY IF EXISTS "Public select suppliers" ON public.suppliers;
+CREATE POLICY "Public select suppliers"
+ON public.suppliers
+FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public insert suppliers" ON public.suppliers;
+CREATE POLICY "Public insert suppliers"
+ON public.suppliers
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public delete suppliers" ON public.suppliers;
+CREATE POLICY "Public delete suppliers"
+ON public.suppliers
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public update suppliers" ON public.suppliers;
+CREATE POLICY "Public update suppliers"
+ON public.suppliers
+FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);

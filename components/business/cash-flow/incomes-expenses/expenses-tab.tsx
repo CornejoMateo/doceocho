@@ -26,6 +26,7 @@ export function ExpensesTab({ categoriesConfig }: ExpensesTabProps) {
 				onAddPayment={setExpenseForPayment}
 				cascadeDeleteWarning
 				attachmentsKind="expense"
+				lockPartyOnEdit
 			/>
 
 			{expenseForPayment && (

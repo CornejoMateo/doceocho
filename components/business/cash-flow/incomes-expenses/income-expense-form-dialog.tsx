@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import {
 	Dialog,
 	DialogContent,
@@ -5,6 +6,16 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
 	Select,
 	SelectContent,
@@ -82,6 +93,7 @@ type IncomeExpenseFormDialogProps = {
 	saving: boolean;
 	onSubmit: (e: React.FormEvent) => void;
 	errors: IncomeExpenseFormErrors;
+	lockPartyOnEdit?: boolean;
 	attachmentsKind?: 'expense' | 'income';
 	stagedFiles?: StagedFile[];
 	onStagedFilesChange?: (files: StagedFile[]) => void;
@@ -134,6 +146,7 @@ export function IncomeExpenseFormDialog({
 	saving,
 	onSubmit,
 	errors,
+	lockPartyOnEdit = false,
 	attachmentsKind,
 	stagedFiles = [],
 	onStagedFilesChange,
@@ -141,6 +154,15 @@ export function IncomeExpenseFormDialog({
 }: IncomeExpenseFormDialogProps) {
 	const filterWorksByParty = partyLabel === 'Cliente';
 	const selectedPartyId = partyId ? Number(partyId) : null;
+
+	// Locked only while editing an entry that already had a party when the form opened; resets on open/entry change.
+	const [partyUnlocked, setPartyUnlocked] = useState(false);
+	const [removePartyConfirmOpen, setRemovePartyConfirmOpen] = useState(false);
+	const justConfirmedRemovalRef = useRef(false);
+	useEffect(() => {
+		if (open) setPartyUnlocked(false);
+	}, [open, editingEntry?.id]);
+	const partyLocked = lockPartyOnEdit && !!editingEntry?.party_id && !partyUnlocked;
 	const filteredWorks =
 		filterWorksByParty && selectedPartyId
 			? works.filter((work) => work.client_id === selectedPartyId || String(work.id) === workId)
@@ -252,7 +274,9 @@ export function IncomeExpenseFormDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="ie-party">{`${partyLabel} (opcional)`}</Label>
+						<Label htmlFor="ie-party">
+							{partyLocked ? partyLabel : `${partyLabel} (opcional)`}
+						</Label>
 						<div className="flex gap-2">
 							<div className="flex-1">
 								<EntityCombobox
@@ -263,14 +287,59 @@ export function IncomeExpenseFormDialog({
 									placeholder={`Selecciona un/a ${partyLabel.toLowerCase()}`}
 									searchPlaceholder={`Buscar ${partyLabel.toLowerCase()}...`}
 									emptyLabel="No se encontraron resultados"
+									disabled={partyLocked}
 								/>
 							</div>
-							{partyId && (
-								<Button type="button" variant="outline" onClick={() => handlePartyChange('')}>
-									Quitar
+							{partyLocked ? (
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setRemovePartyConfirmOpen(true)}
+								>
+									Quitar {partyLabel.toLowerCase()}
 								</Button>
+							) : (
+								partyId && (
+									<Button type="button" variant="outline" onClick={() => handlePartyChange('')}>
+										Quitar
+									</Button>
+								)
 							)}
 						</div>
+
+						{/* Rendered inside DialogContent (not a sibling) per dialog-nesting-convention: this AlertDialog can open while the form Dialog stays open. */}
+						<AlertDialog open={removePartyConfirmOpen} onOpenChange={setRemovePartyConfirmOpen}>
+							<AlertDialogContent
+								onCloseAutoFocus={(e) => {
+									if (!justConfirmedRemovalRef.current) return;
+									e.preventDefault();
+									justConfirmedRemovalRef.current = false;
+									document.getElementById('ie-party')?.focus();
+								}}
+							>
+								<AlertDialogHeader>
+									<AlertDialogTitle>{`¿Quitar ${partyLabel.toLowerCase()}?`}</AlertDialogTitle>
+									<AlertDialogDescription>
+										Si guardás, el gasto no va a tener más proveedor y esto afecta a las
+										retenciones.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancelar</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={(e) => {
+											e.preventDefault();
+											justConfirmedRemovalRef.current = true;
+											handlePartyChange('');
+											setPartyUnlocked(true);
+											setRemovePartyConfirmOpen(false);
+										}}
+									>
+										Confirmar
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
 					</div>
 
 					<div className="space-y-2">

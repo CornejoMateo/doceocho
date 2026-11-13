@@ -41,6 +41,7 @@ interface SupplierDetailsDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onClosed?: (changed: boolean) => void;
+	onWithholdingSaved?: () => void;
 }
 
 export function SupplierDetailsDialog({
@@ -49,6 +50,7 @@ export function SupplierDetailsDialog({
 	open,
 	onOpenChange,
 	onClosed,
+	onWithholdingSaved,
 }: SupplierDetailsDialogProps) {
 	const [activeTab, setActiveTab] = useState<TabValue>('pending');
 	const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<Set<number>>(new Set());
@@ -85,14 +87,17 @@ export function SupplierDetailsDialog({
 	const refreshAfterMutation = async ({
 		kind,
 		purchaseId,
+		withholding,
 	}: {
 		kind: 'purchase' | 'payment';
 		purchaseId: number;
+		withholding?: boolean;
 	}) => {
 		const tasks: Promise<unknown>[] = [totals.fetchTotals(), currentTab.refetchFirstPage()];
 		if (kind === 'payment') tasks.push(purchasePayments.loadPayments(purchaseId));
 		otherTab.invalidate();
 		await Promise.all(tasks);
+		if (kind === 'payment' && withholding) onWithholdingSaved?.();
 	};
 
 	const forms = usePurchasePaymentForms({
@@ -329,7 +334,7 @@ export function SupplierDetailsDialog({
 						editingPayment={forms.editingPayment}
 						activePurchaseForPayment={forms.activePurchaseForPayment}
 						paymentAmount={forms.paymentAmount}
-						onAmountChange={forms.setPaymentAmount}
+						onAmountChange={forms.handlePaymentAmountChange}
 						paymentDate={forms.paymentDate}
 						onDateChange={forms.setPaymentDate}
 						remainingPurchaseBalance={forms.remainingPurchaseBalance}
@@ -355,6 +360,18 @@ export function SupplierDetailsDialog({
 						onStagedChange={forms.setStagedPaymentFiles}
 						onSubmit={forms.handleSubmitPayment}
 						onCancel={forms.cancelForm}
+						withholdingEnabled={forms.withholdingEnabled}
+						onWithholdingEnabledChange={forms.onWithholdingEnabledChange}
+						withholdingRegime={forms.withholdingRegime}
+						onWithholdingRegimeChange={forms.setWithholdingRegime}
+						withholdingRatePercent={forms.withholdingRatePercent}
+						onWithholdingRatePercentChange={forms.setWithholdingRatePercent}
+						withholdingImputedAmount={forms.withholdingImputedAmount}
+						onWithholdingImputedAmountChange={forms.onWithholdingImputedAmountChange}
+						withholdingPreviewWithheld={forms.withholdingPreviewWithheld}
+						withholdingPreviewTotal={forms.withholdingPreviewTotal}
+						existingWithholding={forms.existingWithholding}
+						loadingExistingWithholding={forms.loadingExistingWithholding}
 					/>
 				)}
 

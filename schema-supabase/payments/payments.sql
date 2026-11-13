@@ -146,3 +146,80 @@ ALTER TABLE public.payments DROP CONSTRAINT IF EXISTS payments_description_lengt
 ALTER TABLE public.payments
   ADD CONSTRAINT payments_description_length_check
   CHECK (description IS NULL OR char_length(description) <= 2000);
+
+-- RLS: use is_admin_role
+
+DROP POLICY IF EXISTS "Public select payments" ON public.payments;
+CREATE POLICY "Public select payments"
+ON public.payments
+FOR SELECT
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public insert payments" ON public.payments;
+CREATE POLICY "Public insert payments"
+ON public.payments
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public update payments" ON public.payments;
+CREATE POLICY "Public update payments"
+ON public.payments
+FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+DROP POLICY IF EXISTS "Public delete payments" ON public.payments;
+CREATE POLICY "Public delete payments"
+ON public.payments
+FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1
+        FROM public.users u
+        WHERE u.uid_user = auth.uid()
+            AND public.is_admin_role(u.role)
+    )
+);
+
+CREATE OR REPLACE FUNCTION public.payments_block_change_with_withholding() RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
+BEGIN
+  IF (NEW.amount IS DISTINCT FROM OLD.amount OR NEW.expense_id IS DISTINCT FROM OLD.expense_id)
+     AND EXISTS (SELECT 1 FROM public.withholdings w WHERE w.payment_id = OLD.id) THEN
+    RAISE EXCEPTION 'No se puede modificar el monto ni el gasto de un pago que tiene retención';
+  END IF;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS trg_payments_block_change_with_withholding ON public.payments;
+CREATE TRIGGER trg_payments_block_change_with_withholding BEFORE UPDATE OF amount, expense_id ON public.payments FOR EACH ROW EXECUTE FUNCTION public.payments_block_change_with_withholding();

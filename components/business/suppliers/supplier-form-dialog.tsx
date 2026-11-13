@@ -14,11 +14,23 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Supplier, SupplierInput, createSupplier, updateSupplier } from '@/lib/suppliers/suppliers';
 import { isDuplicateTaxIdError } from '@/helpers/suppliers/suppliers';
 import { formatCuit, onlyDigits } from '@/lib/suppliers/validation';
 import { translateError } from '@/lib/error-translator';
+import {
+	INCOME_TAX_CONDITION_LABELS,
+	IncomeTaxCondition,
+	isIncomeTaxCondition,
+} from '@/lib/withholdings/withholdings';
 import {
 	SUPPLIER_ADDRESS_MAX_LENGTH,
 	SUPPLIER_EMAIL_MAX_LENGTH,
@@ -53,6 +65,7 @@ export function SupplierFormDialog({
 	const [address, setAddress] = useState('');
 	const [paymentTerms, setPaymentTerms] = useState('');
 	const [notes, setNotes] = useState('');
+	const [incomeTaxCondition, setIncomeTaxCondition] = useState<IncomeTaxCondition | ''>('');
 	const [isActive, setIsActive] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,6 +89,7 @@ export function SupplierFormDialog({
 			supplier?.payment_terms_days != null ? String(supplier.payment_terms_days) : ''
 		);
 		setNotes(supplier?.notes ?? '');
+		setIncomeTaxCondition(supplier?.income_tax_condition ?? '');
 		setIsActive(supplier?.is_active ?? true);
 	}, [open, supplier]);
 
@@ -98,6 +112,14 @@ export function SupplierFormDialog({
 			});
 			return;
 		}
+		if (!isIncomeTaxCondition(incomeTaxCondition)) {
+			toast({
+				title: 'Datos incompletos',
+				description: 'Seleccioná la condición en Ganancias',
+				variant: 'destructive',
+			});
+			return;
+		}
 
 		const orNull = (v: string) => (v.trim() ? v.trim() : null);
 		// is_active is deliberately not part of this payload: edits never change the state.
@@ -112,6 +134,7 @@ export function SupplierFormDialog({
 			address: orNull(address),
 			payment_terms_days: paymentTerms.trim() ? Number(paymentTerms) : null,
 			notes: orNull(notes),
+			income_tax_condition: incomeTaxCondition,
 		};
 
 		setIsSubmitting(true);
@@ -217,6 +240,27 @@ export function SupplierFormDialog({
 								maxLength={SUPPLIER_EMAIL_MAX_LENGTH}
 							/>
 						</div>
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="supplier-income-tax-condition">Condición en Ganancias *</Label>
+						<Select
+							value={incomeTaxCondition}
+							onValueChange={(v) => setIncomeTaxCondition(v as IncomeTaxCondition)}
+						>
+							<SelectTrigger id="supplier-income-tax-condition">
+								<SelectValue placeholder="Seleccionar condición" />
+							</SelectTrigger>
+							<SelectContent>
+								{(
+									Object.entries(INCOME_TAX_CONDITION_LABELS) as [IncomeTaxCondition, string][]
+								).map(([value, label]) => (
+									<SelectItem key={value} value={value}>
+										{label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
 					<fieldset className="space-y-4 rounded-md border border-border p-4">

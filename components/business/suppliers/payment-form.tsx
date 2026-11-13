@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
 	Select,
 	SelectContent,
@@ -16,6 +17,7 @@ import type { PaymentWithDetails } from '@/lib/payments/payments';
 import type { BankAccount } from '@/lib/cash-flow/cash-flow';
 import type { PaymentMethod } from '@/lib/payment-methods/payment-methods';
 import type { CashFlowCategory } from '@/lib/categories/categories';
+import type { Withholding } from '@/lib/withholdings/withholdings';
 import {
 	NO_BANK_ACCOUNT,
 	NO_PAYMENT_METHOD,
@@ -57,6 +59,18 @@ interface PaymentFormProps {
 	onStagedChange: (files: StagedFile[]) => void;
 	onSubmit: (e: React.FormEvent) => void;
 	onCancel: () => void;
+	withholdingEnabled: boolean;
+	onWithholdingEnabledChange: (checked: boolean) => void;
+	withholdingRegime: string;
+	onWithholdingRegimeChange: (value: string) => void;
+	withholdingRatePercent: string;
+	onWithholdingRatePercentChange: (value: string) => void;
+	withholdingImputedAmount: string;
+	onWithholdingImputedAmountChange: (value: string) => void;
+	withholdingPreviewWithheld: number;
+	withholdingPreviewTotal: number;
+	existingWithholding: Withholding | null;
+	loadingExistingWithholding: boolean;
 }
 
 export function PaymentForm({
@@ -89,7 +103,23 @@ export function PaymentForm({
 	onStagedChange,
 	onSubmit,
 	onCancel,
+	withholdingEnabled,
+	onWithholdingEnabledChange,
+	withholdingRegime,
+	onWithholdingRegimeChange,
+	withholdingRatePercent,
+	onWithholdingRatePercentChange,
+	withholdingImputedAmount,
+	onWithholdingImputedAmountChange,
+	withholdingPreviewWithheld,
+	withholdingPreviewTotal,
+	existingWithholding,
+	loadingExistingWithholding,
 }: PaymentFormProps) {
+	// Locked while we don't yet know (loading) or while a withholding exists: the amount can never change then.
+	const isAmountLocked = !!editingPayment && (loadingExistingWithholding || !!existingWithholding);
+	// Disabled while the withholding lookup is in flight, so the user can't submit before we know if one exists.
+	const isSubmitDisabled = isSubmitting || (!!editingPayment && loadingExistingWithholding);
 	const categoryOptions = withInactiveSelected(
 		activePaymentCategories,
 		paymentCategories,
@@ -145,9 +175,10 @@ export function PaymentForm({
 							value={paymentAmount}
 							onChange={(e) => onAmountChange(formatNumber(e.target.value))}
 							required
+							disabled={isAmountLocked}
 							className="flex-1"
 						/>
-						{remainingPurchaseBalance > 0 && (
+						{!isAmountLocked && remainingPurchaseBalance > 0 && (
 							<Button
 								type="button"
 								variant="outline"
@@ -161,13 +192,115 @@ export function PaymentForm({
 							</Button>
 						)}
 					</div>
-					{paymentExceedsBalance && (
+					{!isAmountLocked && paymentExceedsBalance && (
 						<p className="text-xs text-amber-600 dark:text-amber-400">
 							El monto supera el saldo pendiente de la compra (
 							{formatCurrency(remainingPurchaseBalance)}).
 						</p>
 					)}
 				</div>
+
+				{!editingPayment && (
+					<div className="space-y-3 rounded-lg border border-border p-3">
+						<div className="flex items-center gap-2">
+							<Switch
+								id="payment-withholding-enabled"
+								checked={withholdingEnabled}
+								onCheckedChange={onWithholdingEnabledChange}
+							/>
+							<Label htmlFor="payment-withholding-enabled">Aplicar retención</Label>
+						</div>
+						{withholdingEnabled && (
+							<div className="space-y-3">
+								<div className="space-y-2">
+									<Label htmlFor="withholding-regime">Régimen</Label>
+									<Input
+										id="withholding-regime"
+										value={withholdingRegime}
+										onChange={(e) => onWithholdingRegimeChange(e.target.value)}
+										maxLength={120}
+										required
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="withholding-rate">Alícuota (%)</Label>
+									<Input
+										id="withholding-rate"
+										type="number"
+										min={0}
+										max={100}
+										step="0.01"
+										value={withholdingRatePercent}
+										onChange={(e) => onWithholdingRatePercentChange(e.target.value)}
+										required
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="withholding-imputed">Imputado</Label>
+									<Input
+										id="withholding-imputed"
+										type="text"
+										placeholder="0,00"
+										value={withholdingImputedAmount}
+										onChange={(e) => onWithholdingImputedAmountChange(formatNumber(e.target.value))}
+										required
+									/>
+								</div>
+								<div className="grid grid-cols-2 gap-3 text-sm">
+									<div>
+										<p className="text-muted-foreground">Retenido</p>
+										<p className="font-medium">{formatCurrency(withholdingPreviewWithheld)}</p>
+									</div>
+									<div>
+										<p className="text-muted-foreground">Total</p>
+										<p className="font-medium">{formatCurrency(withholdingPreviewTotal)}</p>
+									</div>
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+
+				{editingPayment && (loadingExistingWithholding || existingWithholding) && (
+					<div className="space-y-3 rounded-lg border border-border p-3 text-sm">
+						{loadingExistingWithholding ? (
+							<p className="text-muted-foreground">Cargando datos de retención...</p>
+						) : (
+							existingWithholding && (
+								<>
+									<p className="text-muted-foreground">
+										Este pago tiene una retención: para cambiar el monto, eliminá el pago y creálo
+										de nuevo.
+									</p>
+									<div className="grid grid-cols-2 gap-3">
+										<div>
+											<p className="text-muted-foreground">Régimen</p>
+											<p className="font-medium">{existingWithholding.tax_regime}</p>
+										</div>
+										<div>
+											<p className="text-muted-foreground">Alícuota</p>
+											<p className="font-medium">
+												{(existingWithholding.rate * 100).toLocaleString('es-AR')}%
+											</p>
+										</div>
+										<div>
+											<p className="text-muted-foreground">Imputado</p>
+											<p className="font-medium">
+												{formatCurrency(existingWithholding.imputed_amount)}
+											</p>
+										</div>
+										<div>
+											<p className="text-muted-foreground">Retenido</p>
+											<p className="font-medium">
+												{formatCurrency(existingWithholding.withheld_amount)}
+											</p>
+										</div>
+									</div>
+								</>
+							)
+						)}
+					</div>
+				)}
 
 				<div className="space-y-2">
 					<Label htmlFor="payment-bank-account">Cuenta bancaria (opcional)</Label>
@@ -255,7 +388,7 @@ export function PaymentForm({
 				/>
 
 				<div className="flex gap-2">
-					<Button type="submit" disabled={isSubmitting} className="flex-1">
+					<Button type="submit" disabled={isSubmitDisabled} className="flex-1">
 						{isSubmitting ? 'Guardando...' : editingPayment ? 'Actualizar' : 'Crear'}
 					</Button>
 					<Button type="button" variant="outline" onClick={onCancel}>

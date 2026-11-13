@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Edit, Ban, RotateCcw, Trash2 } from 'lucide-react';
+import { Edit, Ban, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { AddressLink } from '@/components/ui/address-link';
 import { Supplier } from '@/lib/suppliers/suppliers';
 import { isValidEmail, formatCuit, getWhatsappUrl } from '@/lib/suppliers/validation';
@@ -172,6 +172,19 @@ export function SuppliersTable({
 		</Badge>
 	);
 
+	const incomeTaxConditionWarning = (s: Supplier) =>
+		s.income_tax_condition === null ? (
+			<Badge
+				variant="outline"
+				className="gap-1 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400"
+				aria-label={`Falta condición en Ganancias para ${s.name}`}
+				title="Falta condición en Ganancias"
+			>
+				<TriangleAlert className="h-3 w-3" aria-hidden="true" />
+				Falta condición en Ganancias
+			</Badge>
+		) : null;
+
 	const balanceBadge = (s: Supplier) => (
 		<SupplierBalanceBadge
 			summary={balances?.get(s.id)}
@@ -210,7 +223,10 @@ export function SuppliersTable({
 									onKeyDown={(e) => handleRowKeyDown(e, s)}
 								>
 									<TableCell>
-										<div className="font-medium text-center">{s.name}</div>
+										<div className="flex items-center justify-center gap-2">
+											<span className="font-medium">{s.name}</span>
+											{incomeTaxConditionWarning(s)}
+										</div>
 										{s.business_name && (
 											<div className="text-xs text-muted-foreground text-center">
 												{s.business_name}
@@ -257,7 +273,10 @@ export function SuppliersTable({
 					>
 						<div className="flex items-start justify-between gap-2">
 							<div>
-								<div className="font-medium">{s.name}</div>
+								<div className="flex items-center gap-2">
+									<span className="font-medium">{s.name}</span>
+									{incomeTaxConditionWarning(s)}
+								</div>
 								{s.business_name && (
 									<div className="text-xs text-muted-foreground">{s.business_name}</div>
 								)}
